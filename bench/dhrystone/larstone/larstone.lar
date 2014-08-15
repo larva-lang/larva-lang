@@ -1,0 +1,196 @@
+import time
+
+func new_record():
+    return [nil, 0, 0, 0, nil]
+
+func assign_record(a, b):
+    a[0] = b[0]
+    a[1] = b[1]
+    a[2] = b[2]
+    a[3] = b[3]
+    a[4] = b[4]
+
+LOOPS = 50000000
+
+Ident1 = 1
+Ident2 = 2
+Ident3 = 3
+Ident4 = 4
+Ident5 = 5
+
+IntGlob = 0
+BoolGlob = false
+Char1Glob = 0
+Char2Glob = 0
+Array1Glob = [0] * 51
+func _init_Array2Glob():
+    a = []
+    for i in range(51):
+        a.add([0] * 51)
+    return a
+Array2Glob = _init_Array2Glob()
+
+PtrGlb = nil
+PtrGlbNext = nil
+
+func Func3(EnumParIn):
+    EnumLoc = EnumParIn
+    if EnumLoc == Ident3:
+        return true
+    return false
+
+func Func2(StrParI1, StrParI2):
+    IntLoc = 1
+    CharLoc = 0
+    while IntLoc <= 1:
+        if Func1(StrParI1.ord_at(IntLoc), StrParI2.ord_at(IntLoc + 1)) == Ident1:
+            CharLoc = 65
+            IntLoc = IntLoc + 1
+    if CharLoc >= 87 and CharLoc <= 90:
+        IntLoc = 7
+    if CharLoc == 88:
+        return true
+    else:
+        if StrParI1 > StrParI2:
+            IntLoc = IntLoc + 7
+            return true
+        else:
+            return false
+
+func Func1(CharPar1, CharPar2):
+    CharLoc1 = CharPar1
+    CharLoc2 = CharLoc1
+    if CharLoc2 != CharPar2:
+        return Ident1
+    else:
+        return Ident2
+
+func Proc8(Array1Par, Array2Par, IntParI1, IntParI2):
+    global IntGlob
+    IntLoc = IntParI1 + 5
+    Array1Par[IntLoc] = IntParI2
+    Array1Par[IntLoc + 1] = Array1Par[IntLoc]
+    Array1Par[IntLoc + 30] = IntLoc
+    IntIndex = IntLoc
+    while IntIndex <= IntLoc + 1:
+        Array2Par[IntLoc][IntIndex] = IntLoc
+        IntIndex = IntIndex + 1
+    Array2Par[IntLoc][IntLoc - 1] = Array2Par[IntLoc][IntLoc - 1] + 1
+    Array2Par[IntLoc + 20][IntLoc] = Array1Par[IntLoc]
+    IntGlob = 5
+
+func Proc7(IntParI1, IntParI2):
+    IntLoc = IntParI1 + 2
+    IntParOut = IntParI2 + IntLoc
+    return IntParOut
+
+func Proc6(EnumParIn):
+    EnumParOut = EnumParIn
+    if not Func3(EnumParIn):
+        EnumParOut = Ident4
+    if not (EnumParIn == Ident1):
+        EnumParOut = Ident1
+    elif EnumParIn == Ident2:
+        if IntGlob > 100:
+            EnumParOut = Ident1
+        else:
+            EnumParOut = Ident4
+    elif EnumParIn == Ident3:
+        EnumParOut = Ident2
+    elif EnumParIn == Ident4:
+        pass
+    elif EnumParIn == Ident5:
+        EnumParOut = Ident3
+    return EnumParOut
+
+func Proc5():
+    global BoolGlob, Char1Glob
+    Char1Glob = 65
+    BoolGlob = false
+
+func Proc4():
+    global Char2Glob
+    BoolLoc = Char1Glob == 65
+    BoolLoc = BoolLoc or BoolGlob
+    Char2Glob = 66
+
+func Proc3(PtrParOut):
+    global IntGlob
+    if PtrGlb != nil:
+        PtrParOut = PtrGlb[0]
+    else:
+        IntGlob = 100
+    PtrGlb[3] = Proc7(10, IntGlob)
+    return PtrParOut
+
+func Proc2(IntParIO):
+    IntLoc = IntParIO + 10
+    EnumLoc = 0
+    while true:
+        if Char1Glob == 65:
+            IntLoc = IntLoc - 1
+            IntParIO = IntLoc - IntGlob
+            EnumLoc = Ident1
+        if EnumLoc == Ident1:
+            break
+    return IntParIO
+
+func Proc1(PtrParIn):
+    NextRecord = PtrParIn[0]
+    assign_record(NextRecord, PtrGlb)
+    PtrParIn[3] = 5
+    NextRecord[3] = PtrParIn[3]
+    NextRecord[0] = PtrParIn[0]
+    NextRecord[0] = Proc3(NextRecord[0])
+    if NextRecord[1] == Ident1:
+        NextRecord[3] = 6
+        NextRecord[2] = Proc6(PtrParIn[2])
+        NextRecord[0] = PtrGlb[0]
+        NextRecord[3] = Proc7(NextRecord[3], 10)
+    else:
+        assign_record(PtrParIn, NextRecord)
+    return PtrParIn
+
+func Proc0():
+    global PtrGlbNext, PtrGlb, BoolGlob
+    PtrGlbNext = new_record()
+    PtrGlb = new_record()
+    PtrGlb[0] = PtrGlbNext
+    PtrGlb[1] = Ident1
+    PtrGlb[2] = Ident3
+    PtrGlb[3] = 40
+    PtrGlb[4] = "DHRYSTONE PROGRAM, SOME STRING"
+    String1Loc = "DHRYSTONE PROGRAM, 1'ST STRING"
+    Array2Glob[8][7] = 10
+
+    for i in range(LOOPS):
+        Proc5()
+        Proc4()
+        IntLoc1 = 2
+        IntLoc2 = 3
+        String2Loc = "DHRYSTONE PROGRAM, 2'ND STRING"
+        EnumLoc = Ident2
+        BoolGlob = not Func2(String1Loc, String2Loc)
+        IntLoc3 = 0
+        while IntLoc1 < IntLoc2:
+            IntLoc3 = 5 * IntLoc1 - IntLoc2
+            IntLoc3 = Proc7(IntLoc1, IntLoc2)
+            IntLoc1 = IntLoc1 + 1
+        Proc8(Array1Glob, Array2Glob, IntLoc1, IntLoc3)
+        PtrGlb = Proc1(PtrGlb)
+        CharIndex = 65
+        while CharIndex <= Char2Glob:
+            if EnumLoc == Func1(CharIndex, 67):
+                EnumLoc = Proc6(Ident1)
+            CharIndex = CharIndex + 1
+        IntLoc3 = IntLoc2 * IntLoc1
+        IntLoc2 = IntLoc3 / IntLoc1
+        IntLoc2 = 7 * (IntLoc3 - IntLoc2) - IntLoc1
+        IntLoc1 = Proc2(IntLoc1)
+
+func main():
+    ts = time.time()
+    Proc0()
+    tm = time.time() - ts
+    print "Time used:", tm, "sec"
+    print "This machine benchmarks at", LOOPS / tm, "LarStones/second"
