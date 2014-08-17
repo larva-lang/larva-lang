@@ -1,7 +1,7 @@
 //浮点数类型
 public final class LarObjFloat extends LarObj
 {
-    private final double m_value;
+    public final double m_value;
 
     LarObjFloat(double value)
     {

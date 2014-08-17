@@ -1,3 +1,4 @@
+import sys
 import time
 
 func new_record():
@@ -10,7 +11,7 @@ func assign_record(a, b):
     a[3] = b[3]
     a[4] = b[4]
 
-LOOPS = 50000000
+loops = 50000000
 
 Ident1 = 1
 Ident2 = 2
@@ -163,7 +164,7 @@ func Proc0():
     String1Loc = "DHRYSTONE PROGRAM, 1'ST STRING"
     Array2Glob[8][7] = 10
 
-    for i in range(LOOPS):
+    for i in range(loops):
         Proc5()
         Proc4()
         IntLoc1 = 2
@@ -189,8 +190,13 @@ func Proc0():
         IntLoc1 = Proc2(IntLoc1)
 
 func main():
+    global loops
+    if len(sys.argv) > 1:
+        loops = int(sys.argv[1])
     ts = time.time()
     Proc0()
     tm = time.time() - ts
     print "Time used:", tm, "sec"
-    print "This machine benchmarks at", LOOPS / tm, "LarStones/second"
+    print "This machine benchmarks at", loops / tm, "LarStones/second"
+    sys.exit()
+    print "This message won't be shown"

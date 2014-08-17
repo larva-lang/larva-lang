@@ -5,6 +5,7 @@
 """
 
 import larc_common
+import larc_module
 
 class Prog:
     def __init__(self, main_module_name, module_map):
@@ -21,4 +22,7 @@ class Prog:
 
     def _link(self):
         for module in self.module_map.itervalues():
+            if isinstance(module, larc_module.ExternModule):
+                #外部模块无需链接
+                continue
             module.link(self.module_map)

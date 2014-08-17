@@ -1,0 +1,8 @@
+#coding=utf8
+
+//sys模块，系统相关接口
+
+global argv //命令行参数列表
+
+func exit() //相当于exit(0)
+func exit(exit_code) //以exit_code为返回码退出程序

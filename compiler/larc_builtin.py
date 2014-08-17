@@ -2,26 +2,25 @@
 
 """
 内置部分初始化
-注：内置模块只有类和函数，没有变量，对外统一是可调用接口
+注：builtin只有类和函数，没有变量，对外统一是可调用接口
 """
 
-#P.S.内置接口和模块实际可以用extern模块的形式，暂时没空做extern功能，先硬编码
-
-#-------------------------------------------------------------------------------
-#初始化所有内置函数
+#初始化所有内置接口
 
 builtin_if_set = set() #函数接口表
 
-#range
-for arg_count in (1, 2, 3):
-    builtin_if_set.add(("range", arg_count))
+def _init_builtin_if():
+    #各种内部类型的接口
+    for name, arg_count_list in {"int" : (1, 2),
+                                 "range" : (1, 2, 3),
+                                 "len" : (1,)}.iteritems():
+        for arg_count in arg_count_list:
+            builtin_if_set.add((name, arg_count))
+_init_builtin_if()
 
 builtin_if_name_set = set([name for name, arg_count in builtin_if_set])
 
-#-------------------------------------------------------------------------------
-#初始化所有内置模块
-
-#这个对象接口和larc_module.Module一致，只是global_var_map和func_map的value为空
+"""
 class _Module:
     def __init__(self, name):
         self.name = name
@@ -39,3 +38,4 @@ _module_time.func_map[("time", 0)] = None
 _module_time.func_name_set.add("time")
 
 module_map = {"time" : _module_time}
+"""

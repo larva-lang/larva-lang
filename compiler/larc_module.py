@@ -5,6 +5,7 @@
 """
 
 import os
+from collections import OrderedDict
 import larc_common
 import larc_token
 import larc_stmt
@@ -54,15 +55,16 @@ class _Func:
             stmt.link(curr_module, module_map, self.local_var_set)
 
 class Module:
-    def __init__(self, src_dir, name):
-        self.name = name
-        self._compile(src_dir)
+    def __init__(self, file_path_name):
+        self.dir, file_name = os.path.split(file_path_name)
+        assert file_name.endswith(".lar")
+        self.name = file_name[: -4]
+        self._compile(file_path_name)
         self._check_undefined_global_var()
         self.func_name_set = set([name for name, arg_count in self.func_map])
-        self.is_extern = False
 
     def link(self, module_map):
-        self.const_map = {}
+        self.const_map = OrderedDict()
         for expr in self.global_var_map.itervalues():
             expr.link(self, module_map)
         for func in self.func_map.itervalues():
@@ -75,24 +77,16 @@ class Module:
                 if var_name not in self.global_var_map:
                     func.syntax_err("声明的全局变量'%s'未定义" % var_name)
 
-    def _find_src_file(self, src_dir):
-        src_file = os.path.join(src_dir, self.name + ".lar")
-        if not os.path.exists(src_file):
-            larc_common.exit("找不到模块[%s]" % self.name)
-        return src_file
-
-    def _compile(self, src_dir):
-        #找模块文件，解析token列表，解析正文
-        src_file = self._find_src_file(src_dir)
-        token_list = larc_token.parse_token_list(src_file)
+    def _compile(self, file_path_name):
+        #解析token列表，解析正文
+        token_list = larc_token.parse_token_list(file_path_name)
         self._parse_text(token_list)
 
     def _parse_text(self, token_list):
         self.dep_module_set = set()
         import_end = False
-        self.func_map = {}
-        self.global_var_map = {}
-        self.global_var_list = []
+        self.func_map = OrderedDict()
+        self.global_var_map = OrderedDict()
         while token_list:
             token_list.pop_indent(0)
             t = token_list.pop()
@@ -176,4 +170,104 @@ class Module:
         if not t.is_sym("="):
             t.syntax_err("需要'='")
         self.global_var_map[var_name] = larc_expr.parse_expr(token_list)
-        self.global_var_list.append(var_name)
+
+class ExternModule:
+    def __init__(self, file_path_name):
+        self.dir, file_name = os.path.split(file_path_name)
+        assert file_name.endswith(".lar_ext")
+        self.name = file_name[: -8]
+        self._compile(file_path_name)
+        self.func_name_set = set([name for name, arg_count in self.func_map])
+
+    def _compile(self, file_path_name):
+        #解析token列表，解析正文
+        token_list = larc_token.parse_token_list(file_path_name)
+        self._parse_text(token_list)
+
+    def _parse_text(self, token_list):
+        self.dep_module_set = set()
+        import_end = False
+        self.func_map = OrderedDict()
+        self.global_var_map = OrderedDict()
+        while token_list:
+            token_list.pop_indent(0)
+            t = token_list.pop()
+            if t.is_import:
+                #import
+                if import_end:
+                    t.syntax_err("import必须在模块代码最前面")
+                self._parse_import(token_list)
+                continue
+            import_end = True
+            if t.is_func:
+                #函数声明
+                self._parse_func(token_list)
+                continue
+            if t.is_global:
+                #全局变量声明
+                self._parse_global_var(token_list)
+                continue
+            t.syntax_err()
+
+    def _parse_import(self, token_list):
+        t = token_list.pop()
+        if not t.is_name:
+            t.syntax_err("非法的模块名")
+        if t.value in self.dep_module_set:
+            t.syntax_err("模块重复import")
+        self.dep_module_set.add(t.value)
+
+    def _parse_func_arg_list(self, token_list):
+        arg_list = []
+        #解析参数列表
+        while True:
+            t = token_list.pop()
+            if t.is_sym(")"):
+                #解析完成
+                break
+            if not t.is_name:
+                t.syntax_err("需要参数名")
+            if t.value in arg_list:
+                t.syntax_err("重名参数")
+            arg_list.append(t.value)
+            t = token_list.pop()
+            if t.is_sym(")"):
+                #解析完成
+                break
+            if t.is_sym(","):
+                #继续解析
+                continue
+            t.syntax_err("需要','或')'")
+        return arg_list
+
+    def _parse_func(self, token_list):
+        name_token = token_list.pop()
+        if not name_token.is_name:
+            name_token.syntax_err("非法的函数名")
+        func_name = name_token.value
+        if func_name in self.dep_module_set:
+            name_token.syntax_err("函数名和模块名重复")
+        if func_name in self.global_var_map:
+            name_token.syntax_err("函数名和全局变量名重复")
+        token_list.pop_sym("(")
+        arg_list = self._parse_func_arg_list(token_list)
+        func_key = func_name, len(arg_list)
+        if func_key in self.func_map:
+            name_token.syntax_err("函数重复声明")
+        self.func_map[func_key] = None
+
+    def _parse_global_var(self, token_list):
+        while True:
+            t = token_list.pop()
+            if not t.is_name:
+                t.syntax_err("需要标识符")
+            var_name = t.value
+            if var_name in self.dep_module_set:
+                t.syntax_err("全局变量名和模块名重复")
+            for func_name, arg_count in self.func_map:
+                if func_name == var_name:
+                    t.syntax_err("全局变量名和函数名重复")
+            self.global_var_map[var_name] = None
+            if not token_list or token_list.peek().is_indent:
+                return
+            token_list.pop_sym(",")

@@ -6,6 +6,7 @@
 
 import os
 import shutil
+import larc_module
 
 _UNARY_OP_NAME_MAP = {"~" : "invert",
                       "neg" : "neg",
@@ -24,7 +25,7 @@ _BINOCULAR_OP_NAME_MAP = {"[]" : "get_item",
                           ">>>" : "ushr"}
 
 class _Code:
-    def __init__(self, out_dir, prog_name, lib_path):
+    def __init__(self, out_dir, prog_name, lib_dir):
         self.indent = ""
         self.line_list = []
 
@@ -32,11 +33,16 @@ class _Code:
 
         self.out_dir = os.path.join(out_dir, prog_name)
         self.prog_name = prog_name
-        self.lib_path = os.path.join(lib_path, "java")
+        self.lib_dir = os.path.join(lib_dir, "java")
+
+        self.extern_module_list = []
 
         self.lar_obj_op_call_set = set()
         self.lar_obj_op_attr_set = set()
         self.lar_obj_method_set = set()
+
+    def add_extern_module(self, module):
+        self.extern_module_list.append(module)
 
     def __iadd__(self, line):
         self.line_list.append(self.indent + line)
@@ -101,16 +107,19 @@ class _Code:
         self.blk_end()
 
     def _copy_lib(self):
+        lar_lib_name_list = ["LarUtil", "LarBuiltin", "LarBaseObj"]
         type_name_list = ["Nil", "Bool", "Int", "Long", "Float", "Str",
                           "Tuple", "List", "Dict", "Range"]
-        module_name_list = ["time"]
-        lib_name_list = (
-            ["LarUtil", "LarBuiltin", "LarBaseObj"] +
-            ["LarObj" + type_name for type_name in type_name_list] +
-            ["Mod_" + module_name for module_name in module_name_list])
-        for lib_name in lib_name_list:
-            shutil.copy(os.path.join(self.lib_path, lib_name + ".java"),
-                        self.out_dir)
+        lib_file_path_name_list = []
+        for name in (lar_lib_name_list +
+                     ["LarObj%s" % type_name for type_name in type_name_list]):
+            lib_file_path_name_list.append(
+                os.path.join(self.lib_dir, name + ".java"))
+        for module in self.extern_module_list:
+            lib_file_path_name_list.append(
+                os.path.join(module.dir, "java", "Mod_%s.java" % module.name))
+        for file_path_name in lib_file_path_name_list:
+            shutil.copy(file_path_name, self.out_dir)
 
     def new_tmp_iter_number(self):
         self.tmp_iter_number += 1
@@ -128,6 +137,8 @@ class _Code:
 def _output_booter(code, prog):
     code.blk_start("public final class Prog_%s" % prog.main_module_name)
     code.blk_start("public static void main(String[] argv) throws Exception")
+    code += "Mod_sys.set_argv(argv);"
+    code += ""
     code += "LarBuiltin.init();"
     code += ""
     for module_name in prog.module_map:
@@ -217,6 +228,18 @@ def _build_expr_code(code, expr, expect_bool = False):
                     "(%s)" % ",".join([_build_expr_code(code, e) for e in el]))
         if expr.op == "call_builtin_if":
             t, el = expr.arg
+            if t.value == "int":
+                return ("new LarObjInt(%s)" %
+                        ",".join([_build_expr_code(code, e) for e in el]))
+            if t.value == "range":
+                return ("new LarObjRange(%s)" %
+                        ",".join([_build_expr_code(code, e) + ".op_int()"
+                                   for e in el]))
+            if t.value == "len":
+                assert len(el) == 1
+                return ("new LarObjInt(%s.op_len())" %
+                        _build_expr_code(code, el[0]))
+            #默认接口
             return ("LarBuiltin.f_%s" % t.value +
                     "(%s)" % ",".join([_build_expr_code(code, e) for e in el]))
         if expr.op == ".":
@@ -224,7 +247,7 @@ def _build_expr_code(code, expr, expect_bool = False):
             code.add_lar_obj_op_attr(t.value)
             return _build_expr_code(code, e) + ".op_get_attr_%s()" % t.value
         if expr.op == "tuple":
-            return ("new LarObjTuple(%s)" %
+            return ("LarObjTuple.from_var_arg(%s)" %
                     ",".join([_build_expr_code(code, e) for e in expr.arg]))
         if expr.op == "list":
             code_str = "(new LarObjList())"
@@ -278,13 +301,12 @@ def _build_expr_code(code, expr, expect_bool = False):
 
     return "(%s)" % code
 
-def _output_global_init(code, global_var_list, global_var_map):
-    for var_name in global_var_list:
+def _output_global_init(code, global_var_map):
+    for var_name in global_var_map:
         code += "public static LarObj g_%s = LarBuiltin.NIL;" % var_name
     code += ""
     code.blk_start("public static void init() throws Exception")
-    for var_name in global_var_list:
-        expr = global_var_map[var_name]
+    for var_name, expr in global_var_map.iteritems():
         code += "g_%s = %s;" % (var_name, _build_expr_code(code, expr))
     code.blk_end()
     code += ""
@@ -427,19 +449,21 @@ def _output_module(code, module):
     code += ""
     code.blk_start("final class Mod_%s" % module.name)
     _output_const(code, module.const_map)
-    _output_global_init(code, module.global_var_list, module.global_var_map)
+    _output_global_init(code, module.global_var_map)
     for func in module.func_map.itervalues():
         _output_func(code, func)
     code.blk_end()
     code += ""
 
-def output(out_dir, prog, lib_path):
-    code = _Code(out_dir, prog.main_module_name, lib_path)
+def output(out_dir, prog, lib_dir):
+    code = _Code(out_dir, prog.main_module_name, lib_dir)
 
     _output_booter(code, prog)
     for module in prog.module_map.itervalues():
-        if module.is_extern:
-            continue
-        _output_module(code, module)
+        if isinstance(module, larc_module.ExternModule):
+            #外部模块加入code的拷贝列表
+            code.add_extern_module(module)
+        else:
+            _output_module(code, module)
 
     code.output()

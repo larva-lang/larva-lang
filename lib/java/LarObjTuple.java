@@ -6,13 +6,13 @@ public final class LarObjTuple extends LarObj
     {
         private LarObj[] m_list;
         private int m_index;
-        
+
         LarObjTupleIterator(LarObj[] list)
         {
             m_list = list;
             m_index = 0;
         }
-        
+
         public LarObj f_has_next() throws Exception
         {
             return m_index < m_list.length ? LarBuiltin.TRUE : LarBuiltin.FALSE;
@@ -29,7 +29,12 @@ public final class LarObjTuple extends LarObj
     private final LarObj[] m_list;
     private int m_hash;
 
-    LarObjTuple(LarObj ...list)
+    public static LarObjTuple from_var_arg(LarObj ...list)
+    {
+        return new LarObjTuple(list);
+    }
+
+    private LarObjTuple(LarObj[] list)
     {
         m_list = list;
         m_hash = -1;
@@ -118,7 +123,7 @@ public final class LarObjTuple extends LarObj
         }
         if (times == 0)
         {
-            return new LarObjTuple();
+            return new LarObjTuple(0);
         }
         if (Integer.MAX_VALUE / times < m_list.length)
         {

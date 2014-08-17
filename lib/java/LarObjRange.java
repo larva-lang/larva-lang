@@ -8,6 +8,16 @@ public final class LarObjRange extends LarObj
     private long m_stop; //结束值
     private long m_step; //步长
     
+    LarObjRange(long stop) throws Exception
+    {
+        this(0, stop, 1);
+    }
+
+    LarObjRange(long start, long stop) throws Exception
+    {
+        this(start, stop, 1);
+    }
+
     LarObjRange(long start, long stop, long step) throws Exception
     {
         if (step == 0)

@@ -26,7 +26,7 @@ public final class LarObjStr extends LarObj
         }
     }
 
-    private final String m_value;
+    public final String m_value;
     private int m_hash;
 
     LarObjStr(String value)
