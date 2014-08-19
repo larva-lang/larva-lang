@@ -156,7 +156,7 @@ def _output_const(code, const_map):
             value = "%e" % value
         elif type == "int":
             type = "LarObjInt"
-            value = "%d" % value
+            value = "%dL" % value
         elif type == "long":
             type = "LarObjLong"
             value = '"%d"' % value
