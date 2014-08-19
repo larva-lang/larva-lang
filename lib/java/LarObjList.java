@@ -131,6 +131,16 @@ public final class LarObjList extends LarObj
         }
         return obj.op_reverse_add(this);
     }
+    public LarObj op_inplace_add(LarObj obj) throws Exception
+    {
+        //+=运算，相当于将obj中的元素都添加过来
+        for (LarObj iter = obj.f_iterator(); iter.f_has_next().op_bool();)
+        {
+            f_add(iter.f_next());
+        }
+        //根据增量赋值运算规范，返回自身
+        return this;
+    }
     public LarObj op_mul(LarObj obj) throws Exception
     {
         long times = obj.op_int();

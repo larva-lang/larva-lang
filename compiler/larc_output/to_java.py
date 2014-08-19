@@ -380,7 +380,7 @@ def _output_stmt_list(code, stmt_list):
                 return
             if lvalue.op == "module.global":
                 code += ("Mod_%s.g_%s = %s;" %
-                         (lvalue.arg[0].value, lvalue.arg[1].value) )
+                         (lvalue.arg[0].value, lvalue.arg[1].value, expr_code))
                 return
             if lvalue.op == ".":
                 e, attr = lvalue.arg
@@ -397,7 +397,8 @@ def _output_stmt_list(code, stmt_list):
             raise Exception("unreachable")
 
         if stmt.type == "=":
-            _output_assign(code, stmt.lvalue, _build_expr_code(code, stmt.expr))
+            _output_assign(code, stmt.lvalue,
+                           _build_expr_code(code, stmt.expr))
             continue
         if stmt.type == "for":
             tmp_iter = "tmp_iter_%d" % code.new_tmp_iter_number()
@@ -430,6 +431,49 @@ def _output_stmt_list(code, stmt_list):
             _output_stmt_list(code, stmt.stmt_list)
             code.blk_end()
             continue
+        if stmt.type in ("%=", "^=", "&=", "*=", "-=", "+=", "|=", "/=",
+                         "<<=", ">>=", ">>>="):
+            #增量赋值，需保证左值只计算一次
+            lvalue = stmt.lvalue
+            expr_code = _build_expr_code(code, stmt.expr)
+            inplace_op_name = ("op_inplace_" +
+                               _BINOCULAR_OP_NAME_MAP[stmt.type[: -1]])
+            #对于变量类的直接调用对应inplace操作函数
+            if lvalue.op in ("local_name", "global_name"):
+                var_name = "%s_%s" % (lvalue.op[0], lvalue.arg.value)
+                code += ("%s = %s.%s(%s);" %
+                         (var_name, var_name, inplace_op_name, expr_code))
+                continue
+            if lvalue.op == "module.global":
+                var_name = ("Mod_%s.g_%s" %
+                            (lvalue.arg[0].value, lvalue.arg[1].value))
+                code += ("%s = %s.%s(%s);" %
+                         (var_name, var_name, inplace_op_name, expr_code))
+                continue
+            #对于左值为属性和下标的，需要借助临时变量
+            if lvalue.op == ".":
+                e, attr = lvalue.arg
+                code.add_lar_obj_op_attr(attr.value)
+                code += ("tmp_augmented_assign_object = %s;" %
+                         _build_expr_code(code, e))
+                code += ("tmp_augmented_assign_object.op_set_attr_%s("
+                         "tmp_augmented_assign_object.op_get_attr_%s()."
+                         "%s(%s));" %
+                         (attr.value, attr.value, inplace_op_name, expr_code))
+                continue
+            if lvalue.op == "[]":
+                ea, eb = lvalue.arg
+                code += ("tmp_augmented_assign_object = %s;" %
+                         _build_expr_code(code, ea))
+                code += ("tmp_augmented_assign_subscript = %s;" %
+                         _build_expr_code(code, eb))
+                code += ("tmp_augmented_assign_object.op_set_item("
+                         "tmp_augmented_assign_subscript, "
+                         "tmp_augmented_assign_object.op_get_item("
+                         "tmp_augmented_assign_subscript).%s(%s);" %
+                         (inplace_op_name, expr_code))
+                continue
+            raise Exception("unreachable")
 
         raise Exception("unreachable")
 
@@ -438,6 +482,9 @@ def _output_func(code, func):
         "public static LarObj f_%s(%s) throws Exception" %
         (func.name, ",".join(["LarObj l_%s" % arg_name
                               for arg_name in func.arg_list])))
+    #增量赋值使用的临时变量
+    code += "LarObj tmp_augmented_assign_object = LarBuiltin.NIL;"
+    code += "LarObj tmp_augmented_assign_subscript = LarBuiltin.NIL;"
     for var_name in func.local_var_set - set(func.arg_list):
         code += "LarObj l_%s = LarBuiltin.NIL;" % var_name
     code += ""

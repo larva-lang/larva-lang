@@ -49,6 +49,9 @@ def _is_expr_end(t):
     if t.is_sym:
         if t.value in "=)]}:,":
             return True
+        if t.value in ("%=", "^=", "&=", "*=", "-=", "+=", "|=", "/=",
+                       "<<=", ">>=", ">>>="):
+            return True
     return False
 
 class _Expr:

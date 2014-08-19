@@ -22,9 +22,11 @@ class _Stmt:
         if self.type == "return":
             if self.expr is not None:
                 self.expr.link(curr_module, module_map, local_var_set)
-        if self.type in ("expr", "for", "while", "="):
+        if self.type in ("expr", "for", "while", "=", "%=", "^=", "&=", "*=",
+                         "-=", "+=", "|=", "/=", "<<=", ">>=", ">>>="):
             self.expr.link(curr_module, module_map, local_var_set)
-        if self.type in ("for", "="):
+        if self.type in ("for", "=", "%=", "^=", "&=", "*=", "-=", "+=",
+                         "|=", "/=", "<<=", ">>=", ">>>="):
             self.lvalue.link(curr_module, module_map, local_var_set)
         if self.type in ("for", "while"):
             for stmt in self.stmt_list:
@@ -202,14 +204,19 @@ def parse_stmt_list(token_list, upper_indent_count, loop_deep):
             #表达式
             stmt_list.append(_Stmt("expr", expr = expr))
             continue
-        if token_list.peek().is_sym("="):
+        may_be_assign_token = token_list.peek()
+        if (may_be_assign_token.is_sym and
+            may_be_assign_token.value in ("=", "%=", "^=", "&=", "*=", "-=",
+                                          "+=", "|=", "/=", "<<=", ">>=",
+                                          ">>>=")):
             #赋值
+            assign_sym = may_be_assign_token.value
             lvalue = expr
             if not lvalue.is_lvalue:
-                t.syntax_err("赋值语句'='左边非左值表达式")
-            token_list.pop_sym("=")
+                t.syntax_err("赋值语句'%s'左边非左值表达式" % assign_sym)
+            token_list.pop_sym(assign_sym)
             expr = larc_expr.parse_expr(token_list)
-            stmt_list.append(_Stmt("=", lvalue = lvalue, expr = expr))
+            stmt_list.append(_Stmt(assign_sym, lvalue = lvalue, expr = expr))
             continue
 
     return stmt_list, global_var_set
