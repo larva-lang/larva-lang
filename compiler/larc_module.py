@@ -5,7 +5,6 @@
 """
 
 import os
-from collections import OrderedDict
 import larc_common
 import larc_token
 import larc_stmt
@@ -66,7 +65,7 @@ class Module:
         self.func_name_set = set([name for name, arg_count in self.func_map])
 
     def link(self, module_map):
-        self.const_map = OrderedDict()
+        self.const_map = larc_common.OrderedDict()
         for expr in self.global_var_map.itervalues():
             expr.link(self, module_map)
         for func in self.func_map.itervalues():
@@ -87,8 +86,8 @@ class Module:
     def _parse_text(self, token_list):
         self.dep_module_set = set()
         import_end = False
-        self.func_map = OrderedDict()
-        self.global_var_map = OrderedDict()
+        self.func_map = larc_common.OrderedDict()
+        self.global_var_map = larc_common.OrderedDict()
         while token_list:
             token_list.pop_indent(0)
             t = token_list.pop()
@@ -189,8 +188,8 @@ class ExternModule:
     def _parse_text(self, token_list):
         self.dep_module_set = set()
         import_end = False
-        self.func_map = OrderedDict()
-        self.global_var_map = OrderedDict()
+        self.func_map = larc_common.OrderedDict()
+        self.global_var_map = larc_common.OrderedDict()
         while token_list:
             token_list.pop_indent(0)
             t = token_list.pop()

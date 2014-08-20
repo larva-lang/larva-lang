@@ -1,49 +1,23 @@
 //列表类型
-public final class LarObjList extends LarObj
+public final class LarObjList extends LarSeqObj
 {
-    //列表的迭代器
-    private static final class LarObjListIterator extends LarObj
-    {
-        private LarObjList m_list;
-        private int m_index;
-        
-        LarObjListIterator(LarObjList list)
-        {
-            m_list = list;
-            m_index = 0;
-        }
-        
-        public LarObj f_has_next() throws Exception
-        {
-            return m_index < m_list.m_count ? LarBuiltin.TRUE : LarBuiltin.FALSE;
-        }
-
-        public LarObj f_next() throws Exception
-        {
-            LarObj obj = m_list.m_list[m_index];
-            ++ m_index;
-            return obj;
-        }
-    }
-
     private static final int MAX_SIZE = Integer.MIN_VALUE >>> 1; //最大元素个数
 
     private LarObj[] m_list;
-    private int m_count;
 
     LarObjList()
     {
         m_list = new LarObj[8];
-        m_count = 0;
+        m_len = 0; //用m_len来记录实际长度
     }
 
     LarObjList(int hint_size) throws Exception
     {
         m_list = new LarObj[8];
-        m_count = 0;
+        m_len = 0;
         adjust_size(hint_size);
     }
-    
+
     private void adjust_size(int hint_size) throws Exception
     {
         if (hint_size < 0 || hint_size > MAX_SIZE)
@@ -60,7 +34,7 @@ public final class LarObjList extends LarObj
             size <<= 1;
         }
         LarObj[] new_list = new LarObj[size];
-        for (int i = 0; i < m_count; ++ i)
+        for (int i = 0; i < m_len; ++ i)
         {
             new_list[i] = m_list[i];
         }
@@ -72,42 +46,34 @@ public final class LarObjList extends LarObj
         return "list";
     }
 
-    public boolean op_bool() throws Exception
+    public LarObj seq_get_item(int index) throws Exception
     {
-        return m_count != 0;
+        return m_list[index];
     }
-
-    public int op_len() throws Exception
+    public void seq_set_item(int index, LarObj obj) throws Exception
     {
-        return m_count;
+        m_list[index] = obj;
     }
-
-    //列表下标操作，允许负索引
-    public LarObj op_get_item(LarObj arg_index) throws Exception
+    public LarObj seq_get_slice(int start, int end, int step) throws Exception
     {
-        long index = arg_index.op_int();
-        if (index < 0)
+        LarObjList list = new LarObjList();
+        if (step > 0)
         {
-            index += m_count;
+            while (start < end)
+            {
+                list.f_add(m_list[start]);
+                start += step;
+            }
         }
-        if (index < 0 || index >= m_count)
+        else
         {
-            throw new Exception("list索引越界");
+            while (start > end)
+            {
+                list.f_add(m_list[start]);
+                start += step;
+            }
         }
-        return m_list[(int)index];
-    }
-    public void op_set_item(LarObj arg_index, LarObj obj) throws Exception
-    {
-        long index = arg_index.op_int();
-        if (index < 0)
-        {
-            index += m_count;
-        }
-        if (index < 0 || index >= m_count)
-        {
-            throw new Exception("list索引越界");
-        }
-        m_list[(int)index] = obj;
+        return list;
     }
 
     public LarObj op_add(LarObj obj) throws Exception
@@ -116,16 +82,16 @@ public final class LarObjList extends LarObj
         {
             //列表连接
             LarObjList list = (LarObjList)obj;
-            LarObjList new_list = new LarObjList(m_count + list.m_count);
-            for (int i = 0; i < m_count; ++ i)
+            LarObjList new_list = new LarObjList(m_len + list.m_len);
+            for (int i = 0; i < m_len; ++ i)
             {
-                new_list.m_list[new_list.m_count] = m_list[i];
-                ++ new_list.m_count;
+                new_list.m_list[new_list.m_len] = m_list[i];
+                ++ new_list.m_len;
             }
-            for (int i = 0; i < list.m_count; ++ i)
+            for (int i = 0; i < list.m_len; ++ i)
             {
-                new_list.m_list[new_list.m_count] = list.m_list[i];
-                ++ new_list.m_count;
+                new_list.m_list[new_list.m_len] = list.m_list[i];
+                ++ new_list.m_len;
             }
             return new_list;
         }
@@ -152,17 +118,17 @@ public final class LarObjList extends LarObj
         {
             return new LarObjList();
         }
-        if (MAX_SIZE / times < m_count) //这个判断要考虑溢出，不能m_count * times > MAX_SIZE
+        if (MAX_SIZE / times < m_len) //这个判断要考虑溢出，不能m_len * times > MAX_SIZE
         {
             throw new Exception("list大小超限");
         }
-        LarObjList new_list = new LarObjList(m_count * (int)times);
+        LarObjList new_list = new LarObjList(m_len * (int)times);
         for (; times > 0; -- times)
         {
-            for (int i = 0; i < m_count; ++ i)
+            for (int i = 0; i < m_len; ++ i)
             {
-                new_list.m_list[new_list.m_count] = m_list[i];
-                ++ new_list.m_count;
+                new_list.m_list[new_list.m_len] = m_list[i];
+                ++ new_list.m_len;
             }
         }
         return new_list;
@@ -174,7 +140,7 @@ public final class LarObjList extends LarObj
 
     public boolean op_contain(LarObj obj) throws Exception
     {
-        for (int i = 0; i < m_count; ++ i)
+        for (int i = 0; i < m_len; ++ i)
         {
             if (m_list[i].op_eq(obj))
             {
@@ -186,17 +152,12 @@ public final class LarObjList extends LarObj
 
     public LarObj f_add(LarObj obj) throws Exception
     {
-        if (m_count == m_list.length)
+        if (m_len == m_list.length)
         {
-            adjust_size(m_count + 1);
+            adjust_size(m_len + 1);
         }
-        m_list[m_count] = obj;
-        ++ m_count;
+        m_list[m_len] = obj;
+        ++ m_len;
         return this;
-    }
-
-    public LarObj f_iterator() throws Exception
-    {
-        return new LarObjListIterator(this);
     }
 }

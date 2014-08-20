@@ -1,31 +1,6 @@
 //元组类型
-public final class LarObjTuple extends LarObj
+public final class LarObjTuple extends LarSeqObj
 {
-    //元组的迭代器
-    private static final class LarObjTupleIterator extends LarObj
-    {
-        private LarObj[] m_list;
-        private int m_index;
-
-        LarObjTupleIterator(LarObj[] list)
-        {
-            m_list = list;
-            m_index = 0;
-        }
-
-        public LarObj f_has_next() throws Exception
-        {
-            return m_index < m_list.length ? LarBuiltin.TRUE : LarBuiltin.FALSE;
-        }
-
-        public LarObj f_next() throws Exception
-        {
-            LarObj obj = m_list[m_index];
-            ++ m_index;
-            return obj;
-        }
-    }
-
     private final LarObj[] m_list;
     private int m_hash;
 
@@ -36,12 +11,14 @@ public final class LarObjTuple extends LarObj
 
     private LarObjTuple(LarObj[] list)
     {
+        m_len = list.length;
         m_list = list;
         m_hash = -1;
     }
 
     LarObjTuple(int count)
     {
+        m_len = count;
         m_list = new LarObj[count];
         m_hash = -1;
     }
@@ -51,21 +28,12 @@ public final class LarObjTuple extends LarObj
         return "tuple";
     }
 
-    public boolean op_bool() throws Exception
-    {
-        return m_list.length != 0;
-    }
-
-    public int op_len() throws Exception
-    {
-        return m_list.length;
-    }
     public int op_hash() throws Exception
     {
         if (m_hash == -1)
         {
             m_hash = 0;
-            for (int i = 0; i < m_list.length; ++ i)
+            for (int i = 0; i < m_len; ++ i)
             {
                 m_hash = m_hash * 7 + m_list[i].op_hash();
             }
@@ -77,19 +45,38 @@ public final class LarObjTuple extends LarObj
         return m_hash;
     }
 
-    //列表下标操作，允许负索引
-    public LarObj op_get_item(LarObj arg_index) throws Exception
+    public LarObj seq_get_item(int index) throws Exception
     {
-        long index = arg_index.op_int();
-        if (index < 0)
+        return m_list[index];
+    }
+    public LarObj seq_get_slice(int start, int end, int step) throws Exception
+    {
+        LarObj[] new_list = new LarObj[m_len];
+        int new_len = 0;
+        if (step > 0)
         {
-            index += m_list.length;
+            while (start < end)
+            {
+                new_list[new_len] = m_list[start];
+                ++ new_len;
+                start += step;
+            }
         }
-        if (index < 0 || index >= m_list.length)
+        else
         {
-            throw new Exception("tuple索引越界");
+            while (start > end)
+            {
+                new_list[new_len] = m_list[start];
+                ++ new_len;
+                start += step;
+            }
         }
-        return m_list[(int)index];
+        LarObj[] list = new LarObj[new_len];
+        for (int i = 0; i < new_len; ++ i)
+        {
+            list[i] = new_list[i];
+        }
+        return new LarObjTuple(list);
     }
 
     public LarObj op_add(LarObj obj) throws Exception
@@ -98,14 +85,14 @@ public final class LarObjTuple extends LarObj
         {
             //元组连接
             LarObjTuple t = (LarObjTuple)obj;
-            LarObjTuple new_t = new LarObjTuple(m_list.length + t.m_list.length);
+            LarObjTuple new_t = new LarObjTuple(m_len + t.m_len);
             int index = 0;
-            for (int i = 0; i < m_list.length; ++ i)
+            for (int i = 0; i < m_len; ++ i)
             {
                 new_t.m_list[index] = m_list[i];
                 ++ index;
             }
-            for (int i = 0; i < t.m_list.length; ++ i)
+            for (int i = 0; i < t.m_len; ++ i)
             {
                 new_t.m_list[index] = t.m_list[i];
                 ++ index;
@@ -125,15 +112,15 @@ public final class LarObjTuple extends LarObj
         {
             return new LarObjTuple(0);
         }
-        if (Integer.MAX_VALUE / times < m_list.length)
+        if (Integer.MAX_VALUE / times < m_len)
         {
             throw new Exception("tuple大小超限");
         }
-        LarObjTuple new_t = new LarObjTuple(m_list.length * (int)times);
+        LarObjTuple new_t = new LarObjTuple(m_len * (int)times);
         int index = 0;
         for (; times > 0; -- times)
         {
-            for (int i = 0; i < m_list.length; ++ i)
+            for (int i = 0; i < m_len; ++ i)
             {
                 new_t.m_list[index] = m_list[i];
                 ++ index;
@@ -148,7 +135,7 @@ public final class LarObjTuple extends LarObj
 
     public boolean op_contain(LarObj obj) throws Exception
     {
-        for (int i = 0; i < m_list.length; ++ i)
+        for (int i = 0; i < m_len; ++ i)
         {
             if (m_list[i].op_eq(obj))
             {
@@ -162,11 +149,11 @@ public final class LarObjTuple extends LarObj
         if (obj instanceof LarObjTuple)
         {
             LarObj[] list = ((LarObjTuple)obj).m_list;
-            if (m_list.length != list.length)
+            if (m_len != list.length)
             {
                 return false;
             }
-            for (int i = 0; i < m_list.length; ++ i)
+            for (int i = 0; i < m_len; ++ i)
             {
                 if (!m_list[i].op_eq(list[i]))
                 {
@@ -182,7 +169,7 @@ public final class LarObjTuple extends LarObj
         if (obj instanceof LarObjTuple)
         {
             LarObj[] list = ((LarObjTuple)obj).m_list;
-            for (int i = 0; i < m_list.length && i < list.length; ++ i)
+            for (int i = 0; i < m_len && i < list.length; ++ i)
             {
                 int r = m_list[i].op_cmp(list[i]);
                 if (r != 0)
@@ -190,21 +177,16 @@ public final class LarObjTuple extends LarObj
                     return r;
                 }
             }
-            if (m_list.length > list.length)
+            if (m_len > list.length)
             {
                 return 1;
             }
-            if (m_list.length < list.length)
+            if (m_len < list.length)
             {
                 return -1;
             }
             return 0;
         }
         return obj.op_reverse_cmp((LarObj)this);
-    }
-
-    public LarObj f_iterator() throws Exception
-    {
-        return new LarObjTupleIterator(m_list);
     }
 }

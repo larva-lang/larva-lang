@@ -1,38 +1,19 @@
 //字符串对象
-public final class LarObjStr extends LarObj
+public final class LarObjStr extends LarSeqObj
 {
-    //字符串的迭代器
-    private static final class LarObjStrIterator extends LarObj
-    {
-        private final String m_value;
-        private int m_index;
-        
-        LarObjStrIterator(String value)
-        {
-            m_value = value;
-            m_index = 0;
-        }
-        
-        public LarObj f_has_next() throws Exception
-        {
-            return m_index < m_value.length() ? LarBuiltin.TRUE : LarBuiltin.FALSE;
-        }
-
-        public LarObj f_next() throws Exception
-        {
-            LarObj obj = new LarObjStr(m_value.substring(m_index, m_index + 1));
-            ++ m_index;
-            return obj;
-        }
-    }
-
     public final String m_value;
     private int m_hash;
 
     LarObjStr(String value)
     {
+        m_len = value.length();
         m_value = value;
         m_hash = -1; //缓存hash值，-1表示还未计算
+    }
+    
+    LarObjStr(LarObj obj)
+    {
+        this(obj.op_str());
     }
 
     public String get_type_name()
@@ -40,19 +21,40 @@ public final class LarObjStr extends LarObj
         return "str";
     }
 
-    public boolean op_bool() throws Exception
+    public LarObj seq_get_item(int index) throws Exception
     {
-        return m_value.length() != 0;
+        return new LarObjStr(m_value.substring(index, index + 1));
     }
+    public LarObj seq_get_slice(int start, int end, int step) throws Exception
+    {
+        char[] new_s = new char[m_len];
+        int new_len = 0;
+        if (step > 0)
+        {
+            while (start < end)
+            {
+                new_s[new_len] = m_value.charAt(start);
+                ++ new_len;
+                start += step;
+            }
+        }
+        else
+        {
+            while (start > end)
+            {
+                new_s[new_len] = m_value.charAt(start);
+                ++ new_len;
+                start += step;
+            }
+        }
+        return new LarObjStr(new String(new_s, 0, new_len));
+    }
+
     public String op_str()
     {
         return m_value;
     }
 
-    public int op_len() throws Exception
-    {
-        return m_value.length();
-    }
     public int op_hash() throws Exception
     {
         if (m_hash == -1)
@@ -64,20 +66,6 @@ public final class LarObjStr extends LarObj
             }
         }
         return m_hash;
-    }
-
-    public LarObj op_get_item(LarObj key) throws Exception
-    {
-        long index = key.op_int();
-        if (index < 0)
-        {
-            index += m_value.length();
-        }
-        if (index < 0 || index >= m_value.length())
-        {
-            throw new Exception("str index out of range");
-        }
-        return new LarObjStr(m_value.substring((int)index, (int)index + 1));
     }
 
     public LarObj op_add(LarObj obj) throws Exception
@@ -116,20 +104,6 @@ public final class LarObjStr extends LarObj
 
     public LarObj f_ord_at(LarObj arg_index) throws Exception
     {
-        long index = arg_index.op_int();
-        if (index < 0)
-        {
-            index += m_value.length();
-        }
-        if (index < 0 || index >= m_value.length())
-        {
-            throw new Exception("str index out of range");
-        }
-        return new LarObjInt((long)m_value.charAt((int)index));
-    }
-
-    public LarObj f_iterator() throws Exception
-    {
-        return new LarObjStrIterator(m_value);
+        return new LarObjInt((long)m_value.charAt(get_index(arg_index)));
     }
 }

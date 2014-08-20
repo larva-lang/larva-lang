@@ -107,7 +107,8 @@ class _Code:
         self.blk_end()
 
     def _copy_lib(self):
-        lar_lib_name_list = ["LarUtil", "LarBuiltin", "LarBaseObj"]
+        lar_lib_name_list = ["LarUtil", "LarBuiltin", "LarBaseObj",
+                             "LarSeqObj"]
         type_name_list = ["Nil", "Bool", "Int", "Long", "Float", "Str",
                           "Tuple", "List", "Dict", "Range"]
         lib_file_path_name_list = []
@@ -228,9 +229,10 @@ def _build_expr_code(code, expr, expect_bool = False):
                     "(%s)" % ",".join([_build_expr_code(code, e) for e in el]))
         if expr.op == "call_builtin_if":
             t, el = expr.arg
-            if t.value == "int":
-                return ("new LarObjInt(%s)" %
-                        ",".join([_build_expr_code(code, e) for e in el]))
+            if t.value in ("int", "str"):
+                return ("new LarObj%s(%s)" %
+                        (t.value.capitalize(),
+                         ",".join([_build_expr_code(code, e) for e in el])))
             if t.value == "range":
                 return ("new LarObjRange(%s)" %
                         ",".join([_build_expr_code(code, e) + ".op_int()"
@@ -284,6 +286,14 @@ def _build_expr_code(code, expr, expect_bool = False):
             return (_build_expr_code(code, expr.arg[0]) +
                     ".op_cmp(%s)" % _build_expr_code(code, expr.arg[1]) +
                     "%s0" % expr.op)
+        if expr.op == "[:]":
+            eo, el = expr.arg
+            assert len(el) == 3
+            arg_code_str = (
+                ",".join(["null" if e is None else _build_expr_code(code, e)
+                          for e in el]))
+            return (_build_expr_code(code, eo) +
+                    ".op_get_slice(%s)" % arg_code_str)
 
         raise Exception("unreachable")
 

@@ -167,6 +167,13 @@ class _Expr:
                 return
             #其余情况，属于对象的"."运算
             return
+        if self.op == "[:]":
+            eo, el = self.arg
+            eo._link(curr_module, module_map, local_var_set)
+            for e in el:
+                if e is not None:
+                    e._link(curr_module, module_map, local_var_set)
+            return
 
         #其余类型，包括单目、双目运算、下标、tuple和list构造等
         assert (self.op in _UNARY_OP_SET or self.op in _BINOCULAR_OP_SET or
@@ -207,6 +214,13 @@ class _Expr:
             return
         if self.op == ".":
             self.arg[0]._check()
+            return
+        if self.op == "[:]":
+            eo, el = self.arg
+            eo._check()
+            for e in el:
+                if e is not None:
+                    e._check()
             return
 
         #其余类型，包括单目、双目运算、下标、tuple和list构造等
@@ -353,10 +367,39 @@ def parse_expr(token_list, end_at_comma = False):
                     _Expr("()", [parse_stk.stk[-1],
                                  _parse_expr_list(token_list, ")")]))
             elif t.is_sym("["):
-                #下标操作
-                e = parse_expr(token_list, True)
+                #下标或分片操作
+                el = []
+                while True:
+                    t = token_list.peek()
+                    if t.is_sym("]"):
+                        el.append(None)
+                        break
+                    if t.is_sym(":"):
+                        el.append(None)
+                        token_list.pop_sym(":")
+                        continue
+                    el.append(parse_expr(token_list, True))
+                    t = token_list.peek()
+                    if t.is_sym("]"):
+                        break
+                    if t.is_sym(":"):
+                        token_list.pop_sym(":")
+                        continue
+                    t.syntax_err("需要']'或':'")
                 token_list.pop_sym("]")
-                parse_stk.stk[-1] = _Expr("[]", [parse_stk.stk[-1], e])
+                assert len(el) > 0
+                if len(el) == 1:
+                    #下标操作
+                    if el[0] is None:
+                        t.syntax_err("空下标")
+                    parse_stk.stk[-1] = _Expr("[]", [parse_stk.stk[-1], el[0]])
+                else:
+                    #分片操作
+                    if len(el) == 2:
+                        el.append(None)
+                    if len(el) > 3:
+                        t.syntax_err("分片最多只能三个参数")
+                    parse_stk.stk[-1] = _Expr("[:]", [parse_stk.stk[-1], el])
             elif t.is_sym("."):
                 #属性
                 token_list.peek_name()
