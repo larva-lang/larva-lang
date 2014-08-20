@@ -53,6 +53,7 @@ def main():
 
     #编译所有涉及到的模块
     compiling_set = main_module.dep_module_set #需要编译的模块名集合
+    compiling_set |= set(["sys"]) #因为要接收argv，sys模块必须有
     while compiling_set:
         new_compiling_set = set()
         for module_name in compiling_set:

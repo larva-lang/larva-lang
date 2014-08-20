@@ -36,7 +36,9 @@ class _Func:
         #局部变量条件：赋值或for的左值是一个名字
         #对于嵌套stmt_list的语句递归搜索
         for stmt in stmt_list:
-            if stmt.type in ("=", "for") and stmt.lvalue.op == "name":
+            if (stmt.type in ("=", "%=", "^=", "&=", "*=", "-=", "+=", "|=",
+                              "/=", "<<=", ">>=", ">>>=", "for") and
+                stmt.lvalue.op == "name"):
                 if stmt.lvalue.arg.value not in self.global_var_set:
                     self.local_var_set.add(stmt.lvalue.arg.value)
             if stmt.type in ("for", "while"):

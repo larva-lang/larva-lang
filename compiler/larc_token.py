@@ -17,7 +17,7 @@ _TOKEN_RE = re.compile(
     r"""\d+\.\w*|""" +
     r"""\.\d\w*)|""" +
     #符号
-    r"""(b"|b'|!=|==|<<|<=|>>>|>>|>=|\W)|""" +
+    r"""(b"|b'|!=|==|<<=|<<|<=|>>>=|>>>|>>=|>>|>=|\W=|\W)|""" +
     #整数
     r"""(\d\w*)|""" +
     #词，关键字或标识符
@@ -25,7 +25,9 @@ _TOKEN_RE = re.compile(
 
 #合法的符号集
 _SYM_SET = (set("""~%^&*()-+=|{}[]:"'<,>/.""") |
-            set(['b"', "b'", "!=", "==", "<<", "<=", ">>>", ">>", ">="]))
+            set(['b"', "b'", "!=", "==", "<<=", "<<", "<=", ">>>=", ">>>",
+                 ">>=", ">>", ">="]) |
+            set(["%=", "^=", "&=", "*=", "-=", "+=", "|=", "/="]))
 
 #保留字集
 _RESERVED_WORD_SET = set(["if", "elif", "else", "while", "return", "break",
@@ -115,7 +117,7 @@ class _Token:
 
     def syntax_err(self, msg = ""):
         larc_common.exit("语法错误：文件[%s]行[%d]列[%d]%s" %
-                         (self.src_file, self.line_no, self.pos, msg))
+                         (self.src_file, self.line_no, self.pos + 1, msg))
 
     def indent_err(self):
         self.syntax_err("缩进错误")
@@ -284,7 +286,7 @@ def _parse_indent(line):
 
 def _syntax_err(src_file, line_no, pos, msg):
     larc_common.exit("语法错误：文件[%s]行[%d]列[%d]%s" %
-                     (src_file, line_no, pos, msg))
+                     (src_file, line_no, pos + 1, msg))
 
 def _get_escape_char(s, src_file, line_no, pos):
     if s[0] in "abfnrtv":
@@ -441,13 +443,13 @@ def _parse_token(src_file, line_no, line, pos, encoding):
             if math.isnan(value) or math.isinf(value):
                 raise ValueError
         except ValueError:
-            _syntax_err(src_file, line_no, pos, "非法的浮点数")
+            _syntax_err(src_file, line_no, pos, "非法的浮点数'%s'" % f)
         return _Token(_TOKEN_TYPE_FLOAT, value, src_file, line_no, pos), len(f)
 
     if sym is not None:
         #符号
         if sym not in _SYM_SET:
-            _syntax_err(src_file, line_no, pos, "非法的符号")
+            _syntax_err(src_file, line_no, pos, "非法的符号'%s'" % sym)
 
         if sym in ("'", '"'):
             #字符串
@@ -471,7 +473,7 @@ def _parse_token(src_file, line_no, line, pos, encoding):
             try:
                 value = int(i[: -1], 0)
             except ValueError:
-                _syntax_err(src_file, line_no, pos, "非法的长整数")
+                _syntax_err(src_file, line_no, pos, "非法的长整数'%s'" % i)
             return (_Token(_TOKEN_TYPE_LONG, value, src_file, line_no, pos),
                     len(i))
 
@@ -479,17 +481,17 @@ def _parse_token(src_file, line_no, line, pos, encoding):
         try:
             value = int(i, 0)
         except ValueError:
-            _syntax_err(src_file, line_no, pos, "非法的整数")
+            _syntax_err(src_file, line_no, pos, "非法的整数'%s'" % i)
         if i[0] == "0":
             #非10进制，作为uint64解析，转换为int
             if value > 2 ** 64 - 1:
-                _syntax_err(src_file, line_no, pos, "过大的整数")
+                _syntax_err(src_file, line_no, pos, "过大的整数'%s'" % i)
             if value > 2 ** 63 - 1:
                 value -= 2 ** 64
         else:
             #10进制
             if value > 2 ** 63 - 1:
-                _syntax_err(src_file, line_no, pos, "过大的整数")
+                _syntax_err(src_file, line_no, pos, "过大的整数'%s'" % i)
         return _Token(_TOKEN_TYPE_INT, value, src_file, line_no, pos), len(i)
 
     if w is not None:
