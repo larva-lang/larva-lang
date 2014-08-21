@@ -3,7 +3,7 @@ public final class LarObjList extends LarSeqObj
 {
     private static final int MAX_SIZE = Integer.MIN_VALUE >>> 1; //最大元素个数
 
-    private LarObj[] m_list;
+    public LarObj[] m_list;
 
     LarObjList()
     {
@@ -13,9 +13,22 @@ public final class LarObjList extends LarSeqObj
 
     LarObjList(int hint_size) throws Exception
     {
-        m_list = new LarObj[8];
-        m_len = 0;
+        this();
         adjust_size(hint_size);
+    }
+
+    LarObjList(LarObj obj) throws Exception
+    {
+        this();
+        extend(obj);
+    }
+
+    private void extend(LarObj obj) throws Exception
+    {
+        for (LarObj iter = obj.f_iterator(); iter.f_has_next().op_bool();)
+        {
+            f_add(iter.f_next());
+        }
     }
 
     private void adjust_size(int hint_size) throws Exception
@@ -100,12 +113,8 @@ public final class LarObjList extends LarSeqObj
     public LarObj op_inplace_add(LarObj obj) throws Exception
     {
         //+=运算，相当于将obj中的元素都添加过来
-        for (LarObj iter = obj.f_iterator(); iter.f_has_next().op_bool();)
-        {
-            f_add(iter.f_next());
-        }
-        //根据增量赋值运算规范，返回自身
-        return this;
+        extend(obj);
+        return this; //根据增量赋值运算规范，返回自身
     }
     public LarObj op_mul(LarObj obj) throws Exception
     {
@@ -158,6 +167,33 @@ public final class LarObjList extends LarSeqObj
         }
         m_list[m_len] = obj;
         ++ m_len;
+        return this;
+    }
+
+    //懒得考虑qsort的太多因素，直接用shell了，序列是Sedgewick的
+    static final int[] INC_LIST = new int[]{
+        1073643521, 603906049, 268386305, 150958081, 67084289, 37730305, 16764929, 9427969, 4188161, 2354689, 1045505,
+        587521, 260609, 146305, 64769, 36289, 16001, 8929, 3905, 2161, 929, 505, 209, 109, 41, 19, 5, 1};
+    public LarObj f_sort() throws Exception
+    {
+        for (int inc_idx = 0; inc_idx < INC_LIST.length; ++ inc_idx)
+        {
+            int inc = INC_LIST[inc_idx];
+            for (int i = inc; i < m_len; ++ i)
+            {
+                LarObj tmp = m_list[i];
+                int j;
+                for (j = i; j >= inc; j -= inc)
+                {
+                    if (m_list[j - inc].op_cmp(tmp) <= 0)
+                    {
+                        break;
+                    }
+                    m_list[j] = m_list[j - inc];
+                }
+                m_list[j] = tmp;
+            }
+        }
         return this;
     }
 }

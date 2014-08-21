@@ -145,13 +145,14 @@ public class LarSeqObj extends LarObj
                     end = m_len;
                 }
             }
-            if (step > Integer.MAX_VALUE)
+            long max_step = end - start;
+            if (max_step <= 0)
             {
-                step = end - start;
-                if (step <= 0)
-                {
-                    step = 1;
-                }
+                max_step = 1;
+            }
+            if (step > max_step)
+            {
+                step = max_step;
             }
         }
         else
@@ -197,13 +198,14 @@ public class LarSeqObj extends LarObj
                     end = m_len - 1;
                 }
             }
-            if (step < Integer.MIN_VALUE)
+            long min_step = end - start;
+            if (min_step >= 0)
             {
-                step = end - start;
-                if (step >= 0)
-                {
-                    step = -1;
-                }
+                min_step = -1;
+            }
+            if (step < min_step)
+            {
+                step = min_step;
             }
         }
         return new SliceInfo((int)start, (int)end, (int)step);
