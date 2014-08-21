@@ -23,6 +23,18 @@ public final class LarObjTuple extends LarSeqObj
         m_hash = -1;
     }
 
+    LarObjTuple(LarObj obj) throws Exception
+    {
+        LarObjList list = new LarObjList(obj);
+        m_len = list.m_len;
+        m_list = new LarObj[m_len];
+        for (int i = 0; i < m_len; ++ i)
+        {
+            m_list[i] = list.m_list[i];
+        }
+        m_hash = -1;
+    }
+
     public String get_type_name()
     {
         return "tuple";

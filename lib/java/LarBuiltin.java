@@ -10,4 +10,9 @@ public final class LarBuiltin
     public static void init()
     {
     }
+    
+    public static LarObj f_sorted(LarObj obj) throws Exception
+    {
+        return (new LarObjList(obj)).f_sort();
+    }
 }

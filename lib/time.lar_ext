@@ -3,3 +3,4 @@
 //time模块，时间相关接口
 
 func time() //返回当前unix时间戳
+func sleep(sec) //休眠一段时间

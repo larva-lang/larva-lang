@@ -58,7 +58,7 @@ class _Expr:
     def __init__(self, op, arg):
         self.op = op
         self.arg = arg
-        self.is_lvalue = op in ("name", ".", "[]")
+        self.is_lvalue = op in ("name", ".", "[]", "[:]")
 
     def link(self, curr_module, module_map, local_var_set = None):
         self._link(curr_module, module_map, local_var_set)
