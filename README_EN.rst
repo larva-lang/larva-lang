@@ -38,6 +38,7 @@ Then will generate a <filename> folder
 TODOS
 ===========
 
+ * Class definition
 
 Copying
 ===========
