@@ -13,7 +13,10 @@ def _init_builtin_if():
     #各种内部类型的接口
     for name, arg_count_list in {"int" : (1, 2),
                                  "str" : (1,),
+                                 "tuple" : (1,),
                                  "range" : (1, 2, 3),
+                                 "bitmap" : (1,),
+                                 "sorted" : (1,),
                                  "len" : (1,)}.iteritems():
         for arg_count in arg_count_list:
             builtin_if_set.add((name, arg_count))

@@ -147,6 +147,12 @@ public final class LarObjDict extends LarObj
         ++ m_version;
     }
 
+    public LarObj init_item(LarObj key, LarObj value) throws Exception
+    {
+        op_set_item(key, value);
+        return this;
+    }
+    
     public String get_type_name()
     {
         return "dict";

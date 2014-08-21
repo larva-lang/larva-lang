@@ -1,7 +1,7 @@
 //布尔类型
 public final class LarObjBool extends LarObj
 {
-    private final boolean m_value;
+    public final boolean m_value;
     
     LarObjBool(boolean value)
     {

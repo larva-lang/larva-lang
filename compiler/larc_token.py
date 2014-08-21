@@ -525,6 +525,8 @@ def parse_token_list(src_file):
         #解析当前行token
         while pos < len(line):
             pos += len(line) - pos - len(line[pos :].lstrip(" \t")) #跳过空格
+            if pos >= len(line):
+                break
             if line[pos] == "#" or line[pos : pos + 2] == "//":
                 #单行注释，略过本行
                 break

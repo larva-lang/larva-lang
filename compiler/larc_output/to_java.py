@@ -110,7 +110,7 @@ class _Code:
         lar_lib_name_list = ["LarUtil", "LarBuiltin", "LarBaseObj",
                              "LarSeqObj"]
         type_name_list = ["Nil", "Bool", "Int", "Long", "Float", "Str",
-                          "Tuple", "List", "Dict", "Range"]
+                          "Tuple", "List", "Dict", "Range", "Bitmap"]
         lib_file_path_name_list = []
         for name in (lar_lib_name_list +
                      ["LarObj%s" % type_name for type_name in type_name_list]):
@@ -204,7 +204,7 @@ def _build_expr_code(code, expr, expect_bool = False):
         if expr.op == "dict":
             code_str = "(new LarObjDict())"
             for ek, ev in expr.arg:
-                code_str += (".op_set_item(%s,%s)" %
+                code_str += (".init_item(%s,%s)" %
                              (_build_expr_code(code, ek),
                               _build_expr_code(code, ev)))
             return code_str
@@ -229,7 +229,7 @@ def _build_expr_code(code, expr, expect_bool = False):
                     "(%s)" % ",".join([_build_expr_code(code, e) for e in el]))
         if expr.op == "call_builtin_if":
             t, el = expr.arg
-            if t.value in ("int", "str"):
+            if t.value in ("int", "str", "tuple"):
                 return ("new LarObj%s(%s)" %
                         (t.value.capitalize(),
                          ",".join([_build_expr_code(code, e) for e in el])))
@@ -237,6 +237,10 @@ def _build_expr_code(code, expr, expect_bool = False):
                 return ("new LarObjRange(%s)" %
                         ",".join([_build_expr_code(code, e) + ".op_int()"
                                    for e in el]))
+            if t.value == "bitmap":
+                assert len(el) == 1
+                return ("new LarObjBitmap(%s)" %
+                        (_build_expr_code(code, el[0]) + ".op_int()"))
             if t.value == "len":
                 assert len(el) == 1
                 return ("new LarObjInt(%s.op_len())" %
@@ -272,7 +276,7 @@ def _build_expr_code(code, expr, expect_bool = False):
         if expr.op in ("in", "not in"):
             code_str = (_build_expr_code(code, expr.arg[1]) +
                         ".op_contain(%s)" %
-                        _build_expr_code(code, expr.arg[1]))
+                        _build_expr_code(code, expr.arg[0]))
             if expr.op == "not in":
                 code_str = "!" + code_str
             return code_str
@@ -404,6 +408,14 @@ def _output_stmt_list(code, stmt_list):
                          (_build_expr_code(code, ea),
                           _build_expr_code(code, eb), expr_code))
                 return
+            if lvalue.op == "[:]":
+                eo, el = lvalue.arg
+                code += ("%s.op_set_slice(%s,%s);" %
+                         (_build_expr_code(code, eo),
+                          ",".join(["null" if e is None
+                                    else _build_expr_code(code, e)
+                                    for e in el]), expr_code))
+                return
             raise Exception("unreachable")
 
         if stmt.type == "=":
@@ -480,7 +492,7 @@ def _output_stmt_list(code, stmt_list):
                 code += ("tmp_augmented_assign_object.op_set_item("
                          "tmp_augmented_assign_subscript, "
                          "tmp_augmented_assign_object.op_get_item("
-                         "tmp_augmented_assign_subscript).%s(%s);" %
+                         "tmp_augmented_assign_subscript).%s(%s));" %
                          (inplace_op_name, expr_code))
                 continue
             raise Exception("unreachable")

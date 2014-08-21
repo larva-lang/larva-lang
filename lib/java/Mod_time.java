@@ -10,4 +10,10 @@ public final class Mod_time
     {
         return new LarObjFloat(System.currentTimeMillis() / 1000.0);
     }
+
+    public static LarObj f_sleep(LarObj arg_sec) throws Exception
+    {
+        Thread.sleep(arg_sec.op_int() * 1000);
+        return LarBuiltin.NIL;
+    }
 }

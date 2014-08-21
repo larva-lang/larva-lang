@@ -214,6 +214,10 @@ def parse_stmt_list(token_list, upper_indent_count, loop_deep):
             lvalue = expr
             if not lvalue.is_lvalue:
                 t.syntax_err("赋值语句'%s'左边非左值表达式" % assign_sym)
+            if assign_sym != "=":
+                #增量赋值
+                if lvalue.op == "[:]":
+                    t.syntax_err("分片无法增量赋值")
             token_list.pop_sym(assign_sym)
             expr = larc_expr.parse_expr(token_list)
             stmt_list.append(_Stmt(assign_sym, lvalue = lvalue, expr = expr))
