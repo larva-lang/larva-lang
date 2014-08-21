@@ -66,6 +66,16 @@ public class LarBaseObj
         throw new Exception("未实现类型'" + get_type_name() + "'的下标赋值运算");
     }
 
+    //分片运算
+    public LarObj op_get_slice(LarObj start, LarObj end, LarObj step) throws Exception
+    {
+        throw new Exception("未实现类型'" + get_type_name() + "'的分片取值运算");
+    }
+    public void op_set_slice(LarObj start, LarObj end, LarObj step, LarObj obj) throws Exception
+    {
+        throw new Exception("未实现类型'" + get_type_name() + "'的分片赋值运算");
+    }
+
     /*
     反向运算：
     二元运算的op_reverse_*是反向运算方法，若一个正向运算未实现，则尝试进行反向运算

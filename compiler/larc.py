@@ -7,7 +7,6 @@
 import sys
 import getopt
 import os
-from collections import OrderedDict
 import larc_common
 import larc_builtin
 import larc_module
@@ -33,7 +32,8 @@ def main():
     if len(args) != 1:
         _show_usage_and_exit()
 
-    module_map = OrderedDict() #已编译的模块，模块名映射模块Module对象
+    #已编译的模块，模块名映射模块Module对象
+    module_map = larc_common.OrderedDict()
 
     #先编译主模块
     main_file_path_name = os.path.abspath(args[0])
