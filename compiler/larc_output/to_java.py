@@ -110,7 +110,7 @@ class _Code:
         lar_lib_name_list = ["LarUtil", "LarBuiltin", "LarBaseObj",
                              "LarSeqObj"]
         type_name_list = ["Nil", "Bool", "Int", "Long", "Float", "Str",
-                          "Tuple", "List", "Dict", "Range", "Bitmap"]
+                          "Tuple", "List", "Dict", "Set", "Range", "Bitmap"]
         lib_file_path_name_list = []
         for name in (lar_lib_name_list +
                      ["LarObj%s" % type_name for type_name in type_name_list]):
@@ -229,7 +229,7 @@ def _build_expr_code(code, expr, expect_bool = False):
                     "(%s)" % ",".join([_build_expr_code(code, e) for e in el]))
         if expr.op == "call_builtin_if":
             t, el = expr.arg
-            if t.value in ("int", "str", "tuple"):
+            if t.value in ("int", "str", "tuple", "list", "set"):
                 return ("new LarObj%s(%s)" %
                         (t.value.capitalize(),
                          ",".join([_build_expr_code(code, e) for e in el])))
