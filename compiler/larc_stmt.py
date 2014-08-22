@@ -74,10 +74,9 @@ def _parse_for(token_list, curr_indent_count, loop_deep):
     if in_expr.op != "in":
         t.syntax_err("for语句中的非'in'表达式")
     token_list.pop_sym(":")
-    lvalue = in_expr.arg[0]
+    lvalue, expr = in_expr.arg
     if not lvalue.is_lvalue:
         t.syntax_err("for语句中'in'左边非左值表达式")
-    expr = in_expr.arg[1]
     stmt_list, global_var_set = (
         parse_stmt_list(token_list, curr_indent_count, loop_deep + 1))
     return lvalue, expr, stmt_list, global_var_set

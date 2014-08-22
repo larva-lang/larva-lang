@@ -41,6 +41,10 @@ class _Code:
         self.lar_obj_op_attr_set = set()
         self.lar_obj_method_set = set()
 
+        self.compr_number = 0
+        self.list_compr_map = {}
+        self.dict_compr_map = {}
+
     def add_extern_module(self, module):
         self.extern_module_list.append(module)
 
@@ -134,6 +138,12 @@ class _Code:
 
     def add_lar_obj_method(self, method_name, arg_count):
         self.lar_obj_method_set.add((method_name, arg_count))
+
+    def add_list_compr(self, compr_arg_list, e, lvalue_var, if_expr):
+        self.compr_number += 1
+        self.list_compr_map[self.compr_number] = (
+            compr_arg_list, e, lvalue_var, if_expr)
+        return self.compr_number
 
 def _output_booter(code, prog):
     code.blk_start("public final class Prog_%s" % prog.main_module_name)
@@ -298,6 +308,17 @@ def _build_expr_code(code, expr, expect_bool = False):
                           for e in el]))
             return (_build_expr_code(code, eo) +
                     ".op_get_slice(%s)" % arg_code_str)
+        if expr.op == "list_compr":
+            (iter_expr, compr_local_var_set, e, lvalue_var,
+             if_expr) = expr.arg
+            iter_expr_code = _build_expr_code(code, iter_expr)
+            compr_arg_list = sorted(compr_local_var_set - set([lvalue_var]))
+            arg_code_str = (
+                ",".join(["l_" + name for name in compr_arg_list] +
+                         [iter_expr_code]))
+            compr_number = (
+                code.add_list_compr(compr_arg_list, e, lvalue_var, if_expr))
+            return "compr_list_%d(%s)" % (compr_number, arg_code_str)
 
         raise Exception("unreachable")
 
@@ -514,6 +535,26 @@ def _output_func(code, func):
     code.blk_end()
     code += ""
 
+def _output_list_compr(code, idx, (compr_arg_list, e, lvalue_var, if_expr)):
+    code.blk_start(
+        "public static LarObjList compr_list_%d(%s) throws Exception" %
+        (idx, ",".join(["LarObj l_%s" % name for name in compr_arg_list] +
+                       ["LarObj iterable"])))
+    code += "LarObj l_%s;" % lvalue_var
+    code += "LarObjList list = new LarObjList();"
+    code.blk_start("for (LarObj iter = iterable.f_iterator(); "
+                   "iter.f_has_next().op_bool();)")
+    if if_expr is not None:
+        code.blk_start("if (%s)" % _build_expr_code(if_expr))
+    code += "l_%s = iter.f_next();" % lvalue_var
+    code += "list.f_add(%s);" % _build_expr_code(code, e)
+    if if_expr is not None:
+        code.blk_end()
+    code.blk_end()
+    code += "return list;"
+    code.blk_end()
+    code += ""
+
 def _output_module(code, module):
     code += ""
     code.blk_start("final class Mod_%s" % module.name)
@@ -521,6 +562,10 @@ def _output_module(code, module):
     _output_global_init(code, module.global_var_map)
     for func in module.func_map.itervalues():
         _output_func(code, func)
+    #输出解析式、lambda等需要的代码
+    while code.list_compr_map or code.dict_compr_map:
+        while code.list_compr_map:
+            _output_list_compr(code, *code.list_compr_map.popitem())
     code.blk_end()
     code += ""
 
