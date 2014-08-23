@@ -152,9 +152,13 @@ class _TokenList:
             t.syntax_err("需要标识符")
         return t.value
 
-    def revert(self):
-        assert self.i > 0
-        self.i -= 1
+    def revert(self, i = None):
+        if i is None:
+            assert self.i > 0
+            self.i -= 1
+        else:
+            assert i >= 0
+            self.i = i
 
     def pop(self):
         t = self.peek()

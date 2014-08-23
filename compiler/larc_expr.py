@@ -52,6 +52,8 @@ def _is_expr_end(t):
         if t.value in ("%=", "^=", "&=", "*=", "-=", "+=", "|=", "/=",
                        "<<=", ">>=", ">>>="):
             return True
+    if t.is_for or t.is_if:
+        return True
     return False
 
 class _Expr:
@@ -174,6 +176,17 @@ class _Expr:
                 if e is not None:
                     e._link(curr_module, module_map, local_var_set)
             return
+        if self.op == "list_compr":
+            e, lvalue, expr, if_expr = self.arg
+            expr._link(curr_module, module_map, local_var_set)
+            assert lvalue.op == "name"
+            lvalue_var = lvalue.arg.value
+            compr_local_var_set = local_var_set | set([lvalue_var])
+            e._link(curr_module, module_map, compr_local_var_set)
+            if if_expr is not None:
+                if_expr._link(curr_module, module_map, compr_local_var_set)
+            self.arg = [expr, compr_local_var_set, e, lvalue_var, if_expr]
+            return
 
         #其余类型，包括单目、双目运算、下标、tuple和list构造等
         assert (self.op in _UNARY_OP_SET or self.op in _BINOCULAR_OP_SET or
@@ -221,6 +234,13 @@ class _Expr:
             for e in el:
                 if e is not None:
                     e._check()
+            return
+        if self.op == "list_compr":
+            expr, compr_local_var_set, e, lvalue_var, if_expr = self.arg
+            expr._check()
+            e._check()
+            if if_expr is not None:
+                if_expr._check()
             return
 
         #其余类型，包括单目、双目运算、下标、tuple和list构造等
@@ -297,6 +317,25 @@ def _parse_expr_list(token_list, end_sym):
             continue
         t.syntax_err("需要','或'%s'" % end_sym)
 
+def _parse_compr(token_list, end_sym):
+    assert token_list.pop().is_for
+    t = token_list.peek()
+    in_expr = parse_expr(token_list, True)
+    if in_expr.op != "in":
+        t.syntax_err("for语句中的非'in'表达式")
+    lvalue, expr = in_expr.arg
+    if lvalue.op != "name":
+        t.syntax_err("迭代元素必须是变量名")
+    t = token_list.pop()
+    if t.is_if:
+        if_expr = parse_expr(token_list, True)
+        t = token_list.pop()
+    else:
+        if_expr = None
+    if t.is_sym(end_sym):
+        return [lvalue, expr, if_expr]
+    t.syntax_err("需要'%s'" % end_sym)
+
 def _parse_dict_expr_list(token_list):
     if token_list.peek().is_sym("}"):
         #空字典
@@ -342,8 +381,26 @@ def parse_expr(token_list, end_at_comma = False):
                 token_list.pop_sym(")")
         elif t.is_sym("["):
             #列表
-            parse_stk.push_expr(_Expr("list",
-                                      _parse_expr_list(token_list, "]")))
+            if token_list.peek().is_sym("]"):
+                token_list.pop()
+                parse_stk.push_expr(_Expr("list", []))
+            else:
+                #先解析一个表达式
+                idx = token_list.i
+                e = parse_expr(token_list, True)
+                t = token_list.peek()
+                if t.is_sym(",") or t.is_sym("]"):
+                    #正常列表
+                    token_list.revert(idx)
+                    parse_stk.push_expr(
+                        _Expr("list", _parse_expr_list(token_list, "]")))
+                elif t.is_for:
+                    #列表解析式
+                    parse_stk.push_expr(
+                        _Expr("list_compr",
+                              [e] + _parse_compr(token_list, "]")))
+                else:
+                    t.syntax_err("需要','、']'或'for'")
         elif t.is_sym("{"):
             #字典
             parse_stk.push_expr(_Expr("dict",
