@@ -199,6 +199,12 @@ class _Expr:
                 if_expr._link(curr_module, module_map, compr_local_var_set)
             self.arg = [expr, compr_local_var_set, ek, ev, lvalue_var, if_expr]
             return
+        if self.op == "lambda":
+            arg_list, e = self.arg
+            lambda_local_var_set = local_var_set | set(arg_list)
+            e._link(curr_module, module_map, lambda_local_var_set)
+            self.arg = [lambda_local_var_set, arg_list, e]
+            return
 
         #其余类型，包括单目、双目运算、下标、tuple和list构造等
         assert (self.op in _UNARY_OP_SET or self.op in _BINOCULAR_OP_SET or
@@ -261,6 +267,10 @@ class _Expr:
             ev._check()
             if if_expr is not None:
                 if_expr._check()
+            return
+        if self.op == "lambda":
+            lambda_local_var_set, arg_list, e = self.arg
+            e._check()
             return
 
         #其余类型，包括单目、双目运算、下标、tuple和list构造等
@@ -450,6 +460,43 @@ def parse_expr(token_list, end_at_comma = False):
             parse_stk.push_expr(_Expr("name", t))
         elif t.is_const:
             parse_stk.push_expr(_Expr("const", t))
+        elif t.is_lambda:
+            #lambda表达式，先解析参数列表
+            arg_list = []
+            """参数列表两边的括号可加可不加，这里若直接调用parse_expr
+               然后判断是name或含有一堆name的tuple也可以，
+               不过我认为这种形式可能导致误解为python的参数自动unpack：
+               lambda ((x,y,z)) : ...
+               因此特殊处理语法"""
+            if token_list.peek().is_sym("("):
+                arg_with_parenthesis = True
+                token_list.pop_sym("(")
+                if token_list.peek().is_sym(")"):
+                    has_arg = False
+                    token_list.pop_sym(")")
+                    token_list.pop_sym(":")
+                else:
+                    has_arg = True
+            else:
+                arg_with_parenthesis = False
+                if token_list.peek().is_sym(":"):
+                    has_arg = False
+                    token_list.pop_sym(":")
+                else:
+                    has_arg = True
+            if has_arg:
+                while True:
+                    arg_list.append(token_list.pop_name())
+                    if token_list.peek().is_sym(","):
+                        token_list.pop_sym(",")
+                        continue
+                    if arg_with_parenthesis:
+                        token_list.pop_sym(")")
+                    token_list.pop_sym(":")
+                    break
+            e = parse_expr(token_list, True)
+            parse_stk.push_expr(
+                _Expr("lambda", [arg_list, e]))
         else:
             t.syntax_err("非法的表达式")
 

@@ -45,6 +45,9 @@ class _Code:
         self.list_compr_map = {}
         self.dict_compr_map = {}
 
+        self.lambda_number = 0
+        self.lambda_map = {}
+
     def add_extern_module(self, module):
         self.extern_module_list.append(module)
 
@@ -150,6 +153,12 @@ class _Code:
         self.dict_compr_map[self.compr_number] = (
             compr_arg_list, ek, ev, lvalue_var, if_expr)
         return self.compr_number
+
+    def add_lambda(self, lambda_stat_arg_list, arg_list, e):
+        self.lambda_number += 1
+        self.lambda_map[self.lambda_number] = (
+            lambda_stat_arg_list, arg_list, e)
+        return self.lambda_number
 
 def _output_booter(code, prog):
     code.blk_start("public final class Prog_%s" % prog.main_module_name)
@@ -337,6 +346,15 @@ def _build_expr_code(code, expr, expect_bool = False):
                 code.add_dict_compr(compr_arg_list, ek, ev, lvalue_var,
                                     if_expr))
             return "compr_dict_%d(%s)" % (compr_number, arg_code_str)
+        if expr.op == "lambda":
+            lambda_local_var_set, arg_list, e = expr.arg
+            lambda_stat_arg_list = (
+                sorted(lambda_local_var_set - set(arg_list)))
+            stat_arg_code_str = (
+                ",".join(["l_" + name for name in lambda_stat_arg_list]))
+            lambda_number = (
+                code.add_lambda(lambda_stat_arg_list, arg_list, e))
+            return "new Lambda_%d(%s)" % (lambda_number, stat_arg_code_str)
 
         raise Exception("unreachable")
 
@@ -595,6 +613,28 @@ def _output_dict_compr(code, idx,
     code.blk_end()
     code += ""
 
+def _output_lambda(code, idx, (lambda_stat_arg_list, arg_list, e)):
+    code.blk_start("private static final class Lambda_%d extends LarObj" % idx)
+    for name in lambda_stat_arg_list:
+        code += "private final LarObj l_%s;" % name
+    code += ""
+    #构造函数
+    code.blk_start("Lambda_%d(%s)" %
+                   (idx, ",".join(["LarObj %s" % name
+                                   for name in lambda_stat_arg_list])))
+    for name in lambda_stat_arg_list:
+        code += "l_%s = %s;" % (name, name)
+    code.blk_end()
+    code += ""
+    #调用操作
+    code.blk_start("public LarObj op_call(%s) throws Exception" %
+                   ",".join(["LarObj l_%s" % name for name in arg_list]))
+    code += "return %s;" % _build_expr_code(code, e)
+    code.blk_end()
+    code += ""
+    code.blk_end()
+    code += ""
+
 def _output_module(code, module):
     code += ""
     code.blk_start("final class Mod_%s" % module.name)
@@ -603,11 +643,13 @@ def _output_module(code, module):
     for func in module.func_map.itervalues():
         _output_func(code, func)
     #输出解析式、lambda等需要的代码
-    while code.list_compr_map or code.dict_compr_map:
+    while code.list_compr_map or code.dict_compr_map or code.lambda_map:
         while code.list_compr_map:
             _output_list_compr(code, *code.list_compr_map.popitem())
         while code.dict_compr_map:
             _output_dict_compr(code, *code.dict_compr_map.popitem())
+        while code.lambda_map:
+            _output_lambda(code, *code.lambda_map.popitem())
     code.blk_end()
     code += ""
 

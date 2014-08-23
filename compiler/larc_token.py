@@ -33,7 +33,7 @@ _SYM_SET = (set("""~%^&*()-+=|{}[]:"'<,>/.""") |
 _RESERVED_WORD_SET = set(["if", "elif", "else", "while", "return", "break",
                           "continue", "for", "in", "not", "and", "or", "nil",
                           "print", "func", "import", "global", "true", "false",
-                          "pass"])
+                          "pass", "lambda"])
 
 _TOKEN_TYPE_INDENT = object()
 _TOKEN_TYPE_FLOAT = object()
