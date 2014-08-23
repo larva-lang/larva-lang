@@ -187,6 +187,18 @@ class _Expr:
                 if_expr._link(curr_module, module_map, compr_local_var_set)
             self.arg = [expr, compr_local_var_set, e, lvalue_var, if_expr]
             return
+        if self.op == "dict_compr":
+            ek, ev, lvalue, expr, if_expr = self.arg
+            expr._link(curr_module, module_map, local_var_set)
+            assert lvalue.op == "name"
+            lvalue_var = lvalue.arg.value
+            compr_local_var_set = local_var_set | set([lvalue_var])
+            ek._link(curr_module, module_map, compr_local_var_set)
+            ev._link(curr_module, module_map, compr_local_var_set)
+            if if_expr is not None:
+                if_expr._link(curr_module, module_map, compr_local_var_set)
+            self.arg = [expr, compr_local_var_set, ek, ev, lvalue_var, if_expr]
+            return
 
         #其余类型，包括单目、双目运算、下标、tuple和list构造等
         assert (self.op in _UNARY_OP_SET or self.op in _BINOCULAR_OP_SET or
@@ -239,6 +251,14 @@ class _Expr:
             expr, compr_local_var_set, e, lvalue_var, if_expr = self.arg
             expr._check()
             e._check()
+            if if_expr is not None:
+                if_expr._check()
+            return
+        if self.op == "dict_compr":
+            expr, compr_local_var_set, ek, ev, lvalue_var, if_expr = self.arg
+            expr._check()
+            ek._check()
+            ev._check()
             if if_expr is not None:
                 if_expr._check()
             return
@@ -403,8 +423,28 @@ def parse_expr(token_list, end_at_comma = False):
                     t.syntax_err("需要','、']'或'for'")
         elif t.is_sym("{"):
             #字典
-            parse_stk.push_expr(_Expr("dict",
-                                      _parse_dict_expr_list(token_list)))
+            if token_list.peek().is_sym("}"):
+                token_list.pop()
+                parse_stk.push_expr(_Expr("dict", []))
+            else:
+                #先解析一对键值
+                idx = token_list.i
+                ek = parse_expr(token_list, True)
+                token_list.pop_sym(":")
+                ev = parse_expr(token_list, True)
+                t = token_list.peek()
+                if t.is_sym(",") or t.is_sym("}"):
+                    #正常字典
+                    token_list.revert(idx)
+                    parse_stk.push_expr(
+                        _Expr("dict", _parse_dict_expr_list(token_list)))
+                elif t.is_for:
+                    #字典解析式
+                    parse_stk.push_expr(
+                        _Expr("dict_compr",
+                              [ek, ev] + _parse_compr(token_list, "}")))
+                else:
+                    t.syntax_err("需要','、'}'或'for'")
         elif t.is_name:
             #名字
             parse_stk.push_expr(_Expr("name", t))

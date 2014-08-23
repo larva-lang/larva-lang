@@ -145,6 +145,12 @@ class _Code:
             compr_arg_list, e, lvalue_var, if_expr)
         return self.compr_number
 
+    def add_dict_compr(self, compr_arg_list, ek, ev, lvalue_var, if_expr):
+        self.compr_number += 1
+        self.dict_compr_map[self.compr_number] = (
+            compr_arg_list, ek, ev, lvalue_var, if_expr)
+        return self.compr_number
+
 def _output_booter(code, prog):
     code.blk_start("public final class Prog_%s" % prog.main_module_name)
     code.blk_start("public static void main(String[] argv) throws Exception")
@@ -319,6 +325,18 @@ def _build_expr_code(code, expr, expect_bool = False):
             compr_number = (
                 code.add_list_compr(compr_arg_list, e, lvalue_var, if_expr))
             return "compr_list_%d(%s)" % (compr_number, arg_code_str)
+        if expr.op == "dict_compr":
+            (iter_expr, compr_local_var_set, ek, ev, lvalue_var,
+             if_expr) = expr.arg
+            iter_expr_code = _build_expr_code(code, iter_expr)
+            compr_arg_list = sorted(compr_local_var_set - set([lvalue_var]))
+            arg_code_str = (
+                ",".join(["l_" + name for name in compr_arg_list] +
+                         [iter_expr_code]))
+            compr_number = (
+                code.add_dict_compr(compr_arg_list, ek, ev, lvalue_var,
+                                    if_expr))
+            return "compr_dict_%d(%s)" % (compr_number, arg_code_str)
 
         raise Exception("unreachable")
 
@@ -544,14 +562,36 @@ def _output_list_compr(code, idx, (compr_arg_list, e, lvalue_var, if_expr)):
     code += "LarObjList list = new LarObjList();"
     code.blk_start("for (LarObj iter = iterable.f_iterator(); "
                    "iter.f_has_next().op_bool();)")
-    if if_expr is not None:
-        code.blk_start("if (%s)" % _build_expr_code(if_expr))
     code += "l_%s = iter.f_next();" % lvalue_var
+    if if_expr is not None:
+        code.blk_start("if (%s.op_bool())" % _build_expr_code(if_expr))
     code += "list.f_add(%s);" % _build_expr_code(code, e)
     if if_expr is not None:
         code.blk_end()
     code.blk_end()
     code += "return list;"
+    code.blk_end()
+    code += ""
+
+def _output_dict_compr(code, idx,
+                       (compr_arg_list, ek, ev, lvalue_var, if_expr)):
+    code.blk_start(
+        "public static LarObjDict compr_dict_%d(%s) throws Exception" %
+        (idx, ",".join(["LarObj l_%s" % name for name in compr_arg_list] +
+                       ["LarObj iterable"])))
+    code += "LarObj l_%s;" % lvalue_var
+    code += "LarObjDict dict = new LarObjDict();"
+    code.blk_start("for (LarObj iter = iterable.f_iterator(); "
+                   "iter.f_has_next().op_bool();)")
+    code += "l_%s = iter.f_next();" % lvalue_var
+    if if_expr is not None:
+        code.blk_start("if (%s.op_bool())" % _build_expr_code(if_expr))
+    code += ("dict.op_set_item(%s, %s);" %
+             (_build_expr_code(code, ek), _build_expr_code(code, ev)))
+    if if_expr is not None:
+        code.blk_end()
+    code.blk_end()
+    code += "return dict;"
     code.blk_end()
     code += ""
 
@@ -566,6 +606,8 @@ def _output_module(code, module):
     while code.list_compr_map or code.dict_compr_map:
         while code.list_compr_map:
             _output_list_compr(code, *code.list_compr_map.popitem())
+        while code.dict_compr_map:
+            _output_dict_compr(code, *code.dict_compr_map.popitem())
     code.blk_end()
     code += ""
 
