@@ -106,4 +106,60 @@ public final class LarObjStr extends LarSeqObj
     {
         return new LarObjInt((long)m_value.charAt(get_index(arg_index)));
     }
+    
+    public LarObj f_split() throws Exception
+    {
+        //根据whitespace分割字符串，忽略首尾空白
+        LarObjList list = new LarObjList();
+        int start = -1;
+        for (int i = 0; i < m_len; ++ i)
+        {
+            char ch = m_value.charAt(i);
+            if (ch == ' ' || ch == '\t' || ch == '\r' || ch == '\n' || ch == 0xb/*\v*/ || ch == 0xc/*\f*/)
+            {
+                if (start != -1)
+                {
+                    //一个子串结束
+                    list.f_add(new LarObjStr(m_value.substring(start, i)));
+                    start = -1;
+                }
+            }
+            else
+            {
+                if (start == -1)
+                {
+                    //新字符串开始
+                    start = i;
+                }
+            }
+        }
+        if (start != -1)
+        {
+            //无尾部空白，最后一个子串
+            list.f_add(new LarObjStr(m_value.substring(start)));
+        }
+        return list;
+    }
+    public LarObj f_split(LarObj obj) throws Exception
+    {
+        if (!(obj instanceof LarObjStr))
+        {
+            throw new Exception("split参数类型为'" + obj.get_type_name() + "'，需要str");
+        }
+        String s = ((LarObjStr)obj).m_value;
+        //根据s分割字符串
+        LarObjList list = new LarObjList();
+        int start = 0;
+        for (;;)
+        {
+            int index = m_value.indexOf(s, start);
+            if (index == -1)
+            {
+                list.f_add(new LarObjStr(m_value.substring(start)));
+                return list;
+            }
+            list.f_add(new LarObjStr(m_value.substring(start, index)));
+            start = index + s.length();
+        }
+    }
 }

@@ -117,7 +117,8 @@ class _Code:
         lar_lib_name_list = ["LarUtil", "LarBuiltin", "LarBaseObj",
                              "LarSeqObj"]
         type_name_list = ["Nil", "Bool", "Int", "Long", "Float", "Str",
-                          "Tuple", "List", "Dict", "Set", "Range", "Bitmap"]
+                          "Tuple", "List", "Dict", "Set", "Range", "Bitmap",
+                          "File"]
         lib_file_path_name_list = []
         for name in (lar_lib_name_list +
                      ["LarObj%s" % type_name for type_name in type_name_list]):
@@ -188,7 +189,19 @@ def _output_const(code, const_map):
             value = '"%d"' % value
         elif type == "str":
             type = "LarObjStr"
-            value = '"%s"' % value.encode("utf8")
+            repr_char_list = list(value)
+            for i, ch in enumerate(repr_char_list):
+                esc_map = {"\\" : "\\\\",
+                           '"' : '\\"',
+                           "\n" : "\\n",
+                           "\r" : "\\r",
+                           "\t" : "\\t"}
+                if ch in esc_map:
+                    ch = esc_map[ch]
+                elif ch in "\a\b\f\v":
+                    ch = "\u%04x" % ord(ch)
+                repr_char_list[i] = ch
+            value = '"%s"' % "".join(repr_char_list).encode("utf8")
         elif type == "byte":
             type = "LarObjByte"
             byte_list = []
@@ -254,7 +267,7 @@ def _build_expr_code(code, expr, expect_bool = False):
                     "(%s)" % ",".join([_build_expr_code(code, e) for e in el]))
         if expr.op == "call_builtin_if":
             t, el = expr.arg
-            if t.value in ("int", "str", "tuple", "list", "set"):
+            if t.value in ("int", "str", "tuple", "list", "set", "file"):
                 return ("new LarObj%s(%s)" %
                         (t.value.capitalize(),
                          ",".join([_build_expr_code(code, e) for e in el])))

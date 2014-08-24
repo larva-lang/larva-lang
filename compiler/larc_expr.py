@@ -181,7 +181,10 @@ class _Expr:
             expr._link(curr_module, module_map, local_var_set)
             assert lvalue.op == "name"
             lvalue_var = lvalue.arg.value
-            compr_local_var_set = local_var_set | set([lvalue_var])
+            if local_var_set is None:
+                compr_local_var_set = set([lvalue_var])
+            else:
+                compr_local_var_set = local_var_set | set([lvalue_var])
             e._link(curr_module, module_map, compr_local_var_set)
             if if_expr is not None:
                 if_expr._link(curr_module, module_map, compr_local_var_set)
@@ -192,7 +195,10 @@ class _Expr:
             expr._link(curr_module, module_map, local_var_set)
             assert lvalue.op == "name"
             lvalue_var = lvalue.arg.value
-            compr_local_var_set = local_var_set | set([lvalue_var])
+            if local_var_set is None:
+                compr_local_var_set = set([lvalue_var])
+            else:
+                compr_local_var_set = local_var_set | set([lvalue_var])
             ek._link(curr_module, module_map, compr_local_var_set)
             ev._link(curr_module, module_map, compr_local_var_set)
             if if_expr is not None:
@@ -201,7 +207,10 @@ class _Expr:
             return
         if self.op == "lambda":
             arg_list, e = self.arg
-            lambda_local_var_set = local_var_set | set(arg_list)
+            if local_var_set is None:
+                lambda_local_var_set = set(arg_list)
+            else:
+                lambda_local_var_set = local_var_set | set(arg_list)
             e._link(curr_module, module_map, lambda_local_var_set)
             self.arg = [lambda_local_var_set, arg_list, e]
             return

@@ -61,6 +61,15 @@ public final class LarObjSet extends LarObj
         m_version = 0;
     }
 
+    LarObjSet(LarObj obj) throws Exception
+    {
+        this();
+        for (LarObj iter = obj.f_iterator(); iter.f_has_next().op_bool();)
+        {
+            f_add(iter.f_next());
+        }
+    }
+
     private int get_obj_index(LarObj[] list, LarObj obj) throws Exception
     {
         //从hash表中查找obj，如查不到则返回一个插入空位，算法同dict

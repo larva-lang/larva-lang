@@ -263,7 +263,7 @@ public class LarBaseObj
     }
 
     /*
-    内部类型默认有的方法，如果代码中出现，则可能被LarObjBase覆盖，这个没有关系
+    内部类型默认有的方法，如果代码中出现，则可能被LarObj覆盖，这个没有关系
     写在这里主要是防止某些方法的隐式调用，比如迭代器的
     */
     public LarObj f_add(LarObj obj) throws Exception
