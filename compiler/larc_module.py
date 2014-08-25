@@ -32,14 +32,19 @@ class _Func:
         larc_stmt.check_last_return(self.stmt_list)
 
     def _search_local_var(self, stmt_list):
-        #局部变量条件：赋值或for的左值是一个名字
+        #局部变量条件：赋值或for的左值是一个名字或在unpack表达式查找名字
         #对于嵌套stmt_list的语句递归搜索
         for stmt in stmt_list:
-            if (stmt.type in ("=", "%=", "^=", "&=", "*=", "-=", "+=", "|=",
-                              "/=", "<<=", ">>=", ">>>=", "for") and
-                stmt.lvalue.op == "name"):
-                if stmt.lvalue.arg.value not in self.global_var_set:
-                    self.local_var_set.add(stmt.lvalue.arg.value)
+            if stmt.type in ("=", "%=", "^=", "&=", "*=", "-=", "+=", "|=",
+                             "/=", "<<=", ">>=", ">>>=", "for"):
+                def _search_local_var_in_lvalue(lvalue):
+                    if lvalue.op == "name":
+                        if lvalue.arg.value not in self.global_var_set:
+                            self.local_var_set.add(lvalue.arg.value)
+                    elif lvalue.op in ("tuple", "list"):
+                        for unpack_lvalue in lvalue.arg:
+                            _search_local_var_in_lvalue(unpack_lvalue)
+                _search_local_var_in_lvalue(stmt.lvalue)
             if stmt.type in ("for", "while"):
                 self._search_local_var(stmt.stmt_list)
             if stmt.type == "if":

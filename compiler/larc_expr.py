@@ -60,7 +60,19 @@ class _Expr:
     def __init__(self, op, arg):
         self.op = op
         self.arg = arg
-        self.is_lvalue = op in ("name", ".", "[]", "[:]")
+        if op in ("name", ".", "[]", "[:]"):
+            self.is_lvalue = True
+        elif op in ("tuple", "list"):
+            if self.arg:
+                self.is_lvalue = True
+                for e in self.arg:
+                    if not e.is_lvalue:
+                        self.is_lvalue = False
+                        break
+            else:
+                self.is_lvalue = False
+        else:
+            self.is_lvalue = False
 
     def link(self, curr_module, module_map, local_var_set = None):
         self._link(curr_module, module_map, local_var_set)
@@ -177,33 +189,35 @@ class _Expr:
                     e._link(curr_module, module_map, local_var_set)
             return
         if self.op == "list_compr":
-            e, lvalue, expr, if_expr = self.arg
+            e, lvalue, name_set, expr, if_expr = self.arg
             expr._link(curr_module, module_map, local_var_set)
-            assert lvalue.op == "name"
-            lvalue_var = lvalue.arg.value
+            assert lvalue.op in ("name", "tuple", "list")
             if local_var_set is None:
-                compr_local_var_set = set([lvalue_var])
+                compr_local_var_set = name_set
             else:
-                compr_local_var_set = local_var_set | set([lvalue_var])
+                compr_local_var_set = local_var_set | name_set
             e._link(curr_module, module_map, compr_local_var_set)
+            lvalue._link(curr_module, module_map, compr_local_var_set)
             if if_expr is not None:
                 if_expr._link(curr_module, module_map, compr_local_var_set)
-            self.arg = [expr, compr_local_var_set, e, lvalue_var, if_expr]
+            self.arg = [expr, compr_local_var_set, e, lvalue, name_set,
+                        if_expr]
             return
         if self.op == "dict_compr":
-            ek, ev, lvalue, expr, if_expr = self.arg
+            ek, ev, lvalue, name_set, expr, if_expr = self.arg
             expr._link(curr_module, module_map, local_var_set)
-            assert lvalue.op == "name"
-            lvalue_var = lvalue.arg.value
+            assert lvalue.op in ("name", "tuple", "list")
             if local_var_set is None:
-                compr_local_var_set = set([lvalue_var])
+                compr_local_var_set = name_set
             else:
-                compr_local_var_set = local_var_set | set([lvalue_var])
+                compr_local_var_set = local_var_set | name_set
             ek._link(curr_module, module_map, compr_local_var_set)
             ev._link(curr_module, module_map, compr_local_var_set)
+            lvalue._link(curr_module, module_map, compr_local_var_set)
             if if_expr is not None:
                 if_expr._link(curr_module, module_map, compr_local_var_set)
-            self.arg = [expr, compr_local_var_set, ek, ev, lvalue_var, if_expr]
+            self.arg = [expr, compr_local_var_set, ek, ev, lvalue, name_set,
+                        if_expr]
             return
         if self.op == "lambda":
             arg_list, e = self.arg
@@ -263,17 +277,20 @@ class _Expr:
                     e._check()
             return
         if self.op == "list_compr":
-            expr, compr_local_var_set, e, lvalue_var, if_expr = self.arg
+            expr, compr_local_var_set, e, lvalue, name_set, if_expr = self.arg
             expr._check()
             e._check()
+            lvalue._check()
             if if_expr is not None:
                 if_expr._check()
             return
         if self.op == "dict_compr":
-            expr, compr_local_var_set, ek, ev, lvalue_var, if_expr = self.arg
+            expr, compr_local_var_set, ek, ev, lvalue, name_set, if_expr = (
+                self.arg)
             expr._check()
             ek._check()
             ev._check()
+            lvalue._check()
             if if_expr is not None:
                 if_expr._check()
             return
@@ -363,8 +380,24 @@ def _parse_compr(token_list, end_sym):
     if in_expr.op != "in":
         t.syntax_err("for语句中的非'in'表达式")
     lvalue, expr = in_expr.arg
-    if lvalue.op != "name":
-        t.syntax_err("迭代元素必须是变量名")
+
+    name_set = set()
+    def _valid_lvalue(lvalue):
+        #判断是否变量名或仅含变量名的unpack左值
+        #同时收集变量名到name_set
+        if lvalue.op == "name":
+            name_set.add(lvalue.arg.value)
+            return True
+        if lvalue.op in ("tuple", "list"):
+            for unpack_lvalue in lvalue.arg:
+                if not _valid_lvalue(unpack_lvalue):
+                    return False
+            return True
+        return False
+
+    if not _valid_lvalue(lvalue):
+        t.syntax_err("迭代元素必须是变量名或仅含变量名的unpack左值")
+
     t = token_list.pop()
     if t.is_if:
         if_expr = parse_expr(token_list, True)
@@ -372,7 +405,7 @@ def _parse_compr(token_list, end_sym):
     else:
         if_expr = None
     if t.is_sym(end_sym):
-        return [lvalue, expr, if_expr]
+        return [lvalue, name_set, expr, if_expr]
     t.syntax_err("需要'%s'" % end_sym)
 
 def _parse_dict_expr_list(token_list):

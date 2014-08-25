@@ -76,7 +76,7 @@ public final class LarObjDict extends LarObj
         int mask = list.length - 1;
         int h = key.op_hash();
         int start = h & mask;
-        int step = h | 1;
+        int step = ((h >> 4) ^ h) | 1;
         int first_dummy_index = -1;
         for (int index = (start + step) & mask; index != start; index = (index + step) & mask)
         {
