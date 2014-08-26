@@ -376,10 +376,12 @@ def _parse_expr_list(token_list, end_sym):
 def _parse_compr(token_list, end_sym):
     assert token_list.pop().is_for
     t = token_list.peek()
-    in_expr = parse_expr(token_list, True)
-    if in_expr.op != "in":
-        t.syntax_err("for语句中的非'in'表达式")
-    lvalue, expr = in_expr.arg
+    #下述代码说明参考larc_stmt中的_parse_for
+    lvalue = parse_expr(token_list, end_at_in = True)
+    t = token_list.pop()
+    if not t.is_in:
+        t.syntax_err("需要'in'")
+    expr = parse_expr(token_list)
 
     name_set = set()
     def _valid_lvalue(lvalue):
@@ -426,7 +428,7 @@ def _parse_dict_expr_list(token_list):
             continue
         t.syntax_err("需要','或'}'")
 
-def parse_expr(token_list, end_at_comma = False):
+def parse_expr(token_list, end_at_comma = False, end_at_in = False):
     parse_stk = _ParseStk(token_list.peek())
     while True:
         #状态：等待表达式的开始
@@ -611,18 +613,24 @@ def parse_expr(token_list, end_at_comma = False):
                 if _is_expr_end(t):
                     #元组解析结束
                     break
-                arg_list.append(parse_expr(token_list, True))
+                arg_list.append(parse_expr(token_list, True, end_at_in))
                 #接下来应该是逗号或表达式结束
+                if not token_list:
+                    break
                 t = token_list.peek()
                 if t.is_sym(","):
                     #后续可能还有
                     token_list.pop()
                     continue
-                if _is_expr_end(t):
+                if _is_expr_end(t) or end_at_in and t.is_in:
                     #元组结束
                     break
                 t.syntax_err("非法的元组")
             parse_stk.push_expr(_Expr("tuple", arg_list))
+
+        if token_list and token_list.peek().is_in and end_at_in:
+            #碰到in结束
+            break
 
         if not token_list or _is_expr_end(token_list.peek()):
             #表达式结束
