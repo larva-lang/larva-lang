@@ -18,8 +18,14 @@ def _init_builtin_if():
                                  "set" : (0, 1),
                                  "range" : (1, 2, 3),
                                  "bitmap" : (1,),
+                                 "file" : (1,),
                                  "sorted" : (1,),
-                                 "len" : (1,)}.iteritems():
+                                 "len" : (1,),
+                                 "sum" : (1,),
+                                 "pow" : (2,),
+                                 "max" : (1,),
+                                 "min" : (1,),
+                                 "bin" : (1,)}.iteritems():
         for arg_count in arg_count_list:
             builtin_if_set.add((name, arg_count))
 _init_builtin_if()

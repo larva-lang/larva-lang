@@ -18,7 +18,7 @@ public final class LarObjInt extends LarObj
             }
             catch (NumberFormatException exc)
             {
-                throw new Exception("字符串无法转为整数：'" + obj.op_str() + "'");
+                throw new Exception("字符串无法转为int：'" + obj.op_str() + "'");
             }
             return;
         }
@@ -27,7 +27,7 @@ public final class LarObjInt extends LarObj
             double value = ((LarObjFloat)obj).m_value;
             if (value < Long.MIN_VALUE || value > Long.MAX_VALUE)
             {
-                throw new Exception("浮点数过大，无法转为整数：" + value);
+                throw new Exception("浮点数过大，无法转为int：" + value);
             }
             m_value = (long)value;
             return;
@@ -48,9 +48,9 @@ public final class LarObjInt extends LarObj
             //根据实际情况来解析
             if (s.length() == 0)
             {
-                throw new Exception("空字符串无法转为整数");
+                throw new Exception("空字符串无法转为int");
             }
-            String exc_info = "字符串无法转为整数：'" + s + "'";
+            String exc_info = "字符串无法转为int：'" + s + "'";
             String sign = "";
             if (s.charAt(0) == '-')
             {
@@ -64,7 +64,14 @@ public final class LarObjInt extends LarObj
             if (s.charAt(0) != '0')
             {
                 //十进制数
-                m_value = Long.parseLong(sign + s);
+                try
+                {
+                    m_value = Long.parseLong(sign + s);
+                }
+                catch (NumberFormatException exc)
+                {
+                    throw new Exception(exc_info);
+                }
                 return;
             }
             if (s.length() == 1)
@@ -101,7 +108,7 @@ public final class LarObjInt extends LarObj
             }
             try
             {
-                m_value = Long.parseLong(s, (int)radix);
+                m_value = Long.parseLong(sign + s, (int)radix);
             }
             catch (NumberFormatException exc)
             {
@@ -120,7 +127,7 @@ public final class LarObjInt extends LarObj
         }
         catch (NumberFormatException exc)
         {
-            throw new Exception("字符串无法以" + radix + "进制转为整数：'" + s + "'");
+            throw new Exception("字符串无法以" + radix + "进制转为int：'" + s + "'");
         }
     }
 

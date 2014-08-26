@@ -217,6 +217,8 @@ def parse_stmt_list(token_list, upper_indent_count, loop_deep):
                 #增量赋值
                 if lvalue.op == "[:]":
                     t.syntax_err("分片无法增量赋值")
+                if lvalue.op in ("tuple", "list"):
+                    t.syntax_err("不支持unpack增量赋值")
             token_list.pop_sym(assign_sym)
             expr = larc_expr.parse_expr(token_list)
             stmt_list.append(_Stmt(assign_sym, lvalue = lvalue, expr = expr))

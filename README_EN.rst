@@ -38,8 +38,7 @@ Then will generate a <filename> folder
 TODOS
 ===========
 
- * Lambda expression
- * list/set/dict comprehensions
+ * Unpack assignment
  * Class definition
 
 Copying

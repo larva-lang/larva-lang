@@ -6,19 +6,150 @@ public final class LarObjLong extends LarObj
     private final BigInteger LONG_MAX = BigInteger.valueOf(Long.MAX_VALUE);
     private final BigInteger LONG_MIN = BigInteger.valueOf(Long.MIN_VALUE);
 
-    private final BigInteger m_value;
-    private int m_hash;
+    public final BigInteger m_value;
+    private int m_hash = -1;
 
     LarObjLong(String value)
     {
         m_value = new BigInteger(value);
-        m_hash = -1; //缓存hash值，-1表示还未计算
     }
 
     LarObjLong(BigInteger value)
     {
         m_value = value;
-        m_hash = -1; //缓存hash值，-1表示还未计算
+    }
+    
+    LarObjLong(LarObj obj) throws Exception
+    {
+        if (obj instanceof LarObjStr)
+        {
+            BigInteger value;
+            try
+            {
+                value = new BigInteger(((LarObjStr)obj).m_value);
+            }
+            catch (NumberFormatException exc)
+            {
+                throw new Exception("字符串无法转为long：'" + obj.op_str() + "'");
+            }
+            m_value = value;
+            return;
+        }
+        if (obj instanceof LarObjInt)
+        {
+            m_value = BigInteger.valueOf(((LarObjInt)obj).m_value);
+            return;
+        }
+        throw new Exception("无法将类型'" + obj.get_type_name() + "'转为long");
+    }
+
+    LarObjLong(LarObj arg_str, LarObj arg_radix) throws Exception
+    {
+        if (!(arg_str instanceof LarObjStr))
+        {
+            throw new Exception("指定进制转换为long类型时，参数需为str类型");
+        }
+        String s = ((LarObjStr)arg_str).m_value;
+        long radix = arg_radix.op_int();
+        BigInteger value;
+        if (radix == 0)
+        {
+            //根据实际情况来解析
+            if (s.length() == 0)
+            {
+                throw new Exception("空字符串无法转为long");
+            }
+            String exc_info = "字符串无法转为long：'" + s + "'";
+            String sign = "";
+            if (s.charAt(0) == '-')
+            {
+                sign = "-";
+                s = s.substring(1);
+            }
+            if (s.length() == 0)
+            {
+                throw new Exception(exc_info);
+            }
+            if (s.charAt(0) != '0')
+            {
+                //十进制数
+                try
+                {
+                    value = new BigInteger(sign + s);
+                }
+                catch (NumberFormatException exc)
+                {
+                    throw new Exception(exc_info);
+                }
+                m_value = value;
+                return;
+            }
+            if (s.length() == 1)
+            {
+                //字符串是"0"或"-0"
+                m_value = BigInteger.ZERO;
+                return;
+            }
+            //以0开头的字符串
+            char second_char = s.charAt(1);
+            if (second_char >= '0' && second_char <= '9')
+            {
+                s = s.substring(1);
+                radix = 8;
+            }
+            else if (second_char == 'b' || second_char == 'B')
+            {
+                s = s.substring(2);
+                radix = 2;
+            }
+            else if (second_char == 'o' || second_char == 'O')
+            {
+                s = s.substring(2);
+                radix = 8;
+            }
+            else if (second_char == 'x' || second_char == 'X')
+            {
+                s = s.substring(2);
+                radix = 16;
+            }
+            else
+            {
+                throw new Exception(exc_info);
+            }
+            try
+            {
+                value = new BigInteger(sign + s, (int)radix);
+            }
+            catch (NumberFormatException exc)
+            {
+                throw new Exception(exc_info);
+            }
+            m_value = value;
+            return;
+        }
+        //其余情况利用系统的实现
+        if (radix < Character.MIN_RADIX || radix > Character.MAX_RADIX)
+        {
+            throw new Exception("非法的进制：" + radix);
+        }
+        try
+        {
+            value = new BigInteger(s, (int)radix);
+        }
+        catch (NumberFormatException exc)
+        {
+            throw new Exception("字符串无法以" + radix + "进制转为long：'" + s + "'");
+        }
+        m_value = value;
+    }
+
+    public LarObj pow(long e) throws Exception
+    {
+        if (e < 0 || e > Integer.MAX_VALUE)
+        {
+            throw new Exception("整数幂运算的指数错误：" + e);
+        }
+        return new LarObjLong(m_value.pow((int)e));
     }
 
     public double to_double() throws Exception

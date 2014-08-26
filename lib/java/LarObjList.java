@@ -196,4 +196,16 @@ public final class LarObjList extends LarSeqObj
         }
         return this;
     }
+    
+    public LarObj f_pop() throws Exception
+    {
+        if (m_len > 0)
+        {
+            -- m_len;
+            LarObj obj = m_list[m_len];
+            m_list[m_len] = null;
+            return obj;
+        }
+        throw new Exception("从空list中pop");
+    }
 }

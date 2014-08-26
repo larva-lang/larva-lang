@@ -45,6 +45,11 @@ class _Code:
         self.list_compr_map = {}
         self.dict_compr_map = {}
 
+        self.lambda_number = 0
+        self.lambda_map = {}
+
+        self.unpack_number = 0
+
     def add_extern_module(self, module):
         self.extern_module_list.append(module)
 
@@ -114,7 +119,8 @@ class _Code:
         lar_lib_name_list = ["LarUtil", "LarBuiltin", "LarBaseObj",
                              "LarSeqObj"]
         type_name_list = ["Nil", "Bool", "Int", "Long", "Float", "Str",
-                          "Tuple", "List", "Dict", "Set", "Range", "Bitmap"]
+                          "Tuple", "List", "Dict", "Set", "Range", "Bitmap",
+                          "File"]
         lib_file_path_name_list = []
         for name in (lar_lib_name_list +
                      ["LarObj%s" % type_name for type_name in type_name_list]):
@@ -139,11 +145,28 @@ class _Code:
     def add_lar_obj_method(self, method_name, arg_count):
         self.lar_obj_method_set.add((method_name, arg_count))
 
-    def add_list_compr(self, compr_arg_list, e, lvalue_var, if_expr):
+    def add_list_compr(self, compr_arg_list, e, lvalue, name_set, if_expr):
         self.compr_number += 1
         self.list_compr_map[self.compr_number] = (
-            compr_arg_list, e, lvalue_var, if_expr)
+            compr_arg_list, e, lvalue, name_set, if_expr)
         return self.compr_number
+
+    def add_dict_compr(self, compr_arg_list, ek, ev, lvalue, name_set,
+                       if_expr):
+        self.compr_number += 1
+        self.dict_compr_map[self.compr_number] = (
+            compr_arg_list, ek, ev, lvalue, name_set, if_expr)
+        return self.compr_number
+
+    def add_lambda(self, lambda_stat_arg_list, arg_list, e):
+        self.lambda_number += 1
+        self.lambda_map[self.lambda_number] = (
+            lambda_stat_arg_list, arg_list, e)
+        return self.lambda_number
+
+    def new_unpack_number(self):
+        self.unpack_number += 1
+        return self.unpack_number
 
 def _output_booter(code, prog):
     code.blk_start("public final class Prog_%s" % prog.main_module_name)
@@ -173,7 +196,19 @@ def _output_const(code, const_map):
             value = '"%d"' % value
         elif type == "str":
             type = "LarObjStr"
-            value = '"%s"' % value.encode("utf8")
+            repr_char_list = list(value)
+            for i, ch in enumerate(repr_char_list):
+                esc_map = {"\\" : "\\\\",
+                           '"' : '\\"',
+                           "\n" : "\\n",
+                           "\r" : "\\r",
+                           "\t" : "\\t"}
+                if ch in esc_map:
+                    ch = esc_map[ch]
+                elif ch in "\a\b\f\v":
+                    ch = "\u%04x" % ord(ch)
+                repr_char_list[i] = ch
+            value = '"%s"' % "".join(repr_char_list).encode("utf8")
         elif type == "byte":
             type = "LarObjByte"
             byte_list = []
@@ -239,7 +274,7 @@ def _build_expr_code(code, expr, expect_bool = False):
                     "(%s)" % ",".join([_build_expr_code(code, e) for e in el]))
         if expr.op == "call_builtin_if":
             t, el = expr.arg
-            if t.value in ("int", "str", "tuple", "list", "set"):
+            if t.value in ("int", "str", "tuple", "list", "set", "file"):
                 return ("new LarObj%s(%s)" %
                         (t.value.capitalize(),
                          ",".join([_build_expr_code(code, e) for e in el])))
@@ -309,16 +344,38 @@ def _build_expr_code(code, expr, expect_bool = False):
             return (_build_expr_code(code, eo) +
                     ".op_get_slice(%s)" % arg_code_str)
         if expr.op == "list_compr":
-            (iter_expr, compr_local_var_set, e, lvalue_var,
+            (iter_expr, compr_local_var_set, e, lvalue, name_set,
              if_expr) = expr.arg
             iter_expr_code = _build_expr_code(code, iter_expr)
-            compr_arg_list = sorted(compr_local_var_set - set([lvalue_var]))
+            compr_arg_list = sorted(compr_local_var_set - name_set)
             arg_code_str = (
                 ",".join(["l_" + name for name in compr_arg_list] +
                          [iter_expr_code]))
             compr_number = (
-                code.add_list_compr(compr_arg_list, e, lvalue_var, if_expr))
+                code.add_list_compr(compr_arg_list, e, lvalue, name_set,
+                                    if_expr))
             return "compr_list_%d(%s)" % (compr_number, arg_code_str)
+        if expr.op == "dict_compr":
+            (iter_expr, compr_local_var_set, ek, ev, lvalue, name_set,
+             if_expr) = expr.arg
+            iter_expr_code = _build_expr_code(code, iter_expr)
+            compr_arg_list = sorted(compr_local_var_set - name_set)
+            arg_code_str = (
+                ",".join(["l_" + name for name in compr_arg_list] +
+                         [iter_expr_code]))
+            compr_number = (
+                code.add_dict_compr(compr_arg_list, ek, ev, lvalue, name_set,
+                                    if_expr))
+            return "compr_dict_%d(%s)" % (compr_number, arg_code_str)
+        if expr.op == "lambda":
+            lambda_local_var_set, arg_list, e = expr.arg
+            lambda_stat_arg_list = (
+                sorted(lambda_local_var_set - set(arg_list)))
+            stat_arg_code_str = (
+                ",".join(["l_" + name for name in lambda_stat_arg_list]))
+            lambda_number = (
+                code.add_lambda(lambda_stat_arg_list, arg_list, e))
+            return "new Lambda_%d(%s)" % (lambda_number, stat_arg_code_str)
 
         raise Exception("unreachable")
 
@@ -345,6 +402,46 @@ def _output_global_init(code, global_var_map):
         code += "g_%s = %s;" % (var_name, _build_expr_code(code, expr))
     code.blk_end()
     code += ""
+
+def _output_assign(code, lvalue, expr_code):
+    if lvalue.op in ("local_name", "global_name"):
+        code += ("%s_%s = %s;" %
+                 (lvalue.op[0], lvalue.arg.value, expr_code))
+        return
+    if lvalue.op == "module.global":
+        code += ("Mod_%s.g_%s = %s;" %
+                 (lvalue.arg[0].value, lvalue.arg[1].value, expr_code))
+        return
+    if lvalue.op == ".":
+        e, attr = lvalue.arg
+        code.add_lar_obj_op_attr(attr.value)
+        code += ("%s.op_set_attr_%s(%s);" %
+                 (_build_expr_code(code, e), attr.value, expr_code))
+        return
+    if lvalue.op == "[]":
+        ea, eb = lvalue.arg
+        code += ("%s.op_set_item(%s, %s);" %
+                 (_build_expr_code(code, ea),
+                  _build_expr_code(code, eb), expr_code))
+        return
+    if lvalue.op == "[:]":
+        eo, el = lvalue.arg
+        code += ("%s.op_set_slice(%s,%s);" %
+                 (_build_expr_code(code, eo),
+                  ",".join(["null" if e is None
+                            else _build_expr_code(code, e)
+                            for e in el]), expr_code))
+        return
+    if lvalue.op in ("tuple", "list"):
+        unpack_number = code.new_unpack_number()
+        unpack_tmp_array = "unpack_tmp_array_%d" % unpack_number
+        code += ("LarObj[] %s = LarUtil.unpack_seq(%s, %d);" %
+                 (unpack_tmp_array, expr_code, len(lvalue.arg)))
+        for i, unpack_lvalue in enumerate(lvalue.arg):
+            _output_assign(
+                code, unpack_lvalue, "%s[%d]" % (unpack_tmp_array, i))
+        return
+    raise Exception("unreachable")
 
 def _output_stmt_list(code, stmt_list):
     for stmt in stmt_list:
@@ -407,38 +504,6 @@ def _output_stmt_list(code, stmt_list):
                 _output_stmt_list(code, stmt.else_stmt_list)
                 code.blk_end()
             continue
-
-        def _output_assign(code, lvalue, expr_code):
-            if lvalue.op in ("local_name", "global_name"):
-                code += ("%s_%s = %s;" %
-                         (lvalue.op[0], lvalue.arg.value, expr_code))
-                return
-            if lvalue.op == "module.global":
-                code += ("Mod_%s.g_%s = %s;" %
-                         (lvalue.arg[0].value, lvalue.arg[1].value, expr_code))
-                return
-            if lvalue.op == ".":
-                e, attr = lvalue.arg
-                code.add_lar_obj_op_attr(attr.value)
-                code += ("%s.op_set_attr_%s(%s);" %
-                         (_build_expr_code(code, e), attr.value, expr_code))
-                return
-            if lvalue.op == "[]":
-                ea, eb = lvalue.arg
-                code += ("%s.op_set_item(%s, %s);" %
-                         (_build_expr_code(code, ea),
-                          _build_expr_code(code, eb), expr_code))
-                return
-            if lvalue.op == "[:]":
-                eo, el = lvalue.arg
-                code += ("%s.op_set_slice(%s,%s);" %
-                         (_build_expr_code(code, eo),
-                          ",".join(["null" if e is None
-                                    else _build_expr_code(code, e)
-                                    for e in el]), expr_code))
-                return
-            raise Exception("unreachable")
-
         if stmt.type == "=":
             _output_assign(code, stmt.lvalue,
                            _build_expr_code(code, stmt.expr))
@@ -535,23 +600,70 @@ def _output_func(code, func):
     code.blk_end()
     code += ""
 
-def _output_list_compr(code, idx, (compr_arg_list, e, lvalue_var, if_expr)):
+def _output_list_compr(code, idx,
+                       (compr_arg_list, e, lvalue, name_set, if_expr)):
     code.blk_start(
         "public static LarObjList compr_list_%d(%s) throws Exception" %
         (idx, ",".join(["LarObj l_%s" % name for name in compr_arg_list] +
                        ["LarObj iterable"])))
-    code += "LarObj l_%s;" % lvalue_var
+    for name in name_set:
+        code += "LarObj l_%s;" % name
     code += "LarObjList list = new LarObjList();"
     code.blk_start("for (LarObj iter = iterable.f_iterator(); "
                    "iter.f_has_next().op_bool();)")
+    _output_assign(code, lvalue, "iter.f_next()")
     if if_expr is not None:
-        code.blk_start("if (%s)" % _build_expr_code(if_expr))
-    code += "l_%s = iter.f_next();" % lvalue_var
+        code.blk_start("if (%s.op_bool())" % _build_expr_code(if_expr))
     code += "list.f_add(%s);" % _build_expr_code(code, e)
     if if_expr is not None:
         code.blk_end()
     code.blk_end()
     code += "return list;"
+    code.blk_end()
+    code += ""
+
+def _output_dict_compr(code, idx,
+                       (compr_arg_list, ek, ev, lvalue, name_set, if_expr)):
+    code.blk_start(
+        "public static LarObjDict compr_dict_%d(%s) throws Exception" %
+        (idx, ",".join(["LarObj l_%s" % name for name in compr_arg_list] +
+                       ["LarObj iterable"])))
+    for name in name_set:
+        code += "LarObj l_%s;" % name
+    code += "LarObjDict dict = new LarObjDict();"
+    code.blk_start("for (LarObj iter = iterable.f_iterator(); "
+                   "iter.f_has_next().op_bool();)")
+    _output_assign(code, lvalue, "iter.f_next()")
+    if if_expr is not None:
+        code.blk_start("if (%s.op_bool())" % _build_expr_code(if_expr))
+    code += ("dict.op_set_item(%s, %s);" %
+             (_build_expr_code(code, ek), _build_expr_code(code, ev)))
+    if if_expr is not None:
+        code.blk_end()
+    code.blk_end()
+    code += "return dict;"
+    code.blk_end()
+    code += ""
+
+def _output_lambda(code, idx, (lambda_stat_arg_list, arg_list, e)):
+    code.blk_start("private static final class Lambda_%d extends LarObj" % idx)
+    for name in lambda_stat_arg_list:
+        code += "private final LarObj l_%s;" % name
+    code += ""
+    #构造函数
+    code.blk_start("Lambda_%d(%s)" %
+                   (idx, ",".join(["LarObj %s" % name
+                                   for name in lambda_stat_arg_list])))
+    for name in lambda_stat_arg_list:
+        code += "l_%s = %s;" % (name, name)
+    code.blk_end()
+    code += ""
+    #调用操作
+    code.blk_start("public LarObj op_call(%s) throws Exception" %
+                   ",".join(["LarObj l_%s" % name for name in arg_list]))
+    code += "return %s;" % _build_expr_code(code, e)
+    code.blk_end()
+    code += ""
     code.blk_end()
     code += ""
 
@@ -563,9 +675,13 @@ def _output_module(code, module):
     for func in module.func_map.itervalues():
         _output_func(code, func)
     #输出解析式、lambda等需要的代码
-    while code.list_compr_map or code.dict_compr_map:
+    while code.list_compr_map or code.dict_compr_map or code.lambda_map:
         while code.list_compr_map:
             _output_list_compr(code, *code.list_compr_map.popitem())
+        while code.dict_compr_map:
+            _output_dict_compr(code, *code.dict_compr_map.popitem())
+        while code.lambda_map:
+            _output_lambda(code, *code.lambda_map.popitem())
     code.blk_end()
     code += ""
 
