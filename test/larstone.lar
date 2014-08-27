@@ -23,13 +23,12 @@ IntGlob = 0
 BoolGlob = false
 Char1Glob = 0
 Char2Glob = 0
+/*
+Array1Glob = {i : 0 for i in range(51)}
+Array2Glob = {i : {i : 0 for i in range(51)} for i in range(51)}
+*/
 Array1Glob = [0] * 51
-func _init_Array2Glob():
-    a = []
-    for i in range(51):
-        a.add([0] * 51)
-    return a
-Array2Glob = _init_Array2Glob()
+Array2Glob = [[0] * 51 for i in range(51)]
 
 PtrGlb = nil
 PtrGlbNext = nil

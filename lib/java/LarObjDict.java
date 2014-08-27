@@ -6,7 +6,6 @@ public final class LarObjDict extends LarObj
         private LarObj m_key;
         private long m_key_int;
         private LarObj m_value;
-        private long m_value_int;
 
         Entry()
         {
@@ -15,7 +14,7 @@ public final class LarObjDict extends LarObj
         Entry(LarObj key, LarObj value)
         {
             set_key(key);
-            set_value(value);
+            m_value = value;
         }
 
         LarObj get_key()
@@ -26,7 +25,7 @@ public final class LarObjDict extends LarObj
             }
             return m_key;
         }
-        void set_key(LarObj key)
+        private void set_key(LarObj key)
         {
             if (key instanceof LarObjInt)
             {
@@ -36,26 +35,6 @@ public final class LarObjDict extends LarObj
             else
             {
                 m_key = key;
-            }
-        }
-        LarObj get_value()
-        {
-            if (m_value == null)
-            {
-                return new LarObjInt(m_value_int);
-            }
-            return m_value;
-        }
-        void set_value(LarObj value)
-        {
-            if (value instanceof LarObjInt)
-            {
-                m_value = null;
-                m_value_int = ((LarObjInt)value).m_value;
-            }
-            else
-            {
-                m_value = value;
             }
         }
     }
@@ -277,7 +256,7 @@ public final class LarObjDict extends LarObj
         {
             throw new Exception("字典中找不到元素：" + key.op_str());
         }
-        return entry.get_value();
+        return entry.m_value;
     }
     public void op_set_item(LarObj key, LarObj value) throws Exception
     {
@@ -297,7 +276,7 @@ public final class LarObjDict extends LarObj
         }
         else
         {
-            entry.set_value(value);
+            entry.m_value = value;
         }
     }
 
@@ -320,6 +299,6 @@ public final class LarObjDict extends LarObj
         {
             return LarBuiltin.NIL;
         }
-        return entry.get_value();
+        return entry.m_value;
     }
 }
