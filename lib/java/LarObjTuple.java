@@ -30,7 +30,7 @@ public final class LarObjTuple extends LarSeqObj
         m_list = new LarObj[m_len];
         for (int i = 0; i < m_len; ++ i)
         {
-            m_list[i] = list.m_list[i];
+            m_list[i] = list.seq_get_item(i);
         }
         m_hash = -1;
     }
