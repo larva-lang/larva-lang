@@ -40,3 +40,16 @@ class OrderedDict:
     def iteritems(self):
         for k in self.l:
             yield k, self.d[k]
+
+class OrderedSet:
+    def __init__(self):
+        self.d = OrderedDict()
+
+    def __iter__(self):
+        return iter(self.d)
+
+    def __len__(self):
+        return len(self.d)
+
+    def add(self, k):
+        self.d[k] = None

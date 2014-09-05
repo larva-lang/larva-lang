@@ -12,33 +12,37 @@ class _Stmt:
         for k, v in kw_arg.iteritems():
             setattr(self, k, v)
 
-    def link(self, curr_module, module_map, local_var_set):
+    def link(self, curr_module, module_map, local_var_set, curr_class = None):
         if self.type in ("break", "continue"):
             return
         if self.type == "print":
             for expr in self.expr_list:
-                expr.link(curr_module, module_map, local_var_set)
+                expr.link(curr_module, module_map, local_var_set, curr_class)
             return
         if self.type == "return":
             if self.expr is not None:
-                self.expr.link(curr_module, module_map, local_var_set)
+                self.expr.link(curr_module, module_map, local_var_set,
+                               curr_class)
         if self.type in ("expr", "for", "while", "=", "%=", "^=", "&=", "*=",
                          "-=", "+=", "|=", "/=", "<<=", ">>=", ">>>="):
-            self.expr.link(curr_module, module_map, local_var_set)
+            self.expr.link(curr_module, module_map, local_var_set, curr_class)
         if self.type in ("for", "=", "%=", "^=", "&=", "*=", "-=", "+=",
                          "|=", "/=", "<<=", ">>=", ">>>="):
-            self.lvalue.link(curr_module, module_map, local_var_set)
+            self.lvalue.link(curr_module, module_map, local_var_set,
+                             curr_class)
         if self.type in ("for", "while"):
             for stmt in self.stmt_list:
-                stmt.link(curr_module, module_map, local_var_set)
+                stmt.link(curr_module, module_map, local_var_set, curr_class)
         if self.type == "if":
             for expr, stmt_list in self.if_list:
-                expr.link(curr_module, module_map, local_var_set)
+                expr.link(curr_module, module_map, local_var_set, curr_class)
                 for stmt in stmt_list:
-                    stmt.link(curr_module, module_map, local_var_set)
+                    stmt.link(curr_module, module_map, local_var_set,
+                              curr_class)
             if self.else_stmt_list is not None:
                 for stmt in self.else_stmt_list:
-                    stmt.link(curr_module, module_map, local_var_set)
+                    stmt.link(curr_module, module_map, local_var_set,
+                              curr_class)
 
 def _parse_global_var_declare(token_list, global_var_set):
     while True:

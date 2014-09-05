@@ -74,11 +74,12 @@ class _Expr:
         else:
             self.is_lvalue = False
 
-    def link(self, curr_module, module_map, local_var_set = None):
-        self._link(curr_module, module_map, local_var_set)
+    def link(self, curr_module, module_map, local_var_set = None,
+             curr_class = None):
+        self._link(curr_module, module_map, local_var_set, curr_class)
         self._check()
 
-    def _link(self, curr_module, module_map, local_var_set):
+    def _link(self, curr_module, module_map, local_var_set, curr_class):
         """链接表达式，主要做：
            1 所有name转成对应名字空间
            2 对于函数调用运算，改变expr形式
@@ -111,6 +112,9 @@ class _Expr:
             if name in curr_module.func_name_set:
                 self.op = "func_name"
                 return
+            if name in curr_module.class_map:
+                self.op = "class_name"
+                return
             if name in curr_module.dep_module_set:
                 self.op = "module_name"
                 return
@@ -120,14 +124,14 @@ class _Expr:
             self.arg.syntax_err("找不到名字'%s'" % name)
         if self.op == "dict":
             for ek, ev in self.arg:
-                ek._link(curr_module, module_map, local_var_set)
-                ev._link(curr_module, module_map, local_var_set)
+                ek._link(curr_module, module_map, local_var_set, curr_class)
+                ev._link(curr_module, module_map, local_var_set, curr_class)
             return
         if self.op == "()":
             ec, el = self.arg
-            ec._link(curr_module, module_map, local_var_set)
+            ec._link(curr_module, module_map, local_var_set, curr_class)
             for e in el:
-                e._link(curr_module, module_map, local_var_set)
+                e._link(curr_module, module_map, local_var_set, curr_class)
             if ec.op == "func_name":
                 #模块内函数调用，需检查参数匹配情况
                 func_key = ec.arg.value, len(el)
@@ -135,6 +139,17 @@ class _Expr:
                     ec.arg.syntax_err("找不到匹配的函数：%d个参数的'%s'" %
                                       (len(el), ec.arg.value))
                 self.op = "call_func"
+                self.arg = [ec.arg, el]
+                return
+            if ec.op == "class_name":
+                #创建类实例，检查构造函数参数匹配情况
+                cls = curr_module.class_map[ec.arg.value]
+                method_key = "__init__", len(el)
+                if method_key not in cls.method_map:
+                    ec.arg.syntax_err(
+                        "类'%s'找不到匹配的构造方法：%d个参数的'__init__'" %
+                        (cls.name, len(el)))
+                self.op = "call_class"
                 self.arg = [ec.arg, el]
                 return
             if ec.op == "builtin_if_name":
@@ -162,11 +177,34 @@ class _Expr:
                 self.op = "call_module_func"
                 self.arg = ec.arg + [el]
                 return
+            if ec.op == "module.class":
+                #外部函数调用，检查参数匹配情况
+                module = module_map[ec.arg[0].value]
+                cls = module.class_map[ec.arg[1].value]
+                method_key = "__init__", len(el)
+                if method_key not in cls.method_map:
+                    ec.arg[1].syntax_err(
+                        "模块'%s'的类'%s'中找不到匹配的构造方法："
+                        "%d个参数的'__init__'" %
+                        (module.name, cls.name, len(el)))
+                self.op = "call_module_class"
+                self.arg = ec.arg + [el]
+                return
+            if ec.op == "this.method":
+                #this.方法调用，检查参数匹配情况
+                method_key = ec.arg.value, len(el)
+                if method_key not in curr_class.method_map:
+                    ec.arg.syntax_err(
+                        "类'%s'中找不到匹配的方法：%d个参数的'%s'" %
+                        (curr_class.name, len(el), ec.arg.value))
+                self.op = "call_this_method"
+                self.arg = [ec.arg, el]
+                return
             #其余情况，属于对象的()运算
             return
         if self.op == ".":
             e, attr = self.arg
-            e._link(curr_module, module_map, local_var_set)
+            e._link(curr_module, module_map, local_var_set, curr_class)
             if e.op == "module_name":
                 #引用其他模块的内容
                 module = module_map[e.arg.value]
@@ -174,48 +212,66 @@ class _Expr:
                     self.op = "module.global"
                 elif attr.value in module.func_name_set:
                     self.op = "module.func"
+                elif attr.value in module.class_map:
+                    self.op = "module.class"
                 else:
                     attr.syntax_err("模块'%s'没有'%s'" %
                                     (e.arg.value, attr.value))
                 self.arg = [e.arg, attr]
                 return
+            if e.op == "this":
+                #可能是this.属性或this.方法，检查
+                assert curr_class is not None
+                if attr.value in curr_class.method_name_set:
+                    #方法
+                    self.op = "this.method"
+                else:
+                    #属性，所有出现的属性都添加到类的信息
+                    self.op = "this.attr"
+                    curr_class.attr_set.add(attr.value)
+                self.arg = attr
+                return
             #其余情况，属于对象的"."运算
             return
         if self.op == "[:]":
             eo, el = self.arg
-            eo._link(curr_module, module_map, local_var_set)
+            eo._link(curr_module, module_map, local_var_set, curr_class)
             for e in el:
                 if e is not None:
-                    e._link(curr_module, module_map, local_var_set)
+                    e._link(curr_module, module_map, local_var_set, curr_class)
             return
         if self.op == "list_compr":
             e, lvalue, name_set, expr, if_expr = self.arg
-            expr._link(curr_module, module_map, local_var_set)
+            expr._link(curr_module, module_map, local_var_set, curr_class)
             assert lvalue.op in ("name", "tuple", "list")
             if local_var_set is None:
                 compr_local_var_set = name_set
             else:
                 compr_local_var_set = local_var_set | name_set
-            e._link(curr_module, module_map, compr_local_var_set)
-            lvalue._link(curr_module, module_map, compr_local_var_set)
+            e._link(curr_module, module_map, compr_local_var_set, curr_class)
+            lvalue._link(curr_module, module_map, compr_local_var_set,
+                         curr_class)
             if if_expr is not None:
-                if_expr._link(curr_module, module_map, compr_local_var_set)
+                if_expr._link(curr_module, module_map, compr_local_var_set,
+                              curr_class)
             self.arg = [expr, compr_local_var_set, e, lvalue, name_set,
                         if_expr]
             return
         if self.op == "dict_compr":
             ek, ev, lvalue, name_set, expr, if_expr = self.arg
-            expr._link(curr_module, module_map, local_var_set)
+            expr._link(curr_module, module_map, local_var_set, curr_class)
             assert lvalue.op in ("name", "tuple", "list")
             if local_var_set is None:
                 compr_local_var_set = name_set
             else:
                 compr_local_var_set = local_var_set | name_set
-            ek._link(curr_module, module_map, compr_local_var_set)
-            ev._link(curr_module, module_map, compr_local_var_set)
-            lvalue._link(curr_module, module_map, compr_local_var_set)
+            ek._link(curr_module, module_map, compr_local_var_set, curr_class)
+            ev._link(curr_module, module_map, compr_local_var_set, curr_class)
+            lvalue._link(curr_module, module_map, compr_local_var_set,
+                         curr_class)
             if if_expr is not None:
-                if_expr._link(curr_module, module_map, compr_local_var_set)
+                if_expr._link(curr_module, module_map, compr_local_var_set,
+                              curr_class)
             self.arg = [expr, compr_local_var_set, ek, ev, lvalue, name_set,
                         if_expr]
             return
@@ -225,20 +281,24 @@ class _Expr:
                 lambda_local_var_set = set(arg_list)
             else:
                 lambda_local_var_set = local_var_set | set(arg_list)
-            e._link(curr_module, module_map, lambda_local_var_set)
+            e._link(curr_module, module_map, lambda_local_var_set, curr_class)
             self.arg = [lambda_local_var_set, arg_list, e]
+            return
+        if self.op == "this":
+            if curr_class is None:
+                self.arg.syntax_err("this必须出现在方法中")
             return
 
         #其余类型，包括单目、双目运算、下标、tuple和list构造等
         assert (self.op in _UNARY_OP_SET or self.op in _BINOCULAR_OP_SET or
                 self.op in ("[]", "tuple", "list")), self.op
         for e in self.arg:
-            e._link(curr_module, module_map, local_var_set)
+            e._link(curr_module, module_map, local_var_set, curr_class)
 
     def _check(self):
         #检查表达式
         if self.op in ("const", "const_idx", "local_name", "global_name",
-                       "module.global"):
+                       "module.global", "this.attr"):
             return
         if self.op == "module_name":
             self.arg.syntax_err("模块名不能作为值")
@@ -259,8 +319,9 @@ class _Expr:
             for e in el:
                 e._check()
             return
-        if self.op in ("call_func", "call_method", "call_module_func",
-                       "call_builtin_if"):
+        if self.op in ("call_func", "call_class", "call_method",
+                       "call_module_func", "call_module_class",
+                       "call_builtin_if", "call_this_method"):
             for e in self.arg[-1]:
                 e._check()
             if self.op == "call_method":
@@ -541,6 +602,12 @@ def parse_expr(token_list, end_at_comma = False, end_at_in = False):
             e = parse_expr(token_list, True)
             parse_stk.push_expr(
                 _Expr("lambda", [arg_list, e]))
+        elif t.is_this:
+            parse_stk.push_expr(_Expr(t.value, t))
+        elif t.is_sym("."):
+            #省略this的写法，补上this
+            parse_stk.push_expr(_Expr("this", t))
+            token_list.revert()
         else:
             t.syntax_err("非法的表达式")
 
