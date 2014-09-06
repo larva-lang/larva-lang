@@ -13,7 +13,7 @@ larva的目前实现是通过编译转换成java代码，然后就可以用jdk�
 
 我的email：xtlisk@foxmail.com，欢迎联系
 
-#blog：
+#blog
 
 <http://blog.csdn.net/xtlisk> 
 
