@@ -13,4 +13,8 @@ larva的目前实现是通过编译转换成java代码，然后就可以用jdk�
 
 我的email：xtlisk@foxmail.com，欢迎联系
 
-blog：http://blog.csdn.net/xtlisk，有在做这个语言之前，准备阶段的日志，以及持续更新的larva实现相关的笔记
+#blog
+
+<http://blog.csdn.net/xtlisk> 
+
+有在做这个语言之前，准备阶段的日志，以及持续更新的larva实现相关的笔记
