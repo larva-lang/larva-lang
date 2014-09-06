@@ -181,6 +181,7 @@ def _output_booter(code, prog):
     code += "Mod_%s.f_main();" % prog.main_module_name
     code.blk_end()
     code.blk_end()
+    code += ""
 
 def _output_const(code, const_map):
     #输出常量表
@@ -376,8 +377,12 @@ def _build_expr_code(code, expr, expect_bool = False):
             lambda_number = (
                 code.add_lambda(lambda_stat_arg_list, arg_list, e))
             return "new Lambda_%d(%s)" % (lambda_number, stat_arg_code_str)
+        if expr.op == "call_class":
+            t, el = expr.arg
+            return ("new Cls_%s" % t.value +
+                    "(%s)" % ",".join([_build_expr_code(code, e) for e in el]))
 
-        raise Exception("unreachable")
+        raise Exception("unreachable expr.op[%s]" % expr.op)
 
     code = _build_expr_code_original(expr)
 
@@ -441,7 +446,10 @@ def _output_assign(code, lvalue, expr_code):
             _output_assign(
                 code, unpack_lvalue, "%s[%d]" % (unpack_tmp_array, i))
         return
-    raise Exception("unreachable")
+    if lvalue.op == "this.attr":
+        code += "this.m_%s = %s;" % (lvalue.arg.value, expr_code)
+        return
+    raise Exception("unreachable lvalue.op[%s]" % lvalue.op)
 
 def _output_stmt_list(code, stmt_list):
     for stmt in stmt_list:
@@ -667,10 +675,70 @@ def _output_lambda(code, idx, (lambda_stat_arg_list, arg_list, e)):
     code.blk_end()
     code += ""
 
-def _output_module(code, module):
+def _output_method(code, method, cls):
+    #先决定method_name等
+    if method.name == "__init__":
+        #对于构造函数，不直接生成java的构造函数，而是通过代理
+        code.blk_start("public Cls_%s(%s) throws Exception" %
+                       (cls.name,
+                        ",".join(["LarObj l_%s" % arg_name
+                                  for arg_name in method.arg_list])))
+        code += "init(%s);" % ",".join(["l_%s" % arg_name
+                                        for arg_name in method.arg_list])
+        code.blk_end()
+        method_name = "init"
+        ret_type = "LarObj"
+    #todo：其它内置接口
+    else:
+        method_name = "f_%s" % method.name
+        ret_type = "LarObj"
+    code.blk_start(
+        "public %s %s(%s) throws Exception" %
+        (ret_type, method_name, ",".join(["LarObj l_%s" % arg_name
+                                          for arg_name in method.arg_list])))
+    #增量赋值使用的临时变量
+    code += "LarObj tmp_augmented_assign_object = LarBuiltin.NIL;"
+    code += "LarObj tmp_augmented_assign_subscript = LarBuiltin.NIL;"
+    for var_name in method.local_var_set - set(method.arg_list):
+        code += "LarObj l_%s = LarBuiltin.NIL;" % var_name
     code += ""
+    _output_stmt_list(code, method.stmt_list)
+    code.blk_end()
+    code += ""
+
+def _output_class(code, cls, module_name):
+    code.blk_start("public static class Cls_%s extends LarObj" % cls.name)
+    #get_type_name
+    code.blk_start("public String get_type_name()")
+    code += 'return "%s.%s";' % (module_name, cls.name)
+    code.blk_end()
+    code += ""
+    #attr
+    for attr in cls.attr_set:
+        code += "private LarObj m_%s = LarBuiltin.NIL;" % attr
+    code += ""
+    #attr get/set
+    for attr in cls.attr_set:
+        code.blk_start("public LarObj op_get_attr_%s() throws Exception" %
+                       attr)
+        code += "return this.m_%s;" % attr
+        code.blk_end()
+        code.blk_start("public void op_set_attr_%s(LarObj obj) "
+                       "throws Exception" % attr)
+        code += "this.m_%s = obj;" % attr
+        code.blk_end()
+    code += ""
+    #method
+    for method in cls.method_map.itervalues():
+        _output_method(code, method, cls)
+    code.blk_end()
+    code += ""
+
+def _output_module(code, module):
     code.blk_start("final class Mod_%s" % module.name)
     _output_const(code, module.const_map)
+    for cls in module.class_map.itervalues():
+        _output_class(code, cls, module.name)
     _output_global_init(code, module.global_var_map)
     for func in module.func_map.itervalues():
         _output_func(code, func)

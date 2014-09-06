@@ -1,7 +1,43 @@
 //集合类型，hash表实现
 public final class LarObjSet extends LarObj
 {
-    private static final LarObj DUMMY = new LarObj();
+    private static final class Entry
+    {
+        private LarObj m_key;
+        private long m_key_int;
+
+        Entry()
+        {
+        }
+
+        Entry(LarObj key)
+        {
+            set_key(key);
+        }
+
+        LarObj get_key()
+        {
+            if (m_key == null)
+            {
+                return new LarObjInt(m_key_int);
+            }
+            return m_key;
+        }
+        void set_key(LarObj key)
+        {
+            if (key instanceof LarObjInt)
+            {
+                m_key = null;
+                m_key_int = ((LarObjInt)key).m_value;
+            }
+            else
+            {
+                m_key = key;
+            }
+        }
+    }
+
+    private static final Entry DUMMY = new Entry();
 
     private static final class LarObjSetIterator extends LarObj
     {
@@ -21,8 +57,8 @@ public final class LarObjSet extends LarObj
         {
             for (++ m_index; m_index < m_set.m_list.length; ++ m_index)
             {
-                LarObj obj = m_set.m_list[m_index];
-                if (obj != null && obj != LarObjSet.DUMMY)
+                Entry entry = m_set.m_list[m_index];
+                if (entry != null && entry != LarObjSet.DUMMY)
                 {
                     return;
                 }
@@ -44,49 +80,51 @@ public final class LarObjSet extends LarObj
             {
                 throw new Exception("set迭代器失效");
             }
-            LarObj obj = m_set.m_list[m_index];
+            LarObj key = m_set.m_list[m_index].get_key();
             next_index();
-            return obj;
+            return key;
         }
     }
 
-    private LarObj[] m_list;
+    private Entry[] m_list;
     private int m_count;
     private long m_version;
 
     LarObjSet()
     {
-        m_list = new LarObj[8];
+        m_list = new Entry[8];
         m_count = 0;
         m_version = 0;
     }
 
-    LarObjSet(LarObj obj) throws Exception
+    private int get_entry_index(Entry[] list, LarObj key) throws Exception
     {
-        this();
-        for (LarObj iter = obj.f_iterator(); iter.f_has_next().op_bool();)
+        if (key instanceof LarObjInt)
         {
-            f_add(iter.f_next());
+            return get_entry_index(list, ((LarObjInt)key).m_value);
         }
-    }
-
-    private int get_obj_index(LarObj[] list, LarObj obj) throws Exception
-    {
-        //从hash表中查找obj，如查不到则返回一个插入空位，算法同dict
+        //从hash表中查找key，如查不到则返回一个插入空位
+        /*
+        hash表算法简述：
+        采用开放定址hash，表大小为2的幂，利用位运算代替求余数
+        这种情况下探测步长为奇数即可遍历整张表，证明：
+        设表大小为n，步长为i，则从任意位置开始，若经过k步第一次回到原点，则i*k被n整除
+        最小的k为n/gcd(n,i)，则若要令k=n，i必须和n互质，由于n是2的幂，因此i选奇数即可
+        */
         int mask = list.length - 1;
-        int h = obj.op_hash();
-        int start = h & mask;
+        int h = key.op_hash();
+        int start = (h + (h >> 4)) & mask;
         int step = h | 1;
         int first_dummy_index = -1;
         for (int index = (start + step) & mask; index != start; index = (index + step) & mask)
         {
-            LarObj iter_obj = list[index];
-            if (iter_obj == null)
+            Entry entry = list[index];
+            if (entry == null)
             {
                 //结束查找
                 return first_dummy_index == -1 ? index : first_dummy_index;
             }
-            if (iter_obj == DUMMY)
+            if (entry == DUMMY)
             {
                 if (first_dummy_index == -1)
                 {
@@ -95,9 +133,60 @@ public final class LarObjSet extends LarObj
                 }
                 continue;
             }
-            if (iter_obj.op_eq(obj))
+            if (entry.get_key().op_eq(key))
             {
                 return index;
+            }
+        }
+        //运气差，整张表都没有null
+        if (first_dummy_index != -1)
+        {
+            return first_dummy_index;
+        }
+        throw new Exception("内部错误：set被填满");
+    }
+    private int get_entry_index(Entry[] list, long key) throws Exception
+    {
+        //get_entry_index(Entry[] list, LarObj key)针对key是int的特化版本，算法说明见原版本代码
+        int mask = list.length - 1;
+        int h = LarObjInt.hash(key);
+        int start = (h + (h >> 4)) & mask;
+        int step = h | 1;
+        int first_dummy_index = -1;
+        for (int index = (start + step) & mask; index != start; index = (index + step) & mask)
+        {
+            Entry entry = list[index];
+            if (entry == null)
+            {
+                //结束查找
+                return first_dummy_index == -1 ? index : first_dummy_index;
+            }
+            if (entry == DUMMY)
+            {
+                if (first_dummy_index == -1)
+                {
+                    //记录第一个dummy
+                    first_dummy_index = index;
+                }
+                continue;
+            }
+            if (entry.m_key == null)
+            {
+                if (entry.m_key_int == key)
+                {
+                    return index;
+                }
+            }
+            else
+            {
+                /*
+                表中的key非int，一般来说这个分支很少走到，new一个对象效率也能接受
+                当然后面可以给LarObj增加boolean op_eq(long)这种特化版本
+                */
+                if (entry.m_key.op_eq(new LarObjInt(key)))
+                {
+                    return index;
+                }
             }
         }
         //运气差，整张表都没有null
@@ -111,7 +200,7 @@ public final class LarObjSet extends LarObj
     private void rehash() throws Exception
     {
         //如果可能，扩大hash表
-        int size = m_list.length << 1; //新表大小为原先2倍
+        int size = m_list.length <= 1 << 24 ? m_list.length << 4 : m_list.length << 1; //新表大小为原先16或2倍
         if (size < 0)
         {
             //表大小已经是最大了，分情况处理
@@ -122,16 +211,16 @@ public final class LarObjSet extends LarObj
             }
             throw new Exception("set大小超限");
         }
-        LarObj[] new_list = new LarObj[size];
+        Entry[] new_list = new Entry[size];
         for (int i = 0; i < m_list.length; ++ i)
         {
-            LarObj obj = m_list[i];
-            if (obj == null || obj == DUMMY)
+            Entry entry = m_list[i];
+            if (entry == null || entry == DUMMY)
             {
                 continue;
             }
-            int index = get_obj_index(new_list, obj);
-            new_list[index] = obj;
+            int index = entry.m_key == null ? get_entry_index(new_list, entry.m_key_int) : get_entry_index(new_list, entry.m_key);
+            new_list[index] = entry;
         }
         m_list = new_list;
         ++ m_version;
@@ -152,25 +241,25 @@ public final class LarObjSet extends LarObj
         return m_count;
     }
 
-    public boolean op_contain(LarObj obj) throws Exception
+    public boolean op_contain(LarObj key) throws Exception
     {
-        LarObj obj_in_set = m_list[get_obj_index(m_list, obj)];
-        return obj_in_set != null && obj_in_set != DUMMY;
+        Entry entry = m_list[get_entry_index(m_list, key)];
+        return entry != null && entry != DUMMY;
     }
 
-    public LarObj f_add(LarObj obj) throws Exception
+    public LarObj f_add(LarObj key) throws Exception
     {
         if (m_count >= m_list.length / 2)
         {
             //装载率太高
             rehash();
         }
-        int index = get_obj_index(m_list, obj);
-        LarObj obj_in_set = m_list[index];
-        if (obj_in_set == null || obj_in_set == DUMMY)
+        int index = get_entry_index(m_list, key);
+        Entry entry = m_list[index];
+        if (entry == null || entry == DUMMY)
         {
             //新元素
-            m_list[index] = obj;
+            m_list[index] = new Entry(key);
             ++ m_count;
             ++ m_version;
         }
@@ -181,4 +270,5 @@ public final class LarObjSet extends LarObj
     {
         return new LarObjSetIterator(this);
     }
+
 }

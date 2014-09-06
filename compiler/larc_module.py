@@ -11,9 +11,8 @@ import larc_stmt
 import larc_expr
 
 class _Func:
-    def __init__(self, func_name, arg_list, global_var_set, stmt_list,
-                 name_token):
-        self.name = func_name
+    def __init__(self, name, arg_list, global_var_set, stmt_list, name_token):
+        self.name = name
         self.arg_list = arg_list
         self.global_var_set = global_var_set
         self.stmt_list = stmt_list
@@ -22,7 +21,7 @@ class _Func:
         #检查参数的global声明
         for var_name in arg_list:
             if var_name in global_var_set:
-                self.syntax_err("参数'%s'被global声明" % (func_name, var_name))
+                self.syntax_err("参数'%s'被global声明" % (name, var_name))
 
         #提取局部变量
         self.local_var_set = set(arg_list)
@@ -60,6 +59,36 @@ class _Func:
         for stmt in self.stmt_list:
             stmt.link(curr_module, module_map, self.local_var_set)
 
+class _Method(_Func):
+    def __init__(self, name, arg_list, global_var_set, stmt_list, name_token):
+        _Func.__init__(self, name, arg_list, global_var_set, stmt_list,
+                       name_token)
+
+    def syntax_err(self, msg):
+        self.name_token.syntax_err("[方法'%s']%s" % (self.name, msg))
+
+    def link(self, curr_module, module_map, curr_class):
+        for stmt in self.stmt_list:
+            stmt.link(curr_module, module_map, self.local_var_set, curr_class)
+
+class _Class:
+    def __init__(self, name, name_token):
+        self.name = name
+        self.name_token = name_token
+        self.method_map = {}
+
+    def link(self, curr_module, module_map):
+        self.method_name_set = (
+            set([name for name, arg_count in self.method_map]))
+        if "__init__" not in self.method_name_set:
+            #增加默认构造函数
+            self.method_map["__init__"] = (
+                _Method("__init__", [], set(), [], self.name_token))
+            self.method_name_set.add("__init__")
+        self.attr_set = larc_common.OrderedSet()
+        for method in self.method_map.itervalues():
+            method.link(curr_module, module_map, self)
+
 class Module:
     def __init__(self, file_path_name):
         self.dir, file_name = os.path.split(file_path_name)
@@ -75,6 +104,8 @@ class Module:
             expr.link(self, module_map)
         for func in self.func_map.itervalues():
             func.link(self, module_map)
+        for cls in self.class_map.itervalues():
+            cls.link(self, module_map)
 
     def _check_undefined_global_var(self):
         #检查被global声明但没有定义的全局变量
@@ -91,6 +122,7 @@ class Module:
     def _parse_text(self, token_list):
         self.dep_module_set = set()
         import_end = False
+        self.class_map = larc_common.OrderedDict()
         self.func_map = larc_common.OrderedDict()
         self.global_var_map = larc_common.OrderedDict()
         while token_list:
@@ -103,6 +135,10 @@ class Module:
                 self._parse_import(token_list)
                 continue
             import_end = True
+            if t.is_class:
+                #类定义
+                self._parse_class(token_list)
+                continue
             if t.is_func:
                 #函数定义
                 self._parse_func(token_list)
@@ -120,6 +156,56 @@ class Module:
         if t.value in self.dep_module_set:
             t.syntax_err("模块重复import")
         self.dep_module_set.add(t.value)
+
+    def _parse_class(self, token_list):
+        name_token = token_list.pop()
+        if not name_token.is_name:
+            name_token.syntax_err("非法的类名")
+        class_name = name_token.value
+        if class_name in self.dep_module_set:
+            name_token.syntax_err("类名和模块名重复")
+        if class_name in self.global_var_map:
+            name_token.syntax_err("类名和全局变量名重复")
+        for func_name, arg_count in self.func_map:
+            if func_name == class_name:
+                name_token.syntax_err("类名和函数名重复")
+        if class_name in self.class_map:
+            name_token.syntax_err("类重复定义")
+        token_list.pop_sym(":")
+        self.class_map[class_name] = cls = _Class(class_name, name_token)
+        curr_indent_count = token_list.peek_indent()
+        if curr_indent_count == 0:
+            token_list.peek().indent_err()
+        while token_list:
+            indent_count = token_list.peek_indent()
+            if indent_count < curr_indent_count:
+                return
+            token_list.pop_indent(curr_indent_count)
+            t = token_list.pop()
+            if t.is_pass:
+                #允许定义空类
+                continue
+            if t.is_func:
+                #类方法
+                self._parse_method(token_list, cls, curr_indent_count)
+                continue
+            t.syntax_err()
+
+    def _parse_method(self, token_list, cls, class_blk_indent_count):
+        name_token = token_list.pop()
+        if not name_token.is_name:
+            name_token.syntax_err("非法的方法名")
+        method_name = name_token.value
+        token_list.pop_sym("(")
+        arg_list = self._parse_func_arg_list(token_list)
+        method_key = method_name, len(arg_list)
+        if method_key in cls.method_map:
+            name_token.syntax_err("方法重复定义")
+        stmt_list, global_var_set = (
+            larc_stmt.parse_stmt_list(token_list, class_blk_indent_count, 0))
+        cls.method_map[method_key] = (
+            _Method(method_name, arg_list, global_var_set, stmt_list,
+                    name_token))
 
     def _parse_func_arg_list(self, token_list):
         arg_list = []
@@ -154,6 +240,8 @@ class Module:
             name_token.syntax_err("函数名和模块名重复")
         if func_name in self.global_var_map:
             name_token.syntax_err("函数名和全局变量名重复")
+        if func_name in self.class_map:
+            name_token.syntax_err("函数名和类名重复")
         token_list.pop_sym("(")
         arg_list = self._parse_func_arg_list(token_list)
         func_key = func_name, len(arg_list)
@@ -167,6 +255,8 @@ class Module:
         var_name = name_token.value
         if var_name in self.dep_module_set:
             name_token.syntax_err("全局变量名和模块名重复")
+        if var_name in self.class_map:
+            name_token.syntax_err("全局变量名和类名重复")
         for func_name, arg_count in self.func_map:
             if func_name == var_name:
                 name_token.syntax_err("全局变量名和函数名重复")

@@ -1,15 +1,20 @@
 import sys
 import time
 
-func new_record():
-    return [nil, 0, 0, 0, nil]
+class Record:
+    func __init__():
+        .PtrComp = nil
+        .Discr = 0
+        .EnumComp = 0
+        .IntComp = 0
+        .StringComp = nil
 
-func assign_record(a, b):
-    a[0] = b[0]
-    a[1] = b[1]
-    a[2] = b[2]
-    a[3] = b[3]
-    a[4] = b[4]
+    func assign(other):
+        .PtrComp = other.PtrComp
+        .Discr = other.Discr
+        .EnumComp = other.EnumComp
+        .IntComp = other.IntComp
+        .StringComp = other.StringComp
 
 loops = 50000000
 
@@ -23,13 +28,12 @@ IntGlob = 0
 BoolGlob = false
 Char1Glob = 0
 Char2Glob = 0
+/*
+Array1Glob = {i : 0 for i in range(51)}
+Array2Glob = {i : {i : 0 for i in range(51)} for i in range(51)}
+*/
 Array1Glob = [0] * 51
-func _init_Array2Glob():
-    a = []
-    for i in range(51):
-        a.add([0] * 51)
-    return a
-Array2Glob = _init_Array2Glob()
+Array2Glob = [[0] * 51 for i in range(51)]
 
 PtrGlb = nil
 PtrGlbNext = nil
@@ -118,10 +122,10 @@ func Proc4():
 func Proc3(PtrParOut):
     global IntGlob
     if PtrGlb != nil:
-        PtrParOut = PtrGlb[0]
+        PtrParOut = PtrGlb.PtrComp
     else:
         IntGlob = 100
-    PtrGlb[3] = Proc7(10, IntGlob)
+    PtrGlb.IntComp = Proc7(10, IntGlob)
     return PtrParOut
 
 func Proc2(IntParIO):
@@ -137,30 +141,30 @@ func Proc2(IntParIO):
     return IntParIO
 
 func Proc1(PtrParIn):
-    NextRecord = PtrParIn[0]
-    assign_record(NextRecord, PtrGlb)
-    PtrParIn[3] = 5
-    NextRecord[3] = PtrParIn[3]
-    NextRecord[0] = PtrParIn[0]
-    NextRecord[0] = Proc3(NextRecord[0])
-    if NextRecord[1] == Ident1:
-        NextRecord[3] = 6
-        NextRecord[2] = Proc6(PtrParIn[2])
-        NextRecord[0] = PtrGlb[0]
-        NextRecord[3] = Proc7(NextRecord[3], 10)
+    NextRecord = PtrParIn.PtrComp
+    NextRecord.assign(PtrGlb)
+    PtrParIn.IntComp = 5
+    NextRecord.IntComp = PtrParIn.IntComp
+    NextRecord.PtrComp = PtrParIn.PtrComp
+    NextRecord.PtrComp = Proc3(NextRecord.PtrComp)
+    if NextRecord.Discr == Ident1:
+        NextRecord.IntComp = 6
+        NextRecord.EnumComp = Proc6(PtrParIn.EnumComp)
+        NextRecord.PtrComp = PtrGlb.PtrComp
+        NextRecord.IntComp = Proc7(NextRecord.IntComp, 10)
     else:
-        assign_record(PtrParIn, NextRecord)
+        PtrParIn.assign(NextRecord)
     return PtrParIn
 
 func Proc0():
     global PtrGlbNext, PtrGlb, BoolGlob
-    PtrGlbNext = new_record()
-    PtrGlb = new_record()
-    PtrGlb[0] = PtrGlbNext
-    PtrGlb[1] = Ident1
-    PtrGlb[2] = Ident3
-    PtrGlb[3] = 40
-    PtrGlb[4] = "DHRYSTONE PROGRAM, SOME STRING"
+    PtrGlbNext = Record()
+    PtrGlb = Record()
+    PtrGlb.PtrComp = PtrGlbNext
+    PtrGlb.Discr = Ident1
+    PtrGlb.EnumComp = Ident3
+    PtrGlb.IntComp = 40
+    PtrGlb.StringComp = "DHRYSTONE PROGRAM, SOME STRING"
     String1Loc = "DHRYSTONE PROGRAM, 1'ST STRING"
     Array2Glob[8][7] = 10
 

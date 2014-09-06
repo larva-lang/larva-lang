@@ -149,9 +149,13 @@ public final class LarObjInt extends LarObj
         return "" + m_value;
     }
 
+    public static int hash(long value)
+    {
+        return (int)(value + (value >>> 32));
+    }
     public int op_hash() throws Exception
     {
-        return (int)(m_value ^ (m_value >>> 32));
+        return hash(m_value);
     }
 
     public LarObj op_invert() throws Exception

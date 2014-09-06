@@ -38,8 +38,7 @@ Then will generate a <filename> folder
 TODOS
 ===========
 
- * Unpack assignment
- * Class definition
+ * Exceptions
 
 Copying
 ===========

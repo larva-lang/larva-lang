@@ -12,33 +12,37 @@ class _Stmt:
         for k, v in kw_arg.iteritems():
             setattr(self, k, v)
 
-    def link(self, curr_module, module_map, local_var_set):
+    def link(self, curr_module, module_map, local_var_set, curr_class = None):
         if self.type in ("break", "continue"):
             return
         if self.type == "print":
             for expr in self.expr_list:
-                expr.link(curr_module, module_map, local_var_set)
+                expr.link(curr_module, module_map, local_var_set, curr_class)
             return
         if self.type == "return":
             if self.expr is not None:
-                self.expr.link(curr_module, module_map, local_var_set)
+                self.expr.link(curr_module, module_map, local_var_set,
+                               curr_class)
         if self.type in ("expr", "for", "while", "=", "%=", "^=", "&=", "*=",
                          "-=", "+=", "|=", "/=", "<<=", ">>=", ">>>="):
-            self.expr.link(curr_module, module_map, local_var_set)
+            self.expr.link(curr_module, module_map, local_var_set, curr_class)
         if self.type in ("for", "=", "%=", "^=", "&=", "*=", "-=", "+=",
                          "|=", "/=", "<<=", ">>=", ">>>="):
-            self.lvalue.link(curr_module, module_map, local_var_set)
+            self.lvalue.link(curr_module, module_map, local_var_set,
+                             curr_class)
         if self.type in ("for", "while"):
             for stmt in self.stmt_list:
-                stmt.link(curr_module, module_map, local_var_set)
+                stmt.link(curr_module, module_map, local_var_set, curr_class)
         if self.type == "if":
             for expr, stmt_list in self.if_list:
-                expr.link(curr_module, module_map, local_var_set)
+                expr.link(curr_module, module_map, local_var_set, curr_class)
                 for stmt in stmt_list:
-                    stmt.link(curr_module, module_map, local_var_set)
+                    stmt.link(curr_module, module_map, local_var_set,
+                              curr_class)
             if self.else_stmt_list is not None:
                 for stmt in self.else_stmt_list:
-                    stmt.link(curr_module, module_map, local_var_set)
+                    stmt.link(curr_module, module_map, local_var_set,
+                              curr_class)
 
 def _parse_global_var_declare(token_list, global_var_set):
     while True:
@@ -70,13 +74,20 @@ def _parse_print(token_list):
 
 def _parse_for(token_list, curr_indent_count, loop_deep):
     t = token_list.peek()
-    in_expr = larc_expr.parse_expr(token_list)
-    if in_expr.op != "in":
-        t.syntax_err("for语句中的非'in'表达式")
-    token_list.pop_sym(":")
-    lvalue, expr = in_expr.arg
+    """说明：
+       原本是for后面整个作为一个* in *表达式解析，但是对于unpack：
+       for i, j in a, b:
+       就会失败，因为逗号比in优先级低
+       对i,j和a,b加括号的话又麻烦，这里in应该作为一个关键字而非运算符
+       因此特殊处理，解析左值的时候，碰到in停止"""
+    lvalue = larc_expr.parse_expr(token_list, end_at_in = True)
     if not lvalue.is_lvalue:
         t.syntax_err("for语句中'in'左边非左值表达式")
+    t = token_list.pop()
+    if not t.is_in:
+        t.syntax_err("需要'in'")
+    expr = larc_expr.parse_expr(token_list)
+    token_list.pop_sym(":")
     stmt_list, global_var_set = (
         parse_stmt_list(token_list, curr_indent_count, loop_deep + 1))
     return lvalue, expr, stmt_list, global_var_set
