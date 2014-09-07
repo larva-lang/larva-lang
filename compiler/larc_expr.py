@@ -190,15 +190,28 @@ class _Expr:
                 self.op = "call_module_class"
                 self.arg = ec.arg + [el]
                 return
-            if ec.op == "this.method":
-                #this.方法调用，检查参数匹配情况
+
+            def _has_method(method_key, cls):
+                #根据method_key查找方法
+                while cls is not None:
+                    if method_key in cls.method_map:
+                        return True
+                    cls = cls.base_class
+                return False
+
+            if ec.op in ("this.method", "super.method"):
+                #方法调用，检查参数匹配情况
+                inst = ec.op.split(".")[0]
                 method_key = ec.arg.value, len(el)
-                if method_key not in curr_class.method_map:
-                    ec.arg.syntax_err(
-                        "类'%s'中找不到匹配的方法：%d个参数的'%s'" %
-                        (curr_class.name, len(el), ec.arg.value))
-                self.op = "call_this_method"
-                self.arg = [ec.arg, el]
+                if inst == "this":
+                    cls = curr_class
+                else:
+                    cls = curr_class.base_class
+                if not _has_method(method_key, cls):
+                    ec.arg.syntax_err("找不到匹配的方法：%d个参数的'%s'" %
+                                      (len(el), ec.arg.value))
+                self.op = "call_method"
+                self.arg = [_Expr(inst, None), ec.arg, el]
                 return
             #其余情况，属于对象的()运算
             return
@@ -219,16 +232,37 @@ class _Expr:
                                     (e.arg.value, attr.value))
                 self.arg = [e.arg, attr]
                 return
+
+            def _has_method(method_name, cls):
+                #根据名字查找方法
+                while cls is not None:
+                    if (method_name in
+                        [name for name, arg_count in cls.method_map]):
+                        return True
+                    cls = cls.base_class
+                return False
+
             if e.op == "this":
                 #可能是this.属性或this.方法，检查
                 assert curr_class is not None
-                if attr.value in curr_class.method_name_set:
+                if _has_method(attr.value, curr_class):
                     #方法
                     self.op = "this.method"
                 else:
                     #属性，所有出现的属性都添加到类的信息
                     self.op = "this.attr"
                     curr_class.attr_set.add(attr.value)
+                self.arg = attr
+                return
+            if e.op == "super":
+                assert curr_class is not None
+                base_class = curr_class.base_class
+                assert base_class is not None
+                #只允许super.方法
+                if _has_method(attr.value, base_class):
+                    self.op = "super.method"
+                else:
+                    attr.syntax_err("找不到方法'%s'" % attr.value)
                 self.arg = attr
                 return
             #其余情况，属于对象的"."运算
@@ -288,6 +322,12 @@ class _Expr:
             if curr_class is None:
                 self.arg.syntax_err("this必须出现在方法中")
             return
+        if self.op == "super":
+            if curr_class is None:
+                self.arg.syntax_err("super必须出现在方法中")
+            if curr_class.base_class is None:
+                self.arg.syntax_err("super必须出现在子类方法中")
+            return
 
         #其余类型，包括单目、双目运算、下标、tuple和list构造等
         assert (self.op in _UNARY_OP_SET or self.op in _BINOCULAR_OP_SET or
@@ -308,6 +348,8 @@ class _Expr:
             self.arg.syntax_err("外部函数不能作为值")
         if self.op == "builtin_if_name":
             self.arg.syntax_err("内置接口不能作为值")
+        if self.op in ("this.method", "super.method"):
+            self.arg.syntax_err("方法不能作为值")
         if self.op == "dict":
             for ek, ev in self.arg:
                 ek._check()
@@ -321,7 +363,8 @@ class _Expr:
             return
         if self.op in ("call_func", "call_class", "call_method",
                        "call_module_func", "call_module_class",
-                       "call_builtin_if", "call_this_method"):
+                       "call_builtin_if", "call_this_method",
+                       "call_super_method"):
             for e in self.arg[-1]:
                 e._check()
             if self.op == "call_method":
@@ -358,6 +401,8 @@ class _Expr:
         if self.op == "lambda":
             lambda_local_var_set, arg_list, e = self.arg
             e._check()
+            return
+        if self.op in ("this", "super"):
             return
 
         #其余类型，包括单目、双目运算、下标、tuple和list构造等
@@ -602,7 +647,7 @@ def parse_expr(token_list, end_at_comma = False, end_at_in = False):
             e = parse_expr(token_list, True)
             parse_stk.push_expr(
                 _Expr("lambda", [arg_list, e]))
-        elif t.is_this:
+        elif t.is_this or t.is_super:
             parse_stk.push_expr(_Expr(t.value, t))
         elif t.is_sym("."):
             #省略this的写法，补上this
