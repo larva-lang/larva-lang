@@ -33,7 +33,8 @@ _SYM_SET = (set("""~%^&*()-+=|{}[]:"'<,>/.""") |
 _RESERVED_WORD_SET = set(["if", "elif", "else", "while", "return", "break",
                           "continue", "for", "in", "not", "and", "or", "nil",
                           "print", "func", "import", "global", "true", "false",
-                          "pass", "lambda", "class", "this", "super"])
+                          "pass", "lambda", "class", "this", "super",
+                          "extends"])
 
 _TOKEN_TYPE_INDENT = object()
 _TOKEN_TYPE_FLOAT = object()
@@ -140,7 +141,10 @@ class _TokenList:
     def peek_indent(self, count = None):
         t = self.peek()
         if not t.is_indent:
-            t.syntax_err("需要缩进")
+            if count is None:
+                t.syntax_err("需要缩进")
+            else:
+                t.syntax_err("需要缩进[%d]" % count)
         if count is None:
             return t.value
         if t.value != count:
@@ -168,7 +172,10 @@ class _TokenList:
     def pop_indent(self, count = None):
         t = self.pop()
         if not t.is_indent:
-            t.syntax_err("需要缩进")
+            if count is None:
+                t.syntax_err("需要缩进")
+            else:
+                t.syntax_err("需要缩进[%d]" % count)
         if count is None:
             return t.value
         if t.value != count:
@@ -177,7 +184,10 @@ class _TokenList:
     def pop_sym(self, sym = None):
         t = self.pop()
         if not t.is_sym:
-            t.syntax_err("需要符号")
+            if sym is None:
+                t.syntax_err("需要符号")
+            else:
+                t.syntax_err("需要符号'%s'" % sym)
         if sym is None:
             return t.value
         if t.value != sym:

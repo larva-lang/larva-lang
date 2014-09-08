@@ -225,6 +225,12 @@ def _output_const(code, const_map):
                  (type, idx, type, value))
     code += ""
 
+_BUILTIN_METHOD_NAME_MAP = {"__init__" : "init"}
+def _get_method_name(name):
+    if name.startswith("__") and name.endswith("__"):
+        return _BUILTIN_METHOD_NAME_MAP[name]
+    return "f_%s" % name
+
 def _build_expr_code(code, expr, expect_bool = False):
     assert isinstance(expect_bool, bool)
     def _build_expr_code_original(expr):
@@ -267,7 +273,8 @@ def _build_expr_code(code, expr, expect_bool = False):
         if expr.op == "call_method":
             eo, t, el = expr.arg
             code.add_lar_obj_method(t.value, len(el))
-            return (_build_expr_code(code, eo) + ".f_%s" % t.value +
+            return (_build_expr_code(code, eo) +
+                    ".%s" % _get_method_name(t.value) +
                     "(%s)" % ",".join([_build_expr_code(code, e) for e in el]))
         if expr.op == "call_module_func":
             tm, t, el = expr.arg
@@ -381,22 +388,28 @@ def _build_expr_code(code, expr, expect_bool = False):
             t, el = expr.arg
             return ("new Cls_%s" % t.value +
                     "(%s)" % ",".join([_build_expr_code(code, e) for e in el]))
+        if expr.op == "this.attr":
+            return "this.m_%s" % expr.arg.value
+        if expr.op in ("this", "super"):
+            return expr.op
 
         raise Exception("unreachable expr.op[%s]" % expr.op)
 
     code = _build_expr_code_original(expr)
+    if code not in ("this", "super"):
+        code = "(%s)" % code
 
     if expr.op in ("and", "or", "not", "==", "!=", "<", "<=", ">", ">=",
                    "in", "not in"):
         if not expect_bool:
             #打包成返回true和false对象
-            code = "(%s)?LarBuiltin.TRUE:LarBuiltin.FALSE" % code
+            code = "(%s?LarBuiltin.TRUE:LarBuiltin.FALSE)" % code
     else:
         if expect_bool:
             #需要boolean类型
-            code = "(%s).op_bool()" % code
+            code = "(%s.op_bool())" % code
 
-    return "(%s)" % code
+    return code
 
 def _output_global_init(code, global_var_map):
     for var_name in global_var_map:
@@ -707,18 +720,37 @@ def _output_method(code, method, cls):
     code += ""
 
 def _output_class(code, cls, module_name):
-    code.blk_start("public static class Cls_%s extends LarObj" % cls.name)
+    if cls.base_class is None:
+        base_class_code = "LarObj"
+    else:
+        if cls.base_class_module is None:
+            base_class_code = "Cls_%s" % cls.base_class_name
+        else:
+            base_class_code = ("Mod_%s.Cls_%s" %
+                               (cls.base_class_module, cls.base_class_name))
+    code.blk_start("public static class Cls_%s extends %s" %
+                   (cls.name, base_class_code))
     #get_type_name
     code.blk_start("public String get_type_name()")
     code += 'return "%s.%s";' % (module_name, cls.name)
     code.blk_end()
     code += ""
-    #attr
+    #attr，当前类的属性集合减去基类的
+    base_attr_set = set()
+    base_class = cls.base_class
+    while base_class is not None:
+        for attr in base_class.attr_set:
+            base_attr_set.add(attr)
+        base_class = base_class.base_class
     for attr in cls.attr_set:
-        code += "private LarObj m_%s = LarBuiltin.NIL;" % attr
+        if attr in base_attr_set:
+            continue
+        code += "protected LarObj m_%s = LarBuiltin.NIL;" % attr
     code += ""
     #attr get/set
     for attr in cls.attr_set:
+        if attr in base_attr_set:
+            continue
         code.blk_start("public LarObj op_get_attr_%s() throws Exception" %
                        attr)
         code += "return this.m_%s;" % attr

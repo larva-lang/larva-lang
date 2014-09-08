@@ -23,6 +23,11 @@ class Prog:
     def _link(self):
         for module in self.module_map.itervalues():
             if isinstance(module, larc_module.ExternModule):
+                #暂定外部模块的类不声明extends
+                continue
+            module.link_class_extends(self.module_map)
+        for module in self.module_map.itervalues():
+            if isinstance(module, larc_module.ExternModule):
                 #外部模块无需链接
                 continue
             module.link(self.module_map)

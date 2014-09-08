@@ -10,6 +10,8 @@ import larc_token
 import larc_stmt
 import larc_expr
 
+_BUILTIN_METHOD_NAME_SET = set(map(lambda x : "__%s__" % x, ["init"]))
+
 class _Func:
     def __init__(self, name, arg_list, global_var_set, stmt_list, name_token):
         self.name = name
@@ -61,6 +63,10 @@ class _Func:
 
 class _Method(_Func):
     def __init__(self, name, arg_list, global_var_set, stmt_list, name_token):
+        if name.startswith("__") and name.endswith("__"):
+            #检查内置方法
+            if name not in _BUILTIN_METHOD_NAME_SET:
+                name_token.syntax_err("非法的内置方法名'%s'" % name)
         _Func.__init__(self, name, arg_list, global_var_set, stmt_list,
                        name_token)
 
@@ -72,22 +78,62 @@ class _Method(_Func):
             stmt.link(curr_module, module_map, self.local_var_set, curr_class)
 
 class _Class:
-    def __init__(self, name, name_token):
+    def __init__(self, name, name_token, base_class_module, base_class_name):
         self.name = name
         self.name_token = name_token
-        self.method_map = {}
+        self.base_class_module = base_class_module
+        self.base_class_name = base_class_name
+        self.method_map = larc_common.OrderedDict()
+
+    def link_extends(self, curr_module, module_map):
+        if self.base_class_name is not None:
+            #有继承，检查并定向基类
+            if self.base_class_module is None:
+                #基类在当前模块
+                if self.base_class_name not in curr_module.class_map:
+                    self.syntax_err("找不到基类'%s'" % self.base_class_name)
+                else:
+                    self.base_class = (
+                        curr_module.class_map[self.base_class_name])
+            else:
+                #基类在其它模块
+                if self.base_class_module not in curr_module.dep_module_set:
+                    self.syntax_err("找不到模块名'%s'" % self.base_class_module)
+                module = module_map[self.base_class_module]
+                if self.base_class_name not in module.class_map:
+                    self.syntax_err(
+                        "找不到基类'%s.%s'" %
+                        (self.base_class_module, self.base_class_name))
+                else:
+                    self.base_class = module.class_map[self.base_class_name]
+        else:
+            self.base_class = None
+
+    def _check_cycle_extends(self):
+        #检查循环继承
+        cls = self
+        s = set([cls])
+        while True:
+            base_class = cls.base_class
+            if base_class is None:
+                return
+            if base_class in s:
+                self.syntax_err("存在循环继承")
+            cls = base_class
+            s.add(cls)
 
     def link(self, curr_module, module_map):
-        self.method_name_set = (
-            set([name for name, arg_count in self.method_map]))
-        if "__init__" not in self.method_name_set:
+        self._check_cycle_extends()
+        if "__init__" not in [name for name, arg_count in self.method_map]:
             #增加默认构造函数
-            self.method_map["__init__"] = (
+            self.method_map[("__init__", 0)] = (
                 _Method("__init__", [], set(), [], self.name_token))
-            self.method_name_set.add("__init__")
         self.attr_set = larc_common.OrderedSet()
         for method in self.method_map.itervalues():
             method.link(curr_module, module_map, self)
+
+    def syntax_err(self, msg):
+        self.name_token.syntax_err("[类'%s']%s" % (self.name, msg))
 
 class Module:
     def __init__(self, file_path_name):
@@ -106,6 +152,10 @@ class Module:
             func.link(self, module_map)
         for cls in self.class_map.itervalues():
             cls.link(self, module_map)
+
+    def link_class_extends(self, module_map):
+        for cls in self.class_map.itervalues():
+            cls.link_extends(self, module_map)
 
     def _check_undefined_global_var(self):
         #检查被global声明但没有定义的全局变量
@@ -171,8 +221,20 @@ class Module:
                 name_token.syntax_err("类名和函数名重复")
         if class_name in self.class_map:
             name_token.syntax_err("类重复定义")
+        base_class_module = None
+        base_class_name = None
+        if token_list.peek().is_extends:
+            #有继承，格式extends CLASS或extends MODULE.CLASS
+            token_list.pop()
+            base_class_name = token_list.pop_name()
+            if token_list.peek().is_sym("."):
+                #MODULE.CLASS
+                base_class_module = base_class_name
+                token_list.pop_sym(".")
+                base_class_name = token_list.pop_name()
         token_list.pop_sym(":")
-        self.class_map[class_name] = cls = _Class(class_name, name_token)
+        self.class_map[class_name] = cls = (
+            _Class(class_name, name_token, base_class_module, base_class_name))
         curr_indent_count = token_list.peek_indent()
         if curr_indent_count == 0:
             token_list.peek().indent_err()
