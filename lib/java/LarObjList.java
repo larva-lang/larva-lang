@@ -118,7 +118,7 @@ public final class LarObjList extends LarSeqObj
     }
     public LarObj op_mul(LarObj obj) throws Exception
     {
-        long times = obj.op_int();
+        long times = obj.as_int();
         if (times < 0)
         {
             throw new Exception("list乘以负数");

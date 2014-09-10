@@ -57,7 +57,7 @@ public class LarSeqObj extends LarObj
 
     public int get_index(LarObj arg_index) throws Exception
     {
-        long original_index = arg_index.op_int();
+        long original_index = arg_index.as_int();
         long index = original_index;
         if (index < 0)
         {
@@ -96,7 +96,7 @@ public class LarSeqObj extends LarObj
     
     public SliceInfo get_slice_info(LarObj arg_start, LarObj arg_end, LarObj arg_step) throws Exception
     {
-        long step = arg_step == null ? 1 : arg_step.op_int();
+        long step = arg_step == null ? 1 : arg_step.as_int();
         if (step == 0)
         {
             throw new Exception("分片步长为零");
@@ -111,7 +111,7 @@ public class LarSeqObj extends LarObj
             }
             else
             {
-                start = arg_start.op_int();
+                start = arg_start.as_int();
                 if (start < 0)
                 {
                     start += m_len;
@@ -131,7 +131,7 @@ public class LarSeqObj extends LarObj
             }
             else
             {
-                end = arg_end.op_int();
+                end = arg_end.as_int();
                 if (end < 0)
                 {
                     end += m_len;
@@ -164,7 +164,7 @@ public class LarSeqObj extends LarObj
             }
             else
             {
-                start = arg_start.op_int();
+                start = arg_start.as_int();
                 if (start < 0)
                 {
                     start += m_len;
@@ -184,7 +184,7 @@ public class LarSeqObj extends LarObj
             }
             else
             {
-                end = arg_end.op_int();
+                end = arg_end.as_int();
                 if (end < 0)
                 {
                     end += m_len;

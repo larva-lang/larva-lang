@@ -288,12 +288,12 @@ def _build_expr_code(code, expr, expect_bool = False):
                          ",".join([_build_expr_code(code, e) for e in el])))
             if t.value == "range":
                 return ("new LarObjRange(%s)" %
-                        ",".join([_build_expr_code(code, e) + ".op_int()"
-                                   for e in el]))
+                        ",".join([_build_expr_code(code, e) + ".as_int()"
+                                  for e in el]))
             if t.value == "bitmap":
                 assert len(el) == 1
                 return ("new LarObjBitmap(%s)" %
-                        (_build_expr_code(code, el[0]) + ".op_int()"))
+                        (_build_expr_code(code, el[0]) + ".as_int()"))
             if t.value == "len":
                 assert len(el) == 1
                 return ("new LarObjInt(%s.op_len())" %

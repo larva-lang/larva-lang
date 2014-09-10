@@ -115,7 +115,7 @@ public final class LarObjTuple extends LarSeqObj
     }
     public LarObj op_mul(LarObj obj) throws Exception
     {
-        long times = obj.op_int();
+        long times = obj.as_int();
         if (times < 0)
         {
             throw new Exception("tuple乘以负数");

@@ -15,6 +15,30 @@ public class LarBaseObj
     }
 
     /*
+    隐式类型转换，仅限内建或扩展的数字类型
+    数字类型最好都内置，统一管理
+    as_xxx接口用于严格的类型转换，只允许整数、浮点数等大类内部进行无损转换
+    to_xxx允许数字类型进行有损转换
+    */
+    public long as_int() throws Exception
+    {
+        throw new Exception("类型'" + get_type_name() + "'非整数");
+    }
+    public double as_float() throws Exception
+    {
+        throw new Exception("类型'" + get_type_name() + "'非浮点数");
+    }
+
+    public long to_int() throws Exception
+    {
+        throw new Exception("类型'" + get_type_name() + "'无法隐式转换为int");
+    }
+    public double to_float() throws Exception
+    {
+        throw new Exception("类型'" + get_type_name() + "'无法隐式转换为float");
+    }
+
+    /*
     op_*是运算操作或内部实现需要的对象方法
     */
 
@@ -22,10 +46,6 @@ public class LarBaseObj
     public boolean op_bool() throws Exception
     {
         throw new Exception("未实现类型'" + get_type_name() + "'的bool转换");
-    }
-    public long op_int() throws Exception
-    {
-        throw new Exception("未实现类型'" + get_type_name() + "'的int转换");
     }
     public String op_str()
     {

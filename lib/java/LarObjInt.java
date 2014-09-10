@@ -22,17 +22,7 @@ public final class LarObjInt extends LarObj
             }
             return;
         }
-        if (obj instanceof LarObjFloat)
-        {
-            double value = ((LarObjFloat)obj).m_value;
-            if (value < Long.MIN_VALUE || value > Long.MAX_VALUE)
-            {
-                throw new Exception("浮点数过大，无法转为int：" + value);
-            }
-            m_value = (long)value;
-            return;
-        }
-        m_value = obj.op_int();
+        m_value = obj.to_int();
     }
 
     LarObjInt(LarObj arg_str, LarObj arg_radix) throws Exception
@@ -42,7 +32,7 @@ public final class LarObjInt extends LarObj
             throw new Exception("指定进制转换为int类型时，参数需为str类型");
         }
         String s = ((LarObjStr)arg_str).m_value;
-        long radix = arg_radix.op_int();
+        long radix = arg_radix.as_int();
         if (radix == 0)
         {
             //根据实际情况来解析
@@ -136,13 +126,23 @@ public final class LarObjInt extends LarObj
         return "int";
     }
 
+    public long as_int() throws Exception
+    {
+        return m_value;
+    }
+
+    public long to_int() throws Exception
+    {
+        return m_value;
+    }
+    public double to_float() throws Exception
+    {
+        return (double)m_value;
+    }
+
     public boolean op_bool() throws Exception
     {
         return m_value != 0;
-    }
-    public long op_int() throws Exception
-    {
-        return m_value;
     }
     public String op_str()
     {
