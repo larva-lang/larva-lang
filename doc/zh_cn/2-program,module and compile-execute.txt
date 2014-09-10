@@ -1,0 +1,24 @@
+模块（module）
+一个larva程序的基本组成单位是模块，一个模块在逻辑上是一个源代码文件。一个程序可由多个模块组成，其中有一个模块为主模块，即程序启动入口
+larva模块有两种形式：
+1 .lar文件，完全由larva语法实现的源代码文件，会在编译后生成目标代码
+2 .lar_ext文件，表示外部扩展模块（extern module），表示用运行环境的本地语言实现的模块，在.lar_ext文件中只需写明必要的接口说明即可，供编译期参考
+这两种模块文件在逻辑上是等同的，只有形式上的差别，一般来说，一个程序的逻辑代码都由larva代码在.lar文件中实现，而需要调用目标环境的接口（如获取当前时间，打开文件等系统调用操作）时，使用.lar_ext封装；其它一些情况，比如对于某个.lar模块的效率不满意，也可以用目标环境本地代码实现，然后用.lar_ext导出接口
+larva的模块名即模块文件本身的名字，模块名必须符合larva的标识符的定义
+注：标识符格式：[A-Za-z_][A-Za-z_0-9]*
+
+主模块（main module）
+主模块是程序的入口，larva程序执行时，首先初始化执行环境及所有模块，然后调用主模块的main函数执行，主模块的main函数必须是如下形式：
+func main()
+函数相关说明见后
+
+larva并不限制编译器和目标代码的实现方式，下面以当前的实现（python实现编译器，转化为java代码）为例，展示一个程序的使用方式：
+larva-lang目录下，和程序编译执行相关的目录有compiler和lib，compiler目录下的larc.py是编译器主程序。一个程序的编译只需告知编译器它的主模块文件名，例如主模块是test.lar文件（省略larc.py和test.lar所在目录，请视实际情况输入）：
+python larc.py test.lar
+如test.lar中引用了其它模块，则编译器在源码所在目录下查找，如找不到则会到lib目录下对应目标代码文件夹中查找（这个例子中是lib/java目录）
+编译成功后，目标代码将生成在test.lar文件同级的test目录下，目标代码的主模块名为Prog_test.java，即以Prog_前缀，其它文件则是对应的依赖库
+之后，即可用jdk的javac来编译Prog_test.java文件，生成对应的class文件，在jre中即可正常执行：
+javac -encoding utf8 Prog_test.java
+java Prog_test
+注：由于生成的java文件中包含中文注释、提示等，文件编码统一为utf8，因此javac需要-encoding utf8选项
+目标代码结构和启动过程简述：所有模块（包括主模块）都将编译成名为Mod_XXX.java的类，其中XXX是模块名，同时有一个名为Prog_test的类，负责java程序的main函数启动，Prog_test.main做一些必要的初始化后，会直接调用test.lar文件中main函数生成的代码，程序启动
