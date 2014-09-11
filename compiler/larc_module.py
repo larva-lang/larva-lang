@@ -146,12 +146,12 @@ class Module:
 
     def link(self, module_map):
         self.const_map = larc_common.OrderedDict()
+        for cls in self.class_map.itervalues():
+            cls.link(self, module_map)
         for expr in self.global_var_map.itervalues():
             expr.link(self, module_map)
         for func in self.func_map.itervalues():
             func.link(self, module_map)
-        for cls in self.class_map.itervalues():
-            cls.link(self, module_map)
 
     def link_class_extends(self, module_map):
         for cls in self.class_map.itervalues():

@@ -105,7 +105,7 @@ class _Code:
             self.blk_end()
 
         for method_name, arg_count in self.lar_obj_method_set:
-            self.blk_start("public LarObj f_%s(%s) throws Exception" %
+            self.blk_start("public LarObj meth_%s(%s) throws Exception" %
                            (method_name,
                             ",".join(["LarObj arg_%d" % (i + 1)
                                       for i in xrange(arg_count)])))
@@ -229,7 +229,7 @@ _BUILTIN_METHOD_NAME_MAP = {"__init__" : "init"}
 def _get_method_name(name):
     if name.startswith("__") and name.endswith("__"):
         return _BUILTIN_METHOD_NAME_MAP[name]
-    return "f_%s" % name
+    return "meth_%s" % name
 
 def _build_expr_code(code, expr, expect_bool = False):
     assert isinstance(expect_bool, bool)
@@ -311,7 +311,7 @@ def _build_expr_code(code, expr, expect_bool = False):
         if expr.op == "list":
             code_str = "(new LarObjList())"
             for e in expr.arg:
-                code_str += ".f_add(%s)" % _build_expr_code(code, e)
+                code_str += ".meth_add(%s)" % _build_expr_code(code, e)
             return code_str
         if expr.op in _UNARY_OP_NAME_MAP:
             return (_build_expr_code(code, expr.arg[0]) +
@@ -582,10 +582,10 @@ def _output_stmt_list(code, stmt_list):
                                "%s[%s]" % (tmp_iter, tmp_iter_index))
             else:
                 code.blk_start(
-                    "for (LarObj %s = %s.f_iterator(); "
-                    "%s.f_has_next().op_bool();)" %
+                    "for (LarObj %s = %s.meth_iterator(); "
+                    "%s.meth_has_next().op_bool();)" %
                     (tmp_iter, _build_expr_code(code, stmt.expr), tmp_iter))
-                _output_assign(code, stmt.lvalue, "%s.f_next()" % tmp_iter)
+                _output_assign(code, stmt.lvalue, "%s.meth_next()" % tmp_iter)
             _output_stmt_list(code, stmt.stmt_list)
             code.blk_end()
             continue
@@ -659,12 +659,12 @@ def _output_list_compr(code, idx,
     for name in name_set:
         code += "LarObj l_%s;" % name
     code += "LarObjList list = new LarObjList();"
-    code.blk_start("for (LarObj iter = iterable.f_iterator(); "
-                   "iter.f_has_next().op_bool();)")
-    _output_assign(code, lvalue, "iter.f_next()")
+    code.blk_start("for (LarObj iter = iterable.meth_iterator(); "
+                   "iter.meth_has_next().op_bool();)")
+    _output_assign(code, lvalue, "iter.meth_next()")
     if if_expr is not None:
         code.blk_start("if (%s.op_bool())" % _build_expr_code(if_expr))
-    code += "list.f_add(%s);" % _build_expr_code(code, e)
+    code += "list.meth_add(%s);" % _build_expr_code(code, e)
     if if_expr is not None:
         code.blk_end()
     code.blk_end()
@@ -681,9 +681,9 @@ def _output_dict_compr(code, idx,
     for name in name_set:
         code += "LarObj l_%s;" % name
     code += "LarObjDict dict = new LarObjDict();"
-    code.blk_start("for (LarObj iter = iterable.f_iterator(); "
-                   "iter.f_has_next().op_bool();)")
-    _output_assign(code, lvalue, "iter.f_next()")
+    code.blk_start("for (LarObj iter = iterable.meth_iterator(); "
+                   "iter.meth_has_next().op_bool();)")
+    _output_assign(code, lvalue, "iter.meth_next()")
     if if_expr is not None:
         code.blk_start("if (%s.op_bool())" % _build_expr_code(if_expr))
     code += ("dict.op_set_item(%s, %s);" %
@@ -732,7 +732,7 @@ def _output_method(code, method, cls):
         ret_type = "LarObj"
     #todo：其它内置接口
     else:
-        method_name = "f_%s" % method.name
+        method_name = "meth_%s" % method.name
         ret_type = "LarObj"
     code.blk_start(
         "public %s %s(%s) throws Exception" %

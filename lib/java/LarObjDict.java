@@ -67,7 +67,7 @@ public final class LarObjDict extends LarObj
             }
         }
         
-        public LarObj f_has_next() throws Exception
+        public LarObj meth_has_next() throws Exception
         {
             if (m_version != m_dict.m_version)
             {
@@ -76,7 +76,7 @@ public final class LarObjDict extends LarObj
             return m_index < m_dict.m_list.length ? LarBuiltin.TRUE : LarBuiltin.FALSE;
         }
 
-        public LarObj f_next() throws Exception
+        public LarObj meth_next() throws Exception
         {
             if (m_version != m_dict.m_version)
             {
@@ -286,12 +286,12 @@ public final class LarObjDict extends LarObj
         return entry != null && entry != DUMMY;
     }
 
-    public LarObj f_iterator() throws Exception
+    public LarObj meth_iterator() throws Exception
     {
         return new LarObjDictIterator(this);
     }
 
-    public LarObj f_get(LarObj key) throws Exception
+    public LarObj meth_get(LarObj key) throws Exception
     {
         int index = get_entry_index(m_list, key);
         Entry entry = m_list[index];
