@@ -14,6 +14,24 @@ public final class LarObjFloat extends LarObj
         return "float";
     }
 
+    public double as_float() throws Exception
+    {
+        return m_value;
+    }
+
+    public long to_int() throws Exception
+    {
+        if (m_value < Long.MIN_VALUE || m_value > Long.MAX_VALUE)
+        {
+            throw new Exception("浮点数过大，无法转为int：" + m_value);
+        }
+        return (long)m_value;
+    }
+    public double to_float() throws Exception
+    {
+        return m_value;
+    }
+
     public boolean op_bool() throws Exception
     {
         return m_value != 0.0;
@@ -50,7 +68,7 @@ public final class LarObjFloat extends LarObj
         }
         if (obj instanceof LarObjLong)
         {
-            return new LarObjFloat(m_value + ((LarObjLong)obj).to_double());
+            return new LarObjFloat(m_value + ((LarObjLong)obj).to_float());
         }
         return obj.op_reverse_add(this);
     }
@@ -62,7 +80,7 @@ public final class LarObjFloat extends LarObj
         }
         if (obj instanceof LarObjLong)
         {
-            return new LarObjFloat(((LarObjLong)obj).to_double() + m_value);
+            return new LarObjFloat(((LarObjLong)obj).to_float() + m_value);
         }
         throw new Exception("未实现类型'" + obj.get_type_name() + "'和'" + get_type_name() + "'的加法运算'+'");
     }
@@ -78,7 +96,7 @@ public final class LarObjFloat extends LarObj
         }
         if (obj instanceof LarObjLong)
         {
-            return new LarObjFloat(m_value - ((LarObjLong)obj).to_double());
+            return new LarObjFloat(m_value - ((LarObjLong)obj).to_float());
         }
         return obj.op_reverse_sub(this);
     }
@@ -90,7 +108,7 @@ public final class LarObjFloat extends LarObj
         }
         if (obj instanceof LarObjLong)
         {
-            return new LarObjFloat(((LarObjLong)obj).to_double() - m_value);
+            return new LarObjFloat(((LarObjLong)obj).to_float() - m_value);
         }
         throw new Exception("未实现类型'" + obj.get_type_name() + "'和'" + get_type_name() + "'的减法运算'-'");
     }
@@ -106,7 +124,7 @@ public final class LarObjFloat extends LarObj
         }
         if (obj instanceof LarObjLong)
         {
-            return new LarObjFloat(m_value * ((LarObjLong)obj).to_double());
+            return new LarObjFloat(m_value * ((LarObjLong)obj).to_float());
         }
         return obj.op_reverse_mul(this);
     }
@@ -118,7 +136,7 @@ public final class LarObjFloat extends LarObj
         }
         if (obj instanceof LarObjLong)
         {
-            return new LarObjFloat(((LarObjLong)obj).to_double() * m_value);
+            return new LarObjFloat(((LarObjLong)obj).to_float() * m_value);
         }
         throw new Exception("未实现类型'" + obj.get_type_name() + "'和'" + get_type_name() + "'的乘法运算'*'");
     }
@@ -144,7 +162,7 @@ public final class LarObjFloat extends LarObj
         }
         if (obj instanceof LarObjLong)
         {
-            double value = ((LarObjLong)obj).to_double();
+            double value = ((LarObjLong)obj).to_float();
             if (value == 0.0)
             {
                 throw new Exception("被零除");
@@ -169,7 +187,7 @@ public final class LarObjFloat extends LarObj
             {
                 throw new Exception("被零除");
             }
-            return new LarObjFloat(((LarObjLong)obj).to_double() / m_value);
+            return new LarObjFloat(((LarObjLong)obj).to_float() / m_value);
         }
         throw new Exception("未实现类型'" + obj.get_type_name() + "'和'" + get_type_name() + "'的除法运算'/'");
     }
@@ -195,7 +213,7 @@ public final class LarObjFloat extends LarObj
         }
         if (obj instanceof LarObjLong)
         {
-            double value = ((LarObjLong)obj).to_double();
+            double value = ((LarObjLong)obj).to_float();
             if (value == 0.0)
             {
                 throw new Exception("被零除");
@@ -220,7 +238,7 @@ public final class LarObjFloat extends LarObj
             {
                 throw new Exception("被零除");
             }
-            return new LarObjFloat(((LarObjLong)obj).to_double() % m_value);
+            return new LarObjFloat(((LarObjLong)obj).to_float() % m_value);
         }
         throw new Exception("未实现类型'" + obj.get_type_name() + "'和'" + get_type_name() + "'的模运算'%'");
     }
@@ -241,7 +259,7 @@ public final class LarObjFloat extends LarObj
         }
         if (obj instanceof LarObjLong)
         {
-            return m_value == ((LarObjLong)obj).to_double();
+            return m_value == ((LarObjLong)obj).to_float();
         }
         return obj.op_reverse_eq(this);
     }
@@ -253,7 +271,7 @@ public final class LarObjFloat extends LarObj
         }
         if (obj instanceof LarObjLong)
         {
-            return ((LarObjLong)obj).to_double() == m_value;
+            return ((LarObjLong)obj).to_float() == m_value;
         }
         throw new Exception("未实现类型'" + obj.get_type_name() + "'和'" + get_type_name() + "'的等价判断'=='");
     }
@@ -287,7 +305,7 @@ public final class LarObjFloat extends LarObj
         }
         if (obj instanceof LarObjLong)
         {
-            double value = ((LarObjLong)obj).to_double();
+            double value = ((LarObjLong)obj).to_float();
             if (m_value > value)
             {
                 return 1;
@@ -317,7 +335,7 @@ public final class LarObjFloat extends LarObj
         }
         if (obj instanceof LarObjLong)
         {
-            double value = ((LarObjLong)obj).to_double();
+            double value = ((LarObjLong)obj).to_float();
             if (value > m_value)
             {
                 return 1;

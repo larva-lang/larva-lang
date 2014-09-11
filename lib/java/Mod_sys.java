@@ -27,7 +27,7 @@ public final class Mod_sys
     //以exit_code为返回码退出程序
     public static LarObj f_exit(LarObj obj) throws Exception
     {
-        long exit_code = obj.op_int();
+        long exit_code = obj.as_int();
         if (exit_code < Integer.MIN_VALUE || exit_code > Integer.MAX_VALUE)
         {
             throw new Exception("非法的exit返回码：" + exit_code);

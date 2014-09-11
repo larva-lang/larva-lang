@@ -7,7 +7,6 @@ public final class LarObjLong extends LarObj
     private final BigInteger LONG_MIN = BigInteger.valueOf(Long.MIN_VALUE);
 
     public final BigInteger m_value;
-    private int m_hash = -1;
 
     LarObjLong(String value)
     {
@@ -50,7 +49,7 @@ public final class LarObjLong extends LarObj
             throw new Exception("指定进制转换为long类型时，参数需为str类型");
         }
         String s = ((LarObjStr)arg_str).m_value;
-        long radix = arg_radix.op_int();
+        long radix = arg_radix.as_int();
         BigInteger value;
         if (radix == 0)
         {
@@ -152,7 +151,29 @@ public final class LarObjLong extends LarObj
         return new LarObjLong(m_value.pow((int)e));
     }
 
-    public double to_double() throws Exception
+    public String get_type_name()
+    {
+        return "long";
+    }
+
+    public long as_int() throws Exception
+    {
+        if (m_value.compareTo(LONG_MIN) < 0 || m_value.compareTo(LONG_MAX) > 0)
+        {
+            throw new Exception("long过大，无法转为int值");
+        }
+        return m_value.longValue();
+    }
+
+    public long to_int() throws Exception
+    {
+        if (m_value.compareTo(LONG_MIN) < 0 || m_value.compareTo(LONG_MAX) > 0)
+        {
+            throw new Exception("long过大，无法转为int值");
+        }
+        return m_value.longValue();
+    }
+    public double to_float() throws Exception
     {
         double value = m_value.doubleValue();
         if (value == Double.POSITIVE_INFINITY || value == Double.NEGATIVE_INFINITY)
@@ -162,22 +183,9 @@ public final class LarObjLong extends LarObj
         return value;
     }
 
-    public String get_type_name()
-    {
-        return "long";
-    }
-
     public boolean op_bool() throws Exception
     {
         return !m_value.equals(BigInteger.ZERO);
-    }
-    public long op_int() throws Exception
-    {
-        if (m_value.compareTo(LONG_MIN) < 0 || m_value.compareTo(LONG_MAX) > 0)
-        {
-            throw new Exception("long过大，无法转为int值");
-        }
-        return m_value.longValue();
     }
     public String op_str()
     {
@@ -186,15 +194,8 @@ public final class LarObjLong extends LarObj
 
     public int op_hash() throws Exception
     {
-        if (m_hash == -1)
-        {
-            m_hash = m_value.hashCode();
-            if (m_hash == -1)
-            {
-                m_hash = 0;
-            }
-        }
-        return m_hash;
+        //确保在int范围内hash一致
+        return LarObjInt.hash(m_value.longValue());
     }
 
     public LarObj op_invert() throws Exception

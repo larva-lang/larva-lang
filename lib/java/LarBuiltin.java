@@ -28,15 +28,20 @@ public final class LarBuiltin
 
     public static LarObj f_pow(LarObj x, LarObj y) throws Exception
     {
+        if (x instanceof LarObjFloat || y instanceof LarObjFloat)
+        {
+            return new LarObjFloat(Math.pow(x.to_float(), y.to_float()));
+        }
+
         if (x instanceof LarObjInt)
         {
             x = new LarObjLong(x);
         }
         else if (!(x instanceof LarObjLong))
         {
-            throw new Exception("pow底数类型为'" + x.get_type_name() + "'，需要int或long");
+            throw new Exception("pow底数类型错误：'" + x.get_type_name() + "'");
         }
-        return ((LarObjLong)x).pow(y.op_int());
+        return ((LarObjLong)x).pow(y.as_int());
     }
 
     public static LarObj f_max(LarObj obj) throws Exception
