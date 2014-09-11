@@ -50,6 +50,8 @@ class _Code:
 
         self.unpack_number = 0
 
+        self.lambda_outter_class_name = None
+
     def add_extern_module(self, module):
         self.extern_module_list.append(module)
 
@@ -386,12 +388,20 @@ def _build_expr_code(code, expr, expect_bool = False):
             return "new Lambda_%d(%s)" % (lambda_number, stat_arg_code_str)
         if expr.op == "call_class":
             t, el = expr.arg
-            return ("new Cls_%s" % t.value +
-                    "(%s)" % ",".join([_build_expr_code(code, e) for e in el]))
+            return ("(new Cls_%s()).construct(%s)" %
+                    (t.value,
+                     ",".join([_build_expr_code(code, e) for e in el])))
         if expr.op == "this.attr":
-            return "this.m_%s" % expr.arg.value
+            if code.lambda_outter_class_name is None:
+                return "this.m_%s" % expr.arg.value
+            else:
+                return ("Cls_%s.this.m_%s" %
+                        (code.lambda_outter_class_name, expr.arg.value))
         if expr.op in ("this", "super"):
-            return expr.op
+            if code.lambda_outter_class_name is None:
+                return expr.op
+            else:
+                return "Cls_%s.%s" % (code.lambda_outter_class_name, expr.op)
 
         raise Exception("unreachable expr.op[%s]" % expr.op)
 
@@ -460,7 +470,12 @@ def _output_assign(code, lvalue, expr_code):
                 code, unpack_lvalue, "%s[%d]" % (unpack_tmp_array, i))
         return
     if lvalue.op == "this.attr":
-        code += "this.m_%s = %s;" % (lvalue.arg.value, expr_code)
+        if code.lambda_outter_class_name is None:
+            code += "this.m_%s = %s;" % (lvalue.arg.value, expr_code)
+        else:
+            code += ("Cls_%s.this.m_%s = %s;" %
+                     (code.lambda_outter_class_name, lvalue.arg.value,
+                      expr_code))
         return
     raise Exception("unreachable lvalue.op[%s]" % lvalue.op)
 
@@ -653,7 +668,7 @@ def _output_func(code, func):
 def _output_list_compr(code, idx,
                        (compr_arg_list, e, lvalue, name_set, if_expr)):
     code.blk_start(
-        "public static LarObjList compr_list_%d(%s) throws Exception" %
+        "private static LarObjList compr_list_%d(%s) throws Exception" %
         (idx, ",".join(["LarObj l_%s" % name for name in compr_arg_list] +
                        ["LarObj iterable"])))
     for name in name_set:
@@ -672,10 +687,33 @@ def _output_list_compr(code, idx,
     code.blk_end()
     code += ""
 
+def _output_list_compr_in_class(code, idx,
+                                (compr_arg_list, e, lvalue, name_set,
+                                 if_expr)):
+    code.blk_start(
+        "private LarObjList compr_list_%d(%s) throws Exception" %
+        (idx, ",".join(["LarObj l_%s" % name for name in compr_arg_list] +
+                       ["LarObj iterable"])))
+    for name in name_set:
+        code += "LarObj l_%s;" % name
+    code += "LarObjList list = new LarObjList();"
+    code.blk_start("for (LarObj iter = iterable.meth_iterator(); "
+                   "iter.meth_has_next().op_bool();)")
+    _output_assign(code, lvalue, "iter.meth_next()")
+    if if_expr is not None:
+        code.blk_start("if (%s.op_bool())" % _build_expr_code(code, if_expr))
+    code += "list.meth_add(%s);" % _build_expr_code(code, e)
+    if if_expr is not None:
+        code.blk_end()
+    code.blk_end()
+    code += "return list;"
+    code.blk_end()
+    code += ""
+
 def _output_dict_compr(code, idx,
                        (compr_arg_list, ek, ev, lvalue, name_set, if_expr)):
     code.blk_start(
-        "public static LarObjDict compr_dict_%d(%s) throws Exception" %
+        "private static LarObjDict compr_dict_%d(%s) throws Exception" %
         (idx, ",".join(["LarObj l_%s" % name for name in compr_arg_list] +
                        ["LarObj iterable"])))
     for name in name_set:
@@ -685,7 +723,31 @@ def _output_dict_compr(code, idx,
                    "iter.meth_has_next().op_bool();)")
     _output_assign(code, lvalue, "iter.meth_next()")
     if if_expr is not None:
-        code.blk_start("if (%s.op_bool())" % _build_expr_code(if_expr))
+        code.blk_start("if (%s.op_bool())" % _build_expr_code(code, if_expr))
+    code += ("dict.op_set_item(%s, %s);" %
+             (_build_expr_code(code, ek), _build_expr_code(code, ev)))
+    if if_expr is not None:
+        code.blk_end()
+    code.blk_end()
+    code += "return dict;"
+    code.blk_end()
+    code += ""
+
+def _output_dict_compr_in_class(code, idx,
+                                (compr_arg_list, ek, ev, lvalue, name_set,
+                                 if_expr)):
+    code.blk_start(
+        "private LarObjDict compr_dict_%d(%s) throws Exception" %
+        (idx, ",".join(["LarObj l_%s" % name for name in compr_arg_list] +
+                       ["LarObj iterable"])))
+    for name in name_set:
+        code += "LarObj l_%s;" % name
+    code += "LarObjDict dict = new LarObjDict();"
+    code.blk_start("for (LarObj iter = iterable.meth_iterator(); "
+                   "iter.meth_has_next().op_bool();)")
+    _output_assign(code, lvalue, "iter.meth_next()")
+    if if_expr is not None:
+        code.blk_start("if (%s.op_bool())" % _build_expr_code(code, if_expr))
     code += ("dict.op_set_item(%s, %s);" %
              (_build_expr_code(code, ek), _build_expr_code(code, ev)))
     if if_expr is not None:
@@ -696,7 +758,8 @@ def _output_dict_compr(code, idx,
     code += ""
 
 def _output_lambda(code, idx, (lambda_stat_arg_list, arg_list, e)):
-    code.blk_start("private static final class Lambda_%d extends LarObj" % idx)
+    code.blk_start("private static final class Lambda_%d extends LarObj" %
+                   idx)
     for name in lambda_stat_arg_list:
         code += "private final LarObj l_%s;" % name
     code += ""
@@ -717,16 +780,43 @@ def _output_lambda(code, idx, (lambda_stat_arg_list, arg_list, e)):
     code.blk_end()
     code += ""
 
+def _output_lambda_in_class(code, class_name, idx,
+                            (lambda_stat_arg_list, arg_list, e)):
+    code.blk_start("private final class Lambda_%d extends LarObj" % idx)
+    for name in lambda_stat_arg_list:
+        code += "private final LarObj l_%s;" % name
+    code += ""
+    #构造函数
+    code.blk_start("Lambda_%d(%s)" %
+                   (idx, ",".join(["LarObj %s" % name
+                                   for name in lambda_stat_arg_list])))
+    for name in lambda_stat_arg_list:
+        code += "l_%s = %s;" % (name, name)
+    code.blk_end()
+    code += ""
+    #调用操作
+    code.blk_start("public LarObj op_call(%s) throws Exception" %
+                   ",".join(["LarObj l_%s" % name for name in arg_list]))
+    #用lambda_outter_class_name属性做状态标记
+    code.lambda_outter_class_name = class_name
+    code += "return %s;" % _build_expr_code(code, e)
+    code.lambda_outter_class_name = None
+    code.blk_end()
+    code += ""
+    code.blk_end()
+    code += ""
+
 def _output_method(code, method, cls):
     #先决定method_name等
     if method.name == "__init__":
         #对于构造函数，不直接生成java的构造函数，而是通过代理
-        code.blk_start("public Cls_%s(%s) throws Exception" %
+        code.blk_start("public Cls_%s construct(%s) throws Exception" %
                        (cls.name,
                         ",".join(["LarObj l_%s" % arg_name
                                   for arg_name in method.arg_list])))
         code += "init(%s);" % ",".join(["l_%s" % arg_name
                                         for arg_name in method.arg_list])
+        code += "return this;"
         code.blk_end()
         method_name = "init"
         ret_type = "LarObj"
@@ -749,6 +839,7 @@ def _output_method(code, method, cls):
     code += ""
 
 def _output_class(code, cls, module_name):
+    assert not (code.list_compr_map or code.dict_compr_map or code.lambda_map)
     if cls.base_class is None:
         base_class_code = "LarObj"
     else:
@@ -792,6 +883,14 @@ def _output_class(code, cls, module_name):
     #method
     for method in cls.method_map.itervalues():
         _output_method(code, method, cls)
+    #输出解析式、lambda等需要的代码
+    while code.list_compr_map or code.dict_compr_map or code.lambda_map:
+        while code.list_compr_map:
+            _output_list_compr_in_class(code, *code.list_compr_map.popitem())
+        while code.dict_compr_map:
+            _output_dict_compr_in_class(code, *code.dict_compr_map.popitem())
+        while code.lambda_map:
+            _output_lambda_in_class(code, cls.name, *code.lambda_map.popitem())
     code.blk_end()
     code += ""
 
