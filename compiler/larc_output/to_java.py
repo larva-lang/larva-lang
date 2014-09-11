@@ -530,15 +530,44 @@ def _output_stmt_list(code, stmt_list):
                            _build_expr_code(code, stmt.expr))
             continue
         if stmt.type == "for":
-            tmp_iter = "tmp_iter_%d" % code.new_tmp_iter_number()
+            tmp_iter_number = code.new_tmp_iter_number()
+            tmp_iter = "tmp_iter_%d" % tmp_iter_number
             if (stmt.expr.op == "call_builtin_if" and
                 stmt.expr.arg[0].value == "range"):
                 #针对range的特殊处理
-                code.blk_start(
-                    "for (LarObjRange %s = %s; %s.has_next();)" %
-                    (tmp_iter, _build_expr_code(code, stmt.expr), tmp_iter))
-                _output_assign(code, stmt.lvalue,
-                               "new LarObjInt(%s.next())" % tmp_iter)
+                range_arg_list = stmt.expr.arg[1]
+                if len(range_arg_list) == 3:
+                    #附带step的，慢速处理
+                    code.blk_start(
+                        "for (LarObjRange %s = %s; %s.has_next();)" %
+                        (tmp_iter, _build_expr_code(code, stmt.expr),
+                         tmp_iter))
+                    _output_assign(code, stmt.lvalue,
+                                   "new LarObjInt(%s.next())" % tmp_iter)
+                else:
+                    #顺序递增的range可进一步优化
+                    tmp_iter_start = "tmp_iter_start_%d" % tmp_iter_number
+                    tmp_iter_end = "tmp_iter_end_%d" % tmp_iter_number
+                    if len(range_arg_list) == 2:
+                        start_e, end_e = range_arg_list
+                        code += ("long %s = %s.as_int();" %
+                                 (tmp_iter_start,
+                                  _build_expr_code(code, start_e)))
+                        code += ("long %s = %s.as_int();" %
+                                 (tmp_iter_end,
+                                  _build_expr_code(code, end_e)))
+                    elif len(range_arg_list) == 1:
+                        end_e = range_arg_list[0]
+                        code += "long %s = 0;" % tmp_iter_start
+                        code += ("long %s = %s.as_int();" %
+                                 (tmp_iter_end, _build_expr_code(code, end_e)))
+                    else:
+                        raise Exception("unreachable")
+                    code.blk_start(
+                        "for (long %s = %s; %s < %s;)" %
+                        (tmp_iter, tmp_iter_start, tmp_iter, tmp_iter_end))
+                    _output_assign(code, stmt.lvalue,
+                                   "new LarObjInt(%s ++)" % tmp_iter)
             elif stmt.expr.op == "tuple":
                 #针对tuple的特殊处理
                 tmp_iter_index = tmp_iter + "_index"
