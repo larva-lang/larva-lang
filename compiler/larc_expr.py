@@ -109,7 +109,8 @@ class _Expr:
             if name in curr_module.global_var_map:
                 self.op = "global_name"
                 return
-            if name in curr_module.func_name_set:
+            if name in [_func_name
+                        for _func_name, _arg_count in curr_module.func_map]:
                 self.op = "func_name"
                 return
             if name in curr_module.class_map:
@@ -227,11 +228,13 @@ class _Expr:
             if e.op == "module_name":
                 #引用其他模块的内容
                 module = module_map[e.arg.value]
-                if attr.value in module.global_var_map:
+                if attr.value in module.export_global_var_set:
                     self.op = "module.global"
-                elif attr.value in module.func_name_set:
+                elif attr.value in [_func_name
+                                    for _func_name, _arg_count in
+                                    module.export_func_set]:
                     self.op = "module.func"
-                elif attr.value in module.class_map:
+                elif attr.value in module.export_class_set:
                     self.op = "module.class"
                 else:
                     attr.syntax_err("模块'%s'没有'%s'" %

@@ -6,6 +6,7 @@
 
 import larc_common
 import larc_module
+import larc_type_inference
 
 class Prog:
     def __init__(self, main_module_name, module_map):
@@ -16,7 +17,7 @@ class Prog:
 
     def _check_main_func(self):
         main_module = self.module_map[self.main_module_name]
-        if ("main", 0) not in main_module.func_map:
+        if ("main", 0) not in main_module.export_func_set:
             larc_common.exit("链接错误：主模块'%s'缺少main函数" %
                              self.main_module_name)
 

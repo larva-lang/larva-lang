@@ -193,7 +193,7 @@ func Proc0():
         IntLoc2 = 7 * (IntLoc3 - IntLoc2) - IntLoc1
         IntLoc1 = Proc2(IntLoc1)
 
-func main():
+export func main():
     global loops
     if len(sys.argv) > 1:
         loops = int(sys.argv[1])

@@ -142,7 +142,6 @@ class Module:
         self.name = file_name[: -4]
         self._compile(file_path_name)
         self._check_undefined_global_var()
-        self.func_name_set = set([name for name, arg_count in self.func_map])
 
     def link(self, module_map):
         self.const_map = larc_common.OrderedDict()
@@ -173,8 +172,11 @@ class Module:
         self.dep_module_set = set()
         import_end = False
         self.class_map = larc_common.OrderedDict()
+        self.export_class_set = set()
         self.func_map = larc_common.OrderedDict()
+        self.export_func_set = set()
         self.global_var_map = larc_common.OrderedDict()
+        self.export_global_var_set = set()
         while token_list:
             token_list.pop_indent(0)
             t = token_list.pop()
@@ -185,17 +187,22 @@ class Module:
                 self._parse_import(token_list)
                 continue
             import_end = True
+            if t.is_export:
+                export = True
+                t = token_list.pop()
+            else:
+                export = False
             if t.is_class:
                 #类定义
-                self._parse_class(token_list)
+                self._parse_class(token_list, export)
                 continue
             if t.is_func:
                 #函数定义
-                self._parse_func(token_list)
+                self._parse_func(token_list, export)
                 continue
             if t.is_name:
                 #全局变量
-                self._parse_global_var(token_list, t)
+                self._parse_global_var(token_list, t, export)
                 continue
             t.syntax_err()
 
@@ -207,7 +214,7 @@ class Module:
             t.syntax_err("模块重复import")
         self.dep_module_set.add(t.value)
 
-    def _parse_class(self, token_list):
+    def _parse_class(self, token_list, export):
         name_token = token_list.pop()
         if not name_token.is_name:
             name_token.syntax_err("非法的类名")
@@ -235,6 +242,8 @@ class Module:
         token_list.pop_sym(":")
         self.class_map[class_name] = cls = (
             _Class(class_name, name_token, base_class_module, base_class_name))
+        if export:
+            self.export_class_set.add(class_name)
         curr_indent_count = token_list.peek_indent()
         if curr_indent_count == 0:
             token_list.peek().indent_err()
@@ -293,7 +302,7 @@ class Module:
         token_list.pop_sym(":")
         return arg_list
 
-    def _parse_func(self, token_list):
+    def _parse_func(self, token_list, export):
         name_token = token_list.pop()
         if not name_token.is_name:
             name_token.syntax_err("非法的函数名")
@@ -312,8 +321,10 @@ class Module:
         stmt_list, global_var_set = larc_stmt.parse_stmt_list(token_list, 0, 0)
         self.func_map[func_key] = (
             _Func(func_name, arg_list, global_var_set, stmt_list, name_token))
+        if export:
+            self.export_func_set.add(func_key)
 
-    def _parse_global_var(self, token_list, name_token):
+    def _parse_global_var(self, token_list, name_token, export):
         var_name = name_token.value
         if var_name in self.dep_module_set:
             name_token.syntax_err("全局变量名和模块名重复")
@@ -328,6 +339,8 @@ class Module:
         if not t.is_sym("="):
             t.syntax_err("需要'='")
         self.global_var_map[var_name] = larc_expr.parse_expr(token_list)
+        if export:
+            self.export_global_var_set.add(var_name)
 
 class ExternModule:
     def __init__(self, file_path_name):
@@ -335,7 +348,6 @@ class ExternModule:
         assert file_name.endswith(".lar_ext")
         self.name = file_name[: -8]
         self._compile(file_path_name)
-        self.func_name_set = set([name for name, arg_count in self.func_map])
 
     def _compile(self, file_path_name):
         #解析token列表，解析正文
@@ -357,15 +369,19 @@ class ExternModule:
                 self._parse_import(token_list)
                 continue
             import_end = True
-            if t.is_func:
-                #函数声明
-                self._parse_func(token_list)
-                continue
-            if t.is_global:
+            if t.is_export:
+                if token_list.peek().is_func:
+                    #函数声明
+                    token_list.pop()
+                    self._parse_func(token_list)
+                    continue
                 #全局变量声明
                 self._parse_global_var(token_list)
                 continue
             t.syntax_err()
+        #外部模块只含有导出变量和函数
+        self.export_func_set = set(self.func_map)
+        self.export_global_var_set = set(self.global_var_map)
 
     def _parse_import(self, token_list):
         t = token_list.pop()
