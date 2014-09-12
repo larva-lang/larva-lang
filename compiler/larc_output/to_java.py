@@ -424,9 +424,11 @@ def _build_expr_code(code, expr, expect_bool = False):
 
     return code
 
-def _output_global_init(code, global_var_map):
+def _output_global_init(code, global_var_map, export_global_var_set):
     for var_name in global_var_map:
-        code += "public static LarObj g_%s = LarBuiltin.NIL;" % var_name
+        code += ("%s static LarObj g_%s = LarBuiltin.NIL;" %
+                 ("public" if var_name in export_global_var_set else "private",
+                  var_name))
     code += ""
     code.blk_start("public static void init() throws Exception")
     for var_name, expr in global_var_map.iteritems():
@@ -653,10 +655,11 @@ def _output_stmt_list(code, stmt_list):
 
         raise Exception("unreachable")
 
-def _output_func(code, func):
+def _output_func(code, func, export):
     code.blk_start(
-        "public static LarObj f_%s(%s) throws Exception" %
-        (func.name, ",".join(["LarObj l_%s" % arg_name
+        "%s static LarObj f_%s(%s) throws Exception" %
+        ("public" if export else "private",
+         func.name, ",".join(["LarObj l_%s" % arg_name
                               for arg_name in func.arg_list])))
     #增量赋值使用的临时变量
     code += "LarObj tmp_augmented_assign_object = LarBuiltin.NIL;"
@@ -841,7 +844,7 @@ def _output_method(code, method, cls):
     code.blk_end()
     code += ""
 
-def _output_class(code, cls, module_name):
+def _output_class(code, cls, module_name, export):
     assert not (code.list_compr_map or code.dict_compr_map or code.lambda_map)
     if cls.base_class is None:
         base_class_code = "LarObj"
@@ -851,8 +854,9 @@ def _output_class(code, cls, module_name):
         else:
             base_class_code = ("Mod_%s.Cls_%s" %
                                (cls.base_class_module, cls.base_class_name))
-    code.blk_start("public static class Cls_%s extends %s" %
-                   (cls.name, base_class_code))
+    code.blk_start("%s static class Cls_%s extends %s" %
+                   ("public" if export else "private", cls.name,
+                    base_class_code))
     #get_type_name
     code.blk_start("public String get_type_name()")
     code += 'return "%s.%s";' % (module_name, cls.name)
@@ -901,10 +905,12 @@ def _output_module(code, module):
     code.blk_start("final class Mod_%s" % module.name)
     _output_const(code, module.const_map)
     for cls in module.class_map.itervalues():
-        _output_class(code, cls, module.name)
-    _output_global_init(code, module.global_var_map)
-    for func in module.func_map.itervalues():
-        _output_func(code, func)
+        _output_class(code, cls, module.name,
+                      cls.name in module.export_class_set)
+    _output_global_init(code, module.global_var_map,
+                        module.export_global_var_set)
+    for func_key, func in module.func_map.iteritems():
+        _output_func(code, func, func_key in module.export_func_set)
     #输出解析式、lambda等需要的代码
     while code.list_compr_map or code.dict_compr_map or code.lambda_map:
         while code.list_compr_map:
