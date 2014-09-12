@@ -284,7 +284,7 @@ def _build_expr_code(code, expr, expect_bool = False):
                     "(%s)" % ",".join([_build_expr_code(code, e) for e in el]))
         if expr.op == "call_builtin_if":
             t, el = expr.arg
-            if t.value in ("int", "str", "tuple", "list", "set", "file"):
+            if t.value in ("str", "tuple", "list", "set", "file"):
                 return ("new LarObj%s(%s)" %
                         (t.value.capitalize(),
                          ",".join([_build_expr_code(code, e) for e in el])))
@@ -402,6 +402,9 @@ def _build_expr_code(code, expr, expect_bool = False):
                 return expr.op
             else:
                 return "Cls_%s.%s" % (code.lambda_outter_class_name, expr.op)
+        if expr.op == "int()":
+            return ("new LarObjInt(%s)" %
+                    ",".join([_build_expr_code(code, e) for e in expr.arg]))
 
         raise Exception("unreachable expr.op[%s]" % expr.op)
 

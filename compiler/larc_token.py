@@ -34,7 +34,7 @@ _RESERVED_WORD_SET = set(["if", "elif", "else", "while", "return", "break",
                           "continue", "for", "in", "not", "and", "or", "nil",
                           "print", "func", "import", "global", "true", "false",
                           "pass", "lambda", "class", "this", "super",
-                          "extends"])
+                          "extends", "int"])
 
 _TOKEN_TYPE_INDENT = object()
 _TOKEN_TYPE_FLOAT = object()
@@ -80,9 +80,9 @@ class _Token:
         for const_type in "float", "long", "int", "str", "byte":
             if self.type == globals()["_TOKEN_TYPE_" + const_type.upper()]:
                 self.is_const = True
-                setattr(self, "is_" + const_type, True)
+                setattr(self, "is_const_" + const_type, True)
             else:
-                setattr(self, "is_" + const_type, False)
+                setattr(self, "is_const_" + const_type, False)
 
         class IsSym:
             def __init__(self, token):
@@ -248,12 +248,12 @@ class _TokenList:
                     first.value += t.value
                     self.l[i] = None
                     continue
-                if t.is_str or t.is_byte:
+                if t.is_const_str or t.is_const_byte:
                     t.syntax_err("字符串和字节串不可连接")
                 #其他token，结束流程
                 first = None
                 continue
-            if t.is_str or t.is_byte:
+            if t.is_const_str or t.is_const_byte:
                 #开始流程
                 first = t
         self._remove_None()

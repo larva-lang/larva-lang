@@ -88,7 +88,7 @@ class _Expr:
            5 常量表"""
         if self.op == "const":
             for const_type in "float", "long", "int", "str", "byte":
-                if getattr(self.arg, "is_" + const_type):
+                if getattr(self.arg, "is_const_" + const_type):
                     const_key = const_type, self.arg.value
                     if const_key in curr_module.const_map:
                         const_idx = curr_module.const_map[const_key]
@@ -213,6 +213,12 @@ class _Expr:
                 self.op = "call_method"
                 self.arg = [_Expr(inst, None), ec.arg, el]
                 return
+            if ec.op == "int":
+                if len(el) not in (1, 2):
+                    ec.arg.syntax_err("int转换参数数量应该为1或2个")
+                self.op = "int()"
+                self.arg = el
+                return
             #其余情况，属于对象的()运算
             return
         if self.op == ".":
@@ -328,6 +334,8 @@ class _Expr:
             if curr_class.base_class is None:
                 self.arg.syntax_err("super必须出现在子类方法中")
             return
+        if self.op == "int":
+            return
 
         #其余类型，包括单目、双目运算、下标、tuple和list构造等
         assert (self.op in _UNARY_OP_SET or self.op in _BINOCULAR_OP_SET or
@@ -350,6 +358,8 @@ class _Expr:
             self.arg.syntax_err("内置接口不能作为值")
         if self.op in ("this.method", "super.method"):
             self.arg.syntax_err("方法不能作为值")
+        if self.op == "int":
+            self.arg.syntax_err("int不能作为值")
         if self.op == "dict":
             for ek, ev in self.arg:
                 ek._check()
@@ -359,6 +369,10 @@ class _Expr:
             ec, el = self.arg
             ec._check()
             for e in el:
+                e._check()
+            return
+        if self.op == "int()":
+            for e in self.arg:
                 e._check()
             return
         if self.op in ("call_func", "call_class", "call_method",
@@ -653,6 +667,9 @@ def parse_expr(token_list, end_at_comma = False, end_at_in = False):
             #省略this的写法，补上this
             parse_stk.push_expr(_Expr("this", t))
             token_list.revert()
+        elif t.is_int:
+            #int转换
+            parse_stk.push_expr(_Expr("int", t))
         else:
             t.syntax_err("非法的表达式")
 
