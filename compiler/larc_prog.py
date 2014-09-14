@@ -32,3 +32,8 @@ class Prog:
                 #外部模块无需链接
                 continue
             module.link(self.module_map)
+        for module in self.module_map.itervalues():
+            if isinstance(module, larc_module.ExternModule):
+                #外部模块无需类型推导
+                continue
+            larc_type_inference.Device(module).work()

@@ -32,6 +32,31 @@ class _Func:
 
         larc_stmt.check_last_return(self.stmt_list)
 
+        #初始化类型推导相关信息
+        self.local_var_type_info = (
+            dict(map(lambda x : (x, None), self.local_var_set)))
+        self.ret_expr_list = []
+        self._search_ret_expr(self.stmt_list)
+        if None in self.ret_expr_list:
+            #先处理隐式return nil
+            self.ret_type = "object"
+            self.ret_expr_list = []
+        else:
+            self.ret_type = None
+
+    def _search_ret_expr(self, stmt_list):
+        #搜索所有return的表达式
+        for stmt in stmt_list:
+            if stmt.type == "return":
+                self.ret_expr_list.append(stmt.expr)
+            if stmt.type in ("for", "while"):
+                self._search_ret_expr(stmt.stmt_list)
+            if stmt.type == "if":
+                for expr, if_stmt_list in stmt.if_list:
+                    self._search_ret_expr(if_stmt_list)
+                if stmt.else_stmt_list is not None:
+                    self._search_ret_expr(stmt.else_stmt_list)
+
     def _search_local_var(self, stmt_list):
         #局部变量条件：赋值或for的左值是一个名字或在unpack表达式查找名字
         #对于嵌套stmt_list的语句递归搜索
@@ -69,6 +94,11 @@ class _Method(_Func):
                 name_token.syntax_err("非法的内置方法名'%s'" % name)
         _Func.__init__(self, name, arg_list, global_var_set, stmt_list,
                        name_token)
+        #method输入参数和返回类型都是object
+        for arg_name in arg_list:
+            self.local_var_type_info[arg_name] = "object"
+        self.ret_type = "object"
+        self.ret_expr_list = []
 
     def syntax_err(self, msg):
         self.name_token.syntax_err("[方法'%s']%s" % (self.name, msg))
@@ -176,6 +206,7 @@ class Module:
         self.func_map = larc_common.OrderedDict()
         self.export_func_set = set()
         self.global_var_map = larc_common.OrderedDict()
+        self.global_var_type_info = {}
         self.export_global_var_set = set()
         while token_list:
             token_list.pop_indent(0)
@@ -339,8 +370,10 @@ class Module:
         if not t.is_sym("="):
             t.syntax_err("需要'='")
         self.global_var_map[var_name] = larc_expr.parse_expr(token_list)
+        self.global_var_type_info[var_name] = None
         if export:
             self.export_global_var_set.add(var_name)
+            self.global_var_type_info[var_name] = "object"
 
 class ExternModule:
     def __init__(self, file_path_name):
