@@ -355,8 +355,12 @@ class _Expr:
             self.arg.syntax_err("模块名不能作为值")
         if self.op == "func_name":
             self.arg.syntax_err("函数名不能作为值")
+        if self.op == "class_name":
+            self.arg.syntax_err("类名不能作为值")
         if self.op == "module.func":
             self.arg.syntax_err("外部函数不能作为值")
+        if self.op == "module.class":
+            self.arg.syntax_err("外部类不能作为值")
         if self.op == "builtin_if_name":
             self.arg.syntax_err("内置接口不能作为值")
         if self.op in ("this.method", "super.method"):

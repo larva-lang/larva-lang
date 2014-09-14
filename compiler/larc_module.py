@@ -100,7 +100,7 @@ class _Class:
                 if self.base_class_module not in curr_module.dep_module_set:
                     self.syntax_err("找不到模块名'%s'" % self.base_class_module)
                 module = module_map[self.base_class_module]
-                if self.base_class_name not in module.class_map:
+                if self.base_class_name not in module.export_class_set:
                     self.syntax_err(
                         "找不到基类'%s.%s'" %
                         (self.base_class_module, self.base_class_name))
