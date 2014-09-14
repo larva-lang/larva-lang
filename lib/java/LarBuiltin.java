@@ -13,15 +13,15 @@ public final class LarBuiltin
     
     public static LarObj f_sorted(LarObj obj) throws Exception
     {
-        return (new LarObjList(obj)).f_sort();
+        return (new LarObjList(obj)).meth_sort();
     }
 
     public static LarObj f_sum(LarObj obj) throws Exception
     {
         LarObj s = new LarObjInt(0);
-        for (LarObj iter = obj.f_iterator(); iter.f_has_next().op_bool();)
+        for (LarObj iter = obj.meth_iterator(); iter.meth_has_next().op_bool();)
         {
-            s = s.op_add(iter.f_next());
+            s = s.op_add(iter.meth_next());
         }
         return s;
     }
@@ -46,13 +46,13 @@ public final class LarBuiltin
 
     public static LarObj f_max(LarObj obj) throws Exception
     {
-        LarObj iter = obj.f_iterator();
-        if (iter.f_has_next().op_bool())
+        LarObj iter = obj.meth_iterator();
+        if (iter.meth_has_next().op_bool())
         {
-            LarObj result = iter.f_next();
-            while (iter.f_has_next().op_bool())
+            LarObj result = iter.meth_next();
+            while (iter.meth_has_next().op_bool())
             {
-                LarObj x = iter.f_next();
+                LarObj x = iter.meth_next();
                 if (x.op_cmp(result) > 0)
                 {
                     result = x;
@@ -65,13 +65,13 @@ public final class LarBuiltin
 
     public static LarObj f_min(LarObj obj) throws Exception
     {
-        LarObj iter = obj.f_iterator();
-        if (iter.f_has_next().op_bool())
+        LarObj iter = obj.meth_iterator();
+        if (iter.meth_has_next().op_bool())
         {
-            LarObj result = iter.f_next();
-            while (iter.f_has_next().op_bool())
+            LarObj result = iter.meth_next();
+            while (iter.meth_has_next().op_bool())
             {
-                LarObj x = iter.f_next();
+                LarObj x = iter.meth_next();
                 if (x.op_cmp(result) < 0)
                 {
                     result = x;

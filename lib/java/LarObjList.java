@@ -25,9 +25,9 @@ public final class LarObjList extends LarSeqObj
 
     private void extend(LarObj obj) throws Exception
     {
-        for (LarObj iter = obj.f_iterator(); iter.f_has_next().op_bool();)
+        for (LarObj iter = obj.meth_iterator(); iter.meth_has_next().op_bool();)
         {
-            f_add(iter.f_next());
+            meth_add(iter.meth_next());
         }
     }
 
@@ -74,7 +74,7 @@ public final class LarObjList extends LarSeqObj
         {
             while (start < end)
             {
-                list.f_add(m_list[start]);
+                list.meth_add(m_list[start]);
                 start += step;
             }
         }
@@ -82,7 +82,7 @@ public final class LarObjList extends LarSeqObj
         {
             while (start > end)
             {
-                list.f_add(m_list[start]);
+                list.meth_add(m_list[start]);
                 start += step;
             }
         }
@@ -159,7 +159,7 @@ public final class LarObjList extends LarSeqObj
         return false;
     }
 
-    public LarObj f_add(LarObj obj) throws Exception
+    public LarObj meth_add(LarObj obj) throws Exception
     {
         if (m_len == m_list.length)
         {
@@ -174,7 +174,7 @@ public final class LarObjList extends LarSeqObj
     static final int[] INC_LIST = new int[]{
         1073643521, 603906049, 268386305, 150958081, 67084289, 37730305, 16764929, 9427969, 4188161, 2354689, 1045505,
         587521, 260609, 146305, 64769, 36289, 16001, 8929, 3905, 2161, 929, 505, 209, 109, 41, 19, 5, 1};
-    public LarObj f_sort() throws Exception
+    public LarObj meth_sort() throws Exception
     {
         for (int inc_idx = 0; inc_idx < INC_LIST.length; ++ inc_idx)
         {
@@ -197,7 +197,7 @@ public final class LarObjList extends LarSeqObj
         return this;
     }
     
-    public LarObj f_pop() throws Exception
+    public LarObj meth_pop() throws Exception
     {
         if (m_len > 0)
         {

@@ -65,7 +65,7 @@ public final class LarObjSet extends LarObj
             }
         }
         
-        public LarObj f_has_next() throws Exception
+        public LarObj meth_has_next() throws Exception
         {
             if (m_version != m_set.m_version)
             {
@@ -74,7 +74,7 @@ public final class LarObjSet extends LarObj
             return m_index < m_set.m_list.length ? LarBuiltin.TRUE : LarBuiltin.FALSE;
         }
 
-        public LarObj f_next() throws Exception
+        public LarObj meth_next() throws Exception
         {
             if (m_version != m_set.m_version)
             {
@@ -247,7 +247,7 @@ public final class LarObjSet extends LarObj
         return entry != null && entry != DUMMY;
     }
 
-    public LarObj f_add(LarObj key) throws Exception
+    public LarObj meth_add(LarObj key) throws Exception
     {
         if (m_count >= m_list.length / 2)
         {
@@ -266,7 +266,7 @@ public final class LarObjSet extends LarObj
         return this;
     }
 
-    public LarObj f_iterator() throws Exception
+    public LarObj meth_iterator() throws Exception
     {
         return new LarObjSetIterator(this);
     }

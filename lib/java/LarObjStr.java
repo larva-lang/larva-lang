@@ -102,12 +102,12 @@ public final class LarObjStr extends LarSeqObj
         return obj.op_reverse_cmp(this);
     }
 
-    public LarObj f_ord_at(LarObj arg_index) throws Exception
+    public LarObj meth_ord_at(LarObj arg_index) throws Exception
     {
         return new LarObjInt((long)m_value.charAt(get_index(arg_index)));
     }
     
-    public LarObj f_split() throws Exception
+    public LarObj meth_split() throws Exception
     {
         //根据whitespace分割字符串，忽略首尾空白
         LarObjList list = new LarObjList();
@@ -120,7 +120,7 @@ public final class LarObjStr extends LarSeqObj
                 if (start != -1)
                 {
                     //一个子串结束
-                    list.f_add(new LarObjStr(m_value.substring(start, i)));
+                    list.meth_add(new LarObjStr(m_value.substring(start, i)));
                     start = -1;
                 }
             }
@@ -136,11 +136,11 @@ public final class LarObjStr extends LarSeqObj
         if (start != -1)
         {
             //无尾部空白，最后一个子串
-            list.f_add(new LarObjStr(m_value.substring(start)));
+            list.meth_add(new LarObjStr(m_value.substring(start)));
         }
         return list;
     }
-    public LarObj f_split(LarObj obj) throws Exception
+    public LarObj meth_split(LarObj obj) throws Exception
     {
         if (!(obj instanceof LarObjStr))
         {
@@ -155,10 +155,10 @@ public final class LarObjStr extends LarSeqObj
             int index = m_value.indexOf(s, start);
             if (index == -1)
             {
-                list.f_add(new LarObjStr(m_value.substring(start)));
+                list.meth_add(new LarObjStr(m_value.substring(start)));
                 return list;
             }
-            list.f_add(new LarObjStr(m_value.substring(start, index)));
+            list.meth_add(new LarObjStr(m_value.substring(start, index)));
             start = index + s.length();
         }
     }

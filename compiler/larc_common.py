@@ -41,6 +41,9 @@ class OrderedDict:
         for k in self.l:
             yield k, self.d[k]
 
+    def key_at(self, idx):
+        return self.l[idx]
+
 class OrderedSet:
     def __init__(self):
         self.d = OrderedDict()

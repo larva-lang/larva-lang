@@ -26,7 +26,7 @@ public final class LarObjFile extends LarObj
         return "<file '" + m_file_name + "'>";
     }
 
-    public LarObj f_read_lines() throws Exception
+    public LarObj meth_read_lines() throws Exception
     {
         BufferedReader reader = new BufferedReader(new FileReader(m_file));
         LarObjList list = new LarObjList();
@@ -37,7 +37,7 @@ public final class LarObjFile extends LarObj
             {
                 return list;
             }
-            list.f_add(new LarObjStr(line));
+            list.meth_add(new LarObjStr(line));
         }
     }
 }

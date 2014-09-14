@@ -12,12 +12,12 @@ public class LarSeqObj extends LarObj
             m_index = 0;
         }
         
-        public LarObj f_has_next() throws Exception
+        public LarObj meth_has_next() throws Exception
         {
             return m_index < m_obj.m_len ? LarBuiltin.TRUE : LarBuiltin.FALSE;
         }
 
-        public LarObj f_next() throws Exception
+        public LarObj meth_next() throws Exception
         {
             LarObj obj = m_obj.seq_get_item(m_index);
             ++ m_index;
@@ -223,7 +223,7 @@ public class LarSeqObj extends LarObj
         seq_set_slice(slice_info.m_start, slice_info.m_end, slice_info.m_step, obj);
     }
 
-    public LarObj f_iterator() throws Exception
+    public LarObj meth_iterator() throws Exception
     {
         return new LarObjSeqIterator(this);
     }

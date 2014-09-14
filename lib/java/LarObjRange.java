@@ -85,15 +85,15 @@ public final class LarObjRange extends LarObj
     }
 
     //迭代器标准接口，直接调用上面三个
-    public LarObj f_iterator() throws Exception
+    public LarObj meth_iterator() throws Exception
     {
         return this;
     }
-    public LarObj f_has_next() throws Exception
+    public LarObj meth_has_next() throws Exception
     {
         return has_next() ? LarBuiltin.TRUE : LarBuiltin.FALSE;
     }
-    public LarObj f_next() throws Exception
+    public LarObj meth_next() throws Exception
     {
         return new LarObjInt(next());
     }
