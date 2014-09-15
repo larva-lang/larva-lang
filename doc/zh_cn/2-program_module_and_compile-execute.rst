@@ -1,9 +1,11 @@
 模块（module）
 ================
+
 > 一个larva程序的基本组成单位是模块，一个模块在逻辑上是一个源代码文件。一个程序可由多个模块组成，其中有一个模块为主模块，即程序启动入口
 
 larva模块有两种形式
 ------------------
+
 1. .lar文件，完全由larva语法实现的源代码文件，会在编译后生成目标代码
 
 2. .lar_ext文件，表示外部扩展模块（extern module），表示用运行环境的本地语言实现的模块，在.lar_ext文件中只需写明必要的接口说明即可，供编译期参考
@@ -30,5 +32,6 @@ python larc.py test.lar
 之后，即可用jdk的javac来编译Prog_test.java文件，生成对应的class文件，在jre中即可正常执行：
 javac -encoding utf8 Prog_test.java
 java Prog_test
-注：由于生成的java文件中包含中文注释、提示等，文件编码统一为utf8，因此javac需要-encoding utf8选项
+
+> 注：由于生成的java文件中包含中文注释、提示等，文件编码统一为utf8，因此javac需要-encoding utf8选项
 目标代码结构和启动过程简述：所有模块（包括主模块）都将编译成名为Mod_XXX.java的类，其中XXX是模块名，同时有一个名为Prog_test的类，负责java程序的main函数启动，Prog_test.main做一些必要的初始化后，会直接调用test.lar文件中main函数生成的代码，程序启动
