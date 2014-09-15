@@ -170,6 +170,11 @@ public final class LarObjList extends LarSeqObj
         return this;
     }
 
+    public LarObj meth_add(long n) throws Exception
+    {
+        return this.meth_add(new LarObjInt(n));
+    }
+
     //懒得考虑qsort的太多因素，直接用shell了，序列是Sedgewick的
     static final int[] INC_LIST = new int[]{
         1073643521, 603906049, 268386305, 150958081, 67084289, 37730305, 16764929, 9427969, 4188161, 2354689, 1045505,

@@ -57,7 +57,10 @@ public class LarSeqObj extends LarObj
 
     public int get_index(LarObj arg_index) throws Exception
     {
-        long original_index = arg_index.as_int();
+        return get_index(arg_index.as_int());
+    }
+    public int get_index(long original_index) throws Exception
+    {
         long index = original_index;
         if (index < 0)
         {
@@ -74,10 +77,26 @@ public class LarSeqObj extends LarObj
     {
         return seq_get_item(get_index(arg_index));
     }
+    public LarObj op_get_item(long index) throws Exception
+    {
+        return seq_get_item(get_index(index));
+    }
 
     public void op_set_item(LarObj arg_index, LarObj obj) throws Exception
     {
         seq_set_item(get_index(arg_index), obj);
+    }
+    public void op_set_item(long index, LarObj obj) throws Exception
+    {
+        seq_set_item(get_index(index), obj);
+    }
+    public void op_set_item(LarObj arg_index, long n) throws Exception
+    {
+        seq_set_item(get_index(arg_index), new LarObjInt(n));
+    }
+    public void op_set_item(long index, long n) throws Exception
+    {
+        seq_set_item(get_index(index), new LarObjInt(n));
     }
 
     public static final class SliceInfo
