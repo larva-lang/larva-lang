@@ -85,6 +85,14 @@ public class LarBaseObj
     {
         return this.op_get_item(new LarObjInt(key));
     }
+    public long op_get_item_int(LarObj key) throws Exception
+    {
+        return this.op_get_item(key).as_int();
+    }
+    public long op_get_item_int(long key) throws Exception
+    {
+        return this.op_get_item(key).as_int();
+    }
     public void op_set_item(LarObj key, LarObj value) throws Exception
     {
         throw new Exception("未实现类型'" + get_type_name() + "'的下标赋值运算");

@@ -30,10 +30,20 @@ public class LarSeqObj extends LarObj
     {
         throw new Exception("未实现类型'" + get_type_name() + "'的下标取值运算");
     }
+    public long seq_get_item_int(int index) throws Exception
+    {
+        return seq_get_item(index).as_int();
+    }
+
     public void seq_set_item(int index, LarObj obj) throws Exception
     {
         throw new Exception("未实现类型'" + get_type_name() + "'的下标赋值运算");
     }
+    public void seq_set_item(int index, long n) throws Exception
+    {
+        seq_set_item(index, new LarObjInt(n));
+    }
+
     public LarObj seq_get_slice(int start, int end, int step) throws Exception
     {
         throw new Exception("未实现类型'" + get_type_name() + "'的分片取值运算");
@@ -81,6 +91,14 @@ public class LarSeqObj extends LarObj
     {
         return seq_get_item(get_index(index));
     }
+    public long op_get_item_int(LarObj arg_index) throws Exception
+    {
+        return seq_get_item_int(get_index(arg_index));
+    }
+    public long op_get_item_int(long index) throws Exception
+    {
+        return seq_get_item_int(get_index(index));
+    }
 
     public void op_set_item(LarObj arg_index, LarObj obj) throws Exception
     {
@@ -92,11 +110,11 @@ public class LarSeqObj extends LarObj
     }
     public void op_set_item(LarObj arg_index, long n) throws Exception
     {
-        seq_set_item(get_index(arg_index), new LarObjInt(n));
+        seq_set_item(get_index(arg_index), n);
     }
     public void op_set_item(long index, long n) throws Exception
     {
-        seq_set_item(get_index(index), new LarObjInt(n));
+        seq_set_item(get_index(index), n);
     }
 
     public static final class SliceInfo

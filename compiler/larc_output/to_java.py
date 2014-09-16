@@ -495,6 +495,18 @@ def _build_expr_code(code, expr, expect_type):
                     ",".join([_build_expr_code(code, e, None)[0]
                               for e in expr.arg]),
                     "int")
+        if expr.op == ".int":
+            expr_code, is_int = _build_expr_code(code, expr.arg, None)
+            if is_int:
+                return expr_code, "int"
+            else:
+                return expr_code + ".as_int()", "int"
+        if expr.op == "[].int":
+            ea, eb = expr.arg
+            #下标运算左运算分量需要是object
+            return ("%s.op_get_item_int(%s)" %
+                    (_build_expr_code(code, ea, "object"),
+                     _build_expr_code(code, eb, None)[0])), "int"
 
         raise Exception("unreachable expr.op[%s]" % expr.op)
 

@@ -6,24 +6,36 @@ public final class LarObjDict extends LarObj
         private LarObj m_key;
         private long m_key_int;
         private LarObj m_value;
+        private long m_value_int;
 
-        Entry()
+        Entry(long key, long value)
         {
+            set_key(key);
+            set_value(value);
+        }
+
+        Entry(long key, LarObj value)
+        {
+            set_key(key);
+            set_value(value);
+        }
+
+        Entry(LarObj key, long value)
+        {
+            set_key(key);
+            set_value(value);
         }
 
         Entry(LarObj key, LarObj value)
         {
             set_key(key);
-            m_value = value;
+            set_value(value);
         }
 
-        LarObj get_key()
+        private void set_key(long key)
         {
-            if (m_key == null)
-            {
-                return new LarObjInt(m_key_int);
-            }
-            return m_key;
+            m_key = null;
+            m_key_int = key;
         }
         private void set_key(LarObj key)
         {
@@ -37,9 +49,27 @@ public final class LarObjDict extends LarObj
                 m_key = key;
             }
         }
+
+        private void set_value(long value)
+        {
+            m_value = null;
+            m_value_int = value;
+        }
+        private void set_value(LarObj value)
+        {
+            if (value instanceof LarObjInt)
+            {
+                m_value = null;
+                m_value_int = ((LarObjInt)value).m_value;
+            }
+            else
+            {
+                m_value = value;
+            }
+        }
     }
 
-    private static final Entry DUMMY = new Entry();
+    private static final Entry DUMMY = new Entry(0, 0);
 
     private static final class LarObjDictIterator extends LarObj
     {
@@ -82,7 +112,8 @@ public final class LarObjDict extends LarObj
             {
                 throw new Exception("dict迭代器失效");
             }
-            LarObj key = m_dict.m_list[m_index].get_key();
+            Entry entry = m_dict.m_list[m_index];
+            LarObj key = entry.m_key == null ? new LarObjInt(entry.m_key_int) : entry.m_key;
             next_index();
             return key;
         }
@@ -135,7 +166,7 @@ public final class LarObjDict extends LarObj
                 }
                 continue;
             }
-            if (entry.get_key().op_eq(key))
+            if (entry.m_key == null ? key.op_eq(entry.m_key_int) : entry.m_key.op_eq(key))
             {
                 return index;
             }
@@ -181,11 +212,7 @@ public final class LarObjDict extends LarObj
             }
             else
             {
-                /*
-                表中的key非int，一般来说这个分支很少走到，new一个对象效率也能接受
-                当然后面可以给LarObj增加boolean op_eq(long)这种特化版本
-                */
-                if (entry.m_key.op_eq(new LarObjInt(key)))
+                if (entry.m_key.op_eq(key))
                 {
                     return index;
                 }
@@ -228,6 +255,21 @@ public final class LarObjDict extends LarObj
         ++ m_version;
     }
 
+    public LarObj init_item(long key, long value) throws Exception
+    {
+        op_set_item(key, value);
+        return this;
+    }
+    public LarObj init_item(long key, LarObj value) throws Exception
+    {
+        op_set_item(key, value);
+        return this;
+    }
+    public LarObj init_item(LarObj key, long value) throws Exception
+    {
+        op_set_item(key, value);
+        return this;
+    }
     public LarObj init_item(LarObj key, LarObj value) throws Exception
     {
         op_set_item(key, value);
@@ -256,8 +298,36 @@ public final class LarObjDict extends LarObj
         {
             throw new Exception("字典中找不到元素：" + key.op_str());
         }
-        return entry.m_value;
+        return entry.m_value == null ? new LarObjInt(entry.m_value_int) : entry.m_value;
     }
+    public LarObj op_get_item(long key) throws Exception
+    {
+        Entry entry = m_list[get_entry_index(m_list, key)];
+        if (entry == null || entry == DUMMY)
+        {
+            throw new Exception("字典中找不到元素：" + key);
+        }
+        return entry.m_value == null ? new LarObjInt(entry.m_value_int) : entry.m_value;
+    }
+    public long op_get_item_int(LarObj key) throws Exception
+    {
+        Entry entry = m_list[get_entry_index(m_list, key)];
+        if (entry == null || entry == DUMMY)
+        {
+            throw new Exception("字典中找不到元素：" + key.op_str());
+        }
+        return entry.m_value == null ? entry.m_value_int : entry.m_value.as_int();
+    }
+    public long op_get_item_int(long key) throws Exception
+    {
+        Entry entry = m_list[get_entry_index(m_list, key)];
+        if (entry == null || entry == DUMMY)
+        {
+            throw new Exception("字典中找不到元素：" + key);
+        }
+        return entry.m_value == null ? entry.m_value_int : entry.m_value.as_int();
+    }
+
     public void op_set_item(LarObj key, LarObj value) throws Exception
     {
         if (m_count >= m_list.length / 2)
@@ -276,7 +346,70 @@ public final class LarObjDict extends LarObj
         }
         else
         {
-            entry.m_value = value;
+            entry.set_value(value);
+        }
+    }
+    public void op_set_item(long key, LarObj value) throws Exception
+    {
+        if (m_count >= m_list.length / 2)
+        {
+            //装载率太高
+            rehash();
+        }
+        int index = get_entry_index(m_list, key);
+        Entry entry = m_list[index];
+        if (entry == null || entry == DUMMY)
+        {
+            //新元素
+            m_list[index] = new Entry(key, value);
+            ++ m_count;
+            ++ m_version;
+        }
+        else
+        {
+            entry.set_value(value);
+        }
+    }
+    public void op_set_item(LarObj key, long value) throws Exception
+    {
+        if (m_count >= m_list.length / 2)
+        {
+            //装载率太高
+            rehash();
+        }
+        int index = get_entry_index(m_list, key);
+        Entry entry = m_list[index];
+        if (entry == null || entry == DUMMY)
+        {
+            //新元素
+            m_list[index] = new Entry(key, value);
+            ++ m_count;
+            ++ m_version;
+        }
+        else
+        {
+            entry.set_value(value);
+        }
+    }
+    public void op_set_item(long key, long value) throws Exception
+    {
+        if (m_count >= m_list.length / 2)
+        {
+            //装载率太高
+            rehash();
+        }
+        int index = get_entry_index(m_list, key);
+        Entry entry = m_list[index];
+        if (entry == null || entry == DUMMY)
+        {
+            //新元素
+            m_list[index] = new Entry(key, value);
+            ++ m_count;
+            ++ m_version;
+        }
+        else
+        {
+            entry.set_value(value);
         }
     }
 
@@ -299,6 +432,6 @@ public final class LarObjDict extends LarObj
         {
             return LarBuiltin.NIL;
         }
-        return entry.m_value;
+        return entry.m_value == null ? new LarObjInt(entry.m_value_int) : entry.m_value;
     }
 }

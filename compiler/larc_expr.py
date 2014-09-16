@@ -339,6 +339,13 @@ class _Expr:
             return
         if self.op == "int":
             return
+        if self.op == ".int":
+            e = self.arg
+            e._link(curr_module, module_map, local_var_set, curr_class)
+            if e.op == "[]":
+                self.op = "[].int"
+                self.arg = e.arg
+            return
 
         #其余类型，包括单目、双目运算、下标、tuple和list构造等
         assert (self.op in _UNARY_OP_SET or self.op in _BINOCULAR_OP_SET or
@@ -425,10 +432,13 @@ class _Expr:
             return
         if self.op in ("this", "super"):
             return
+        if self.op == ".int":
+            self.arg._check()
+            return
 
         #其余类型，包括单目、双目运算、下标、tuple和list构造等
         assert (self.op in _UNARY_OP_SET or self.op in _BINOCULAR_OP_SET or
-                self.op in ("[]", "tuple", "list")), self.op
+                self.op in ("[]", "[].int", "tuple", "list")), self.op
         for e in self.arg:
             e._check()
 
@@ -725,10 +735,14 @@ def parse_expr(token_list, end_at_comma = False, end_at_in = False):
                         t.syntax_err("分片最多只能三个参数")
                     parse_stk.stk[-1] = _Expr("[:]", [parse_stk.stk[-1], el])
             elif t.is_sym("."):
-                #属性
-                token_list.peek_name()
-                parse_stk.stk[-1] = _Expr(".", [parse_stk.stk[-1],
-                                                token_list.pop()])
+                #int隐式转换或属性
+                if token_list.peek().is_int:
+                    token_list.pop()
+                    parse_stk.stk[-1] = _Expr(".int", parse_stk.stk[-1])
+                else:
+                    token_list.peek_name()
+                    parse_stk.stk[-1] = _Expr(".", [parse_stk.stk[-1],
+                                                    token_list.pop()])
             else:
                 token_list.revert()
                 break
