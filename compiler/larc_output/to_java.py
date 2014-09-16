@@ -441,9 +441,14 @@ def _build_expr_code(code, expr, expect_type):
              if_expr) = expr.arg
             iter_expr_code = _build_expr_code(code, iter_expr, "object")
             compr_arg_list = sorted(compr_local_var_set - name_set)
-            arg_code_str = (
-                ",".join(["l_" + name for name in compr_arg_list] +
-                         [iter_expr_code]))
+            compr_arg_code_list = []
+            for name in compr_arg_list:
+                if code.curr_func.local_var_type_info[name] == "object":
+                    compr_arg_code_list.append("l_" + name)
+                else:
+                    compr_arg_code_list.append("new LarObjInt(l_%s)" % name)
+            compr_arg_code_list.append(iter_expr_code)
+            arg_code_str = ",".join(compr_arg_code_list)
             compr_number = (
                 code.add_list_compr(compr_arg_list, e, lvalue, name_set,
                                     if_expr))
@@ -453,9 +458,14 @@ def _build_expr_code(code, expr, expect_type):
              if_expr) = expr.arg
             iter_expr_code = _build_expr_code(code, iter_expr, "object")
             compr_arg_list = sorted(compr_local_var_set - name_set)
-            arg_code_str = (
-                ",".join(["l_" + name for name in compr_arg_list] +
-                         [iter_expr_code]))
+            compr_arg_code_list = []
+            for name in compr_arg_list:
+                if code.curr_func.local_var_type_info[name] == "object":
+                    compr_arg_code_list.append("l_" + name)
+                else:
+                    compr_arg_code_list.append("new LarObjInt(l_%s)" % name)
+            compr_arg_code_list.append(iter_expr_code)
+            arg_code_str = ",".join(compr_arg_code_list)
             compr_number = (
                 code.add_dict_compr(compr_arg_list, ek, ev, lvalue, name_set,
                                     if_expr))
@@ -464,8 +474,13 @@ def _build_expr_code(code, expr, expect_type):
             lambda_local_var_set, arg_list, e = expr.arg
             lambda_stat_arg_list = (
                 sorted(lambda_local_var_set - set(arg_list)))
-            stat_arg_code_str = (
-                ",".join(["l_" + name for name in lambda_stat_arg_list]))
+            stat_arg_code_list = []
+            for name in lambda_stat_arg_list:
+                if code.curr_func.local_var_type_info[name] == "object":
+                    stat_arg_code_list.append("l_" + name)
+                else:
+                    stat_arg_code_list.append("new LarObjInt(l_%s)" % name)
+            stat_arg_code_str = ",".join(stat_arg_code_list)
             lambda_number = (
                 code.add_lambda(lambda_stat_arg_list, arg_list, e))
             return ("new Lambda_%d(%s)" % (lambda_number, stat_arg_code_str),
@@ -657,8 +672,11 @@ def _output_stmt_list(code, stmt_list):
             continue
         if stmt.type == "print":
             for e in stmt.expr_list:
-                code += ("System.out.print(%s.op_str());" %
-                         _build_expr_code(code, e, "object"))
+                expr_code, is_int = _build_expr_code(code, e, None)
+                if is_int:
+                    code += "System.out.print(%s);" % expr_code
+                else:
+                    code += "System.out.print(%s.op_str());" % expr_code
                 code += 'System.out.print(" ");'
             if stmt.print_new_line:
                 code += "System.out.println();"
@@ -880,6 +898,13 @@ def _output_func(code, func, export):
     code.blk_end()
     code += ""
 
+class _FakeFunc:
+    #用于compr和lambda的假函数对象
+    def __init__(self, local_var_list):
+        self.local_var_type_info = (
+            dict(map(lambda x : (x, "object"), local_var_list)))
+        self.ret_type = "object"
+
 def _output_list_compr(code, idx,
                        (compr_arg_list, e, lvalue, name_set, if_expr)):
     code.blk_start(
@@ -892,12 +917,14 @@ def _output_list_compr(code, idx,
     code.blk_start("for (LarObj iter = iterable.meth_iterator(); "
                    "iter.meth_has_next().op_bool();)")
     _output_assign(code, lvalue, "iter.meth_next()")
+    code.curr_func = _FakeFunc(compr_arg_list + list(name_set))
     if if_expr is not None:
         code.blk_start("if (%s.op_bool())" %
                        _build_expr_code(code, if_expr, "object"))
     code += "list.meth_add(%s);" % _build_expr_code(code, e, None)[0]
     if if_expr is not None:
         code.blk_end()
+    del code.curr_func
     code.blk_end()
     code += "return list;"
     code.blk_end()
@@ -916,12 +943,14 @@ def _output_list_compr_in_class(code, idx,
     code.blk_start("for (LarObj iter = iterable.meth_iterator(); "
                    "iter.meth_has_next().op_bool();)")
     _output_assign(code, lvalue, "iter.meth_next()")
+    code.curr_func = _FakeFunc(compr_arg_list + list(name_set))
     if if_expr is not None:
         code.blk_start("if (%s.op_bool())" %
                        _build_expr_code(code, if_expr, "object"))
     code += "list.meth_add(%s);" % _build_expr_code(code, e, None)[0]
     if if_expr is not None:
         code.blk_end()
+    del code.curr_func
     code.blk_end()
     code += "return list;"
     code.blk_end()
@@ -939,6 +968,7 @@ def _output_dict_compr(code, idx,
     code.blk_start("for (LarObj iter = iterable.meth_iterator(); "
                    "iter.meth_has_next().op_bool();)")
     _output_assign(code, lvalue, "iter.meth_next()")
+    code.curr_func = _FakeFunc(compr_arg_list + list(name_set))
     if if_expr is not None:
         code.blk_start("if (%s.op_bool())" %
                        _build_expr_code(code, if_expr, "object"))
@@ -947,6 +977,7 @@ def _output_dict_compr(code, idx,
               _build_expr_code(code, ev, None)[0]))
     if if_expr is not None:
         code.blk_end()
+    del code.curr_func
     code.blk_end()
     code += "return dict;"
     code.blk_end()
@@ -965,6 +996,7 @@ def _output_dict_compr_in_class(code, idx,
     code.blk_start("for (LarObj iter = iterable.meth_iterator(); "
                    "iter.meth_has_next().op_bool();)")
     _output_assign(code, lvalue, "iter.meth_next()")
+    code.curr_func = _FakeFunc(compr_arg_list + list(name_set))
     if if_expr is not None:
         code.blk_start("if (%s.op_bool())" %
                        _build_expr_code(code, if_expr, "object"))
@@ -973,6 +1005,7 @@ def _output_dict_compr_in_class(code, idx,
               _build_expr_code(code, ev, None)[0]))
     if if_expr is not None:
         code.blk_end()
+    del code.curr_func
     code.blk_end()
     code += "return dict;"
     code.blk_end()
@@ -995,7 +1028,9 @@ def _output_lambda(code, idx, (lambda_stat_arg_list, arg_list, e)):
     #调用操作
     code.blk_start("public LarObj op_call(%s) throws Exception" %
                    ",".join(["LarObj l_%s" % name for name in arg_list]))
+    code.curr_func = _FakeFunc(lambda_stat_arg_list + arg_list)
     code += "return %s;" % _build_expr_code(code, e, "object")
+    del code.curr_func
     code.blk_end()
     code += ""
     code.blk_end()
@@ -1020,7 +1055,9 @@ def _output_lambda_in_class(code, class_name, idx,
                    ",".join(["LarObj l_%s" % name for name in arg_list]))
     #用lambda_outter_class_name属性做状态标记
     code.lambda_outter_class_name = class_name
+    code.curr_func = _FakeFunc(lambda_stat_arg_list + arg_list)
     code += "return %s;" % _build_expr_code(code, e, "object")
+    del code.curr_func
     code.lambda_outter_class_name = None
     code.blk_end()
     code += ""
