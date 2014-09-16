@@ -817,7 +817,8 @@ def _output_stmt_list(code, stmt_list):
                               inplace_op_name, expr_code))
                 else:
                     assert expr_is_int
-                    code += "l_%s += %s;" % (lvalue.arg.value, expr_code)
+                    code += ("l_%s %s %s;" %
+                             (lvalue.arg.value, stmt.type, expr_code))
                 continue
             if lvalue.op == "global_name":
                 if (code.curr_module.global_var_type_info[lvalue.arg.value] ==
@@ -827,7 +828,8 @@ def _output_stmt_list(code, stmt_list):
                               inplace_op_name, expr_code))
                 else:
                     assert expr_is_int
-                    code += "g_%s += %s;" % (lvalue.arg.value, expr_code)
+                    code += ("g_%s %s %s;" %
+                             (lvalue.arg.value, stmt.type, expr_code))
                 continue
             if lvalue.op == "module.global":
                 var_name = ("Mod_%s.g_%s" %
