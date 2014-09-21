@@ -81,9 +81,33 @@ public class LarBaseObj
     {
         throw new Exception("未实现类型'" + get_type_name() + "'的下标取值运算");
     }
+    public LarObj op_get_item(long key) throws Exception
+    {
+        return this.op_get_item(new LarObjInt(key));
+    }
+    public long op_get_item_int(LarObj key) throws Exception
+    {
+        return this.op_get_item(key).as_int();
+    }
+    public long op_get_item_int(long key) throws Exception
+    {
+        return this.op_get_item(key).as_int();
+    }
     public void op_set_item(LarObj key, LarObj value) throws Exception
     {
         throw new Exception("未实现类型'" + get_type_name() + "'的下标赋值运算");
+    }
+    public void op_set_item(long key, LarObj value) throws Exception
+    {
+        this.op_set_item(new LarObjInt(key), value);
+    }
+    public void op_set_item(LarObj key, long value) throws Exception
+    {
+        this.op_set_item(key, new LarObjInt(value));
+    }
+    public void op_set_item(long key, long value) throws Exception
+    {
+        this.op_set_item(new LarObjInt(key), new LarObjInt(value));
     }
 
     //分片运算
@@ -121,61 +145,121 @@ public class LarBaseObj
     {
         return obj.op_reverse_add((LarObj)this);
     }
+    public LarObj op_add(long n) throws Exception
+    {
+        return this.op_add(new LarObjInt(n));
+    }
     public LarObj op_reverse_add(LarObj obj) throws Exception
     {
         throw new Exception("未实现类型'" + obj.get_type_name() + "'和'" + get_type_name() + "'的加法运算'+'");
     }
+    public LarObj op_reverse_add(long n) throws Exception
+    {
+        return this.op_reverse_add(new LarObjInt(n));
+    }
     public LarObj op_inplace_add(LarObj obj) throws Exception
     {
-        return op_add(obj);
+        return this.op_add(obj);
+    }
+    public LarObj op_inplace_add(long n) throws Exception
+    {
+        return this.op_inplace_add(new LarObjInt(n));
     }
     public LarObj op_sub(LarObj obj) throws Exception
     {
         return obj.op_reverse_sub((LarObj)this);
     }
+    public LarObj op_sub(long n) throws Exception
+    {
+        return this.op_sub(new LarObjInt(n));
+    }
     public LarObj op_reverse_sub(LarObj obj) throws Exception
     {
         throw new Exception("未实现类型'" + obj.get_type_name() + "'和'" + get_type_name() + "'的减法运算'-'");
     }
+    public LarObj op_reverse_sub(long n) throws Exception
+    {
+        return this.op_reverse_sub(new LarObjInt(n));
+    }
     public LarObj op_inplace_sub(LarObj obj) throws Exception
     {
-        return op_sub(obj);
+        return this.op_sub(obj);
+    }
+    public LarObj op_inplace_sub(long n) throws Exception
+    {
+        return this.op_inplace_sub(new LarObjInt(n));
     }
     public LarObj op_mul(LarObj obj) throws Exception
     {
         return obj.op_reverse_mul((LarObj)this);
     }
+    public LarObj op_mul(long n) throws Exception
+    {
+        return this.op_mul(new LarObjInt(n));
+    }
     public LarObj op_reverse_mul(LarObj obj) throws Exception
     {
         throw new Exception("未实现类型'" + obj.get_type_name() + "'和'" + get_type_name() + "'的乘法运算'*'");
     }
+    public LarObj op_reverse_mul(long n) throws Exception
+    {
+        return this.op_reverse_mul(new LarObjInt(n));
+    }
     public LarObj op_inplace_mul(LarObj obj) throws Exception
     {
-        return op_mul(obj);
+        return this.op_mul(obj);
+    }
+    public LarObj op_inplace_mul(long n) throws Exception
+    {
+        return this.op_inplace_mul(new LarObjInt(n));
     }
     public LarObj op_div(LarObj obj) throws Exception
     {
         return obj.op_reverse_div((LarObj)this);
     }
+    public LarObj op_div(long n) throws Exception
+    {
+        return this.op_div(new LarObjInt(n));
+    }
     public LarObj op_reverse_div(LarObj obj) throws Exception
     {
         throw new Exception("未实现类型'" + obj.get_type_name() + "'和'" + get_type_name() + "'的除法运算'/'");
     }
+    public LarObj op_reverse_div(long n) throws Exception
+    {
+        return this.op_reverse_div(new LarObjInt(n));
+    }
     public LarObj op_inplace_div(LarObj obj) throws Exception
     {
-        return op_div(obj);
+        return this.op_div(obj);
+    }
+    public LarObj op_inplace_div(long n) throws Exception
+    {
+        return this.op_inplace_div(new LarObjInt(n));
     }
     public LarObj op_mod(LarObj obj) throws Exception
     {
         return obj.op_reverse_mod((LarObj)this);
     }
+    public LarObj op_mod(long n) throws Exception
+    {
+        return this.op_mod(new LarObjInt(n));
+    }
     public LarObj op_reverse_mod(LarObj obj) throws Exception
     {
         throw new Exception("未实现类型'" + obj.get_type_name() + "'和'" + get_type_name() + "'的模运算'%'");
     }
+    public LarObj op_reverse_mod(long n) throws Exception
+    {
+        return this.op_reverse_mod(new LarObjInt(n));
+    }
     public LarObj op_inplace_mod(LarObj obj) throws Exception
     {
-        return op_mod(obj);
+        return this.op_mod(obj);
+    }
+    public LarObj op_inplace_mod(long n) throws Exception
+    {
+        return this.op_inplace_mod(new LarObjInt(n));
     }
 
     //位运算
@@ -183,73 +267,145 @@ public class LarBaseObj
     {
         return obj.op_reverse_and((LarObj)this);
     }
+    public LarObj op_and(long n) throws Exception
+    {
+        return this.op_and(new LarObjInt(n));
+    }
     public LarObj op_reverse_and(LarObj obj) throws Exception
     {
         throw new Exception("未实现类型'" + obj.get_type_name() + "'和'" + get_type_name() + "'的按位与运算'&'");
     }
+    public LarObj op_reverse_and(long n) throws Exception
+    {
+        return this.op_reverse_and(new LarObjInt(n));
+    }
     public LarObj op_inplace_and(LarObj obj) throws Exception
     {
-        return op_and(obj);
+        return this.op_and(obj);
+    }
+    public LarObj op_inplace_and(long n) throws Exception
+    {
+        return this.op_inplace_and(new LarObjInt(n));
     }
     public LarObj op_or(LarObj obj) throws Exception
     {
         return obj.op_reverse_or((LarObj)this);
     }
+    public LarObj op_or(long n) throws Exception
+    {
+        return this.op_or(new LarObjInt(n));
+    }
     public LarObj op_reverse_or(LarObj obj) throws Exception
     {
         throw new Exception("未实现类型'" + obj.get_type_name() + "'和'" + get_type_name() + "'的按位或运算'|'");
     }
+    public LarObj op_reverse_or(long n) throws Exception
+    {
+        return this.op_reverse_or(new LarObjInt(n));
+    }
     public LarObj op_inplace_or(LarObj obj) throws Exception
     {
-        return op_or(obj);
+        return this.op_or(obj);
+    }
+    public LarObj op_inplace_or(long n) throws Exception
+    {
+        return this.op_inplace_or(new LarObjInt(n));
     }
     public LarObj op_xor(LarObj obj) throws Exception
     {
         return obj.op_reverse_xor((LarObj)this);
     }
+    public LarObj op_xor(long n) throws Exception
+    {
+        return this.op_xor(new LarObjInt(n));
+    }
     public LarObj op_reverse_xor(LarObj obj) throws Exception
     {
         throw new Exception("未实现类型'" + obj.get_type_name() + "'和'" + get_type_name() + "'的异或运算'^'");
     }
+    public LarObj op_reverse_xor(long n) throws Exception
+    {
+        return this.op_reverse_xor(new LarObjInt(n));
+    }
     public LarObj op_inplace_xor(LarObj obj) throws Exception
     {
-        return op_xor(obj);
+        return this.op_xor(obj);
+    }
+    public LarObj op_inplace_xor(long n) throws Exception
+    {
+        return this.op_inplace_xor(new LarObjInt(n));
     }
     public LarObj op_shl(LarObj obj) throws Exception
     {
         return obj.op_reverse_shl((LarObj)this);
     }
+    public LarObj op_shl(long n) throws Exception
+    {
+        return this.op_shl(new LarObjInt(n));
+    }
     public LarObj op_reverse_shl(LarObj obj) throws Exception
     {
         throw new Exception("未实现类型'" + obj.get_type_name() + "'和'" + get_type_name() + "'的左移运算'<<'");
     }
+    public LarObj op_reverse_shl(long n) throws Exception
+    {
+        return this.op_reverse_shl(new LarObjInt(n));
+    }
     public LarObj op_inplace_shl(LarObj obj) throws Exception
     {
-        return op_shl(obj);
+        return this.op_shl(obj);
+    }
+    public LarObj op_inplace_shl(long n) throws Exception
+    {
+        return this.op_inplace_shl(new LarObjInt(n));
     }
     public LarObj op_shr(LarObj obj) throws Exception
     {
         return obj.op_reverse_shr((LarObj)this);
     }
+    public LarObj op_shr(long n) throws Exception
+    {
+        return this.op_shr(new LarObjInt(n));
+    }
     public LarObj op_reverse_shr(LarObj obj) throws Exception
     {
         throw new Exception("未实现类型'" + obj.get_type_name() + "'和'" + get_type_name() + "'的右移运算'>>'");
     }
+    public LarObj op_reverse_shr(long n) throws Exception
+    {
+        return this.op_reverse_shr(new LarObjInt(n));
+    }
     public LarObj op_inplace_shr(LarObj obj) throws Exception
     {
-        return op_shr(obj);
+        return this.op_shr(obj);
+    }
+    public LarObj op_inplace_shr(long n) throws Exception
+    {
+        return this.op_inplace_shr(new LarObjInt(n));
     }
     public LarObj op_ushr(LarObj obj) throws Exception
     {
         return obj.op_reverse_ushr((LarObj)this);
     }
+    public LarObj op_ushr(long n) throws Exception
+    {
+        return this.op_ushr(new LarObjInt(n));
+    }
     public LarObj op_reverse_ushr(LarObj obj) throws Exception
     {
         throw new Exception("未实现类型'" + obj.get_type_name() + "'和'" + get_type_name() + "'的无符号右移运算'>>>'");
     }
+    public LarObj op_reverse_ushr(long n) throws Exception
+    {
+        return this.op_reverse_ushr(new LarObjInt(n));
+    }
     public LarObj op_inplace_ushr(LarObj obj) throws Exception
     {
-        return op_ushr(obj);
+        return this.op_ushr(obj);
+    }
+    public LarObj op_inplace_ushr(long n) throws Exception
+    {
+        return this.op_inplace_ushr(new LarObjInt(n));
     }
 
     /*
@@ -265,21 +421,41 @@ public class LarBaseObj
     {
         throw new Exception("未实现类型'" + obj.get_type_name() + "'和'" + get_type_name() + "'的'in'运算");
     }
+    public boolean op_contain(long n) throws Exception
+    {
+        return this.op_contain(new LarObjInt(n));
+    }
     public boolean op_eq(LarObj obj) throws Exception
     {
         return obj.op_reverse_eq((LarObj)this);
+    }
+    public boolean op_eq(long n) throws Exception
+    {
+        return this.op_eq(new LarObjInt(n));
     }
     public boolean op_reverse_eq(LarObj obj) throws Exception
     {
         throw new Exception("未实现类型'" + obj.get_type_name() + "'和'" + get_type_name() + "'的等价判断'=='");
     }
+    public boolean op_reverse_eq(long n) throws Exception
+    {
+        return this.op_reverse_eq(new LarObjInt(n));
+    }
     public int op_cmp(LarObj obj) throws Exception
     {
         return obj.op_reverse_cmp((LarObj)this);
     }
+    public int op_cmp(long n) throws Exception
+    {
+        return this.op_cmp(new LarObjInt(n));
+    }
     public int op_reverse_cmp(LarObj obj) throws Exception
     {
         throw new Exception("未实现类型'" + obj.get_type_name() + "'和'" + get_type_name() + "'的比较运算");
+    }
+    public int op_reverse_cmp(long n) throws Exception
+    {
+        return this.op_reverse_cmp(new LarObjInt(n));
     }
 
     /*

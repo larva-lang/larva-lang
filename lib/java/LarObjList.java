@@ -1,13 +1,17 @@
+import java.util.Arrays;
+
 //列表类型
 public final class LarObjList extends LarSeqObj
 {
     private static final int MAX_SIZE = Integer.MIN_VALUE >>> 1; //最大元素个数
 
-    public LarObj[] m_list;
+    private LarObj[] m_list;
+    private long[] m_list_int;
 
     LarObjList()
     {
-        m_list = new LarObj[8];
+        m_list = null;
+        m_list_int = new long[8];
         m_len = 0; //用m_len来记录实际长度
     }
 
@@ -37,7 +41,7 @@ public final class LarObjList extends LarSeqObj
         {
             throw new Exception("list大小超限");
         }
-        int size = m_list.length;
+        int size = m_list == null ? m_list_int.length : m_list.length;
         if (size >= hint_size)
         {
             return;
@@ -46,12 +50,34 @@ public final class LarObjList extends LarSeqObj
         {
             size <<= 1;
         }
-        LarObj[] new_list = new LarObj[size];
+        if (m_list == null)
+        {
+            long[] new_list_int = new long[size];
+            for (int i = 0; i < m_len; ++ i)
+            {
+                new_list_int[i] = m_list_int[i];
+            }
+            m_list_int = new_list_int;
+        }
+        else
+        {
+            LarObj[] new_list = new LarObj[size];
+            for (int i = 0; i < m_len; ++ i)
+            {
+                new_list[i] = m_list[i];
+            }
+            m_list = new_list;
+        }
+    }
+    
+    private void list_int_2_list()
+    {
+        m_list = new LarObj[m_list_int.length];
         for (int i = 0; i < m_len; ++ i)
         {
-            new_list[i] = m_list[i];
+            m_list[i] = new LarObjInt(m_list_int[i]);
         }
-        m_list = new_list;
+        m_list_int = null;
     }
     
     public String get_type_name()
@@ -61,29 +87,77 @@ public final class LarObjList extends LarSeqObj
 
     public LarObj seq_get_item(int index) throws Exception
     {
-        return m_list[index];
+        return m_list == null ? new LarObjInt(m_list_int[index]) : m_list[index];
     }
+    public long seq_get_item_int(int index) throws Exception
+    {
+        return m_list == null ? m_list_int[index] : m_list[index].as_int();
+    }
+
     public void seq_set_item(int index, LarObj obj) throws Exception
     {
+        if (m_list == null)
+        {
+            if (obj instanceof LarObjInt)
+            {
+                m_list_int[index] = ((LarObjInt)obj).m_value;
+                return;
+            }
+            list_int_2_list();
+        }
         m_list[index] = obj;
     }
+    public void seq_set_item(int index, long n) throws Exception
+    {
+        if (m_list == null)
+        {
+            m_list_int[index] = n;
+        }
+        else
+        {
+            m_list[index] = new LarObjInt(n);
+        }
+    }
+
     public LarObj seq_get_slice(int start, int end, int step) throws Exception
     {
         LarObjList list = new LarObjList();
-        if (step > 0)
+        if (m_list == null)
         {
-            while (start < end)
+            if (step > 0)
             {
-                list.meth_add(m_list[start]);
-                start += step;
+                while (start < end)
+                {
+                    list.meth_add(m_list_int[start]);
+                    start += step;
+                }
+            }
+            else
+            {
+                while (start > end)
+                {
+                    list.meth_add(m_list_int[start]);
+                    start += step;
+                }
             }
         }
         else
         {
-            while (start > end)
+            if (step > 0)
             {
-                list.meth_add(m_list[start]);
-                start += step;
+                while (start < end)
+                {
+                    list.meth_add(m_list[start]);
+                    start += step;
+                }
+            }
+            else
+            {
+                while (start > end)
+                {
+                    list.meth_add(m_list[start]);
+                    start += step;
+                }
             }
         }
         return list;
@@ -98,13 +172,25 @@ public final class LarObjList extends LarSeqObj
             LarObjList new_list = new LarObjList(m_len + list.m_len);
             for (int i = 0; i < m_len; ++ i)
             {
-                new_list.m_list[new_list.m_len] = m_list[i];
-                ++ new_list.m_len;
+                if (m_list == null)
+                {
+                    new_list.meth_add(m_list_int[i]);
+                }
+                else
+                {
+                    new_list.meth_add(m_list[i]);
+                }
             }
             for (int i = 0; i < list.m_len; ++ i)
             {
-                new_list.m_list[new_list.m_len] = list.m_list[i];
-                ++ new_list.m_len;
+                if (list.m_list == null)
+                {
+                    new_list.meth_add(list.m_list_int[i]);
+                }
+                else
+                {
+                    new_list.meth_add(list.m_list[i]);
+                }
             }
             return new_list;
         }
@@ -136,8 +222,14 @@ public final class LarObjList extends LarSeqObj
         {
             for (int i = 0; i < m_len; ++ i)
             {
-                new_list.m_list[new_list.m_len] = m_list[i];
-                ++ new_list.m_len;
+                if (m_list == null)
+                {
+                    new_list.meth_add(m_list_int[i]);
+                }
+                else
+                {
+                    new_list.meth_add(m_list[i]);
+                }
             }
         }
         return new_list;
@@ -149,11 +241,48 @@ public final class LarObjList extends LarSeqObj
 
     public boolean op_contain(LarObj obj) throws Exception
     {
-        for (int i = 0; i < m_len; ++ i)
+        if (m_list == null)
         {
-            if (m_list[i].op_eq(obj))
+            for (int i = 0; i < m_len; ++ i)
             {
-                return true;
+                if (obj.op_eq(m_list_int[i]))
+                {
+                    return true;
+                }
+            }
+        }
+        else
+        {
+            for (int i = 0; i < m_len; ++ i)
+            {
+                if (m_list[i].op_eq(obj))
+                {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+    public boolean op_contain(long n) throws Exception
+    {
+        if (m_list == null)
+        {
+            for (int i = 0; i < m_len; ++ i)
+            {
+                if (m_list_int[i] == n)
+                {
+                    return true;
+                }
+            }
+        }
+        else
+        {
+            for (int i = 0; i < m_len; ++ i)
+            {
+                if (m_list[i].op_eq(n))
+                {
+                    return true;
+                }
             }
         }
         return false;
@@ -161,11 +290,42 @@ public final class LarObjList extends LarSeqObj
 
     public LarObj meth_add(LarObj obj) throws Exception
     {
+        if (m_len == (m_list == null ? m_list_int.length : m_list.length))
+        {
+            adjust_size(m_len + 1);
+        }
+        if (m_list == null)
+        {
+            if (obj instanceof LarObjInt)
+            {
+                m_list_int[m_len] = ((LarObjInt)obj).m_value;
+                ++ m_len;
+                return this;
+            }
+            list_int_2_list();
+        }
+        m_list[m_len] = obj;
+        ++ m_len;
+        return this;
+    }
+
+    public LarObj meth_add(long n) throws Exception
+    {
+        if (m_list == null)
+        {
+            if (m_len == m_list_int.length)
+            {
+                adjust_size(m_len + 1);
+            }
+            m_list_int[m_len] = n;
+            ++ m_len;
+            return this;
+        }
         if (m_len == m_list.length)
         {
             adjust_size(m_len + 1);
         }
-        m_list[m_len] = obj;
+        m_list[m_len] = new LarObjInt(n);
         ++ m_len;
         return this;
     }
@@ -176,6 +336,11 @@ public final class LarObjList extends LarSeqObj
         587521, 260609, 146305, 64769, 36289, 16001, 8929, 3905, 2161, 929, 505, 209, 109, 41, 19, 5, 1};
     public LarObj meth_sort() throws Exception
     {
+        if (m_list == null)
+        {
+            Arrays.sort(m_list_int, 0, m_len);
+            return this;
+        }
         for (int inc_idx = 0; inc_idx < INC_LIST.length; ++ inc_idx)
         {
             int inc = INC_LIST[inc_idx];
@@ -202,6 +367,10 @@ public final class LarObjList extends LarSeqObj
         if (m_len > 0)
         {
             -- m_len;
+            if (m_list == null)
+            {
+                return new LarObjInt(m_list_int[m_len]);
+            }
             LarObj obj = m_list[m_len];
             m_list[m_len] = null;
             return obj;

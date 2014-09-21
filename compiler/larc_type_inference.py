@@ -36,6 +36,7 @@ class Device:
         #标记所有object变量
         self.mark_object_finished = False
         while not self.mark_object_finished:
+            self.mark_object_finished = True
             self._mark_object_type()
 
         #剩余变量标记为int
@@ -61,8 +62,6 @@ class Device:
                         method.local_var_type_info[var_name] = "int"
 
     def _mark_object_type(self):
-        self.mark_object_finished = True
-
         #全局变量
         for var_name, expr in self.module.global_var_map.iteritems():
             if self.module.global_var_type_info[var_name] is None:
@@ -246,10 +245,13 @@ class Device:
             return
         if expr.op in ("this", "super"):
             return
+        if expr.op == ".int":
+            self._mark_object_type_for_func_arg(expr.arg, local_var_type_info)
+            return
 
         #其余类型，包括单目、双目运算、下标、tuple和list构造等
         assert (expr.op in _UNARY_OP_SET or expr.op in _BINOCULAR_OP_SET or
-                expr.op in ("[]", "tuple", "list")), expr.op
+                expr.op in ("[]", "[].int", "tuple", "list")), expr.op
         for e in expr.arg:
             self._mark_object_type_for_func_arg(e, local_var_type_info)
 
@@ -273,7 +275,7 @@ class Device:
             return local_var_type_info[expr.arg.value] == "object"
         if expr.op == "global_name":
             return self.module.global_var_type_info[expr.arg.value] == "object"
-        if expr.op == "int()":
+        if expr.op in ("int()", ".int", "[].int"):
             return False
         if expr.op == "call_func":
             func_name = expr.arg[0].value

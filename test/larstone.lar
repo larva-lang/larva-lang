@@ -48,16 +48,16 @@ func Func2(StrParI1, StrParI2):
     IntLoc = 1
     CharLoc = 0
     while IntLoc <= 1:
-        if Func1(StrParI1.ord_at(IntLoc), StrParI2.ord_at(IntLoc + 1)) == Ident1:
+        if Func1(StrParI1.ord_at(IntLoc).int, StrParI2.ord_at(IntLoc + 1).int) == Ident1:
             CharLoc = 65
-            IntLoc = IntLoc + 1
+            IntLoc += 1
     if CharLoc >= 87 and CharLoc <= 90:
         IntLoc = 7
     if CharLoc == 88:
         return true
     else:
         if StrParI1 > StrParI2:
-            IntLoc = IntLoc + 7
+            IntLoc += 7
             return true
         else:
             return false
@@ -74,14 +74,14 @@ func Proc8(Array1Par, Array2Par, IntParI1, IntParI2):
     global IntGlob
     IntLoc = IntParI1 + 5
     Array1Par[IntLoc] = IntParI2
-    Array1Par[IntLoc + 1] = Array1Par[IntLoc]
+    Array1Par[IntLoc + 1] = Array1Par[IntLoc].int
     Array1Par[IntLoc + 30] = IntLoc
     IntIndex = IntLoc
     while IntIndex <= IntLoc + 1:
         Array2Par[IntLoc][IntIndex] = IntLoc
-        IntIndex = IntIndex + 1
-    Array2Par[IntLoc][IntLoc - 1] = Array2Par[IntLoc][IntLoc - 1] + 1
-    Array2Par[IntLoc + 20][IntLoc] = Array1Par[IntLoc]
+        IntIndex += 1
+    Array2Par[IntLoc][IntLoc - 1] = Array2Par[IntLoc][IntLoc - 1].int + 1
+    Array2Par[IntLoc + 20][IntLoc] = Array1Par[IntLoc].int
     IntGlob = 5
 
 func Proc7(IntParI1, IntParI2):
@@ -133,7 +133,7 @@ func Proc2(IntParIO):
     EnumLoc = 0
     while true:
         if Char1Glob == 65:
-            IntLoc = IntLoc - 1
+            IntLoc -= 1
             IntParIO = IntLoc - IntGlob
             EnumLoc = Ident1
         if EnumLoc == Ident1:
@@ -147,11 +147,11 @@ func Proc1(PtrParIn):
     NextRecord.IntComp = PtrParIn.IntComp
     NextRecord.PtrComp = PtrParIn.PtrComp
     NextRecord.PtrComp = Proc3(NextRecord.PtrComp)
-    if NextRecord.Discr == Ident1:
+    if NextRecord.Discr.int == Ident1:
         NextRecord.IntComp = 6
-        NextRecord.EnumComp = Proc6(PtrParIn.EnumComp)
+        NextRecord.EnumComp = Proc6(PtrParIn.EnumComp.int)
         NextRecord.PtrComp = PtrGlb.PtrComp
-        NextRecord.IntComp = Proc7(NextRecord.IntComp, 10)
+        NextRecord.IntComp = Proc7(NextRecord.IntComp.int, 10)
     else:
         PtrParIn.assign(NextRecord)
     return PtrParIn
@@ -180,14 +180,14 @@ func Proc0():
         while IntLoc1 < IntLoc2:
             IntLoc3 = 5 * IntLoc1 - IntLoc2
             IntLoc3 = Proc7(IntLoc1, IntLoc2)
-            IntLoc1 = IntLoc1 + 1
+            IntLoc1 += 1
         Proc8(Array1Glob, Array2Glob, IntLoc1, IntLoc3)
         PtrGlb = Proc1(PtrGlb)
         CharIndex = 65
         while CharIndex <= Char2Glob:
             if EnumLoc == Func1(CharIndex, 67):
                 EnumLoc = Proc6(Ident1)
-            CharIndex = CharIndex + 1
+            CharIndex += 1
         IntLoc3 = IntLoc2 * IntLoc1
         IntLoc2 = IntLoc3 / IntLoc1
         IntLoc2 = 7 * (IntLoc3 - IntLoc2) - IntLoc1
