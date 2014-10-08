@@ -10,7 +10,12 @@ public final class LarObjStr extends LarSeqObj
         m_value = value;
         m_hash = -1; //缓存hash值，-1表示还未计算
     }
-    
+
+    LarObjStr(long n)
+    {
+        this("" + n);
+    }
+
     LarObjStr(LarObj obj)
     {
         this(obj.op_str());
