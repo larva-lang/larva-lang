@@ -55,6 +55,11 @@ public final class LarObjStr extends LarSeqObj
         return new LarObjStr(new String(new_s, 0, new_len));
     }
 
+    public String as_str() throws Exception
+    {
+        return m_value;
+    }
+
     public String op_str()
     {
         return m_value;
