@@ -141,4 +141,45 @@ public final class LarUtil
     {
         return convert_to_int(arg_str, arg_radix.as_int());
     }
+
+    public static long int_div(long a, long b) throws Exception
+    {
+        if (b == 0)
+        {
+            throw new Exception("被零除");
+        }
+        return a / b;
+    }
+    public static long int_mod(long a, long b) throws Exception
+    {
+        if (b == 0)
+        {
+            throw new Exception("被零除");
+        }
+        return a % b;
+    }
+    public static long int_shl(long a, long b) throws Exception
+    {
+        if (b < 0 || b >= 64)
+        {
+            throw new Exception("无效的int移位位数：" + b);
+        }
+        return a << b;
+    }
+    public static long int_shr(long a, long b) throws Exception
+    {
+        if (b < 0 || b >= 64)
+        {
+            throw new Exception("无效的int移位位数：" + b);
+        }
+        return a >> b;
+    }
+    public static long int_ushr(long a, long b) throws Exception
+    {
+        if (b < 0 || b >= 64)
+        {
+            throw new Exception("无效的int移位位数：" + b);
+        }
+        return a >>> b;
+    }
 }

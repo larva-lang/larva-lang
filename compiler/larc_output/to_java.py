@@ -379,6 +379,11 @@ def _build_expr_code(code, expr, expect_type):
             eb_code, eb_is_int = _build_expr_code(code, eb, None)
             if ea_is_int:
                 if eb_is_int:
+                    #几种需要异常处理的运算用函数进行
+                    if expr.op in ("/", "%", "<<", ">>", ">>>"):
+                        return ("LarUtil.int_%s(%s, %s)" %
+                                (_BINOCULAR_OP_NAME_MAP[expr.op], ea_code,
+                                 eb_code)), "int"
                     return ea_code + expr.op + eb_code, "int"
                 else:
                     return ("%s.op_reverse_%s(%s)" %
@@ -817,8 +822,14 @@ def _output_stmt_list(code, stmt_list):
                               inplace_op_name, expr_code))
                 else:
                     assert expr_is_int
-                    code += ("l_%s %s %s;" %
-                             (lvalue.arg.value, stmt.type, expr_code))
+                    if stmt.type[: -1] in ("/", "%", "<<", ">>", ">>>"):
+                        code += ("l_%s = LarUtil.int_%s(l_%s, %s);" %
+                                 (lvalue.arg.value,
+                                  _BINOCULAR_OP_NAME_MAP[stmt.type[: -1]],
+                                  lvalue.arg.value, expr_code))
+                    else:
+                        code += ("l_%s %s %s;" %
+                                 (lvalue.arg.value, stmt.type, expr_code))
                 continue
             if lvalue.op == "global_name":
                 if (code.curr_module.global_var_type_info[lvalue.arg.value] ==
@@ -828,8 +839,14 @@ def _output_stmt_list(code, stmt_list):
                               inplace_op_name, expr_code))
                 else:
                     assert expr_is_int
-                    code += ("g_%s %s %s;" %
-                             (lvalue.arg.value, stmt.type, expr_code))
+                    if stmt.type[: -1] in ("/", "%", "<<", ">>", ">>>"):
+                        code += ("g_%s = LarUtil.int_%s(g_%s, %s);" %
+                                 (lvalue.arg.value,
+                                  _BINOCULAR_OP_NAME_MAP[stmt.type[: -1]],
+                                  lvalue.arg.value, expr_code))
+                    else:
+                        code += ("g_%s %s %s;" %
+                                 (lvalue.arg.value, stmt.type, expr_code))
                 continue
             if lvalue.op == "module.global":
                 var_name = ("Mod_%s.g_%s" %
