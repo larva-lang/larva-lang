@@ -121,8 +121,10 @@ class _Code:
                            (method_name,
                             ",".join(["LarObj arg_%d" % (i + 1)
                                       for i in xrange(arg_count)])))
-            self += ("""throw new Exception("找不到类型'" + get_type_name() """
-                     """+ "'的方法：%s，%d个参数");""" % (method_name, arg_count))
+            #找不到方法的时候转为查找属性并对对象进行call操作
+            self += ("return this.op_get_attr_%s().op_call(%s);" %
+                     (method_name, ",".join(["arg_%d" % (i + 1)
+                                             for i in xrange(arg_count)])))
             self.blk_end()
 
         self.blk_end()
@@ -306,6 +308,9 @@ def _build_expr_code(code, expr, expect_type):
         if expr.op == "call_method":
             eo, t, el = expr.arg
             code.add_lar_obj_method(t.value, len(el))
+            #方法调用失败会转为查找属性并对属性对象做call操作，这俩也加上
+            code.add_lar_obj_op_attr(t.value)
+            code.add_lar_obj_op_call(len(el))
             return (_build_expr_code(code, eo, "object") + ".%s(%s)" %
                     (_get_method_name(t.value),
                      ",".join([_build_expr_code(code, e, "object")
@@ -1044,6 +1049,11 @@ def _output_lambda(code, idx, (lambda_stat_arg_list, arg_list, e)):
         code += "l_%s = %s;" % (name, name)
     code.blk_end()
     code += ""
+    #get_type_name
+    code.blk_start("public String get_type_name()")
+    code += 'return "lambda";'
+    code.blk_end()
+    code += ""
     #调用操作
     code.blk_start("public LarObj op_call(%s) throws Exception" %
                    ",".join(["LarObj l_%s" % name for name in arg_list]))
@@ -1067,6 +1077,11 @@ def _output_lambda_in_class(code, class_name, idx,
                                    for name in lambda_stat_arg_list])))
     for name in lambda_stat_arg_list:
         code += "l_%s = %s;" % (name, name)
+    code.blk_end()
+    code += ""
+    #get_type_name
+    code.blk_start("public String get_type_name()")
+    code += 'return "lambda";'
     code.blk_end()
     code += ""
     #调用操作
