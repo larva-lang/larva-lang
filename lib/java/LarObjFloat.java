@@ -41,10 +41,9 @@ public final class LarObjFloat extends LarObj
         return "" + m_value;
     }
 
-    public int op_hash() throws Exception
+    public long op_hash() throws Exception
     {
-        long bits = Double.doubleToLongBits(m_value);
-        return (int)(bits ^ (bits >>> 32));
+        return Double.doubleToLongBits(m_value);
     }
 
     public LarObj op_pos() throws Exception
@@ -275,7 +274,7 @@ public final class LarObjFloat extends LarObj
         }
         throw new Exception("未实现类型'" + obj.get_type_name() + "'和'" + get_type_name() + "'的等价判断'=='");
     }
-    public int op_cmp(LarObj obj) throws Exception
+    public long op_cmp(LarObj obj) throws Exception
     {
         if (obj instanceof LarObjFloat)
         {
@@ -318,7 +317,7 @@ public final class LarObjFloat extends LarObj
         }
         return obj.op_reverse_cmp(this);
     }
-    public int op_reverse_cmp(LarObj obj) throws Exception
+    public long op_reverse_cmp(LarObj obj) throws Exception
     {
         if (obj instanceof LarObjInt)
         {

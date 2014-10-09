@@ -112,7 +112,8 @@ public final class LarObjSet extends LarObj
         最小的k为n/gcd(n,i)，则若要令k=n，i必须和n互质，由于n是2的幂，因此i选奇数即可
         */
         int mask = list.length - 1;
-        int h = key.op_hash();
+        long hash = key.op_hash();
+        int h = (int)(hash + (hash >>> 32));
         int start = (h + (h >> 4)) & mask;
         int step = h | 1;
         int first_dummy_index = -1;
@@ -236,7 +237,7 @@ public final class LarObjSet extends LarObj
         return m_count != 0;
     }
 
-    public int op_len() throws Exception
+    public long op_len() throws Exception
     {
         return m_count;
     }

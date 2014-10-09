@@ -28,6 +28,10 @@ public class LarBaseObj
     {
         throw new Exception("类型'" + get_type_name() + "'非浮点数");
     }
+    public String as_str() throws Exception
+    {
+        throw new Exception("类型'" + get_type_name() + "'非字符串");
+    }
 
     public long to_int() throws Exception
     {
@@ -47,17 +51,17 @@ public class LarBaseObj
     {
         throw new Exception("未实现类型'" + get_type_name() + "'的bool转换");
     }
-    public String op_str()
+    public String op_str() throws Exception
     {
         return "<" + get_type_name() + "的实例>";
     }
 
     //其它内部运算
-    public int op_len() throws Exception
+    public long op_len() throws Exception
     {
         throw new Exception("类型'" + get_type_name() + "'无长度");
     }
-    public int op_hash() throws Exception
+    public long op_hash() throws Exception
     {
         throw new Exception("类型'" + get_type_name() + "'不可hash");
     }
@@ -441,19 +445,19 @@ public class LarBaseObj
     {
         return this.op_reverse_eq(new LarObjInt(n));
     }
-    public int op_cmp(LarObj obj) throws Exception
+    public long op_cmp(LarObj obj) throws Exception
     {
         return obj.op_reverse_cmp((LarObj)this);
     }
-    public int op_cmp(long n) throws Exception
+    public long op_cmp(long n) throws Exception
     {
         return this.op_cmp(new LarObjInt(n));
     }
-    public int op_reverse_cmp(LarObj obj) throws Exception
+    public long op_reverse_cmp(LarObj obj) throws Exception
     {
         throw new Exception("未实现类型'" + obj.get_type_name() + "'和'" + get_type_name() + "'的比较运算");
     }
-    public int op_reverse_cmp(long n) throws Exception
+    public long op_reverse_cmp(long n) throws Exception
     {
         return this.op_reverse_cmp(new LarObjInt(n));
     }

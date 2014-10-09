@@ -2,7 +2,7 @@
 public final class LarObjTuple extends LarSeqObj
 {
     private final LarObj[] m_list;
-    private int m_hash;
+    private long m_hash;
 
     public static LarObjTuple from_var_arg(LarObj ...list)
     {
@@ -40,7 +40,7 @@ public final class LarObjTuple extends LarSeqObj
         return "tuple";
     }
 
-    public int op_hash() throws Exception
+    public long op_hash() throws Exception
     {
         if (m_hash == -1)
         {
@@ -176,14 +176,14 @@ public final class LarObjTuple extends LarSeqObj
         }
         return obj.op_reverse_eq(this);
     }
-    public int op_cmp(LarObj obj) throws Exception
+    public long op_cmp(LarObj obj) throws Exception
     {
         if (obj instanceof LarObjTuple)
         {
             LarObj[] list = ((LarObjTuple)obj).m_list;
             for (int i = 0; i < m_len && i < list.length; ++ i)
             {
-                int r = m_list[i].op_cmp(list[i]);
+                long r = m_list[i].op_cmp(list[i]);
                 if (r != 0)
                 {
                     return r;

@@ -22,7 +22,7 @@ public final class LarObjBool extends LarObj
         return m_value ? "true" : "false";
     }
 
-    public int op_hash() throws Exception
+    public long op_hash() throws Exception
     {
         return m_value ? 1 : 0;
     }

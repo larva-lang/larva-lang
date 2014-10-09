@@ -60,7 +60,7 @@ public class LarSeqObj extends LarObj
         return m_len != 0;
     }
 
-    public int op_len() throws Exception
+    public long op_len() throws Exception
     {
         return m_len;
     }

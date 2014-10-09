@@ -2,7 +2,7 @@
 public final class LarObjStr extends LarSeqObj
 {
     public final String m_value;
-    private int m_hash;
+    private long m_hash;
 
     LarObjStr(String value)
     {
@@ -16,7 +16,7 @@ public final class LarObjStr extends LarSeqObj
         this("" + n);
     }
 
-    LarObjStr(LarObj obj)
+    LarObjStr(LarObj obj) throws Exception
     {
         this(obj.op_str());
     }
@@ -60,7 +60,7 @@ public final class LarObjStr extends LarSeqObj
         return m_value;
     }
 
-    public int op_hash() throws Exception
+    public long op_hash() throws Exception
     {
         if (m_hash == -1)
         {
@@ -98,7 +98,7 @@ public final class LarObjStr extends LarSeqObj
         }
         return obj.op_reverse_eq(this);
     }
-    public int op_cmp(LarObj obj) throws Exception
+    public long op_cmp(LarObj obj) throws Exception
     {
         if (obj instanceof LarObjStr)
         {

@@ -14,7 +14,7 @@ public final class LarObjNil extends LarObj
         return "nil";
     }
 
-    public int op_hash() throws Exception
+    public long op_hash() throws Exception
     {
         return 0;
     }

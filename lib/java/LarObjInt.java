@@ -36,13 +36,9 @@ public final class LarObjInt extends LarObj
         return "" + m_value;
     }
 
-    public static int hash(long value)
+    public long op_hash() throws Exception
     {
-        return (int)(value + (value >>> 32));
-    }
-    public int op_hash() throws Exception
-    {
-        return hash(m_value);
+        return m_value;
     }
 
     public LarObj op_invert() throws Exception
@@ -361,7 +357,7 @@ public final class LarObjInt extends LarObj
     {
         return n == m_value;
     }
-    public int op_cmp(LarObj obj) throws Exception
+    public long op_cmp(LarObj obj) throws Exception
     {
         if (obj instanceof LarObjInt)
         {
@@ -378,7 +374,7 @@ public final class LarObjInt extends LarObj
         }
         return obj.op_reverse_cmp(this);
     }
-    public int op_cmp(long n) throws Exception
+    public long op_cmp(long n) throws Exception
     {
         if (m_value < n)
         {
@@ -390,7 +386,7 @@ public final class LarObjInt extends LarObj
         }
         return 0;
     }
-    public int op_reverse_cmp(long n) throws Exception
+    public long op_reverse_cmp(long n) throws Exception
     {
         return -this.op_cmp(n);
     }

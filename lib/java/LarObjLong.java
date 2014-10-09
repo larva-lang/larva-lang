@@ -192,10 +192,10 @@ public final class LarObjLong extends LarObj
         return m_value.toString();
     }
 
-    public int op_hash() throws Exception
+    public long op_hash() throws Exception
     {
         //确保在int范围内hash一致
-        return LarObjInt.hash(m_value.longValue());
+        return m_value.longValue();
     }
 
     public LarObj op_invert() throws Exception
@@ -447,7 +447,7 @@ public final class LarObjLong extends LarObj
         }
         throw new Exception("未实现类型'" + obj.get_type_name() + "'和'" + get_type_name() + "'的等价判断'=='");
     }
-    public int op_cmp(LarObj obj) throws Exception
+    public long op_cmp(LarObj obj) throws Exception
     {
         if (obj instanceof LarObjLong)
         {
@@ -459,7 +459,7 @@ public final class LarObjLong extends LarObj
         }
         return obj.op_reverse_cmp(this);
     }
-    public int op_reverse_cmp(LarObj obj) throws Exception
+    public long op_reverse_cmp(LarObj obj) throws Exception
     {
         if (obj instanceof LarObjInt)
         {
