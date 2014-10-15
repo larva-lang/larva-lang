@@ -214,22 +214,22 @@ public final class LarObjDict extends LarObj
         ++ m_version;
     }
 
-    public LarObj init_item(long key, long value) throws Exception
+    public LarObjDict init_item(long key, long value) throws Exception
     {
         op_set_item(key, value);
         return this;
     }
-    public LarObj init_item(long key, LarObj value) throws Exception
+    public LarObjDict init_item(long key, LarObj value) throws Exception
     {
         op_set_item(key, value);
         return this;
     }
-    public LarObj init_item(LarObj key, long value) throws Exception
+    public LarObjDict init_item(LarObj key, long value) throws Exception
     {
         op_set_item(key, value);
         return this;
     }
-    public LarObj init_item(LarObj key, LarObj value) throws Exception
+    public LarObjDict init_item(LarObj key, LarObj value) throws Exception
     {
         op_set_item(key, value);
         return this;

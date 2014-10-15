@@ -79,7 +79,18 @@ public final class LarObjList extends LarSeqObj
         }
         m_list_int = null;
     }
-    
+
+    public LarObjList init_item(LarObj obj) throws Exception
+    {
+        meth_add(obj);
+        return this;
+    }
+    public LarObjList init_item(long n) throws Exception
+    {
+        meth_add(n);
+        return this;
+    }
+
     public String get_type_name()
     {
         return "list";

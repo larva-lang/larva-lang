@@ -360,7 +360,7 @@ def _build_expr_code(code, expr, expect_type):
         if expr.op == "list":
             code_str = "(new LarObjList())"
             for e in expr.arg:
-                code_str += (".meth_add(%s)" %
+                code_str += (".init_item(%s)" %
                              _build_expr_code(code, e, None)[0])
             return code_str, "object"
         if expr.op in _UNARY_OP_NAME_MAP:
