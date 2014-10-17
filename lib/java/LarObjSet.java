@@ -97,6 +97,15 @@ public final class LarObjSet extends LarObj
         m_version = 0;
     }
 
+    LarObjSet(LarObj obj) throws Exception
+    {
+        this();
+        for (LarObj iter = obj.meth_iterator(); iter.meth_has_next().op_bool();)
+        {
+            meth_add(iter.meth_next());
+        }
+    }
+
     private int get_entry_index(Entry[] list, LarObj key) throws Exception
     {
         if (key instanceof LarObjInt)
@@ -150,7 +159,7 @@ public final class LarObjSet extends LarObj
     {
         //get_entry_index(Entry[] list, LarObj key)针对key是int的特化版本，算法说明见原版本代码
         int mask = list.length - 1;
-        int h = LarObjInt.hash(key);
+        int h = (int)(key + (key >>> 32));
         int start = (h + (h >> 4)) & mask;
         int step = h | 1;
         int first_dummy_index = -1;

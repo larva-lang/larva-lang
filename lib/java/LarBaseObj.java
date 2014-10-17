@@ -1,3 +1,5 @@
+import java.math.BigInteger;
+
 /*
 LarBaseObj，包含大多数内置操作和方法的接口
 这样编译器就不用自己生成LarObj的大部分内容了
@@ -36,6 +38,10 @@ public class LarBaseObj
     public long to_int() throws Exception
     {
         throw new Exception("类型'" + get_type_name() + "'无法隐式转换为int");
+    }
+    public BigInteger to_long() throws Exception
+    {
+        throw new Exception("类型'" + get_type_name() + "'无法隐式转换为long");
     }
     public double to_float() throws Exception
     {

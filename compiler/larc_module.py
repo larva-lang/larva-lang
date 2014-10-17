@@ -19,6 +19,7 @@ class _Func:
         self.global_var_set = global_var_set
         self.stmt_list = stmt_list
         self.name_token = name_token
+        self.is_export = False
 
         #检查参数的global声明
         for var_name in arg_list:
@@ -85,6 +86,13 @@ class _Func:
     def link(self, curr_module, module_map):
         for stmt in self.stmt_list:
             stmt.link(curr_module, module_map, self.local_var_set)
+
+    def set_export(self):
+        self.is_export = True
+        for arg_name in self.arg_list:
+            self.local_var_type_info[arg_name] = "object"
+        self.ret_type = "object"
+        self.ret_expr_list = []
 
 class _Method(_Func):
     def __init__(self, name, arg_list, global_var_set, stmt_list, name_token):
@@ -350,10 +358,11 @@ class Module:
         if func_key in self.func_map:
             name_token.syntax_err("函数重复定义")
         stmt_list, global_var_set = larc_stmt.parse_stmt_list(token_list, 0, 0)
-        self.func_map[func_key] = (
+        self.func_map[func_key] = func = (
             _Func(func_name, arg_list, global_var_set, stmt_list, name_token))
         if export:
             self.export_func_set.add(func_key)
+            func.set_export()
 
     def _parse_global_var(self, token_list, name_token, export):
         var_name = name_token.value

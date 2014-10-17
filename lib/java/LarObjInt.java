@@ -1,3 +1,5 @@
+import java.math.BigInteger;
+
 //整数类型
 public final class LarObjInt extends LarObj
 {
@@ -21,6 +23,10 @@ public final class LarObjInt extends LarObj
     public long to_int() throws Exception
     {
         return m_value;
+    }
+    public BigInteger to_long() throws Exception
+    {
+        return BigInteger.valueOf(m_value);
     }
     public double to_float() throws Exception
     {

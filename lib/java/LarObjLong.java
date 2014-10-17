@@ -1,4 +1,4 @@
-import java.math.*;
+import java.math.BigInteger;
 
 //长整数类型，无限精度
 public final class LarObjLong extends LarObj
@@ -8,9 +8,14 @@ public final class LarObjLong extends LarObj
 
     public final BigInteger m_value;
 
+    LarObjLong(long n)
+    {
+        this(BigInteger.valueOf(n));
+    }
+
     LarObjLong(String value)
     {
-        m_value = new BigInteger(value);
+        this(new BigInteger(value));
     }
 
     LarObjLong(BigInteger value)
@@ -34,12 +39,7 @@ public final class LarObjLong extends LarObj
             m_value = value;
             return;
         }
-        if (obj instanceof LarObjInt)
-        {
-            m_value = BigInteger.valueOf(((LarObjInt)obj).m_value);
-            return;
-        }
-        throw new Exception("无法将类型'" + obj.get_type_name() + "'转为long");
+        m_value = obj.to_long();
     }
 
     LarObjLong(LarObj arg_str, LarObj arg_radix) throws Exception
@@ -172,6 +172,10 @@ public final class LarObjLong extends LarObj
             throw new Exception("long过大，无法转为int值");
         }
         return m_value.longValue();
+    }
+    public BigInteger to_long() throws Exception
+    {
+        return m_value;
     }
     public double to_float() throws Exception
     {

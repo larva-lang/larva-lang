@@ -1,3 +1,6 @@
+import java.math.BigInteger;
+import java.math.BigDecimal;
+
 //浮点数类型
 public final class LarObjFloat extends LarObj
 {
@@ -26,6 +29,10 @@ public final class LarObjFloat extends LarObj
             throw new Exception("浮点数过大，无法转为int：" + m_value);
         }
         return (long)m_value;
+    }
+    public BigInteger to_long() throws Exception
+    {
+        return BigDecimal.valueOf(m_value).toBigInteger();
     }
     public double to_float() throws Exception
     {

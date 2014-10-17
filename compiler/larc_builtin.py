@@ -11,7 +11,9 @@ builtin_if_set = set() #函数接口表
 
 def _init_builtin_if():
     #各种内部类型的接口
-    for name, arg_count_list in {"str" : (1,),
+    for name, arg_count_list in {"long" : (1, 2),
+                                 "float" : (1,),
+                                 "str" : (1,),
                                  "tuple" : (1,),
                                  "list" : (1,),
                                  "set" : (0, 1),

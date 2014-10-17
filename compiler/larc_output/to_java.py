@@ -327,7 +327,7 @@ def _build_expr_code(code, expr, expect_type):
                 assert len(el) == 1
                 return ("new LarObjStr(%s)" %
                         _build_expr_code(code, el[0], None)[0]), "object"
-            if t.value in ("tuple", "list", "set", "file"):
+            if t.value in ("long", "float", "tuple", "list", "set", "file"):
                 return ("new LarObj%s(%s)" %
                         (t.value.capitalize(),
                          ",".join([_build_expr_code(code, e, "object")
