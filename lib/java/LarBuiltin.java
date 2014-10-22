@@ -13,7 +13,15 @@ public final class LarBuiltin
     
     public static LarObj f_sorted(LarObj obj) throws Exception
     {
-        return (new LarObjList(obj)).meth_sort();
+        return (new LarObjList(obj)).meth_sort(NIL, NIL);
+    }
+    public static LarObj f_sorted(LarObj obj, LarObj key_func) throws Exception
+    {
+        return (new LarObjList(obj)).meth_sort(key_func, NIL);
+    }
+    public static LarObj f_sorted(LarObj obj, LarObj key_func, LarObj cmp_func) throws Exception
+    {
+        return (new LarObjList(obj)).meth_sort(key_func, cmp_func);
     }
 
     public static LarObj f_sum(LarObj obj) throws Exception

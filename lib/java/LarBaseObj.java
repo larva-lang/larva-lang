@@ -472,30 +472,6 @@ public class LarBaseObj
     内部类型默认有的方法，如果代码中出现，则可能被LarObj覆盖，这个没有关系
     写在这里主要是防止某些方法的隐式调用，比如迭代器的
     */
-    public LarObj op_get_attr_add() throws Exception
-    {
-        throw new Exception("找不到类型'" + get_type_name() + "'的属性：add");
-    }
-    public void op_set_attr_add(LarObj obj) throws Exception
-    {
-        throw new Exception("找不到类型'" + get_type_name() + "'的属性：add");
-    }
-    public LarObj meth_add(LarObj obj) throws Exception
-    {
-        return this.op_get_attr_add().op_call(obj);
-    }
-    public LarObj op_get_attr_ord_at() throws Exception
-    {
-        throw new Exception("找不到类型'" + get_type_name() + "'的属性：ord_at");
-    }
-    public void op_set_attr_ord_at(LarObj obj) throws Exception
-    {
-        throw new Exception("找不到类型'" + get_type_name() + "'的属性：ord_at");
-    }
-    public LarObj meth_ord_at(LarObj obj) throws Exception
-    {
-        return this.op_get_attr_ord_at().op_call(obj);
-    }
     public LarObj op_get_attr_iterator() throws Exception
     {
         throw new Exception("找不到类型'" + get_type_name() + "'的属性：iterator");
@@ -533,7 +509,7 @@ public class LarBaseObj
         return this.op_get_attr_next().op_call();
     }
 
-    //支持上述默认方法的op_call操作接口
+    //支持默认方法或基础lib代码需要回调的op_call操作接口
     public LarObj op_call() throws Exception
     {
         throw new Exception("未实现类型'" + get_type_name() + "'的'()'运算，0个参数");
@@ -541,5 +517,9 @@ public class LarBaseObj
     public LarObj op_call(LarObj arg_1) throws Exception
     {
         throw new Exception("未实现类型'" + get_type_name() + "'的'()'运算，1个参数");
+    }
+    public LarObj op_call(LarObj arg_1, LarObj arg_2) throws Exception
+    {
+        throw new Exception("未实现类型'" + get_type_name() + "'的'()'运算，2个参数");
     }
 }

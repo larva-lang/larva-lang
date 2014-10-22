@@ -20,7 +20,7 @@ def _init_builtin_if():
                                  "range" : (1, 2, 3),
                                  "bitmap" : (1,),
                                  "file" : (1,),
-                                 "sorted" : (1,),
+                                 "sorted" : (1, 2, 3),
                                  "len" : (1,),
                                  "sum" : (1,),
                                  "pow" : (2,),

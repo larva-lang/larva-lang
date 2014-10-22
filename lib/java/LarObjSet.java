@@ -275,6 +275,20 @@ public final class LarObjSet extends LarObj
         }
         return this;
     }
+    
+    public LarObj meth_remove(LarObj key) throws Exception
+    {
+        int index = get_entry_index(m_list, key);
+        Entry entry = m_list[index];
+        if (entry == null || entry == DUMMY)
+        {
+            throw new Exception("集合中没有元素：" + key.op_str());
+        }
+        m_list[index] = DUMMY;
+        -- m_count;
+        ++ m_version;
+        return this;
+    }
 
     public LarObj meth_iterator() throws Exception
     {

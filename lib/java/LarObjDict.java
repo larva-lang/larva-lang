@@ -256,7 +256,7 @@ public final class LarObjDict extends LarObj
         LarObj entry = m_key_list[index];
         if (entry == null || entry == DUMMY)
         {
-            throw new Exception("字典中找不到元素：" + key.op_str());
+            throw new Exception("dict中找不到元素：" + key.op_str());
         }
         return m_value_list == null ? new LarObjInt(m_value_list_int[index]) : m_value_list[index];
     }
@@ -266,7 +266,7 @@ public final class LarObjDict extends LarObj
         LarObj entry = m_key_list[index];
         if (entry == null || entry == DUMMY)
         {
-            throw new Exception("字典中找不到元素：" + key);
+            throw new Exception("dict中找不到元素：" + key);
         }
         return m_value_list == null ? new LarObjInt(m_value_list_int[index]) : m_value_list[index];
     }
@@ -276,7 +276,7 @@ public final class LarObjDict extends LarObj
         LarObj entry = m_key_list[index];
         if (entry == null || entry == DUMMY)
         {
-            throw new Exception("字典中找不到元素：" + key.op_str());
+            throw new Exception("dict中找不到元素：" + key.op_str());
         }
         return m_value_list == null ? m_value_list_int[index] : m_value_list[index].as_int();
     }
@@ -286,7 +286,7 @@ public final class LarObjDict extends LarObj
         LarObj entry = m_key_list[index];
         if (entry == null || entry == DUMMY)
         {
-            throw new Exception("字典中找不到元素：" + key);
+            throw new Exception("dict中找不到元素：" + key);
         }
         return m_value_list == null ? m_value_list_int[index] : m_value_list[index].as_int();
     }
@@ -454,5 +454,29 @@ public final class LarObjDict extends LarObj
             return LarBuiltin.NIL;
         }
         return m_value_list == null ? new LarObjInt(m_value_list_int[index]) : m_value_list[index];
+    }
+    
+    public LarObj meth_pop(LarObj key) throws Exception
+    {
+        int index = get_entry_index(m_key_list, m_key_list_int, key);
+        LarObj entry = m_key_list[index];
+        if (entry == null || entry == DUMMY)
+        {
+            throw new Exception("dict中找不到元素：" + key.op_str());
+        }
+        LarObj ret;
+        if (m_value_list == null)
+        {
+            ret = new LarObjInt(m_value_list_int[index]);
+        }
+        else
+        {
+            ret = m_value_list[index];
+            m_value_list[index] = null;
+        }
+        m_key_list[index] = DUMMY;
+        -- m_count;
+        ++ m_version;
+        return ret;
     }
 }

@@ -342,31 +342,242 @@ public final class LarObjList extends LarSeqObj
     }
 
     //懒得考虑qsort的太多因素，直接用shell了，序列是Sedgewick的
-    static final int[] INC_LIST = new int[]{
+    static private final int[] INC_LIST = new int[]{
         1073643521, 603906049, 268386305, 150958081, 67084289, 37730305, 16764929, 9427969, 4188161, 2354689, 1045505,
         587521, 260609, 146305, 64769, 36289, 16001, 8929, 3905, 2161, 929, 505, 209, 109, 41, 19, 5, 1};
-    public LarObj meth_sort() throws Exception
+    private static void sort(LarObj[] list, int len, long[] sync_list, LarObj cmp_func) throws Exception
     {
-        if (m_list == null)
-        {
-            Arrays.sort(m_list_int, 0, m_len);
-            return this;
-        }
         for (int inc_idx = 0; inc_idx < INC_LIST.length; ++ inc_idx)
         {
             int inc = INC_LIST[inc_idx];
-            for (int i = inc; i < m_len; ++ i)
+            for (int i = inc; i < len; ++ i)
             {
-                LarObj tmp = m_list[i];
+                LarObj tmp = list[i];
+                long sync_tmp = sync_list[i];
                 int j;
                 for (j = i; j >= inc; j -= inc)
                 {
-                    if (m_list[j - inc].op_cmp(tmp) <= 0)
+                    if (cmp_func.op_call(list[j - inc], tmp).as_int() <= 0)
                     {
                         break;
                     }
-                    m_list[j] = m_list[j - inc];
+                    list[j] = list[j - inc];
+                    sync_list[j] = sync_list[j - inc];
                 }
+                list[j] = tmp;
+                sync_list[j] = sync_tmp;
+            }
+        }
+    }
+    private static void sort(LarObj[] list, int len, long[] sync_list) throws Exception
+    {
+        for (int inc_idx = 0; inc_idx < INC_LIST.length; ++ inc_idx)
+        {
+            int inc = INC_LIST[inc_idx];
+            for (int i = inc; i < len; ++ i)
+            {
+                LarObj tmp = list[i];
+                long sync_tmp = sync_list[i];
+                int j;
+                for (j = i; j >= inc; j -= inc)
+                {
+                    if (list[j - inc].op_cmp(tmp) <= 0)
+                    {
+                        break;
+                    }
+                    list[j] = list[j - inc];
+                    sync_list[j] = sync_list[j - inc];
+                }
+                list[j] = tmp;
+                sync_list[j] = sync_tmp;
+            }
+        }
+    }
+    private static void sort(LarObj[] list, int len) throws Exception
+    {
+        for (int inc_idx = 0; inc_idx < INC_LIST.length; ++ inc_idx)
+        {
+            int inc = INC_LIST[inc_idx];
+            for (int i = inc; i < len; ++ i)
+            {
+                LarObj tmp = list[i];
+                int j;
+                for (j = i; j >= inc; j -= inc)
+                {
+                    if (list[j - inc].op_cmp(tmp) <= 0)
+                    {
+                        break;
+                    }
+                    list[j] = list[j - inc];
+                }
+                list[j] = tmp;
+            }
+        }
+    }
+    private static void sort(LarObj[] list, int len, LarObj cmp_func) throws Exception
+    {
+        for (int inc_idx = 0; inc_idx < INC_LIST.length; ++ inc_idx)
+        {
+            int inc = INC_LIST[inc_idx];
+            for (int i = inc; i < len; ++ i)
+            {
+                LarObj tmp = list[i];
+                int j;
+                for (j = i; j >= inc; j -= inc)
+                {
+                    if (cmp_func.op_call(list[j - inc], tmp).as_int() <= 0)
+                    {
+                        break;
+                    }
+                    list[j] = list[j - inc];
+                }
+                list[j] = tmp;
+            }
+        }
+    }
+    private static void sort(LarObj[] list, int len, LarObj[] sync_list) throws Exception
+    {
+        for (int inc_idx = 0; inc_idx < INC_LIST.length; ++ inc_idx)
+        {
+            int inc = INC_LIST[inc_idx];
+            for (int i = inc; i < len; ++ i)
+            {
+                LarObj tmp = list[i];
+                LarObj sync_tmp = sync_list[i];
+                int j;
+                for (j = i; j >= inc; j -= inc)
+                {
+                    if (list[j - inc].op_cmp(tmp) <= 0)
+                    {
+                        break;
+                    }
+                    list[j] = list[j - inc];
+                    sync_list[j] = sync_list[j - inc];
+                }
+                list[j] = tmp;
+                sync_list[j] = sync_tmp;
+            }
+        }
+    }
+    private static void sort(LarObj[] list, int len, LarObj[] sync_list, LarObj cmp_func) throws Exception
+    {
+        for (int inc_idx = 0; inc_idx < INC_LIST.length; ++ inc_idx)
+        {
+            int inc = INC_LIST[inc_idx];
+            for (int i = inc; i < len; ++ i)
+            {
+                LarObj tmp = list[i];
+                LarObj sync_tmp = sync_list[i];
+                int j;
+                for (j = i; j >= inc; j -= inc)
+                {
+                    if (cmp_func.op_call(list[j - inc], tmp).as_int() <= 0)
+                    {
+                        break;
+                    }
+                    list[j] = list[j - inc];
+                    sync_list[j] = sync_list[j - inc];
+                }
+                list[j] = tmp;
+                sync_list[j] = sync_tmp;
+            }
+        }
+    }
+    public LarObj meth_sort() throws Exception
+    {
+        return meth_sort(LarBuiltin.NIL, LarBuiltin.NIL);
+    }
+    public LarObj meth_sort(LarObj key_func) throws Exception
+    {
+        return meth_sort(key_func, LarBuiltin.NIL);
+    }
+    public LarObj meth_sort(LarObj key_func, LarObj cmp_func) throws Exception
+    {
+        if (m_list == null)
+        {
+            //整数数组
+            if (key_func == LarBuiltin.NIL)
+            {
+                if (cmp_func == LarBuiltin.NIL)
+                {
+                    //调用系统的直接排
+                    Arrays.sort(m_list_int, 0, m_len);
+                    return this;
+                }
+                //指定了cmp函数，相当于利用对应的LarObjInt数组做key
+                LarObj[] key_list = new LarObj[m_len];
+                for (int i = 0; i < m_len; ++ i)
+                {
+                    key_list[i] = new LarObjInt(m_list_int[i]);
+                }
+                sort(key_list, m_len, m_list_int, cmp_func);
+                return this;
+            }
+            //指定了key函数，先准备key_list
+            LarObj[] key_list = new LarObj[m_len];
+            for (int i = 0; i < m_len; ++ i)
+            {
+                key_list[i] = key_func.op_call(new LarObjInt(m_list_int[i]));
+            }
+            if (cmp_func == LarBuiltin.NIL)
+            {
+                sort(key_list, m_len, m_list_int);
+            }
+            else
+            {
+                sort(key_list, m_len, m_list_int, cmp_func);
+            }
+            return this;
+        }
+        //对象数组
+        if (key_func == LarBuiltin.NIL)
+        {
+            if (cmp_func == LarBuiltin.NIL)
+            {
+                //默认排序
+                sort(m_list, m_len);
+                return this;
+            }
+            //指定了cmp
+            sort(m_list, m_len, cmp_func);
+            return this;
+        }
+        //指定了key函数
+        LarObj[] key_list = new LarObj[m_len];
+        for (int i = 0; i < m_len; ++ i)
+        {
+            key_list[i] = key_func.op_call(m_list[i]);
+        }
+        if (cmp_func == LarBuiltin.NIL)
+        {
+            sort(key_list, m_len, m_list);
+        }
+        else
+        {
+            sort(key_list, m_len, m_list, cmp_func);
+        }
+        return this;
+    }
+
+    public LarObj meth_reverse() throws Exception
+    {
+        for (int i = 0; i < m_len; ++ i)
+        {
+            int j = m_len - 1 - i;
+            if (i >= j)
+            {
+                break;
+            }
+            if (m_list == null)
+            {
+                long tmp = m_list_int[i];
+                m_list_int[i] = m_list_int[j];
+                m_list_int[j] = tmp;
+            }
+            else
+            {
+                LarObj tmp = m_list[i];
+                m_list[i] = m_list[j];
                 m_list[j] = tmp;
             }
         }

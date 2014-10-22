@@ -6,11 +6,13 @@ public final class Mod_sys
     public static void set_argv(String[] argv) throws Exception
     {
         //java中好像拿不到命令行的启动的class或jar文件的参数，弄个nil占位
-        g_argv = new LarObjList().meth_add(LarBuiltin.NIL);
+        LarObjList arg_list = new LarObjList();
+        arg_list.meth_add(LarBuiltin.NIL);
         for (int i = 0; i < argv.length; ++ i)
         {
-            g_argv.meth_add(new LarObjStr(argv[i]));
+            arg_list.meth_add(new LarObjStr(argv[i]));
         }
+        g_argv = arg_list;
     }
     
     public static void init()

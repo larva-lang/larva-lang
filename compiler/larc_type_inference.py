@@ -4,6 +4,8 @@
 larva程序的类型推导优化
 """
 
+import copy
+
 """
 使用简化版的类型推导算法：
 1 推导仅针对int类型
@@ -223,25 +225,37 @@ class Device:
                 expr.arg)
             self._mark_object_type_for_func_arg(
                 for_in_expr, local_var_type_info)
+            save_local_var_type_info = copy.deepcopy(local_var_type_info)
+            for var_name in compr_local_var_set:
+                local_var_type_info[var_name] = "object"
             self._mark_object_type_for_func_arg(e, local_var_type_info)
             if if_expr is not None:
                 self._mark_object_type_for_func_arg(
                     if_expr, local_var_type_info)
+            local_var_type_info = save_local_var_type_info
             return
         if expr.op == "dict_compr":
             (for_in_expr, compr_local_var_set, ek, ev, lvalue, name_set,
              if_expr) = expr.arg
             self._mark_object_type_for_func_arg(
                 for_in_expr, local_var_type_info)
+            save_local_var_type_info = copy.deepcopy(local_var_type_info)
+            for var_name in compr_local_var_set:
+                local_var_type_info[var_name] = "object"
             self._mark_object_type_for_func_arg(ek, local_var_type_info)
             self._mark_object_type_for_func_arg(ev, local_var_type_info)
             if if_expr is not None:
                 self._mark_object_type_for_func_arg(
                     if_expr, local_var_type_info)
+            local_var_type_info = save_local_var_type_info
             return
         if expr.op == "lambda":
             lambda_local_var_set, arg_list, e = expr.arg
+            save_local_var_type_info = copy.deepcopy(local_var_type_info)
+            for var_name in lambda_local_var_set:
+                local_var_type_info[var_name] = "object"
             self._mark_object_type_for_func_arg(e, local_var_type_info)
+            local_var_type_info = save_local_var_type_info
             return
         if expr.op in ("this", "super"):
             return
