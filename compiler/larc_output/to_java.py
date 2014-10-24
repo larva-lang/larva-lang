@@ -243,7 +243,10 @@ def _output_const(code, const_map):
 _BUILTIN_METHOD_NAME_MAP = {"__init__" : "init"}
 def _get_method_name(name):
     if name.startswith("__") and name.endswith("__"):
-        return _BUILTIN_METHOD_NAME_MAP[name]
+        if name in _BUILTIN_METHOD_NAME_MAP:
+            #特殊的
+            return _BUILTIN_METHOD_NAME_MAP[name]
+        return "op_" + name[2 : -2]
     return "meth_%s" % name
 
 def _build_expr_code(code, expr, expect_type):
@@ -395,6 +398,9 @@ def _build_expr_code(code, expr, expect_type):
                             (eb_code, _BINOCULAR_OP_NAME_MAP[expr.op],
                              ea_code)), "object"
             else:
+                if expr.op == "+" and eb_code == "(0L)":
+                    print ea_code, eb_code
+                    print eb.op, eb.arg
                 return ("%s.op_%s(%s)" %
                         (ea_code, _BINOCULAR_OP_NAME_MAP[expr.op], eb_code),
                         "object")
@@ -500,8 +506,13 @@ def _build_expr_code(code, expr, expect_type):
             return ("(new Cls_%s()).construct(%s)" %
                     (t.value,
                      ",".join([_build_expr_code(code, e, "object")
-                               for e in el])),
-                    "object")
+                               for e in el])), "object")
+        if expr.op == "call_module_class":
+            tm, t, el = expr.arg
+            return ("(new Mod_%s.Cls_%s()).construct(%s)" %
+                    (tm.value, t.value,
+                     ",".join([_build_expr_code(code, e, "object")
+                               for e in el])), "object")
         if expr.op == "this.attr":
             if code.lambda_outter_class_name is None:
                 return "this.m_%s" % expr.arg.value, "object"
@@ -693,14 +704,42 @@ def _output_stmt_list(code, stmt_list):
             continue
         if stmt.type == "return":
             if stmt.expr is None:
-                code += "return LarBuiltin.NIL;"
+                expr_code = "(LarBuiltin.NIL)";
+                is_int = False
+            else:
+                expr_code, is_int = _build_expr_code(code, stmt.expr, None)
+            if (code.curr_func.type == "method" and
+                code.curr_method_ret_type != "LarObj"):
+                #需特殊处理的内置方法
+                if code.curr_method_ret_type == "boolean":
+                    if is_int:
+                        code += "return %s != 0;" % expr_code
+                    else:
+                        code += "return %s.op_bool();" % expr_code
+                elif code.curr_method_ret_type == "String":
+                    if is_int:
+                        code += ("return (new LarObjInt(%s)).as_str();" %
+                                 expr_code)
+                    else:
+                        code += "return %s.as_str();" % expr_code
+                elif code.curr_method_ret_type == "long":
+                    if is_int:
+                        code += "return %s;" % expr_code
+                    else:
+                        code += "return %s.as_int();" % expr_code
+                else:
+                    raise Exception("unreachable")
             else:
                 if code.curr_func.ret_type == "object":
-                    code += ("return %s;" %
-                             _build_expr_code(code, stmt.expr, "object"))
+                    if is_int:
+                        code += "return new LarObjInt(%s);" % expr_code
+                    else:
+                        code += "return %s;" % expr_code
                 else:
-                    code += ("return %s;" %
-                             _build_expr_code(code, stmt.expr, None)[0])
+                    if is_int:
+                        code += "return %s;" % expr_code
+                    else:
+                        code += "return %s.as_int();" % expr_code
             continue
         if stmt.type == "expr":
             expr_code = _build_expr_code(code, stmt.expr, None)[0]
@@ -1112,10 +1151,17 @@ def _output_method(code, method, cls):
         code.blk_end()
         method_name = "init"
         ret_type = "LarObj"
-    #todo：其它内置接口
     else:
-        method_name = "meth_%s" % method.name
-        ret_type = "LarObj"
+        method_name = _get_method_name(method.name)
+        #某些内置方法返回值特殊处理
+        if method_name in ("op_bool", "op_contain", "op_eq", "op_reverse_eq"):
+            ret_type = "boolean"
+        elif method_name == "op_str":
+            ret_type = "String"
+        elif method_name in ("op_len", "op_hash", "op_cmp", "op_reverse_cmp"):
+            ret_type = "long"
+        else:
+            ret_type = "LarObj"
     code.blk_start(
         "public %s %s(%s) throws Exception" %
         (ret_type, method_name, ",".join(["LarObj l_%s" % arg_name
@@ -1131,8 +1177,10 @@ def _output_method(code, method, cls):
             code += "long l_%s = 0;" % var_name
     code += ""
     code.curr_func = method
+    code.curr_method_ret_type = ret_type
     _output_stmt_list(code, method.stmt_list)
     del code.curr_func
+    del code.curr_method_ret_type
     code.blk_end()
     code += ""
 
@@ -1196,6 +1244,7 @@ def _output_class(code, cls, module_name, export):
 def _output_module(code, module):
     code.blk_start("final class Mod_%s" % module.name)
     code.curr_module = module
+    code.int_const_map.clear()
     _output_const(code, module.const_map)
     for cls in module.class_map.itervalues():
         _output_class(code, cls, module.name,

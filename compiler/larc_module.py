@@ -10,10 +10,25 @@ import larc_token
 import larc_stmt
 import larc_expr
 
-_BUILTIN_METHOD_NAME_SET = set(map(lambda x : "__%s__" % x, ["init"]))
+_BUILTIN_METHOD_NAME_SET = (
+    set(map(lambda x : "__%s__" % x,
+            ["init", #构造
+             "bool", "str", #类型转换
+             "len", "hash", #内置特性
+             "invert", "pos", "neg", #单目运算
+             "get_item", "set_item", "get_slice", "set_slice", #下标&分片
+             "contain", "eq", "reverse_eq", "cmp", "reverse_cmp"]))) #逻辑运算
+#二元运算
+for op in ("add", "sub", "mul", "div", "mod", #算数运算
+           "and", "or", "xor", "shl", "shr", "ushr"): #位运算
+    _BUILTIN_METHOD_NAME_SET.add("__" + op + "__")
+    _BUILTIN_METHOD_NAME_SET.add("__reverse_" + op + "__")
+    _BUILTIN_METHOD_NAME_SET.add("__inplace_" + op + "__")
+del op
 
 class _Func:
     def __init__(self, name, arg_list, global_var_set, stmt_list, name_token):
+        self.type = "func" #供后续其他模块使用方便
         self.name = name
         self.arg_list = arg_list
         self.global_var_set = global_var_set
@@ -100,8 +115,11 @@ class _Method(_Func):
             #检查内置方法
             if name not in _BUILTIN_METHOD_NAME_SET:
                 name_token.syntax_err("非法的内置方法名'%s'" % name)
+
         _Func.__init__(self, name, arg_list, global_var_set, stmt_list,
                        name_token)
+        self.type = "method" #供后续其他模块使用方便
+
         #method输入参数和返回类型都是object
         for arg_name in arg_list:
             self.local_var_type_info[arg_name] = "object"

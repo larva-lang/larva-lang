@@ -102,7 +102,7 @@ def _parse_return(token_list):
     return expr
 
 def _parse_while(token_list, curr_indent_count, loop_deep):
-    expr = larc_expr.parse_expr(token_list)
+    expr = larc_expr.parse_expr(token_list, end_at_comma = True)
     token_list.pop_sym(":")
     stmt_list, global_var_set = (
         parse_stmt_list(token_list, curr_indent_count, loop_deep + 1))
@@ -112,7 +112,7 @@ def _parse_if(token_list, curr_indent_count, loop_deep):
     if_list = []
     if_global_var_set = set()
     while True:
-        expr = larc_expr.parse_expr(token_list)
+        expr = larc_expr.parse_expr(token_list, end_at_comma = True)
         token_list.pop_sym(":")
         stmt_list, global_var_set = (
             parse_stmt_list(token_list, curr_indent_count, loop_deep))
