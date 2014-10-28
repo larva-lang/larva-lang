@@ -7,6 +7,7 @@
 import os
 import shutil
 import larc_module
+import larc_builtin
 
 _UNARY_OP_NAME_MAP = {"~" : "invert",
                       "neg" : "neg",
@@ -131,7 +132,7 @@ class _Code:
 
     def _copy_lib(self):
         lar_lib_name_list = ["LarUtil", "LarBuiltin", "LarBaseObj",
-                             "LarSeqObj"]
+                             "LarSeqObj", "LarException"]
         type_name_list = ["Nil", "Bool", "Int", "Long", "Float", "Str",
                           "Tuple", "List", "Dict", "Set", "Range", "Bitmap",
                           "File"]
@@ -932,8 +933,43 @@ def _output_stmt_list(code, stmt_list):
                              (inplace_op_name, expr_code))
                 continue
             raise Exception("unreachable")
+        if stmt.type == "try":
+            #try部分
+            code.blk_start("try")
+            _output_stmt_list(code, stmt.try_stmt_list)
+            code.blk_end()
+            #except部分
+            code.blk_start("catch (LarException exc)")
+            for i, (except_token, exc_cls_module, exc_cls_name,
+                 stmt_list) in enumerate(stmt.except_list):
+                if exc_cls_module is None:
+                    #当前模块的类
+                    cls_name = "Cls_%s" % exc_cls_name
+                elif exc_cls_module == "*":
+                    #这里假定被except的内置类就是异常类
+                    cls_name = "LarException.LarObj%s" % exc_cls_name
+                else:
+                    #其他模块的类
+                    cls_name = "Mod_%s.Cls_%s" % (exc_cls_module, exc_cls_name)
+                code.blk_start("%s (exc.m_obj instanceof %s)" %
+                               ("if" if i == 0 else "else if", cls_name))
+                _output_stmt_list(code, stmt_list)
+                code.blk_end()
+            if stmt.except_list:
+                code.blk_start("else")
+                code += "throw exc;"
+                code.blk_end()
+            else:
+                code += "throw exc;"
+            code.blk_end()
+            if stmt.finally_stmt_list is not None:
+                #finally部分
+                code.blk_start("finally")
+                _output_stmt_list(code, stmt.finally_stmt_list)
+                code.blk_end()
+            continue
 
-        raise Exception("unreachable")
+        raise Exception("unreachable stmt_type[%s]" % stmt.type)
 
 def _output_func(code, func, export):
     arg_code_list = []
@@ -1191,6 +1227,13 @@ def _output_class(code, cls, module_name, export):
     else:
         if cls.base_class_module is None:
             base_class_code = "Cls_%s" % cls.base_class_name
+        elif cls.base_class_module == "*":
+            #内建模块要分情况
+            if cls.base_class_name in larc_builtin.builtin_exc_cls_name_set:
+                base_class_code = "LarException.LarObj%s" % cls.base_class_name
+            else:
+                raise Exception("unreachable builtin class [%s]" %
+                                cls.base_class_name)
         else:
             base_class_code = ("Mod_%s.Cls_%s" %
                                (cls.base_class_module, cls.base_class_name))

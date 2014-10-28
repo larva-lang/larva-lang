@@ -1,5 +1,6 @@
 #coding=utf8
 
+import larc_builtin
 import larc_expr
 
 """
@@ -41,6 +42,41 @@ class _Stmt:
                               curr_class)
             if self.else_stmt_list is not None:
                 for stmt in self.else_stmt_list:
+                    stmt.link(curr_module, module_map, local_var_set,
+                              curr_class)
+        if self.type == "try":
+            for stmt in self.try_stmt_list:
+                stmt.link(curr_module, module_map, local_var_set, curr_class)
+            for i in xrange(len(self.except_list)):
+                except_token, exc_cls_module, exc_cls_name, stmt_list = (
+                    self.except_list[i])
+                if exc_cls_name is not None:
+                    #检查是否为异常类
+                    if exc_cls_module is None:
+                        #当前模块的类或内置类
+                        if exc_cls_name in curr_module.class_map:
+                            cls = curr_module.class_map[exc_cls_name]
+                        elif exc_cls_name in larc_builtin.builtin_class_map:
+                            #内置类
+                            cls = larc_builtin.builtin_class_map[exc_cls_name]
+                            self.except_list[i] = (
+                                except_token, "*", exc_cls_name, stmt_list)
+                        else:
+                            except_token.syntax_err(
+                                "找不到类'%s'" % exc_cls_name)
+                    else:
+                        #外部模块类
+                        cls = (
+                            module_map[exc_cls_module].class_map[exc_cls_name])
+                    while cls.base_class is not None:
+                        cls = cls.base_class
+                    if cls is not larc_builtin.builtin_class_map["Exception"]:
+                        except_token.syntax_err("except非Exception类")
+                for stmt in stmt_list:
+                    stmt.link(curr_module, module_map, local_var_set,
+                              curr_class)
+            if self.finally_stmt_list is not None:
+                for stmt in self.finally_stmt_list:
                     stmt.link(curr_module, module_map, local_var_set,
                               curr_class)
 
@@ -137,6 +173,66 @@ def _parse_if(token_list, curr_indent_count, loop_deep):
     if_global_var_set |= global_var_set
     return if_list, else_stmt_list, if_global_var_set
 
+def _parse_try(token_list, curr_indent_count, loop_deep):
+    try_global_var_set = set()
+    #解析try部分
+    token_list.pop_sym(":")
+    try_stmt_list, global_var_set = (
+        parse_stmt_list(token_list, curr_indent_count, loop_deep))
+    try_global_var_set |= global_var_set
+    #except或finally
+    token_list.pop_indent(curr_indent_count)
+    t = token_list.peek()
+    if not (t.is_except or t.is_finally):
+        t.syntax_err("需要'except'或'finally'")
+    token_list.revert()
+
+    #解析except部分
+    except_list = []
+    while True:
+        if not token_list or token_list.peek_indent() < curr_indent_count:
+            #try语句结束，且没有finally
+            return try_stmt_list, except_list, None, try_global_var_set
+        token_list.pop_indent(curr_indent_count)
+        t = token_list.pop()
+        if not t.is_except:
+            #except结束
+            if t.is_finally:
+                #继续解析finally
+                break
+            #没有finally
+            token_list.revert()
+            token_list.revert()
+            return try_stmt_list, except_list, None, try_global_var_set
+        except_token = t
+        t = token_list.pop()
+        if t.is_sym(":"):
+            exc_cls_module = exc_cls_name = None
+        elif t.is_name:
+            exc_cls_module = None
+            exc_cls_name = t.value
+            t = token_list.peek()
+            if t.is_sym("."):
+                #MODULE.CLASS形式
+                token_list.pop_sym(".")
+                exc_cls_module = exc_cls_name
+                exc_cls_name = token_list.pop_name()
+            token_list.pop_sym(":")
+        else:
+            t.syntax_err("需要异常类名或':'")
+        stmt_list, global_var_set = (
+            parse_stmt_list(token_list, curr_indent_count, loop_deep))
+        except_list.append((except_token, exc_cls_module, exc_cls_name,
+                            stmt_list))
+        try_global_var_set |= global_var_set
+
+    #解析finally部分
+    token_list.pop_sym(":")
+    finally_stmt_list, global_var_set= (
+        parse_stmt_list(token_list, curr_indent_count, loop_deep))
+    try_global_var_set |= global_var_set
+    return try_stmt_list, except_list, finally_stmt_list, try_global_var_set
+
 def parse_stmt_list(token_list, upper_indent_count, loop_deep):
     """解析语句列表，返回列表和global变量名集合
        larva代码中，global变量名可在任意位置声明，不过最好在开头，免得歧义"""
@@ -206,6 +302,19 @@ def parse_stmt_list(token_list, upper_indent_count, loop_deep):
             t.syntax_err("未匹配的else")
         if t.is_func:
             t.syntax_err("不允许函数嵌套定义")
+        if t.is_try:
+            (try_stmt_list, except_list, finally_stmt_list,
+             try_global_var_set) = (
+                 _parse_try(token_list, curr_indent_count, loop_deep))
+            stmt_list.append(_Stmt("try", try_stmt_list = try_stmt_list,
+                                   except_list = except_list,
+                                   finally_stmt_list = finally_stmt_list))
+            global_var_set |= try_global_var_set
+            continue
+        if t.is_except:
+            t.syntax_err("未匹配的except")
+        if t.is_finally:
+            t.syntax_err("未匹配的finally")
 
         #剩下的就是表达式和赋值了
         token_list.revert()

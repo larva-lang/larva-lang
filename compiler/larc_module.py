@@ -6,6 +6,7 @@
 
 import os
 import larc_common
+import larc_builtin
 import larc_token
 import larc_stmt
 import larc_expr
@@ -72,6 +73,13 @@ class _Func:
                     self._search_ret_expr(if_stmt_list)
                 if stmt.else_stmt_list is not None:
                     self._search_ret_expr(stmt.else_stmt_list)
+            if stmt.type == "try":
+                self._search_ret_expr(stmt.try_stmt_list)
+                for (except_token, exc_cls_module, exc_cls_name,
+                     exc_stmt_list) in stmt.except_list:
+                    self._search_ret_expr(exc_stmt_list)
+                if stmt.finally_stmt_list is not None:
+                    self._search_ret_expr(stmt.finally_stmt_list)
 
     def _search_local_var(self, stmt_list):
         #局部变量条件：赋值或for的左值是一个名字或在unpack表达式查找名字
@@ -94,6 +102,13 @@ class _Func:
                     self._search_local_var(if_stmt_list)
                 if stmt.else_stmt_list is not None:
                     self._search_local_var(stmt.else_stmt_list)
+            if stmt.type == "try":
+                self._search_local_var(stmt.try_stmt_list)
+                for (except_token, exc_cls_module, exc_cls_name,
+                     exc_stmt_list) in stmt.except_list:
+                    self._search_local_var(exc_stmt_list)
+                if stmt.finally_stmt_list is not None:
+                    self._search_local_var(stmt.finally_stmt_list)
 
     def syntax_err(self, msg):
         self.name_token.syntax_err("[函数'%s']%s" % (self.name, msg))
@@ -145,9 +160,15 @@ class _Class:
         if self.base_class_name is not None:
             #有继承，检查并定向基类
             if self.base_class_module is None:
-                #基类在当前模块
+                #基类在当前模块或内置类
                 if self.base_class_name not in curr_module.class_map:
-                    self.syntax_err("找不到基类'%s'" % self.base_class_name)
+                    #不在当前模块，可能是内置类
+                    if (self.base_class_name not in
+                        larc_builtin.builtin_class_map):
+                        self.syntax_err("找不到基类'%s'" % self.base_class_name)
+                    self.base_class = (
+                        larc_builtin.builtin_class_map[self.base_class_name])
+                    self.base_class_module = "*" #表示builtin
                 else:
                     self.base_class = (
                         curr_module.class_map[self.base_class_name])
@@ -160,12 +181,11 @@ class _Class:
                     self.syntax_err(
                         "找不到基类'%s.%s'" %
                         (self.base_class_module, self.base_class_name))
-                else:
-                    self.base_class = module.class_map[self.base_class_name]
+                self.base_class = module.class_map[self.base_class_name]
         else:
             self.base_class = None
 
-    def _check_cycle_extends(self):
+    def check_cycle_extends(self):
         #检查循环继承
         cls = self
         s = set([cls])
@@ -179,7 +199,6 @@ class _Class:
             s.add(cls)
 
     def link(self, curr_module, module_map):
-        self._check_cycle_extends()
         if "__init__" not in [name for name, arg_count in self.method_map]:
             #增加默认构造函数
             self.method_map[("__init__", 0)] = (
@@ -211,6 +230,10 @@ class Module:
     def link_class_extends(self, module_map):
         for cls in self.class_map.itervalues():
             cls.link_extends(self, module_map)
+
+    def check_class_cycle_extends(self, module_map):
+        for cls in self.class_map.itervalues():
+            cls.check_cycle_extends()
 
     def _check_undefined_global_var(self):
         #检查被global声明但没有定义的全局变量

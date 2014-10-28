@@ -34,7 +34,8 @@ _RESERVED_WORD_SET = set(["if", "elif", "else", "while", "return", "break",
                           "continue", "for", "in", "not", "and", "or", "nil",
                           "print", "func", "import", "global", "true", "false",
                           "pass", "lambda", "class", "this", "super",
-                          "extends", "int", "export"])
+                          "extends", "int", "export", "try", "except",
+                          "finally", "assert", "raise"])
 
 _TOKEN_TYPE_INDENT = object()
 _TOKEN_TYPE_FLOAT = object()

@@ -166,6 +166,16 @@ class Device:
                 if stmt.else_stmt_list is not None:
                     self._mark_object_type_in_stmt_list(
                         stmt.else_stmt_list, local_var_type_info)
+            if stmt.type == "try":
+                self._mark_object_type_in_stmt_list(
+                    stmt.try_stmt_list, local_var_type_info)
+                for (except_token, exc_cls_module, exc_cls_name,
+                     stmt_list) in stmt.except_list:
+                    self._mark_object_type_in_stmt_list(
+                        stmt_list, local_var_type_info)
+                if stmt.finally_stmt_list is not None:
+                    self._mark_object_type_in_stmt_list(
+                        stmt.finally_stmt_list, local_var_type_info)
 
     def _mark_object_type_for_func_arg(self, expr, local_var_type_info):
         #分析表达式，标记函数参数的object类型
