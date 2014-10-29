@@ -176,6 +176,15 @@ class Device:
                 if stmt.finally_stmt_list is not None:
                     self._mark_object_type_in_stmt_list(
                         stmt.finally_stmt_list, local_var_type_info)
+            if stmt.type == "assert":
+                self._mark_object_type_for_func_arg(
+                    stmt.expr, local_var_type_info)
+                if stmt.exc_obj_expr is not None:
+                    self._mark_object_type_for_func_arg(
+                        stmt.exc_obj_expr, local_var_type_info)
+            if stmt.type == "raise":
+                self._mark_object_type_for_func_arg(
+                    stmt.expr, local_var_type_info)
 
     def _mark_object_type_for_func_arg(self, expr, local_var_type_info):
         #分析表达式，标记函数参数的object类型

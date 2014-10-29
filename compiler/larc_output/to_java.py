@@ -348,6 +348,11 @@ def _build_expr_code(code, expr, expect_type):
                 assert len(el) == 1
                 return ("%s.op_len()" %
                         _build_expr_code(code, el[0], "object")), "int"
+            if t.value in larc_builtin.builtin_exc_cls_name_set:
+                return ("new LarException.LarObj%s(%s)" %
+                        (t.value,
+                         ",".join([_build_expr_code(code, e, "object")
+                                   for e in el]))), "object"
             #默认接口
             return ("LarBuiltin.f_%s(%s)" %
                     (t.value, ",".join([_build_expr_code(code, e, "object")
@@ -967,6 +972,23 @@ def _output_stmt_list(code, stmt_list):
                 code.blk_start("finally")
                 _output_stmt_list(code, stmt.finally_stmt_list)
                 code.blk_end()
+            continue
+        if stmt.type == "assert":
+            code.blk_start("if (!(%s))" %
+                           _build_expr_code(code, stmt.expr, "bool"))
+            if stmt.exc_obj_expr is None:
+                exc_obj_expr_code = '""'
+            else:
+                exc_obj_expr_code = (
+                    _build_expr_code(code, stmt.exc_obj_expr, "object"))
+            code += ("throw new LarException("
+                     "new LarException.LarObjAssertionError(%s));" %
+                     exc_obj_expr_code)
+            code.blk_end()
+            continue
+        if stmt.type == "raise":
+            code += ("throw new LarException(%s);" %
+                     _build_expr_code(code, stmt.expr, "object"))
             continue
 
         raise Exception("unreachable stmt_type[%s]" % stmt.type)

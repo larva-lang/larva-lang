@@ -79,6 +79,13 @@ class _Stmt:
                 for stmt in self.finally_stmt_list:
                     stmt.link(curr_module, module_map, local_var_set,
                               curr_class)
+        if self.type == "assert":
+            self.expr.link(curr_module, module_map, local_var_set, curr_class)
+            if self.exc_obj_expr is not None:
+                self.exc_obj_expr.link(curr_module, module_map, local_var_set,
+                                       curr_class)
+        if self.type == "raise":
+            self.expr.link(curr_module, module_map, local_var_set, curr_class)
 
 def _parse_global_var_declare(token_list, global_var_set):
     while True:
@@ -233,6 +240,18 @@ def _parse_try(token_list, curr_indent_count, loop_deep):
     try_global_var_set |= global_var_set
     return try_stmt_list, except_list, finally_stmt_list, try_global_var_set
 
+def _parse_assert(token_list):
+    expr = larc_expr.parse_expr(token_list, True)
+    if token_list.peek().is_indent:
+        #没有附加异常对象
+        return expr, None
+    token_list.pop_sym(",")
+    exc_obj_expr = larc_expr.parse_expr(token_list, True)
+    return expr, exc_obj_expr
+
+def _parse_raise(token_list):
+    return larc_expr.parse_expr(token_list)
+
 def parse_stmt_list(token_list, upper_indent_count, loop_deep):
     """解析语句列表，返回列表和global变量名集合
        larva代码中，global变量名可在任意位置声明，不过最好在开头，免得歧义"""
@@ -315,6 +334,15 @@ def parse_stmt_list(token_list, upper_indent_count, loop_deep):
             t.syntax_err("未匹配的except")
         if t.is_finally:
             t.syntax_err("未匹配的finally")
+        if t.is_assert:
+            expr, exc_obj_expr = _parse_assert(token_list)
+            stmt_list.append(
+                _Stmt("assert", expr = expr, exc_obj_expr = exc_obj_expr))
+            continue
+        if t.is_raise:
+            expr = _parse_raise(token_list)
+            stmt_list.append(_Stmt("raise", expr = expr))
+            continue
 
         #剩下的就是表达式和赋值了
         token_list.revert()
