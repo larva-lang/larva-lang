@@ -12,6 +12,25 @@ public final class LarObjFloat extends LarObj
         m_value = Double.doubleToLongBits(value) == Long.MIN_VALUE ? 0.0 : value;
     }
 
+    LarObjFloat(LarObj obj) throws Exception
+    {
+        if (obj instanceof LarObjStr)
+        {
+            double value;
+            try
+            {
+                value = Double.parseDouble(((LarObjStr)obj).m_value);
+            }
+            catch (NumberFormatException exc)
+            {
+                throw new Exception("字符串无法转为float：'" + obj.op_str() + "'");
+            }
+            m_value = value;
+            return;
+        }
+        m_value = obj.to_float();
+    }
+
     public String get_type_name()
     {
         return "float";
