@@ -1,8 +1,0 @@
-*.pyc
-*.md~
-*.swo
-*.project
-*.pydevproject
-/.settings/
-.idea
-build
