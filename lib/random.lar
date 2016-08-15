@@ -1,44 +1,43 @@
-#coding=utf8
-
 /*
 random模块，产生随机数
 算法：Wichmann-Hill
       Wichmann, B. A. & Hill, I. D. (1982)
 */
 
-import time
+import time;
 
-seed = nil
+var seed = nil;
 
-func init_seed():
-    global seed
-    a = int(time.time() * 256)
-    a, x = a / 30268, a % 30268
-    a, y = a / 30306, a % 30306
-    a, z = a / 30322, a % 30322
-    seed = x + 1, y + 1, z + 1
+func _init_seed()
+{
+    var x, y, z;
+    var a = int(time.time() * 256);
+    a, x = a / 30268, a % 30268;
+    a, y = a / 30306, a % 30306;
+    a, z = a / 30322, a % 30322;
+    seed = (x + 1, y + 1, z + 1);
+}
 
-export func random():
-    global seed
-    if seed == nil:
-        init_seed()
-    x, y, z = seed
-    x = x * 171 % 30269
-    y = y * 172 % 30307
-    z = z * 170 % 30323
-    seed = x, y, z
-    return (x / 30269.0 + y / 30307.0 + z / 30323.0) % 1.0
+func random()
+{
+    if (seed == nil)
+    {
+        _init_seed();
+    }
+    var (x, y, z) = seed;
+    x, y, z = x * 171 % 30269,
+              y * 172 % 30307,
+              z * 170 % 30323;
+    seed = x, y, z;
+    return (x / 30269.0 + y / 30307.0 + z / 30323.0) % 1.0;
+}
 
-export func rand_int(a, b):
-    if a > b:
-        a, b = b, a
-    rand = long(random() * (b - a + 1))
-    return a + rand
-
-export func shuffle(l):
-    for i in range(len(l) - 1, 0, -1):
-        rand_i = rand_int(0, i)
-        tmp = l[i]
-        l[i] = l[rand_i]
-        l[rand_i] = tmp
-    return l
+func shuffle(l)
+{
+    for (var i = l.len() - 1; i > 0; -- i)
+    {
+        var rand_i = int(random() * (i + 1));
+        l[i], l[rand_i] = l[rand_i], l[i];
+    }
+    return l;
+}

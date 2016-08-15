@@ -7,13 +7,12 @@
 import sys
 
 def exit(msg):
-    print >> sys.stderr, msg.decode("utf8")
+    print >> sys.stderr, "Error:", msg.decode("utf8")
     sys.exit(1)
 
 def warning(msg):
-    print >> sys.stderr, msg.decode("utf8")
+    print >> sys.stderr, "Warning", msg.decode("utf8")
 
-#由于py2.7才有collections.OrderedDict，自实现一个
 class OrderedDict:
     def __init__(self):
         self.l = []
@@ -24,6 +23,9 @@ class OrderedDict:
 
     def __len__(self):
         return len(self.l)
+
+    def __nonzero__(self):
+        return len(self) > 0
 
     def __getitem__(self, k):
         return self.d[k]
@@ -44,6 +46,15 @@ class OrderedDict:
     def key_at(self, idx):
         return self.l[idx]
 
+    def value_at(self, idx):
+        return self.d[self.l[idx]]
+
+    def copy(self):
+        od = OrderedDict()
+        for name in self:
+            od[name] = self[name]
+        return od
+
 class OrderedSet:
     def __init__(self):
         self.d = OrderedDict()
@@ -54,5 +65,19 @@ class OrderedSet:
     def __len__(self):
         return len(self.d)
 
+    def __nonzero__(self):
+        return len(self) > 0
+
     def add(self, k):
         self.d[k] = None
+
+    def key_at(self, idx):
+        return self.d.key_at(idx)
+
+    def value_at(self, idx):
+        return self.d.value_at(idx)
+
+    def copy(self):
+        os = OrderedSet()
+        os.d = self.d.copy()
+        return os

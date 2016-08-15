@@ -4,4 +4,4 @@
 编译器输出模块，包含各种输出库
 """
 
-from . import to_java
+from . import to_go

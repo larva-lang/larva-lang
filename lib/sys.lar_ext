@@ -1,8 +1,0 @@
-#coding=utf8
-
-//sys模块，系统相关接口
-
-export argv //命令行参数列表
-
-export func exit() //相当于exit(0)
-export func exit(exit_code) //以exit_code为返回码退出程序

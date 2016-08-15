@@ -1,0 +1,12 @@
+//内置builtin模块
+
+extern class int
+{
+    extern func __init(obj);
+    extern func __init(str, base);
+}
+
+extern class str
+{
+    extern func __init(obj);
+}
