@@ -9,7 +9,6 @@ import getopt
 import os
 import larc_common
 import larc_module
-import larc_prog
 import larc_output
 
 def _show_usage_and_exit():

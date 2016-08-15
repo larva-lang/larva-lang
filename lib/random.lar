@@ -15,7 +15,7 @@ func _init_seed()
     a, x = a / 30268, a % 30268;
     a, y = a / 30306, a % 30306;
     a, z = a / 30322, a % 30322;
-    seed = (x + 1, y + 1, z + 1);
+    seed = x + 1, y + 1, z + 1;
 }
 
 func random()

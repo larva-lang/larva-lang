@@ -1,11 +1,10 @@
 #coding=utf8
 
-import larc_builtin
-import larc_expr
-
 """
 编译larva语句
 """
+
+import larc_expr
 
 class _Stmt:
     def __init__(self, type, **kw_arg):

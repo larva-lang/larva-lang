@@ -4,8 +4,6 @@
 编译larva表达式
 """
 
-import larc_builtin
-
 _UNARY_OP_SET = set(["~", "not", "neg", "pos"])
 _BINOCULAR_OP_SET = set(["%", "^", "&", "*", "-", "+", "|", "<", ">", "/",
                          "!=", "and", "==", "or", "<<", "<=", ">>", ">>>",
