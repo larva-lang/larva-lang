@@ -1,0 +1,12 @@
+//内置builtin模块
+
+native class int
+{
+    func __init(obj);
+    func __init(str, base);
+}
+
+native class str
+{
+    func __init(obj);
+}

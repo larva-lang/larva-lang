@@ -34,7 +34,7 @@ def main():
     lib_dir = os.path.join(os.path.dirname(compiler_dir), "lib")
 
     #预处理builtins等模块
-    larc_module.module_map["__builtin"] = larc_module.Module(os.path.join(lib_dir, "__builtin.lar"))
+    larc_module.module_map["__builtins"] = larc_module.Module(os.path.join(lib_dir, "__builtins.lar"))
 
     #先编译主模块
     main_file_path_name = os.path.abspath(args[0])

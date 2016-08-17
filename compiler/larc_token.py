@@ -32,7 +32,7 @@ _SYM_SET = set("""~!%^&*()-+|{}[]:;"'<,>.?/""") | set(["!=", "==", "<<", "<=", "
 
 #保留字集
 _RESERVED_WORD_SET = set(["if", "else", "while", "return", "break", "continue", "for", "nil", "func", "import", "true", "false", "class",
-                          "this", "super", "try", "catch", "finally", "assert", "throw", "var", "extern"])
+                          "this", "super", "try", "catch", "finally", "assert", "throw", "var", "native"])
 
 class _Token:
     def __init__(self, type, value, src_file, line_no, pos):
