@@ -11,7 +11,7 @@ var seed = nil;
 func _init_seed()
 {
     var x, y, z;
-    var a = int(time.time() * 256);
+    var a = (time.time() * 256).to_int();
     a, x = a / 30268, a % 30268;
     a, y = a / 30306, a % 30306;
     a, z = a / 30322, a % 30322;
@@ -34,9 +34,9 @@ func random()
 
 func shuffle(l)
 {
-    for (var i = l.len() - 1; i > 0; -- i)
+    for (var i : range(l.len() - 1, 0, -1))
     {
-        var rand_i = int(random() * (i + 1));
+        var rand_i = (random() * (i + 1)).to_int();
         l[i], l[rand_i] = l[rand_i], l[i];
     }
     return l;

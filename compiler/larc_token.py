@@ -31,7 +31,7 @@ BINOCULAR_OP_SYM_SET = set(["%", "^", "&", "*", "-", "+", "|", "<", ">", "/", "!
 _SYM_SET = set("""~!%^&*()-+|{}[]:;"'<,>.?/""") | set(["!=", "==", "<<", "<=", ">>", ">=", "&&", "||"]) | ASSIGN_SYM_SET | INC_DEC_SYM_SET
 
 #保留字集
-_RESERVED_WORD_SET = set(["if", "else", "while", "return", "break", "continue", "for", "nil", "func", "import", "true", "false", "class",
+_RESERVED_WORD_SET = set(["if", "else", "while", "do", "return", "break", "continue", "for", "nil", "func", "import", "true", "false", "class",
                           "this", "super", "try", "catch", "finally", "assert", "throw", "var", "native"])
 
 class _Token:
@@ -277,7 +277,7 @@ def _parse_token(src_file, line_no, line, pos):
             return _Token("literal_nil", w, src_file, line_no, pos), len(w)
         return _Token("word", w, src_file, line_no, pos), len(w)
 
-    raise Exception("bug")
+    raise Exception("Bug")
 
 def parse_token_list(src_file):
     f = open(src_file)
@@ -338,3 +338,18 @@ def parse_token_list(src_file):
     token_list.join_str_literal()
 
     return token_list
+
+def parse_token_list_until_sym(token_list, end_sym_set):
+    sub_token_list = TokenList(token_list.src_file)
+    stk = []
+    while True:
+        t = token_list.pop()
+        sub_token_list.append(t)
+        if t.is_sym and t.value in end_sym_set and not stk:
+            return sub_token_list, t.value
+        if t.is_sym and t.value in ("(", "[", "{"):
+            stk.append(t)
+        if t.is_sym and t.value in (")", "]", "}"):
+            if not stk or t.value != {"(" : ")", "[" : "]", "{" : "}"}[stk[-1].value]:
+                t.syntax_err("未匹配的'%s'" % t.value)
+            stk.pop()

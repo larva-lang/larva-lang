@@ -36,7 +36,7 @@ def main():
     #预处理builtins等模块
     larc_module.module_map["__builtins"] = larc_module.Module(os.path.join(lib_dir, "__builtins.lar"))
 
-    #先编译主模块
+    #先预处理主模块
     main_file_path_name = os.path.abspath(args[0])
     if not main_file_path_name.endswith(".lar"):
         larc_common.exit("非法的主模块文件名[%s]" % main_file_path_name)
@@ -49,20 +49,32 @@ def main():
     src_dir = os.path.dirname(main_file_path_name)
     module_dir_list = [src_dir, lib_dir]
 
-    #编译所有涉及到的模块
-    compiling_set = main_module.dep_module_set #需要编译的模块名集合
+    #预处理所有涉及到的模块
+    compiling_set = main_module.dep_module_set #需要预处理的模块名集合
     while compiling_set:
         new_compiling_set = set()
         for module_name in compiling_set:
             if module_name in larc_module.module_map:
-                #已编译过
+                #已预处理过
                 continue
             module_file_path_name = _find_module_file(module_dir_list, module_name)
             larc_module.module_map[module_name] = m = larc_module.Module(module_file_path_name)
             new_compiling_set |= m.dep_module_set
         compiling_set = new_compiling_set
 
-    larc_module.link()
+    #主模块main函数检查
+    if ("main", 1) not in main_module.func_map:
+        larc_common.exit("主模块[%s]没有func main(argv)" % main_module.name)
+
+    #检查子类的继承是否合法
+    '''
+    for m in larc_module.module_map.itervalues():
+        m.check_sub_class()
+    '''
+
+    #正式编译各模块
+    for m in larc_module.module_map.itervalues():
+        m.compile()
 
     #暂时写死output流程
     output_lib = larc_output.to_go

@@ -32,7 +32,7 @@ var loops = 50000000,
     Char1Glob = 0,
     Char2Glob = 0,
     Array1Glob = [0] * 51,
-    Array2Glob = [[0] * 51 for i in range(51)],
+    Array2Glob = [[0] * 51 for (var i : range(51))],
 
     PtrGlb = nil,
     PtrGlbNext = nil;
@@ -90,7 +90,7 @@ func Proc8(Array1Par, Array2Par, IntParI1, IntParI2)
     Array1Par[IntLoc] = IntParI2;
     Array1Par[IntLoc + 1] = Array1Par[IntLoc];
     Array1Par[IntLoc + 30] = IntLoc;
-    for (var IntIndex = IntLoc; IntIndex <= IntLoc + 1; ++ IntIndex)
+    for (var IntIndex : range(IntLoc, IntLoc + 2))
     {
         Array2Par[IntLoc][IntIndex] = IntLoc;
     }
@@ -223,7 +223,7 @@ func Proc0()
     var String1Loc = "DHRYSTONE PROGRAM, 1'ST STRING";
     Array2Glob[8][7] = 10;
 
-    for (var i = 0; i < loops; ++ i)
+    for (var i : range(loops))
     {
         Proc5();
         Proc4();
@@ -241,7 +241,7 @@ func Proc0()
         }
         Proc8(Array1Glob, Array2Glob, IntLoc1, IntLoc3);
         PtrGlb = Proc1(PtrGlb);
-        for (var CharIndex = 65; CharIndex <= Char2Glob; ++ CharIndex)
+        for (var CharIndex : range(65, Char2Glob + 1))
         {
             if (EnumLoc == Func1(CharIndex, 67))
             {
@@ -259,7 +259,7 @@ func main(argv)
 {
     if (argv.len() > 1)
     {
-        loops = int(argv[1]);
+        loops = argv[1].to_int();
     }
     var ts = time.time();
     Proc0();

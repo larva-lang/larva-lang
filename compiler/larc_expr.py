@@ -4,36 +4,23 @@
 编译larva表达式
 """
 
-_UNARY_OP_SET = set(["~", "not", "neg", "pos"])
-_BINOCULAR_OP_SET = set(["%", "^", "&", "*", "-", "+", "|", "<", ">", "/",
-                         "!=", "and", "==", "or", "<<", "<=", ">>", ">>>",
-                         ">=", "in", "not in"])
-"""
-运算优先级相关的若干说明：
+import larc_common
+import larc_token
+import larc_module
 
-没有实现**运算，原因有几点：
-1 **是唯一一个右结合的二元运算符，且不常用，容易产生歧义
-2 **和单目运算的优先级关系较为复杂，跟单目运算符的左右位置有关
-  即如-a**b相当于-(a**b)，而a**-b相当于a**(-b)，一来容易搞混，二来编译实现麻烦
-3 整数的幂运算一般来说都是比较大的数字，因此定义为一个输入可以是int或long，
-  输出统一为long的pow函数可能更合适些
-
-not、位运算的优先级和py一致，但是和java、C都有区别，编译时not需做特殊处理
-
-[]（下标），()（调用），.（属性），list（构造list），dict（构造dict）等运算的
-优先级最高，解析时做特殊处理，不进入这个表
-"""
-_OP_PRIORITY_LIST = [["or"],
-                     ["and"],
-                     ["not"],
-                     ["==", "!=", "<", "<=", ">", ">=", "in", "not in"],
+_UNARY_OP_SET = set(["~", "!", "neg", "pos"])
+_BINOCULAR_OP_SET = larc_token.BINOCULAR_OP_SYM_SET
+_OP_PRIORITY_LIST = [["?", ":", "?:"],
+                     ["||"],
+                     ["&&"],
+                     ["==", "!=", "<", "<=", ">", ">="],
                      ["|"],
                      ["^"],
                      ["&"],
-                     ["<<", ">>", ">>>"],
+                     ["<<", ">>"],
                      ["+", "-"],
                      ["*", "/", "%"],
-                     ["~", "neg", "pos"]]
+                     ["~", "!", "neg", "pos"]]
 _OP_PRIORITY_MAP = {}
 for _i in xrange(len(_OP_PRIORITY_LIST)):
     for _op in _OP_PRIORITY_LIST[_i]:
@@ -42,15 +29,10 @@ del _i
 del _op
 
 def _is_expr_end(t):
-    if t.is_indent:
-        return True
     if t.is_sym:
-        if t.value in "=)]}:,":
+        if t.value in set([")", "]", "}", ":", ","]) | larc_token.ASSIGN_SYM_SET:
             return True
-        if t.value in ("%=", "^=", "&=", "*=", "-=", "+=", "|=", "/=",
-                       "<<=", ">>=", ">>>="):
-            return True
-    if t.is_for or t.is_if:
+    if t.is_reserved and t.value in ("for", "if"):
         return True
     return False
 
@@ -58,7 +40,7 @@ class _Expr:
     def __init__(self, op, arg):
         self.op = op
         self.arg = arg
-        if op in ("name", ".", "[]", "[:]"):
+        if op in ("this.attr", "global_var", "local_var", "[]", "[:]", "."):
             self.is_lvalue = True
         elif op in ("tuple", "list"):
             if self.arg:
@@ -72,378 +54,12 @@ class _Expr:
         else:
             self.is_lvalue = False
 
-    def link(self, curr_module, module_map, local_var_set = None,
-             curr_class = None):
-        self._link(curr_module, module_map, local_var_set, curr_class)
-        self._check()
-
-    def _link(self, curr_module, module_map, local_var_set, curr_class):
-        """链接表达式，主要做：
-           1 所有name转成对应名字空间
-           2 对于函数调用运算，改变expr形式
-           3 对于方法调用运算，改变expr形式
-           4 对于外部模块的"."运算，视情况改变形式
-           5 常量表"""
-        if self.op == "const":
-            for const_type in "float", "long", "int", "str", "byte":
-                if getattr(self.arg, "is_const_" + const_type):
-                    const_key = const_type, self.arg.value
-                    if const_key in curr_module.const_map:
-                        const_idx = curr_module.const_map[const_key]
-                    else:
-                        const_idx = len(curr_module.const_map)
-                        curr_module.const_map[const_key] = const_idx
-                    self.op = "const_idx"
-                    self.arg = const_idx
-                    return
-            assert self.arg.is_true or self.arg.is_false or self.arg.is_nil
-            return
-        if self.op == "name":
-            name = self.arg.value
-            #由内而外找名字空间
-            if local_var_set is not None and name in local_var_set:
-                self.op = "local_name"
-                return
-            if name in curr_module.global_var_map:
-                self.op = "global_name"
-                return
-            if name in [_func_name
-                        for _func_name, _arg_count in curr_module.func_map]:
-                self.op = "func_name"
-                return
-            if name in curr_module.class_map:
-                self.op = "class_name"
-                return
-            if name in curr_module.dep_module_set:
-                self.op = "module_name"
-                return
-            if name in larc_builtin.builtin_if_name_set:
-                self.op = "builtin_if_name"
-                return
-            self.arg.syntax_err("找不到名字'%s'" % name)
-        if self.op == "dict":
-            for ek, ev in self.arg:
-                ek._link(curr_module, module_map, local_var_set, curr_class)
-                ev._link(curr_module, module_map, local_var_set, curr_class)
-            return
-        if self.op == "()":
-            ec, el = self.arg
-            ec._link(curr_module, module_map, local_var_set, curr_class)
-            for e in el:
-                e._link(curr_module, module_map, local_var_set, curr_class)
-            if ec.op == "func_name":
-                #模块内函数调用，需检查参数匹配情况
-                func_key = ec.arg.value, len(el)
-                if func_key not in curr_module.func_map:
-                    ec.arg.syntax_err("找不到匹配的函数：%d个参数的'%s'" %
-                                      (len(el), ec.arg.value))
-                self.op = "call_func"
-                self.arg = [ec.arg, el]
-                return
-            if ec.op == "class_name":
-                #创建类实例，检查构造函数参数匹配情况
-                cls = curr_module.class_map[ec.arg.value]
-                method_key = "__init__", len(el)
-                if method_key not in cls.method_map:
-                    ec.arg.syntax_err(
-                        "类'%s'找不到匹配的构造方法：%d个参数的'__init__'" %
-                        (cls.name, len(el)))
-                self.op = "call_class"
-                self.arg = [ec.arg, el]
-                return
-            if ec.op == "builtin_if_name":
-                #内置函数（或类）调用，检查参数匹配情况
-                builtin_if_key = ec.arg.value, len(el)
-                if builtin_if_key not in larc_builtin.builtin_if_set:
-                    ec.arg.syntax_err("找不到匹配的内置接口：%d个参数的'%s'" %
-                                      (len(el), ec.arg.value))
-                self.op = "call_builtin_if"
-                self.arg = [ec.arg, el]
-                return
-            if ec.op == ".":
-                #方法调用，或属性的()运算，不做区分
-                self.op = "call_method"
-                self.arg = ec.arg + [el]
-                return
-            if ec.op == "module.func":
-                #外部函数调用，检查参数匹配情况
-                module = module_map[ec.arg[0].value]
-                func_key = ec.arg[1].value, len(el)
-                if func_key not in module.func_map:
-                    ec.arg[1].syntax_err(
-                        "模块'%s'中找不到匹配的函数：%d个参数的'%s'" %
-                        (module.name, len(el), ec.arg[1].value))
-                self.op = "call_module_func"
-                self.arg = ec.arg + [el]
-                return
-            if ec.op == "module.class":
-                #外部函数调用，检查参数匹配情况
-                module = module_map[ec.arg[0].value]
-                cls = module.class_map[ec.arg[1].value]
-                method_key = "__init__", len(el)
-                if method_key not in cls.method_map:
-                    ec.arg[1].syntax_err(
-                        "模块'%s'的类'%s'中找不到匹配的构造方法："
-                        "%d个参数的'__init__'" %
-                        (module.name, cls.name, len(el)))
-                self.op = "call_module_class"
-                self.arg = ec.arg + [el]
-                return
-
-            def _has_method(method_key, cls):
-                #根据method_key查找方法
-                while cls is not None:
-                    if method_key in cls.method_map:
-                        return True
-                    cls = cls.base_class
-                return False
-
-            if ec.op in ("this.method", "super.method"):
-                #方法调用，检查参数匹配情况
-                inst = ec.op.split(".")[0]
-                method_key = ec.arg.value, len(el)
-                if inst == "this":
-                    cls = curr_class
-                else:
-                    cls = curr_class.base_class
-                if not _has_method(method_key, cls):
-                    ec.arg.syntax_err("找不到匹配的方法：%d个参数的'%s'" %
-                                      (len(el), ec.arg.value))
-                self.op = "call_method"
-                self.arg = [_Expr(inst, None), ec.arg, el]
-                return
-            if ec.op == "int":
-                if len(el) not in (1, 2):
-                    ec.arg.syntax_err("int转换参数数量应该为1或2个")
-                self.op = "int()"
-                self.arg = el
-                return
-            #其余情况，属于对象的()运算
-            return
-        if self.op == ".":
-            e, attr = self.arg
-            e._link(curr_module, module_map, local_var_set, curr_class)
-            if e.op == "module_name":
-                #引用其他模块的内容
-                module = module_map[e.arg.value]
-                if attr.value in module.export_global_var_set:
-                    self.op = "module.global"
-                elif attr.value in [_func_name
-                                    for _func_name, _arg_count in
-                                    module.export_func_set]:
-                    self.op = "module.func"
-                elif attr.value in module.export_class_set:
-                    self.op = "module.class"
-                else:
-                    attr.syntax_err("模块'%s'没有'%s'" %
-                                    (e.arg.value, attr.value))
-                self.arg = [e.arg, attr]
-                return
-
-            def _has_method(method_name, cls):
-                #根据名字查找方法
-                while cls is not None:
-                    if (method_name in
-                        [name for name, arg_count in cls.method_map]):
-                        return True
-                    cls = cls.base_class
-                return False
-
-            if e.op == "this":
-                #可能是this.属性或this.方法，检查
-                assert curr_class is not None
-                if _has_method(attr.value, curr_class):
-                    #方法
-                    self.op = "this.method"
-                else:
-                    #属性，所有出现的属性都添加到类的信息
-                    self.op = "this.attr"
-                    curr_class.attr_set.add(attr.value)
-                self.arg = attr
-                return
-            if e.op == "super":
-                assert curr_class is not None
-                base_class = curr_class.base_class
-                assert base_class is not None
-                #只允许super.方法
-                if _has_method(attr.value, base_class):
-                    self.op = "super.method"
-                else:
-                    attr.syntax_err("找不到方法'%s'" % attr.value)
-                self.arg = attr
-                return
-            #其余情况，属于对象的"."运算
-            return
-        if self.op == "[:]":
-            eo, el = self.arg
-            eo._link(curr_module, module_map, local_var_set, curr_class)
-            for e in el:
-                if e is not None:
-                    e._link(curr_module, module_map, local_var_set, curr_class)
-            return
-        if self.op == "list_compr":
-            e, lvalue, name_set, expr, if_expr = self.arg
-            expr._link(curr_module, module_map, local_var_set, curr_class)
-            assert lvalue.op in ("name", "tuple", "list")
-            if local_var_set is None:
-                compr_local_var_set = name_set
-            else:
-                compr_local_var_set = local_var_set | name_set
-            e._link(curr_module, module_map, compr_local_var_set, curr_class)
-            lvalue._link(curr_module, module_map, compr_local_var_set,
-                         curr_class)
-            if if_expr is not None:
-                if_expr._link(curr_module, module_map, compr_local_var_set,
-                              curr_class)
-            self.arg = [expr, compr_local_var_set, e, lvalue, name_set,
-                        if_expr]
-            return
-        if self.op == "dict_compr":
-            ek, ev, lvalue, name_set, expr, if_expr = self.arg
-            expr._link(curr_module, module_map, local_var_set, curr_class)
-            assert lvalue.op in ("name", "tuple", "list")
-            if local_var_set is None:
-                compr_local_var_set = name_set
-            else:
-                compr_local_var_set = local_var_set | name_set
-            ek._link(curr_module, module_map, compr_local_var_set, curr_class)
-            ev._link(curr_module, module_map, compr_local_var_set, curr_class)
-            lvalue._link(curr_module, module_map, compr_local_var_set,
-                         curr_class)
-            if if_expr is not None:
-                if_expr._link(curr_module, module_map, compr_local_var_set,
-                              curr_class)
-            self.arg = [expr, compr_local_var_set, ek, ev, lvalue, name_set,
-                        if_expr]
-            return
-        if self.op == "lambda":
-            arg_list, e = self.arg
-            if local_var_set is None:
-                lambda_local_var_set = set(arg_list)
-            else:
-                lambda_local_var_set = local_var_set | set(arg_list)
-            e._link(curr_module, module_map, lambda_local_var_set, curr_class)
-            self.arg = [lambda_local_var_set, arg_list, e]
-            return
-        if self.op == "this":
-            if curr_class is None:
-                self.arg.syntax_err("this必须出现在方法中")
-            return
-        if self.op == "super":
-            if curr_class is None:
-                self.arg.syntax_err("super必须出现在方法中")
-            if curr_class.base_class is None:
-                self.arg.syntax_err("super必须出现在子类方法中")
-            return
-        if self.op == "int":
-            return
-        if self.op == ".int":
-            e = self.arg
-            e._link(curr_module, module_map, local_var_set, curr_class)
-            if e.op == "[]":
-                self.op = "[].int"
-                self.arg = e.arg
-            return
-
-        #其余类型，包括单目、双目运算、下标、tuple和list构造等
-        assert (self.op in _UNARY_OP_SET or self.op in _BINOCULAR_OP_SET or
-                self.op in ("[]", "tuple", "list")), self.op
-        for e in self.arg:
-            e._link(curr_module, module_map, local_var_set, curr_class)
-
-    def _check(self):
-        #检查表达式
-        if self.op in ("const", "const_idx", "local_name", "global_name",
-                       "module.global", "this.attr"):
-            return
-        if self.op == "module_name":
-            self.arg.syntax_err("模块名不能作为值")
-        if self.op == "func_name":
-            self.arg.syntax_err("函数名不能作为值")
-        if self.op == "class_name":
-            self.arg.syntax_err("类名不能作为值")
-        if self.op == "module.func":
-            self.arg.syntax_err("外部函数不能作为值")
-        if self.op == "module.class":
-            self.arg.syntax_err("外部类不能作为值")
-        if self.op == "builtin_if_name":
-            self.arg.syntax_err("内置接口不能作为值")
-        if self.op in ("this.method", "super.method"):
-            self.arg.syntax_err("方法不能作为值")
-        if self.op == "int":
-            self.arg.syntax_err("int不能作为值")
-        if self.op == "dict":
-            for ek, ev in self.arg:
-                ek._check()
-                ev._check()
-            return
-        if self.op == "()":
-            ec, el = self.arg
-            ec._check()
-            for e in el:
-                e._check()
-            return
-        if self.op == "int()":
-            for e in self.arg:
-                e._check()
-            return
-        if self.op in ("call_func", "call_class", "call_method",
-                       "call_module_func", "call_module_class",
-                       "call_builtin_if", "call_this_method",
-                       "call_super_method"):
-            for e in self.arg[-1]:
-                e._check()
-            if self.op == "call_method":
-                self.arg[0]._check()
-            return
-        if self.op == ".":
-            self.arg[0]._check()
-            return
-        if self.op == "[:]":
-            eo, el = self.arg
-            eo._check()
-            for e in el:
-                if e is not None:
-                    e._check()
-            return
-        if self.op == "list_compr":
-            expr, compr_local_var_set, e, lvalue, name_set, if_expr = self.arg
-            expr._check()
-            e._check()
-            lvalue._check()
-            if if_expr is not None:
-                if_expr._check()
-            return
-        if self.op == "dict_compr":
-            expr, compr_local_var_set, ek, ev, lvalue, name_set, if_expr = (
-                self.arg)
-            expr._check()
-            ek._check()
-            ev._check()
-            lvalue._check()
-            if if_expr is not None:
-                if_expr._check()
-            return
-        if self.op == "lambda":
-            lambda_local_var_set, arg_list, e = self.arg
-            e._check()
-            return
-        if self.op in ("this", "super"):
-            return
-        if self.op == ".int":
-            self.arg._check()
-            return
-
-        #其余类型，包括单目、双目运算、下标、tuple和list构造等
-        assert (self.op in _UNARY_OP_SET or self.op in _BINOCULAR_OP_SET or
-                self.op in ("[]", "[].int", "tuple", "list")), self.op
-        for e in self.arg:
-            e._check()
-
 class _ParseStk:
     #解析表达式时使用的栈
-    def __init__(self, start_token):
+    def __init__(self, start_token, module, cls):
         self.start_token = start_token
+        self.module = module
+        self.cls = cls
         self.stk = []
         self.op_stk = []
 
@@ -451,18 +67,20 @@ class _ParseStk:
         #弹出所有优先级高的运算
         while self.op_stk:
             if _OP_PRIORITY_MAP[self.op_stk[-1]] > _OP_PRIORITY_MAP[op]:
-                #特殊处理单目运算符not
-                if op == "not":
-                    self.start_token.syntax_err("运算符'not'位置错误")
                 self._pop_top_op()
             elif _OP_PRIORITY_MAP[self.op_stk[-1]] < _OP_PRIORITY_MAP[op]:
                 break
             else:
                 #同优先级看结合性
-                if op in _UNARY_OP_SET:
-                    #单目运算符右结合
+                if op in _UNARY_OP_SET or op in ("?", ":"):
+                    #单目、三目运算符右结合
                     break
                 self._pop_top_op()
+        if op == ":":
+            if not self.op_stk or self.op_stk[-1] != "?":
+                self.start_token.syntax_err("非法的表达式，存在未匹配'?'的':'")
+            self.op_stk[-1] = "?:"
+            return
         self.op_stk.append(op)
 
     def _pop_top_op(self):
@@ -480,8 +98,18 @@ class _ParseStk:
             eb = self.stk.pop()
             ea = self.stk.pop()
             self.stk.append(_Expr(op, [ea, eb]))
+        elif op == "?":
+            self.start_token.syntax_err("非法的表达式，存在未匹配':'的'?'")
+        elif op == "?:":
+            #三目运算符
+            if len(self.stk) < 3:
+                self.start_token.syntax_err("非法的表达式")
+            ec = self.stk.pop()
+            eb = self.stk.pop()
+            ea = self.stk.pop()
+            self.stk.append(_Expr(op, (ea, eb, ec)))
         else:
-            raise Exception("unreachable")
+            raise Exception("Bug")
 
     def push_expr(self, e):
         self.stk.append(e)
@@ -508,43 +136,6 @@ def _parse_expr_list(token_list, end_sym):
             continue
         t.syntax_err("需要','或'%s'" % end_sym)
 
-def _parse_compr(token_list, end_sym):
-    assert token_list.pop().is_for
-    t = token_list.peek()
-    #下述代码说明参考larc_stmt中的_parse_for
-    lvalue = parse_expr(token_list, end_at_in = True)
-    t = token_list.pop()
-    if not t.is_in:
-        t.syntax_err("需要'in'")
-    expr = parse_expr(token_list)
-
-    name_set = set()
-    def _valid_lvalue(lvalue):
-        #判断是否变量名或仅含变量名的unpack左值
-        #同时收集变量名到name_set
-        if lvalue.op == "name":
-            name_set.add(lvalue.arg.value)
-            return True
-        if lvalue.op in ("tuple", "list"):
-            for unpack_lvalue in lvalue.arg:
-                if not _valid_lvalue(unpack_lvalue):
-                    return False
-            return True
-        return False
-
-    if not _valid_lvalue(lvalue):
-        t.syntax_err("迭代元素必须是变量名或仅含变量名的unpack左值")
-
-    t = token_list.pop()
-    if t.is_if:
-        if_expr = parse_expr(token_list, True)
-        t = token_list.pop()
-    else:
-        if_expr = None
-    if t.is_sym(end_sym):
-        return [lvalue, name_set, expr, if_expr]
-    t.syntax_err("需要'%s'" % end_sym)
-
 def _parse_dict_expr_list(token_list):
     if token_list.peek().is_sym("}"):
         #空字典
@@ -563,51 +154,43 @@ def _parse_dict_expr_list(token_list):
             continue
         t.syntax_err("需要','或'}'")
 
-def parse_expr(token_list, end_at_comma = False, end_at_in = False):
-    parse_stk = _ParseStk(token_list.peek())
+def parse_expr(token_list, module, cls, var_set_list, non_local_var_used_map, end_at_comma = False):
+    parse_stk = _ParseStk(token_list.peek(), module, cls)
     while True:
         #状态：等待表达式的开始
         #包括单目运算、名字、常量、tuple、list、dict、圆括号开头的子表达式等
         t = token_list.pop()
-        if t.is_sym and t.value in "~+-" or t.is_not:
+        if t.is_sym and t.value in ("~", "!", "+", "-"):
             #单目运算
-            if t.value == "+":
-                op = "pos"
-            elif t.value == "-":
-                op = "neg"
-            else:
-                op = t.value
-            parse_stk.push_op(op)
+            parse_stk.push_op({"+" : "pos", "-" : "neg"}.get(t.value, t.value))
             continue
+
         if t.is_sym("("):
             if token_list.peek().is_sym(")"):
                 #空元组
-                token_list.pop()
+                token_list.pop_sym(")")
                 parse_stk.push_expr(_Expr("tuple", []))
             else:
                 #子表达式开始，使用递归解析
-                parse_stk.push_expr(parse_expr(token_list))
+                parse_stk.push_expr(parse_expr(token_list, module, cls, var_set_list, non_local_var_used_map))
                 token_list.pop_sym(")")
         elif t.is_sym("["):
             #列表
             if token_list.peek().is_sym("]"):
-                token_list.pop()
+                token_list.pop_sym("]")
                 parse_stk.push_expr(_Expr("list", []))
             else:
                 #先解析一个表达式
                 idx = token_list.i
-                e = parse_expr(token_list, True)
+                e = parse_expr(token_list, module, cls, var_set_list, non_local_var_used_map, end_at_comma = True)
                 t = token_list.peek()
                 if t.is_sym(",") or t.is_sym("]"):
                     #正常列表
                     token_list.revert(idx)
-                    parse_stk.push_expr(
-                        _Expr("list", _parse_expr_list(token_list, "]")))
+                    parse_stk.push_expr(_Expr("list", _parse_expr_list(token_list, "]")))
                 elif t.is_for:
                     #列表解析式
-                    parse_stk.push_expr(
-                        _Expr("list_compr",
-                              [e] + _parse_compr(token_list, "]")))
+                    parse_stk.push_expr(_Expr("list_compr", [e] + _parse_compr(token_list, "]")))
                 else:
                     t.syntax_err("需要','、']'或'for'")
         elif t.is_sym("{"):
@@ -618,20 +201,17 @@ def parse_expr(token_list, end_at_comma = False, end_at_in = False):
             else:
                 #先解析一对键值
                 idx = token_list.i
-                ek = parse_expr(token_list, True)
+                ek = parse_expr(token_list, module, cls, var_set_list, non_local_var_used_map, end_at_comma = True)
                 token_list.pop_sym(":")
-                ev = parse_expr(token_list, True)
+                ev = parse_expr(token_list, module, cls, var_set_list, non_local_var_used_map, end_at_comma = True)
                 t = token_list.peek()
                 if t.is_sym(",") or t.is_sym("}"):
                     #正常字典
                     token_list.revert(idx)
-                    parse_stk.push_expr(
-                        _Expr("dict", _parse_dict_expr_list(token_list)))
+                    parse_stk.push_expr(_Expr("dict", _parse_dict_expr_list(token_list)))
                 elif t.is_for:
                     #字典解析式
-                    parse_stk.push_expr(
-                        _Expr("dict_compr",
-                              [ek, ev] + _parse_compr(token_list, "}")))
+                    parse_stk.push_expr(_Expr("dict_compr", [ek, ev] + _parse_compr(token_list, "}")))
                 else:
                     t.syntax_err("需要','、'}'或'for'")
         elif t.is_name:
@@ -639,52 +219,12 @@ def parse_expr(token_list, end_at_comma = False, end_at_in = False):
             parse_stk.push_expr(_Expr("name", t))
         elif t.is_const:
             parse_stk.push_expr(_Expr("const", t))
-        elif t.is_lambda:
-            #lambda表达式，先解析参数列表
-            arg_list = []
-            """参数列表两边的括号可加可不加，这里若直接调用parse_expr
-               然后判断是name或含有一堆name的tuple也可以，
-               不过我认为这种形式可能导致误解为python的参数自动unpack：
-               lambda ((x,y,z)) : ...
-               因此特殊处理语法"""
-            if token_list.peek().is_sym("("):
-                arg_with_parenthesis = True
-                token_list.pop_sym("(")
-                if token_list.peek().is_sym(")"):
-                    has_arg = False
-                    token_list.pop_sym(")")
-                    token_list.pop_sym(":")
-                else:
-                    has_arg = True
-            else:
-                arg_with_parenthesis = False
-                if token_list.peek().is_sym(":"):
-                    has_arg = False
-                    token_list.pop_sym(":")
-                else:
-                    has_arg = True
-            if has_arg:
-                while True:
-                    arg_list.append(token_list.pop_name())
-                    if token_list.peek().is_sym(","):
-                        token_list.pop_sym(",")
-                        continue
-                    if arg_with_parenthesis:
-                        token_list.pop_sym(")")
-                    token_list.pop_sym(":")
-                    break
-            e = parse_expr(token_list, True)
-            parse_stk.push_expr(
-                _Expr("lambda", [arg_list, e]))
-        elif t.is_this or t.is_super:
+        elif t.is_reserved("this"):
             parse_stk.push_expr(_Expr(t.value, t))
         elif t.is_sym("."):
             #省略this的写法，补上this
             parse_stk.push_expr(_Expr("this", t))
             token_list.revert()
-        elif t.is_int:
-            #int转换
-            parse_stk.push_expr(_Expr("int", t))
         else:
             t.syntax_err("非法的表达式")
 

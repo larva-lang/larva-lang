@@ -2,11 +2,23 @@
 
 native class int
 {
-    func __init(obj);
-    func __init(str, base);
+}
+
+native class float
+{
+    func to_int();
 }
 
 native class str
 {
     func __init(obj);
+    func to_int();
+    func to_int(radix);
+}
+
+native class range
+{
+    func __init(start);
+    func __init(start, end);
+    func __init(start, end, step);
 }
