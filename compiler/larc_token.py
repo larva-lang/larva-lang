@@ -89,6 +89,9 @@ class _Token:
     def syntax_err(self, msg = ""):
         larc_common.exit("语法错误：文件[%s]行[%d]列[%d]%s" % (self.src_file, self.line_no, self.pos + 1, msg))
 
+    def warning(self, msg):
+        larc_common.warning("文件[%s]行[%d]列[%d]%s" % (self.src_file, self.line_no, self.pos + 1, msg))
+
 class TokenList:
     def __init__(self, src_file):
         self.src_file = src_file

@@ -6,16 +6,16 @@ class Record
 
     func __init()
     {
-        .Discr, .EnumComp, .IntComp = 0, 0, 0;
+        Discr, EnumComp, IntComp = 0, 0, 0;
     }
 
     func assign(other)
     {
-        .PtrComp = other.PtrComp;
-        .Discr = other.Discr;
-        .EnumComp = other.EnumComp;
-        .IntComp = other.IntComp;
-        .StringComp = other.StringComp;
+        PtrComp = other.PtrComp;
+        Discr = other.Discr;
+        EnumComp = other.EnumComp;
+        IntComp = other.IntComp;
+        StringComp = other.StringComp;
     }
 }
 

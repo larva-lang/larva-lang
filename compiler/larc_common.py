@@ -8,6 +8,7 @@ import sys
 
 def exit(msg):
     print >> sys.stderr, "Error:", msg.decode("utf8")
+    #raise
     sys.exit(1)
 
 def warning(msg):

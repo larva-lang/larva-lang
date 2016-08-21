@@ -30,7 +30,7 @@ del _op
 
 def _is_expr_end(t):
     if t.is_sym:
-        if t.value in set([")", "]", "}", ":", ","]) | larc_token.ASSIGN_SYM_SET:
+        if t.value in set([")", "]", "}", ":", ",", ";"]) | larc_token.ASSIGN_SYM_SET:
             return True
     if t.is_reserved and t.value in ("for", "if"):
         return True
@@ -107,7 +107,7 @@ class _ParseStk:
             ec = self.stk.pop()
             eb = self.stk.pop()
             ea = self.stk.pop()
-            self.stk.append(_Expr(op, (ea, eb, ec)))
+            self.stk.append(_Expr(op, [ea, eb, ec]))
         else:
             raise Exception("Bug")
 
@@ -121,14 +121,14 @@ class _ParseStk:
             self.start_token.syntax_err("非法的表达式")
         return self.stk.pop()
 
-def _parse_expr_list(token_list, end_sym):
+def _parse_expr_list(token_list, module, cls, var_set_list, non_local_var_used_map, end_sym):
     if token_list.peek().is_sym(end_sym):
         #空列表
         token_list.pop_sym(end_sym)
         return []
     expr_list = []
     while True:
-        expr_list.append(parse_expr(token_list, True))
+        expr_list.append(parse_expr(token_list, module, cls, var_set_list, non_local_var_used_map, end_at_comma = True))
         t = token_list.pop()
         if t.is_sym(end_sym):
             return expr_list
@@ -153,6 +153,38 @@ def _parse_dict_expr_list(token_list):
         if t.is_sym(","):
             continue
         t.syntax_err("需要','或'}'")
+
+def _parse_method_or_attr_of_this_cls((t, name), token_list, module, cls, var_set_list, non_local_var_used_map):
+    if cls.has_attr(name):
+        return _Expr("this.attr", name)
+
+    if not cls.has_method(name):
+        t.syntax_err("类'%s'没有属性或方法'%s'" % (cls, name))
+
+    token_list.pop_sym("(")
+    expr_list = _parse_expr_list(token_list, module, cls, var_set_list, non_local_var_used_map, ")")
+    if not cls.has_method(name, len(expr_list)):
+        t.syntax_err("类'%s'没有方法'%s(...%d args)'" % (cls, name, len(expr_list)))
+    return _Expr("call_this.method", (cls.get_method(name, len(expr_list)), expr_list))
+
+def _parse_global_elem(m, (t, name), token_list, module, cls, var_set_list, non_local_var_used_map):
+    if m.has_global_var(name):
+        return _Expr("global_var", m.get_global_var(name))
+
+    if not m.has_cls(name) and not m.has_func(name):
+        t.syntax_err("模块'%s'没有名为'%s'的类、函数或全局变量" % (m, name))
+
+    token_list.pop_sym("(")
+    expr_list = _parse_expr_list(token_list, module, cls, var_set_list, non_local_var_used_map, ")")
+    if m.has_func(name):
+        if not m.has_func(name, len(expr_list)):
+            t.syntax_err("模块'%s'没有方法'%s(...%d args)'" % (m, name, len(expr_list)))
+        return _Expr("call_func", (m.get_func(name, len(expr_list)), expr_list))
+
+    callee_cls = m.get_cls(name)
+    if not callee_cls.has_method("__init", len(expr_list)):
+        t.syntax_err("类'%s'没有构造方法'__init(...%d args)'" % (callee_cls, len(expr_list)))
+    return _Expr("new", (callee_cls, expr_list))
 
 def parse_expr(token_list, module, cls, var_set_list, non_local_var_used_map, end_at_comma = False):
     parse_stk = _ParseStk(token_list.peek(), module, cls)
@@ -215,30 +247,58 @@ def parse_expr(token_list, module, cls, var_set_list, non_local_var_used_map, en
                 else:
                     t.syntax_err("需要','、'}'或'for'")
         elif t.is_name:
-            #名字
-            parse_stk.push_expr(_Expr("name", t))
-        elif t.is_const:
-            parse_stk.push_expr(_Expr("const", t))
+            if t.value in module.dep_module_set:
+                m = cocc_module.module_map[t.value]
+                token_list.pop_sym(".")
+                t, name = token_list.pop_name()
+                expr = _parse_global_elem(m, (t, name), token_list, module, cls, var_set_list, non_local_var_used_map)
+                parse_stk.push_expr(expr)
+            else:
+                for var_set in var_set_list:
+                    if t.value in var_set:
+                        #局部变量
+                        parse_stk.push_expr(_Expr("local_var", t.value))
+                        break
+                else:
+                    if t.value not in non_local_var_used_map:
+                        non_local_var_used_map[t.value] = t #记录一下使用过的非局部变量的名字使用
+                    if cls is not None and (cls.has_attr(t.value) or cls.has_method(t.value)):
+                        #类方法或属性
+                        expr = _parse_method_or_attr_of_this_cls((t, t.value), token_list, module, cls, var_set_list, non_local_var_used_map)
+                        parse_stk.push_expr(expr)
+                    else:
+                        #当前模块或内建模块的全局元素
+                        for m in (module, larc_module.module_map["__builtins"]):
+                            if m.has_cls(t.value) or m.has_func(t.value) or m.has_global_var(t.value):
+                                expr = _parse_global_elem(m, (t, t.value), token_list, module, cls, var_set_list, non_local_var_used_map)
+                                parse_stk.push_expr(expr)
+                                break
+                        else:
+                            t.syntax_err("未定义的标识符'%s'" % t.value)
+        elif t.is_literal:
+            assert t.type.startswith("literal_")
+            module.literal_list.append(t)
+            parse_stk.push_expr(_Expr("literal", t))
         elif t.is_reserved("this"):
-            parse_stk.push_expr(_Expr(t.value, t))
-        elif t.is_sym("."):
-            #省略this的写法，补上this
-            parse_stk.push_expr(_Expr("this", t))
-            token_list.revert()
+            if cls is None:
+                t.syntax_err("'this'只能用于成员函数中")
+            if token_list.peek().is_sym("."):
+                token_list.pop_sym(".")
+                t, name = token_list.pop_name()
+                expr = _parse_method_or_attr_of_this_cls((t, name), token_list, module, cls, var_set_list, non_local_var_used_map)
+                parse_stk.push_expr(expr)
+            else:
+                #单独的this
+                parse_stk.push_expr(_Expr(t.value, t))
         else:
             t.syntax_err("非法的表达式")
 
         assert parse_stk.stk
 
-        #状态：解析()、[]、.三种运算
-        while token_list:
+        #状态：解析后缀运算
+        while True:
             t = token_list.pop()
-            if t.is_sym("("):
-                #函数调用
-                parse_stk.stk[-1] = (
-                    _Expr("()", [parse_stk.stk[-1],
-                                 _parse_expr_list(token_list, ")")]))
-            elif t.is_sym("["):
+            if t.is_sym("["):
                 #下标或分片操作
                 el = []
                 while True:
@@ -250,7 +310,7 @@ def parse_expr(token_list, module, cls, var_set_list, non_local_var_used_map, en
                         el.append(None)
                         token_list.pop_sym(":")
                         continue
-                    el.append(parse_expr(token_list, True))
+                    el.append(parse_expr(token_list, module, cls, var_set_list, non_local_var_used_map, end_at_comma = True))
                     t = token_list.peek()
                     if t.is_sym("]"):
                         break
@@ -273,19 +333,18 @@ def parse_expr(token_list, module, cls, var_set_list, non_local_var_used_map, en
                         t.syntax_err("分片最多只能三个参数")
                     parse_stk.stk[-1] = _Expr("[:]", [parse_stk.stk[-1], el])
             elif t.is_sym("."):
-                #int隐式转换或属性
-                if token_list.peek().is_int:
-                    token_list.pop()
-                    parse_stk.stk[-1] = _Expr(".int", parse_stk.stk[-1])
+                t, name = token_list.pop_name()
+                if token_list.peek().is_sym("("):
+                    token_list.pop_sym("(")
+                    expr_list = _parse_expr_list(token_list, module, cls, var_set_list, non_local_var_used_map, ")")
+                    parse_stk.stk[-1] = _Expr("call_method", [parse_stk.stk[-1], t, expr_list])
                 else:
-                    token_list.peek_name()
-                    parse_stk.stk[-1] = _Expr(".", [parse_stk.stk[-1],
-                                                    token_list.pop()])
+                    parse_stk.stk[-1] = _Expr(".", [parse_stk.stk[-1], t])
             else:
                 token_list.revert()
                 break
 
-        if token_list and token_list.peek().is_sym(","):
+        if token_list.peek().is_sym(","):
             if end_at_comma:
                 #没有在解析元组
                 break
@@ -301,43 +360,30 @@ def parse_expr(token_list, module, cls, var_set_list, non_local_var_used_map, en
                 if _is_expr_end(t):
                     #元组解析结束
                     break
-                arg_list.append(parse_expr(token_list, True, end_at_in))
+                arg_list.append(parse_expr(token_list, module, cls, var_set_list, non_local_var_used_map, end_at_comma = True))
                 #接下来应该是逗号或表达式结束
-                if not token_list:
-                    break
                 t = token_list.peek()
                 if t.is_sym(","):
                     #后续可能还有
                     token_list.pop()
                     continue
-                if _is_expr_end(t) or end_at_in and t.is_in:
+                if _is_expr_end(t):
                     #元组结束
                     break
                 t.syntax_err("非法的元组")
             parse_stk.push_expr(_Expr("tuple", arg_list))
 
-        if token_list and token_list.peek().is_in and end_at_in:
-            #碰到in结束
-            break
-
-        if not token_list or _is_expr_end(token_list.peek()):
+        t = token_list.peek()
+        if _is_expr_end(t) and (not t.is_sym(":") or "?" not in parse_stk.op_stk):
             #表达式结束
             break
 
-        #状态：解析普通二元运算符
+        #状态：解析普通二元/三元运算符
         t = token_list.pop()
-        if t.is_not:
-            #not in是两个token，特殊处理
-            t_next = token_list.pop()
-            if t_next.is_in:
-                parse_stk.push_op("not in")
-            else:
-                t.syntax_err("需要二元运算符")
-        elif (t.is_sym and t.value in _BINOCULAR_OP_SET or
-              t.is_and or t.is_or or t.is_in):
+        if t.is_sym and t.value in _BINOCULAR_OP_SET | set(["?", ":"]):
             #二元运算
             parse_stk.push_op(t.value)
         else:
-            t.syntax_err("需要二元运算符")
+            t.syntax_err("需要二元或三元运算符")
 
     return parse_stk.finish()

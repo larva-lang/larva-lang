@@ -42,6 +42,8 @@ class _Method:
         self.arg_set = arg_set
         self.block_token_list = block_token_list
 
+    __repr__ = __str__ = lambda self : "%s.%s(...%d args)" % (self.cls, self.name, len(self.arg_set))
+
     def compile(self):
         if self.block_token_list is None:
             self.stmt_list = None
@@ -58,6 +60,8 @@ class _Class:
         self.is_native = is_native
         self.attr_set = larc_common.OrderedSet()
         self.method_map = larc_common.OrderedDict()
+
+    __repr__ = __str__ = lambda self : "%s.%s" % (self.module, self.name)
 
     def parse(self, token_list):
         while True:
@@ -114,6 +118,16 @@ class _Class:
         for method in self.method_map.itervalues():
             method.compile()
 
+    def has_attr(self, name):
+        return name in self.attr_set
+
+    def has_method(self, name, arg_count = None):
+        if arg_count is None:
+            return name in [method_name for method_name, arg_count in self.method_map]
+        return (name, arg_count) in self.method_map
+    def get_method(self, name, arg_count):
+        return self.method_map[(name, arg_count)]
+
 class _Func:
     def __init__(self, module, name, arg_set, is_native, block_token_list):
         self.module = module
@@ -122,12 +136,33 @@ class _Func:
         self.is_native = is_native
         self.block_token_list = block_token_list
 
+    __repr__ = __str__ = lambda self : "%s.%s(...%d args)" % (self.module, self.name, len(self.arg_set))
+
+    def compile(self):
+        if self.block_token_list is None:
+            self.stmt_list = None
+        else:
+            self.stmt_list = larc_stmt.parse_stmt_list(self.block_token_list, self.module, None, (self.arg_set.copy(),), 0)
+            self.block_token_list.pop_sym("}")
+            assert not self.block_token_list
+        del self.block_token_list
+
+class _GlobalVar:
+    def __init__(self, module, name, is_native):
+        self.module = module
+        self.name = name
+        self.is_native = is_native
+
+    __repr__ = __str__ = lambda self : "%s.%s" % (self.module, self.name)
+
 class Module:
     def __init__(self, file_path_name):
         self.dir, file_name = os.path.split(file_path_name)
         assert file_name.endswith(".lar")
         self.name = file_name[: -4]
         self._precompile(file_path_name)
+
+    __repr__ = __str__ = lambda self : self.name
 
     def _precompile(self, file_path_name):
         #解析token列表，解析正文
@@ -221,19 +256,18 @@ class Module:
         self.func_map[(func_name, len(arg_set))] = _Func(self, func_name, arg_set, is_native, block_token_list)
 
     def _parse_global_var(self, token_list, is_native):
-        for t, var_name, expr_token_list in larc_stmt.parse_var_define(token_list, ret_expr_token_list = True):
+        for t, var_name, expr_token_list in larc_stmt.parse_var_define(token_list, None, None, None, None, ret_expr_token_list = True):
             if is_native and expr_token_list is not None:
                 t.syntax_err("native全局变量不可初始化")
             if isinstance(var_name, str):
                 self._check_redefine(t, var_name)
-                self.global_var_map[var_name] = is_native
+                self.global_var_map[var_name] = _GlobalVar(self, var_name, is_native)
                 self.global_var_init_map[var_name] = expr_token_list
             else:
                 for vn in var_name:
                     self._check_redefine(t, vn)
-                    self.global_var_map[vn] = is_native
+                    self.global_var_map[vn] = _GlobalVar(self, vn, is_native)
                 self.global_var_init_map[var_name] = expr_token_list
-        token_list.pop_sym(";")
 
     def _items(self):
         for map in self.class_map, self.func_map, self.global_var_init_map:
@@ -241,5 +275,23 @@ class Module:
                 yield i
 
     def compile(self):
+        self.literal_list = []
         for i in self._items():
             i.compile()
+
+    def has_cls(self, name):
+        return name in self.class_map
+    def get_cls(self, name):
+        return self.class_map[name]
+
+    def has_func(self, name, arg_count = None):
+        if arg_count is None:
+            return name in [func_name for func_name, arg_count in self.func_map]
+        return (name, arg_count) in self.func_map
+    def get_func(self, name, arg_count):
+        return self.func_map[(name, arg_count)]
+
+    def has_global_var(self, name):
+        return name in self.global_var_map
+    def get_global_var(self, name):
+        return self.global_var_map[name]
