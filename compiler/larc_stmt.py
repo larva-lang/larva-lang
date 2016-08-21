@@ -11,63 +11,53 @@ import larc_expr
 def _parse_var_init_expr_token_list(token_list):
     return larc_token.parse_token_list_until_sym(token_list, (";", ","))
 
+def parse_var_name(token_list):
+    t = token_list.pop()
+    if t.is_sym("("):
+        vn_list = []
+        while True:
+            vn = parse_var_name(token_list)
+            vn_list.append(vn)
+            t, sym = token_list.pop_sym()
+            if len(vn_list) > 1 and sym == ")":
+                return tuple(vn_list)
+            if sym != ",":
+                t.syntax_err("需要','")
+            if token_list.peek().is_sym(")"):
+                token_list.pop_sym(")")
+                return tuple(vn_list)
+    if t.is_name:
+        return t.value
+    syntax_err("需要变量名定义")
+
+def iter_var_name(var_name):
+    if isinstance(var_name, str):
+        yield var_name
+        return
+
+    assert isinstance(var_name, tuple)
+    for each_vn in var_name:
+        for vn in iter_var_name(each_vn):
+            yield vn
+
 def parse_var_define(token_list, module, cls, var_set_list, non_local_var_used_map, ret_expr_token_list = False):
     while True:
-        start_t = token_list.pop()
-
-        if start_t.is_sym("("):
-            var_name_list = []
-            while True:
-                t, name = token_list.pop_name()
-                var_name_list.append(name)
-                t, sym = token_list.pop_sym()
-                if sym == ")":
-                    if len(var_name_list) == 1:
-                        t.syntax_err("需要','")
-                    break
-                if sym != ",":
-                    t.syntax_err("需要','")
-            token_list.pop_sym("=")
+        start_t = token_list.peek()
+        var_name = parse_var_name(token_list)
+        t, sym = token_list.pop_sym()
+        if not isinstance(var_name, str) or sym == "=":
             if ret_expr_token_list:
-                expr_token_list, sym = _parse_var_init_expr_token_list(token_list)
-                yield start_t, tuple(var_name_list), expr_token_list
-                if sym == ";":
-                    return
-                continue
-            expr = larc_expr.parse_expr(token_list, module, cls, var_set_list, non_local_var_used_map, end_at_comma = True)
-            t, sym = token_list.pop_sym()
-            yield start_t, tuple(var_name_list), expr
-            if sym == ";":
-                return
-            if sym != ",":
-                t.syntax_err("需要','或';'")
-            continue
-
-        if start_t.is_name:
-            t, sym = token_list.pop_sym()
-            if t.is_sym("="):
-                if ret_expr_token_list:
-                    expr_token_list, sym = _parse_var_init_expr_token_list(token_list)
-                    yield start_t, start_t.value, expr_token_list
-                    if sym == ";":
-                        return
-                    continue
+                expr, sym = _parse_var_init_expr_token_list(token_list)
+            else:
                 expr = larc_expr.parse_expr(token_list, module, cls, var_set_list, non_local_var_used_map, end_at_comma = True)
                 t, sym = token_list.pop_sym()
-                yield start_t, start_t.value, expr
-                if sym == ";":
-                    return
-                if sym != ",":
-                    t.syntax_err("需要','或';'")
-                continue
-            if t.is_sym(","):
-                yield start_t, start_t.value, None
-                continue
-            if t.is_sym(";"):
-                return
-            t.syntax_err("需要'='、','或';'")
-
-        start_t.syntax_err("需要变量名定义")
+        else:
+            expr = None
+        yield start_t, var_name, expr
+        if sym == ";":
+            return
+        if sym != ",":
+            t.syntax_err("需要','或';'")
 
 class _Stmt:
     def __init__(self, type, **kw_arg):
@@ -79,6 +69,28 @@ class _StmtList(list):
     def __init__(self, var_set):
         list.__init__(self)
         self.var_set = var_set
+
+def _parse_for_prefix(token_list, module, cls, var_set_list, non_local_var_used_map):
+    token_list.pop_sym("(")
+    for_var_set = larc_common.OrderedSet()
+    if token_list.peek().is_reserved("var"):
+        token_list.pop()
+        t = token_list.peek()
+        var_name = parse_var_name(token_list)
+        for vn in iter_var_name(var_name):
+            if vn in module.dep_module_set:
+                t.syntax_err("变量名'%s'与导入模块重名" % vn)
+            for var_set in var_set_list + (for_var_set,):
+                if vn in var_set:
+                    t.syntax_err("变量名'%s'重定义" % vn)
+            for_var_set.add(vn)
+        lvalue = var_name
+    else:
+        lvalue = larc_expr.parse_expr(token_list, module, cls, var_set_list, non_local_var_used_map)
+    token_list.pop_sym(":")
+    iter_obj = larc_expr.parse_expr(token_list, module, cls, var_set_list, non_local_var_used_map)
+    token_list.pop_sym(")")
+    return for_var_set, lvalue, iter_obj
 
 def parse_stmt_list(token_list, module, cls, var_set_list, loop_deep):
     assert var_set_list
@@ -109,11 +121,8 @@ def parse_stmt_list(token_list, module, cls, var_set_list, loop_deep):
                     non_local_var_used_map[vn].syntax_err("局部变量在定义之前使用")
                 var_set_list[-1].add(vn)
             for t, var_name, expr in parse_var_define(token_list, module, cls, var_set_list, non_local_var_used_map):
-                if isinstance(var_name, str):
-                    add_to_curr_var_set(t, var_name)
-                else:
-                    for vn in var_name:
-                        add_to_curr_var_set(t, vn)
+                for vn in iter_var_name(var_name):
+                    add_to_curr_var_set(t, vn)
                 stmt_list.append(_Stmt("var", name = var_name, expr = expr))
             continue
         if t.is_reserved and t.value in ("break", "continue"):
@@ -128,11 +137,11 @@ def parse_stmt_list(token_list, module, cls, var_set_list, loop_deep):
             stmt_list.append(_Stmt("return", expr = expr))
             continue
         if t.is_reserved("for"):
-            for_var_set, lvalue_list, iter_obj = _parse_for_prefix(token_list, module, cls, var_set_list)
+            for_var_set, lvalue, iter_obj = _parse_for_prefix(token_list, module, cls, var_set_list, non_local_var_used_map)
             token_list.pop_sym("{")
             for_stmt_list = parse_stmt_list(token_list, module, cls, var_set_list + (for_var_set.copy(),), loop_deep + 1)
             token_list.pop_sym("}")
-            stmt_list.append(_Stmt("for", var_set = for_var_set, lvalue_list = lvalue_list, iter_obj = iter_obj, stmt_list = for_stmt_list))
+            stmt_list.append(_Stmt("for", var_set = for_var_set, lvalue = lvalue, iter_obj = iter_obj, stmt_list = for_stmt_list))
             continue
         if t.is_reserved("while"):
             token_list.pop_sym("(")
@@ -151,7 +160,7 @@ def parse_stmt_list(token_list, module, cls, var_set_list, loop_deep):
             if not t.is_reserved("while"):
                 t.syntax_err("需要'while'")
             token_list.pop_sym("(")
-            expr = cocc_expr.parse_expr(token_list, module, cls, var_set_list, non_local_var_used_map)
+            expr = larc_expr.parse_expr(token_list, module, cls, var_set_list, non_local_var_used_map)
             token_list.pop_sym(")")
             token_list.pop_sym(";")
             stmt_list.append(_Stmt("do", expr = expr, stmt_list = do_stmt_list))

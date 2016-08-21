@@ -248,7 +248,7 @@ def parse_expr(token_list, module, cls, var_set_list, non_local_var_used_map, en
                     t.syntax_err("需要','、'}'或'for'")
         elif t.is_name:
             if t.value in module.dep_module_set:
-                m = cocc_module.module_map[t.value]
+                m = larc_module.module_map[t.value]
                 token_list.pop_sym(".")
                 t, name = token_list.pop_name()
                 expr = _parse_global_elem(m, (t, name), token_list, module, cls, var_set_list, non_local_var_used_map)

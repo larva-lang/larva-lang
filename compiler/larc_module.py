@@ -259,15 +259,10 @@ class Module:
         for t, var_name, expr_token_list in larc_stmt.parse_var_define(token_list, None, None, None, None, ret_expr_token_list = True):
             if is_native and expr_token_list is not None:
                 t.syntax_err("native全局变量不可初始化")
-            if isinstance(var_name, str):
-                self._check_redefine(t, var_name)
-                self.global_var_map[var_name] = _GlobalVar(self, var_name, is_native)
-                self.global_var_init_map[var_name] = expr_token_list
-            else:
-                for vn in var_name:
-                    self._check_redefine(t, vn)
-                    self.global_var_map[vn] = _GlobalVar(self, vn, is_native)
-                self.global_var_init_map[var_name] = expr_token_list
+            for vn in larc_stmt.iter_var_name(var_name):
+                self._check_redefine(t, vn)
+                self.global_var_map[vn] = _GlobalVar(self, vn, is_native)
+            self.global_var_init_map[var_name] = expr_token_list
 
     def _items(self):
         for map in self.class_map, self.func_map, self.global_var_init_map:
