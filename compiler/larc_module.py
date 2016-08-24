@@ -155,6 +155,9 @@ class _GlobalVar:
 
     __repr__ = __str__ = lambda self : "%s.%s" % (self.module, self.name)
 
+    def compile(self):
+        pass
+
 class Module:
     def __init__(self, file_path_name):
         self.dir, file_name = os.path.split(file_path_name)
@@ -265,7 +268,7 @@ class Module:
             self.global_var_init_map[var_name] = expr_token_list
 
     def _items(self):
-        for map in self.class_map, self.func_map, self.global_var_init_map:
+        for map in self.class_map, self.func_map, self.global_var_map:
             for i in map.itervalues():
                 yield i
 
@@ -273,6 +276,16 @@ class Module:
         self.literal_list = []
         for i in self._items():
             i.compile()
+        non_local_var_used_map = larc_common.OrderedDict()
+        for var_name, expr_token_list in self.global_var_init_map.iteritems():
+            if expr_token_list is not None:
+                self.global_var_init_map[var_name] = (
+                    larc_expr.parse_expr(expr_token_list, self, None, (), non_local_var_used_map, end_at_comma = True))
+                t, sym = expr_token_list.pop_sym()
+                assert not expr_token_list and sym in (",", ";")
+            for vn in larc_stmt.iter_var_name(var_name):
+                if vn in non_local_var_used_map:
+                    non_local_var_used_map[vn].syntax_err("全局变量'%s'在定义前使用" % vn)
 
     def has_cls(self, name):
         return name in self.class_map

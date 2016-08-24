@@ -7,6 +7,7 @@
 import larc_common
 import larc_token
 import larc_module
+import larc_stmt
 
 _UNARY_OP_SET = set(["~", "!", "neg", "pos"])
 _BINOCULAR_OP_SET = larc_token.BINOCULAR_OP_SYM_SET
@@ -136,16 +137,16 @@ def _parse_expr_list(token_list, module, cls, var_set_list, non_local_var_used_m
             continue
         t.syntax_err("需要','或'%s'" % end_sym)
 
-def _parse_dict_expr_list(token_list):
+def _parse_dict_expr_list(token_list, module, cls, var_set_list, non_local_var_used_map):
     if token_list.peek().is_sym("}"):
         #空字典
         token_list.pop_sym("}")
         return []
     expr_list = []
     while True:
-        ek = parse_expr(token_list, True)
+        ek = parse_expr(token_list, module, cls, var_set_list, non_local_var_used_map, end_at_comma = True)
         token_list.pop_sym(":")
-        ev = parse_expr(token_list, True)
+        ev = parse_expr(token_list, module, cls, var_set_list, non_local_var_used_map, end_at_comma = True)
         expr_list.append((ek, ev))
         t = token_list.pop()
         if t.is_sym("}"):
@@ -186,6 +187,12 @@ def _parse_global_elem(m, (t, name), token_list, module, cls, var_set_list, non_
         t.syntax_err("类'%s'没有构造方法'__init(...%d args)'" % (callee_cls, len(expr_list)))
     return _Expr("new", (callee_cls, expr_list))
 
+def _parse_compr(token_list, module, cls, var_set_list, non_local_var_used_map, end_sym):
+    assert token_list.pop().is_reserved("for")
+    for_var_set, lvalue, iter_obj = larc_stmt.parse_for_prefix(token_list, module, cls, var_set_list, non_local_var_used_map)
+    token_list.pop_sym(end_sym)
+    return [for_var_set, lvalue, iter_obj]
+
 def parse_expr(token_list, module, cls, var_set_list, non_local_var_used_map, end_at_comma = False):
     parse_stk = _ParseStk(token_list.peek(), module, cls)
     while True:
@@ -219,10 +226,11 @@ def parse_expr(token_list, module, cls, var_set_list, non_local_var_used_map, en
                 if t.is_sym(",") or t.is_sym("]"):
                     #正常列表
                     token_list.revert(idx)
-                    parse_stk.push_expr(_Expr("list", _parse_expr_list(token_list, "]")))
-                elif t.is_for:
+                    parse_stk.push_expr(_Expr("list", _parse_expr_list(token_list, module, cls, var_set_list, non_local_var_used_map, "]")))
+                elif t.is_reserved("for"):
                     #列表解析式
-                    parse_stk.push_expr(_Expr("list_compr", [e] + _parse_compr(token_list, "]")))
+                    parse_stk.push_expr(_Expr("list_compr",
+                                              [e] + _parse_compr(token_list, module, cls, var_set_list, non_local_var_used_map, "]")))
                 else:
                     t.syntax_err("需要','、']'或'for'")
         elif t.is_sym("{"):
@@ -240,10 +248,11 @@ def parse_expr(token_list, module, cls, var_set_list, non_local_var_used_map, en
                 if t.is_sym(",") or t.is_sym("}"):
                     #正常字典
                     token_list.revert(idx)
-                    parse_stk.push_expr(_Expr("dict", _parse_dict_expr_list(token_list)))
+                    parse_stk.push_expr(_Expr("dict", _parse_dict_expr_list(token_list, module, cls, var_set_list, non_local_var_used_map)))
                 elif t.is_for:
                     #字典解析式
-                    parse_stk.push_expr(_Expr("dict_compr", [ek, ev] + _parse_compr(token_list, "}")))
+                    parse_stk.push_expr(_Expr("dict_compr",
+                                              [ek, ev] + _parse_compr(token_list, module, cls, var_set_list, non_local_var_used_map, "}")))
                 else:
                     t.syntax_err("需要','、'}'或'for'")
         elif t.is_name:

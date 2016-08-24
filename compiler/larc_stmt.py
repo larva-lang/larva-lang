@@ -70,7 +70,7 @@ class _StmtList(list):
         list.__init__(self)
         self.var_set = var_set
 
-def _parse_for_prefix(token_list, module, cls, var_set_list, non_local_var_used_map):
+def parse_for_prefix(token_list, module, cls, var_set_list, non_local_var_used_map):
     token_list.pop_sym("(")
     for_var_set = larc_common.OrderedSet()
     if token_list.peek().is_reserved("var"):
@@ -137,7 +137,7 @@ def parse_stmt_list(token_list, module, cls, var_set_list, loop_deep):
             stmt_list.append(_Stmt("return", expr = expr))
             continue
         if t.is_reserved("for"):
-            for_var_set, lvalue, iter_obj = _parse_for_prefix(token_list, module, cls, var_set_list, non_local_var_used_map)
+            for_var_set, lvalue, iter_obj = parse_for_prefix(token_list, module, cls, var_set_list, non_local_var_used_map)
             token_list.pop_sym("{")
             for_stmt_list = parse_stmt_list(token_list, module, cls, var_set_list + (for_var_set.copy(),), loop_deep + 1)
             token_list.pop_sym("}")
