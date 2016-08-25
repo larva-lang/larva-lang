@@ -16,6 +16,15 @@ native class str
     func to_int(radix);
 }
 
+native class list
+{
+    func add(obj);
+}
+
+native class dict
+{
+}
+
 native class range
 {
     func __init(start);
