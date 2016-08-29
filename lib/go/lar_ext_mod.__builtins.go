@@ -1,8 +1,13 @@
-package larva_mod___builtins
+package lar_mod___builtins
 
 import (
     "larva_obj"
+    "larva_exc"
 )
+
+func init() {
+    larva_exc.NewLarObj_str_from_literal = NewLarObj_str_from_literal
+}
 
 //float
 
@@ -63,7 +68,7 @@ func NewLarObj_list() larva_obj.LarPtr {
 
 func (self *LarObj_list) Method_add_1(obj larva_obj.LarPtr) larva_obj.LarPtr {
     self.l = append(self.l, obj)
-    return self.This
+    return larva_obj.LarPtr{M_obj_ptr : &self.This}
 }
 
 //range
@@ -83,9 +88,8 @@ func NewLarObj_range() larva_obj.LarPtr {
 }
 
 func (self *LarObj_range) init(start, stop, step int64) larva_obj.LarPtr {
-    if (step == 0)
-    {
-        Lar_panic_string("range step is zero")
+    if step == 0 {
+        larva_exc.Lar_panic_string("range step is zero")
     }
 
     self.curr = start

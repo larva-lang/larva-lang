@@ -76,7 +76,13 @@ def _output_main_pkg():
             code += "os.Exit(larva_booter.Start_prog(%s.Func_main))" % main_lar_mod_name
 
 def _output_module(module):
-    print module.name
+    has_native_item = module.has_native_item()
+    mod_dir = os.path.join(out_dir, "src", "lar_mod_" + module.name)
+    os.makedirs(mod_dir)
+    with _Code(os.path.join(mod_dir, "lar_mod.%s.go" % module.name)) as code:
+        code += "package lar_mod_" + module.name
+    if has_native_item:
+        shutil.copy(os.path.join(module.dir, "go", "lar_ext_mod.%s.go" % module.name), mod_dir)
 
 def _copy_runtime():
     out_runtime_dir = os.path.join(out_dir, "src")

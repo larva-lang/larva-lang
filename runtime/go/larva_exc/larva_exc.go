@@ -2,15 +2,21 @@ package larva_exc
 
 import (
     "larva_obj"
-    "lar_mod___builtins"
 )
+
+var NewLarObj_str_from_literal func (s string) larva_obj.LarPtr
+
+func init() {
+    larva_obj.Lar_panic_string = Lar_panic_string
+}
 
 func Lar_recover() *larva_obj.LarPtr {
     r := recover()
     if r == nil {
         return nil
     }
-    return &r.(larva_obj.LarPtr)
+    lar_r := r.(larva_obj.LarPtr)
+    return &lar_r
 }
 
 func Lar_panic(obj larva_obj.LarPtr) {
@@ -18,5 +24,5 @@ func Lar_panic(obj larva_obj.LarPtr) {
 }
 
 func Lar_panic_string(s string) {
-    Lar_panic(lar_mod___builtins.NewLarObj_str_from_literal(s))
+    Lar_panic(NewLarObj_str_from_literal(s))
 }

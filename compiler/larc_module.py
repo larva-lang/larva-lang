@@ -303,3 +303,9 @@ class Module:
         return name in self.global_var_map
     def get_global_var(self, name):
         return self.global_var_map[name]
+
+    def has_native_item(self):
+        for i in self._items():
+            if i.is_native:
+                return True
+        return False
