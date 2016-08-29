@@ -10,8 +10,10 @@ import sys
 
 import larc_module
 
+main_module_name = None
 out_dir = None
 runtime_dir = None
+out_prog_dir = None
 
 class _Code:
     class _CodeBlk:
@@ -62,40 +64,49 @@ class _Code:
         self.indent += " " * 4
         return self._CodeBlk(self, end_line)
 
-def _output_main_pkg(main_module_name):
-    prog_dir = os.path.join(out_dir, "src", "lar_prog_" + main_module_name)
-    os.makedirs(prog_dir)
-    with _Code(os.path.join(prog_dir, "lar_prog.%s.go" % main_module_name)) as code:
+def _output_main_pkg():
+    main_lar_mod_name = "lar_mod_" + main_module_name
+    with _Code(os.path.join(out_prog_dir, "lar_prog.%s.go" % main_module_name)) as code:
         code += "package main"
         with code.new_blk("import"):
             code += '"os"'
-            code += '"larva_runtime"'
-            code += '"lar_mod_%s"' % main_module_name
+            code += '"larva_booter"'
+            code += '"%s"' % main_lar_mod_name
         with code.new_blk("func main()"):
-            code += "os.Exit(larva_runtime.Start_prog(lar_mod_%s.Func_main))"
+            code += "os.Exit(larva_booter.Start_prog(%s.Func_main))" % main_lar_mod_name
 
 def _output_module(module):
     print module.name
 
 def _copy_runtime():
-    runtime_out_dir = os.path.join(out_dir, "src", "larva_runtime")
-    os.makedirs(runtime_out_dir)
-    for fn in os.listdir(os.path.join(runtime_dir, "go")):
-        shutil.copy(os.path.join(runtime_dir, "go", fn), runtime_out_dir)
+    out_runtime_dir = os.path.join(out_dir, "src")
+    for pkg_dir in os.listdir(os.path.join(runtime_dir)):
+        dst_dir = os.path.join(out_dir, "src", pkg_dir)
+        pkg_dir = os.path.join(runtime_dir, pkg_dir)
+        if os.path.isdir(pkg_dir):
+            shutil.copytree(pkg_dir, dst_dir)
 
-def _gen_makefile(main_module_name):
+def _gen_makefile():
     if sys.platform.lower().startswith("win"):
         f = open(os.path.join(out_dir, "make.bat"), "w")
-        print >> f, "set GOPATH=%s" % out_dir
-        print >> f, "go build lar_prog_" + main_module_name
+        print >> f, "@set GOPATH=%s" % out_dir
+        print >> f, "go build -o %s.exe src/lar_prog_%s/lar_prog.%s.go" % (main_module_name, main_module_name, main_module_name)
+        print >> f, "@if %ERRORLEVEL% == 0 goto success"
+        print >> f, "@pause"
+        print >> f, ":success"
     else:
         raise Exception("Not implemented on '%s'" % sys.platform)
 
-def output(main_module_name):
+def output():
+    global runtime_dir, out_prog_dir
+    runtime_dir = os.path.join(runtime_dir, "go")
+    out_prog_dir = os.path.join(out_dir, "src", "lar_prog_" + main_module_name)
+
     shutil.rmtree(out_dir, True)
-    os.makedirs(os.path.join(out_dir, "src"))
-    _output_main_pkg(main_module_name)
+    os.makedirs(out_prog_dir)
+
+    _output_main_pkg()
     for m in larc_module.module_map.itervalues():
         _output_module(m)
     _copy_runtime()
-    _gen_makefile(main_module_name)
+    _gen_makefile()

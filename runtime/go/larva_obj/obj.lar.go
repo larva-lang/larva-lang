@@ -2,6 +2,7 @@ package larva_obj
 
 import (
     "fmt"
+    "larva_exc"
 )
 
 type LarPtr struct {
@@ -12,7 +13,7 @@ type LarPtr struct {
 func (ptr *LarPtr) As_int() int64 {
     if (ptr.M_obj_ptr != nil)
     {
-        Lar_panic_string(fmt.Sprintf("%s not int type", ptr.M_obj_ptr.Get_type_name()))
+        larva_exc.Lar_panic_string(fmt.Sprintf("%s not int type", ptr.M_obj_ptr.Get_type_name()))
     }
     return ptr.M_int
 }

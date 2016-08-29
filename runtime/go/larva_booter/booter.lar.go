@@ -1,8 +1,9 @@
-package larva_runtime
+package larva_booter
 
 import (
     "os"
     "larva_obj"
+    "larva_exc"
     "lar_mod___builtins"
 )
 
@@ -13,13 +14,12 @@ func Start_prog(main_func func (argv larva_obj.LarPtr) larva_obj.LarPtr) ret int
     }
 
     defer func () {
-        r := Lar_recover()
+        r := larva_exc.Lar_recover()
         if r != nil {
-            Traceback_print_exc()
+            larva_exc.Traceback_print_exc()
             ret = 1
         }
     }()
-    Main(argv)
-    ret = 0
-    return
+    main_func(argv)
+    return 0
 }

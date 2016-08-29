@@ -1,4 +1,4 @@
-package larva_runtime
+package larva_exc
 
 func Traceback_format_exc() string {
     return "traceback not implemented"

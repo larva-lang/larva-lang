@@ -78,9 +78,10 @@ def main():
 
     #暂时写死output流程
     output_lib = larc_output.to_go
+    output_lib.main_module_name = main_module.name
     output_lib.out_dir = os.path.join(src_dir, main_module.name)
     output_lib.runtime_dir = os.path.join(os.path.dirname(lib_dir), "runtime")
-    output_lib.output(main_module.name)
+    output_lib.output()
 
 if __name__ == "__main__":
     main()
