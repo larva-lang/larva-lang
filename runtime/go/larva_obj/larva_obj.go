@@ -9,4 +9,8 @@ var FALSE LarPtr
 
 type LarObjIntfBase interface {
     Get_type_name() string
+
+    As_bool() bool
+    As_float() float64
+    As_str() string
 }

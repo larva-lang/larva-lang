@@ -210,6 +210,18 @@ def _complete_runtime_code():
                 if code.line_list[-1].lstrip().startswith("Lar_panic_string"):
                     code += "return NIL"
 
+        for method_def in construct_method_def_list + method_def_list:
+            assert method_def.startswith("Method_")
+            pos = method_def.find("(")
+            assert pos > 0
+            method_name = method_def[len("Method_") : pos]
+            method_name, arg_count = method_name.rsplit("_", 1)
+            arg_count = int(arg_count)
+            with code.new_blk("func (self *LarObjBase) %s" % method_def):
+                code += ('Lar_panic_string(fmt.Sprintf("method (%%v instance).%s with %s args not implemented", self.Type_name))' %
+                         (method_name, arg_count))
+                code += "return NIL"
+
     #自动生成LarPtr的所有对应接口的方法
     with _Code(os.path.join(larva_obj_dir, "larva_ptr.auto_gen.go")) as code:
         code += "package larva_obj"
@@ -288,6 +300,17 @@ def _complete_runtime_code():
                             code += "return LarPtr{M_int : ptr.M_int %s obj.M_int}" % bops_to_go_op[op]
                 if code.line_list[-1].lstrip().startswith("Lar_panic_string"):
                     code += "return NIL"
+
+        for method_def in construct_method_def_list + method_def_list:
+            assert method_def.startswith("Method_")
+            pos = method_def.find("(")
+            assert pos > 0
+            method_name = method_def[len("Method_") : pos]
+            method_name, arg_count = method_name.rsplit("_", 1)
+            arg_count = int(arg_count)
+            with code.new_blk("func (ptr *LarPtr) %s" % method_def):
+                code += ('Lar_panic_string(fmt.Sprintf("method (int instance).%s with %s args not implemented"))' % (method_name, arg_count))
+                code += "return NIL"
 
 def _gen_makefile():
     if sys.platform.lower().startswith("win"):

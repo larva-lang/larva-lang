@@ -7,8 +7,8 @@ import (
     "lar_mod___builtins"
 )
 
-func Start_prog(main_func func (argv larva_obj.LarPtr) larva_obj.LarPtr) ret int {
-    argv := lar_mod___builtins.NewLarObj_list()
+func Start_prog(main_func func (argv larva_obj.LarPtr) larva_obj.LarPtr) (ret int) {
+    argv := lar_mod___builtins.NewLarObj_list_0()
     for i := 0; i < len(os.Args); i ++ {
         argv.Method_add_1(lar_mod___builtins.NewLarObj_str_from_literal(os.Args[i]))
     }

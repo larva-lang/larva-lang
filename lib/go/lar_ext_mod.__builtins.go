@@ -47,6 +47,17 @@ func newLarObj_bool_from_literal(v bool) larva_obj.LarPtr {
     return o.To_lar_ptr()
 }
 
+func NewLarObj_bool_0() larva_obj.LarPtr {
+    o := newLarObj_bool()
+    o.Method___init_0()
+    return o.To_lar_ptr()
+}
+
+func (self *LarObj_bool) Method___init_0() larva_obj.LarPtr {
+    self.v = false
+    return larva_obj.NIL
+}
+
 //float
 
 type LarObj_float struct {
@@ -65,6 +76,17 @@ func NewLarObj_float_from_literal(v float64) larva_obj.LarPtr {
     o := NewLarObj_float()
     o.v = v
     return o.To_lar_ptr()
+}
+
+func NewLarObj_float_0() larva_obj.LarPtr {
+    o := NewLarObj_float()
+    o.Method___init_0()
+    return o.To_lar_ptr()
+}
+
+func (self *LarObj_float) Method___init_0() larva_obj.LarPtr {
+    self.v = 0.0
+    return larva_obj.NIL
 }
 
 func (self *LarObj_float) Method_to_int_0() larva_obj.LarPtr {
@@ -91,8 +113,26 @@ func NewLarObj_str_from_literal(v string) larva_obj.LarPtr {
     return o.To_lar_ptr()
 }
 
-func (self *LarObj_str) Method_init_1(obj larva_obj.LarPtr) larva_obj.LarPtr {
-    self.v = obj.Method___str()
+func NewLarObj_str_0() larva_obj.LarPtr {
+    o := NewLarObj_str()
+    o.Method___init_0()
+    return o.To_lar_ptr()
+}
+
+func NewLarObj_str_1(obj larva_obj.LarPtr) larva_obj.LarPtr {
+    o := NewLarObj_str()
+    o.Method___init_1(obj)
+    return o.To_lar_ptr()
+}
+
+func (self *LarObj_str) Method___init_0() larva_obj.LarPtr {
+    self.v = ""
+    return larva_obj.NIL
+}
+
+func (self *LarObj_str) Method___init_1(obj larva_obj.LarPtr) larva_obj.LarPtr {
+    tmp := obj.Method___str()
+    self.v = tmp.As_str()
     return larva_obj.NIL
 }
 
@@ -108,6 +148,16 @@ func NewLarObj_list() *LarObj_list {
     o.This = o
     o.Type_name = "__builtins.list"
     return o
+}
+
+func NewLarObj_list_0() larva_obj.LarPtr {
+    o := NewLarObj_list()
+    o.Method___init_0()
+    return o.To_lar_ptr()
+}
+
+func (self *LarObj_list) Method___init_0() larva_obj.LarPtr {
+    return larva_obj.NIL
 }
 
 func (self *LarObj_list) Method_add_1(obj larva_obj.LarPtr) larva_obj.LarPtr {
@@ -131,6 +181,24 @@ func NewLarObj_range() *LarObj_range {
     return o
 }
 
+func NewLarObj_range_1(stop larva_obj.LarPtr) larva_obj.LarPtr {
+    o := NewLarObj_range()
+    o.Method___init_1(stop)
+    return o.To_lar_ptr()
+}
+
+func NewLarObj_range_2(start, stop larva_obj.LarPtr) larva_obj.LarPtr {
+    o := NewLarObj_range()
+    o.Method___init_2(start, stop)
+    return o.To_lar_ptr()
+}
+
+func NewLarObj_range_3(start, stop, step larva_obj.LarPtr) larva_obj.LarPtr {
+    o := NewLarObj_range()
+    o.Method___init_3(start, stop, step)
+    return o.To_lar_ptr()
+}
+
 func (self *LarObj_range) init(start, stop, step int64) larva_obj.LarPtr {
     if step == 0 {
         larva_exc.Lar_panic_string("range step is zero")
@@ -143,14 +211,14 @@ func (self *LarObj_range) init(start, stop, step int64) larva_obj.LarPtr {
     return larva_obj.NIL
 }
 
-func (self *LarObj_range) Method_init_1(stop larva_obj.LarPtr) larva_obj.LarPtr {
+func (self *LarObj_range) Method___init_1(stop larva_obj.LarPtr) larva_obj.LarPtr {
     return self.init(0, stop.As_int(), 1)
 }
 
-func (self *LarObj_range) Method_init_2(start, stop larva_obj.LarPtr) larva_obj.LarPtr {
+func (self *LarObj_range) Method___init_2(start, stop larva_obj.LarPtr) larva_obj.LarPtr {
     return self.init(start.As_int(), stop.As_int(), 1)
 }
 
-func (self *LarObj_range) Method_init_3(start, stop, step larva_obj.LarPtr) larva_obj.LarPtr {
+func (self *LarObj_range) Method___init_3(start, stop, step larva_obj.LarPtr) larva_obj.LarPtr {
     return self.init(start.As_int(), stop.As_int(), step.As_int())
 }
