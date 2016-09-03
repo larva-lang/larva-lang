@@ -16,9 +16,16 @@ func (ptr *LarPtr) As_int() int64 {
     return ptr.M_int
 }
 
-func (ptr *LarPtr) OP_str() string {
+func (ptr *LarPtr) Get_type_name() string {
     if ptr.M_obj_ptr != nil {
-        return (*ptr.M_obj_ptr).OP_str()
+        return (*ptr.M_obj_ptr).Get_type_name()
     }
-    return int_OP_str(ptr.M_int)
+    return "__builtins.int"
+}
+
+func int_to_shift_count(n int64) uint {
+    if n < 0 || n >= 64 {
+        Lar_panic_string(fmt.Sprintf("invalid shift count %d", n))
+    }
+    return uint(n)
 }

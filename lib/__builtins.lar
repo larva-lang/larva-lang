@@ -1,28 +1,40 @@
 //内置builtin模块
 
+native class bool
+{
+    func __init();
+}
+
 native class int
 {
+    func __init();
+    func to_float();
 }
 
 native class float
 {
+    func __init();
     func to_int();
 }
 
 native class str
 {
+    func __init();
     func __init(obj);
     func to_int();
     func to_int(radix);
+    func to_float();
 }
 
 native class list
 {
+    func __init();
     func add(obj);
 }
 
 native class dict
 {
+    func __init();
 }
 
 native class range

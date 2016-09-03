@@ -6,7 +6,45 @@ import (
 )
 
 func init() {
+    larva_obj.NewLarObj_str_from_literal = NewLarObj_str_from_literal
+    larva_obj.NIL = newLarObj_nil().To_lar_ptr()
+    larva_obj.TRUE = newLarObj_bool_from_literal(true)
+    larva_obj.FALSE = newLarObj_bool_from_literal(false)
+
     larva_exc.NewLarObj_str_from_literal = NewLarObj_str_from_literal
+}
+
+//nil
+
+type LarObj_nil struct {
+    larva_obj.LarObjBase
+}
+
+func newLarObj_nil() *LarObj_nil {
+    o := new(LarObj_nil)
+    o.This = o
+    o.Type_name = "__builtins.nil_type"
+    return o
+}
+
+//bool
+
+type LarObj_bool struct {
+    larva_obj.LarObjBase
+    v bool
+}
+
+func newLarObj_bool() *LarObj_bool {
+    o := new(LarObj_bool)
+    o.This = o
+    o.Type_name = "__builtins.bool"
+    return o
+}
+
+func newLarObj_bool_from_literal(v bool) larva_obj.LarPtr {
+    o := newLarObj_bool()
+    o.v = v
+    return o.To_lar_ptr()
 }
 
 //float
@@ -16,12 +54,17 @@ type LarObj_float struct {
     v float64
 }
 
-func NewLarObj_float_from_literal(v float64) larva_obj.LarPtr {
+func NewLarObj_float() *LarObj_float {
     o := new(LarObj_float)
-    o.v = v
     o.This = o
     o.Type_name = "__builtins.float"
-    return larva_obj.LarPtr{M_obj_ptr : &o.This}
+    return o
+}
+
+func NewLarObj_float_from_literal(v float64) larva_obj.LarPtr {
+    o := NewLarObj_float()
+    o.v = v
+    return o.To_lar_ptr()
 }
 
 func (self *LarObj_float) Method_to_int_0() larva_obj.LarPtr {
@@ -35,20 +78,21 @@ type LarObj_str struct {
     v string
 }
 
-func NewLarObj_str_from_literal(v string) larva_obj.LarPtr {
+func NewLarObj_str() *LarObj_str {
     o := new(LarObj_str)
-    o.v = v
     o.This = o
     o.Type_name = "__builtins.str"
-    return larva_obj.LarPtr{M_obj_ptr : &o.This}
+    return o
 }
 
-func NewLarObj_str() larva_obj.LarPtr {
-    return NewLarObj_str_from_literal("")
+func NewLarObj_str_from_literal(v string) larva_obj.LarPtr {
+    o := NewLarObj_str()
+    o.v = v
+    return o.To_lar_ptr()
 }
 
-func (self *LarObj_str) OP_init_1(obj larva_obj.LarPtr) larva_obj.LarPtr {
-    self.v = obj.OP_str()
+func (self *LarObj_str) Method_init_1(obj larva_obj.LarPtr) larva_obj.LarPtr {
+    self.v = obj.Method___str()
     return larva_obj.NIL
 }
 
@@ -59,16 +103,16 @@ type LarObj_list struct {
     l []larva_obj.LarPtr
 }
 
-func NewLarObj_list() larva_obj.LarPtr {
+func NewLarObj_list() *LarObj_list {
     o := new(LarObj_list)
     o.This = o
     o.Type_name = "__builtins.list"
-    return larva_obj.LarPtr{M_obj_ptr : &o.This}
+    return o
 }
 
 func (self *LarObj_list) Method_add_1(obj larva_obj.LarPtr) larva_obj.LarPtr {
     self.l = append(self.l, obj)
-    return larva_obj.LarPtr{M_obj_ptr : &self.This}
+    return self.To_lar_ptr()
 }
 
 //range
@@ -80,11 +124,11 @@ type LarObj_range struct {
     step int64
 }
 
-func NewLarObj_range() larva_obj.LarPtr {
+func NewLarObj_range() *LarObj_range {
     o := new(LarObj_range)
     o.This = o
     o.Type_name = "__builtins.range"
-    return larva_obj.LarPtr{M_obj_ptr : &o.This}
+    return o
 }
 
 func (self *LarObj_range) init(start, stop, step int64) larva_obj.LarPtr {
@@ -99,14 +143,14 @@ func (self *LarObj_range) init(start, stop, step int64) larva_obj.LarPtr {
     return larva_obj.NIL
 }
 
-func (self *LarObj_range) OP_init_1(stop larva_obj.LarPtr) larva_obj.LarPtr {
+func (self *LarObj_range) Method_init_1(stop larva_obj.LarPtr) larva_obj.LarPtr {
     return self.init(0, stop.As_int(), 1)
 }
 
-func (self *LarObj_range) OP_init_2(start, stop larva_obj.LarPtr) larva_obj.LarPtr {
+func (self *LarObj_range) Method_init_2(start, stop larva_obj.LarPtr) larva_obj.LarPtr {
     return self.init(start.As_int(), stop.As_int(), 1)
 }
 
-func (self *LarObj_range) OP_init_3(start, stop, step larva_obj.LarPtr) larva_obj.LarPtr {
+func (self *LarObj_range) Method_init_3(start, stop, step larva_obj.LarPtr) larva_obj.LarPtr {
     return self.init(start.As_int(), stop.As_int(), step.As_int())
 }

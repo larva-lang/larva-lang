@@ -37,8 +37,9 @@ def _parse_block_token_list(token_list):
     return block_token_list
 
 class _Method:
-    def __init__(self, cls, arg_set, block_token_list):
+    def __init__(self, cls, name, arg_set, block_token_list):
         self.cls = cls
+        self.name = name
         self.arg_set = arg_set
         self.block_token_list = block_token_list
 
@@ -92,7 +93,7 @@ class _Class:
         else:
             token_list.pop_sym("{")
             block_token_list = _parse_block_token_list(token_list)
-        self.method_map[(name, len(arg_set))] = _Method(self, arg_set, block_token_list)
+        self.method_map[(name, len(arg_set))] = _Method(self, name, arg_set, block_token_list)
 
     def _parse_attr(self, token_list):
         while True:
