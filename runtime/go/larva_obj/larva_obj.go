@@ -1,5 +1,12 @@
 package larva_obj
 
+var mod_inited bool = false
+func Init() {
+    if !mod_inited {
+        mod_inited = true
+    }
+}
+
 var NewLarObj_str_from_literal func (s string) LarPtr
 var Lar_panic_string func (s string)
 

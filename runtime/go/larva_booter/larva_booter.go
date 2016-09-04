@@ -14,7 +14,7 @@ func Start_prog(main_func func (argv larva_obj.LarPtr) larva_obj.LarPtr) (ret in
     }
 
     defer func () {
-        r := larva_exc.Lar_recover()
+        r := larva_exc.Lar_recover(recover())
         if r != nil {
             larva_exc.Traceback_print_exc()
             ret = 1

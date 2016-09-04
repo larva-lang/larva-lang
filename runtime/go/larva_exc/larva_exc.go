@@ -4,14 +4,21 @@ import (
     "larva_obj"
 )
 
+var mod_inited bool = false
+func Init() {
+    if !mod_inited {
+        larva_obj.Init()
+        mod_inited = true
+    }
+}
+
 var NewLarObj_str_from_literal func (s string) larva_obj.LarPtr
 
 func init() {
     larva_obj.Lar_panic_string = Lar_panic_string
 }
 
-func Lar_recover() *larva_obj.LarPtr {
-    r := recover()
+func Lar_recover(r interface()) *larva_obj.LarPtr {
     if r == nil {
         return nil
     }

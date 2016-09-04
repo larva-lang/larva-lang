@@ -77,7 +77,31 @@ def _output_main_pkg():
             code += '"larva_booter"'
             code += '"%s"' % main_lar_mod_name
         with code.new_blk("func main()"):
+            code += "%s.Init()" % main_lar_mod_name
             code += "os.Exit(larva_booter.Start_prog(%s.Func_main))" % main_lar_mod_name
+
+def _gen_expr_code(expr):
+    if expr.op == "global_var":
+        gv = expr.arg
+        return "lar_mod_%s.G_%s" % (gv.module.name, gv.name)
+
+    if expr.op == "call_method":
+        callee, t, el = expr.arg
+        return "(%s).Method_%s_%d(%s)" % (_gen_expr_code(callee), t.value, len(el), ", ".join([_gen_expr_code(e) for e in el]))
+
+    if expr.op == "literal":
+        t = expr.arg
+        assert t.is_literal
+        return "literal_%d" % id(t)
+
+    raise Exception("Bug")
+
+def _output_stmt_list(code, stmt_list):
+    for stmt in stmt_list:
+        if stmt.type == "expr":
+            code += _gen_expr_code(stmt.expr)
+        else:
+            raise Exception("Bug")
 
 def _output_module(module):
     has_native_item = module.has_native_item()
@@ -85,6 +109,36 @@ def _output_module(module):
     os.makedirs(mod_dir)
     with _Code(os.path.join(mod_dir, "lar_mod.%s.go" % module.name)) as code:
         code += "package lar_mod_" + module.name
+
+        with code.new_blk("import"):
+            code += '"larva_obj"'
+            code += '"larva_exc"'
+            if module.name != "__builtins":
+                code += '"lar_mod___builtins"'
+            for dep_module_name in module.dep_module_set:
+                if dep_module_name != "__builtins":
+                    code += '"lar_mod_%s"' % dep_module_name
+
+        code += ""
+        code += "var mod_inited bool = false"
+        with code.new_blk("func Init()", False):
+            with code.new_blk("if !mod_inited"):
+                code += "larva_obj.Init()"
+                code += "larva_exc.Init()"
+                if module.name != "__builtins":
+                    code += "lar_mod___builtins.Init()"
+                for dep_module_name in module.dep_module_set:
+                    if dep_module_name != "__builtins":
+                        code += "lar_mod_%s.Init()" % dep_module_name
+                code += "mod_inited = true"
+
+        for func in module.func_map.itervalues():
+            if func.is_native:
+                continue
+            args = ", ".join(["l_%s" % a for a in func.arg_set]) + " larva_obj.LarPtr" if func.arg_set else ""
+            with code.new_blk("func Func_%s(%s) larva_obj.LarPtr" % (func.name, args)):
+                _output_stmt_list(code, func.stmt_list)
+
     if has_native_item:
         shutil.copy(os.path.join(module.dir, "go", "lar_ext_mod.%s.go" % module.name), mod_dir)
 
@@ -308,7 +362,15 @@ def _complete_runtime_code():
             method_name = method_def[len("Method_") : pos]
             method_name, arg_count = method_name.rsplit("_", 1)
             arg_count = int(arg_count)
+            args = method_def[pos + 1 :]
+            assert args.count(")") == 1
+            args = args[: args.find(")")]
+            if args:
+                assert args.endswith(" LarPtr")
+                args = args[: -len(" LarPtr")]
             with code.new_blk("func (ptr *LarPtr) %s" % method_def):
+                with code.new_blk("if ptr.M_obj_ptr != nil"):
+                    code += "return (*ptr.M_obj_ptr).Method_%s_%d(%s)" % (method_name, arg_count, args)
                 code += ('Lar_panic_string(fmt.Sprintf("method (int instance).%s with %s args not implemented"))' % (method_name, arg_count))
                 code += "return NIL"
 

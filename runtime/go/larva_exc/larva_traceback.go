@@ -5,5 +5,5 @@ func Traceback_format_exc() string {
 }
 
 func Traceback_print_exc() {
-    println(Traceback_format_exc)
+    println(Traceback_format_exc())
 }
