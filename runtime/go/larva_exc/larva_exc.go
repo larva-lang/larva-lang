@@ -18,7 +18,7 @@ func init() {
     larva_obj.Lar_panic_string = Lar_panic_string
 }
 
-func Lar_recover(r interface()) *larva_obj.LarPtr {
+func Lar_recover(r interface{}) *larva_obj.LarPtr {
     if r == nil {
         return nil
     }
@@ -31,5 +31,6 @@ func Lar_panic(obj larva_obj.LarPtr) {
 }
 
 func Lar_panic_string(s string) {
+    println(s)
     Lar_panic(NewLarObj_str_from_literal(s))
 }

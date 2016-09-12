@@ -1,8 +1,5 @@
 //sys模块，系统相关接口
 
-native class tmp_io_type
-{
-    func writeln(s);
-}
+import io;
 
 native var stdout;

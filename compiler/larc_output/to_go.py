@@ -92,16 +92,33 @@ def _gen_expr_code(expr):
     if expr.op == "literal":
         t = expr.arg
         assert t.is_literal
+        if t.is_literal("nil"):
+            return "larva_obj.NIL"
+        if t.is_literal("bool"):
+            return "larva_obj.%s" % t.value.upper()
         return "literal_%d" % id(t)
 
     raise Exception("Bug")
 
 def _output_stmt_list(code, stmt_list):
     for stmt in stmt_list:
-        if stmt.type == "expr":
+        if stmt.type == "return":
+            code += "return (%s)" % _gen_expr_code(stmt.expr)
+        elif stmt.type == "expr":
             code += _gen_expr_code(stmt.expr)
         else:
             raise Exception("Bug")
+
+def _gen_str_literal(s):
+    code_list = []
+    for c in s:
+        asc = ord(c)
+        assert 0 <= asc <= 0xFF
+        if asc < 32 or asc > 126 or asc in ('"', "\\"):
+            code_list.append("\\%03o" % asc)
+        else:
+            code_list.append(c)
+    return '"%s"' % "".join(code_list)
 
 def _output_module(module):
     has_native_item = module.has_native_item()
@@ -120,6 +137,20 @@ def _output_module(module):
                     code += '"lar_mod_%s"' % dep_module_name
 
         code += ""
+        for t in module.literal_list:
+            assert t.is_literal
+            if t.is_literal("nil") or t.is_literal("bool"):
+                continue
+            if t.is_literal("int"):
+                code += "var literal_%d larva_obj.LarPtr = larva_obj.LarPtr{M_int : %s}" % (id(t), t.value)
+            elif t.is_literal("float"):
+                code += "var literal_%d larva_obj.LarPtr = lar_mod___builtins.NewLarObj_float_from_literal(%s)" % (id(t), t.value)
+            else:
+                assert t.is_literal("str")
+                code += ("var literal_%d larva_obj.LarPtr = lar_mod___builtins.NewLarObj_str_from_literal(%s)" %
+                         (id(t), _gen_str_literal(t.value)))
+
+        code += ""
         code += "var mod_inited bool = false"
         with code.new_blk("func Init()", False):
             with code.new_blk("if !mod_inited"):
@@ -130,6 +161,7 @@ def _output_module(module):
                 for dep_module_name in module.dep_module_set:
                     if dep_module_name != "__builtins":
                         code += "lar_mod_%s.Init()" % dep_module_name
+                        
                 code += "mod_inited = true"
 
         for func in module.func_map.itervalues():
@@ -237,8 +269,7 @@ def _complete_runtime_code():
                                  {"inc" : "++", "dec" : "--"}[op])
                     else:
                         assert op[0] == "i"
-                        code += "tmp := self.This.Method___get_item(k)"
-                        code += 'return self.This.Method___set_item(k, tmp.Method___%s(obj))' % op[1 :]
+                        code += 'return self.This.Method___set_item(k, self.This.Method___get_item(k).Method___%s(obj))' % op[1 :]
                 elif op in ("get_slice", "set_slice"):
                     code += ('Lar_panic_string(fmt.Sprintf("(%%v instance)[x:y:z]%s not implemented", self.Type_name))' %
                              (" = obj" if op == "set_slice" else ""))
@@ -246,8 +277,7 @@ def _complete_runtime_code():
                     code += ('Lar_panic_string(fmt.Sprintf("%s(%%v instance) not implemented", self.Type_name))' %
                              {"inc" : "++", "dec" : "--"}[op])
                 elif op == "eq":
-                    code += "tmp := self.This.Method___cmp(obj)"
-                    with code.new_blk("if tmp.As_int() == 0"):
+                    with code.new_blk("if self.This.Method___cmp(obj).As_int() == 0"):
                         code += "return TRUE"
                     code += "return FALSE"
                 elif op == "cmp":
@@ -294,7 +324,7 @@ def _complete_runtime_code():
             if args:
                 assert args.endswith(" LarPtr")
                 args = args[: -len(" LarPtr")]
-            with code.new_blk("func (ptr *LarPtr) %s" % op_def):
+            with code.new_blk("func (ptr %sLarPtr) %s" % ("*" if se_op else "", op_def)):
                 with code.new_blk("if ptr.M_obj_ptr != nil"):
                     if se_op:
                         code += "*ptr = (*ptr.M_obj_ptr).Method___%s(%s)" % (op, args)
@@ -320,13 +350,13 @@ def _complete_runtime_code():
                     code += 'ptr.M_int %s' % {"inc" : "++", "dec" : "--"}[op]
                 elif op == "eq":
                     with code.new_blk("if obj.M_obj_ptr != nil"):
-                        code += "return (*obj.M_obj_ptr).Method___eq(*ptr)"
+                        code += "return (*obj.M_obj_ptr).Method___eq(ptr)"
                     with code.new_blk("if ptr.M_int == obj.M_int"):
                         code += "return TRUE"
                     code += "return FALSE"
                 elif op == "cmp":
                     with code.new_blk("if obj.M_obj_ptr != nil"):
-                        code += "return LarPtr{M_int : -(*obj.M_obj_ptr).Method___cmp(*ptr).M_int}"
+                        code += "return LarPtr{M_int : -(*obj.M_obj_ptr).Method___cmp(ptr).M_int}"
                     with code.new_blk("if ptr.M_int < obj.M_int"):
                         code += "return LarPtr{M_int : -1}"
                     with code.new_blk("if ptr.M_int > obj.M_int"):
@@ -347,7 +377,7 @@ def _complete_runtime_code():
                     else:
                         assert op in bops
                         with code.new_blk("if obj.M_obj_ptr != nil"):
-                            code += "return obj.Method___r%s(*ptr)" % op
+                            code += "return obj.Method___r%s(ptr)" % op
                         if op in ("shl", "shr"):
                             code += "return LarPtr{M_int : ptr.M_int %s int_to_shift_count(obj.M_int)}" % bops_to_go_op[op]
                         else:

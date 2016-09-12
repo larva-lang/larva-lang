@@ -53,6 +53,10 @@ func NewLarObj_bool_0() larva_obj.LarPtr {
     return o.To_lar_ptr()
 }
 
+func (self *LarObj_bool) As_bool() bool {
+    return self.v
+}
+
 func (self *LarObj_bool) Method___init_0() larva_obj.LarPtr {
     self.v = false
     return larva_obj.NIL
@@ -82,6 +86,10 @@ func NewLarObj_float_0() larva_obj.LarPtr {
     o := NewLarObj_float()
     o.Method___init_0()
     return o.To_lar_ptr()
+}
+
+func (self *LarObj_float) As_float() float64 {
+    return self.v
 }
 
 func (self *LarObj_float) Method___init_0() larva_obj.LarPtr {
@@ -125,14 +133,17 @@ func NewLarObj_str_1(obj larva_obj.LarPtr) larva_obj.LarPtr {
     return o.To_lar_ptr()
 }
 
+func (self *LarObj_str) As_str() string {
+    return self.v
+}
+
 func (self *LarObj_str) Method___init_0() larva_obj.LarPtr {
     self.v = ""
     return larva_obj.NIL
 }
 
 func (self *LarObj_str) Method___init_1(obj larva_obj.LarPtr) larva_obj.LarPtr {
-    tmp := obj.Method___str()
-    self.v = tmp.As_str()
+    self.v = obj.Method___str().As_str()
     return larva_obj.NIL
 }
 

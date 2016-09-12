@@ -3,4 +3,5 @@ import sys;
 func main(argv)
 {
     sys.stdout.writeln("hello world");
+    return nil;
 }

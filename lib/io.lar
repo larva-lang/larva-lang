@@ -1,0 +1,6 @@
+//io模块，输入输出相关接口
+
+native class File
+{
+    func writeln(s);
+}
