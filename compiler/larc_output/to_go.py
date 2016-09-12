@@ -9,6 +9,7 @@ import shutil
 import sys
 
 import larc_module
+import larc_token
 
 main_module_name = None
 out_dir = None
@@ -100,14 +101,52 @@ def _gen_expr_code(expr):
 
     raise Exception("Bug")
 
+def _output_assign(code, lvalue, expr_code, assign_sym = "="):
+    raise Exception("todo")
+
 def _output_stmt_list(code, stmt_list):
     for stmt in stmt_list:
-        if stmt.type == "return":
+        if stmt.type == "block":
+            with code.new_blk(""):
+                _output_stmt_list(code, stmt.stmt_list)
+        elif stmt.type == "var":
+            code += "var l_%s larva_obj.LarPtr = (%s)" % (stmt.name, _gen_expr_code(stmt.expr))
+        elif stmt.type in ("break", "continue"):
+            code += stmt.type
+        elif stmt.type == "return":
             code += "return (%s)" % _gen_expr_code(stmt.expr)
+        elif stmt.type == "for":
+            with code.new_blk(""):
+                for vn in stmt.var_set:
+                    code += "var l_%s larva_obj.LarPtr"
+                with code.new_blk("for iter := (%s).Method_iter_0(); !iter.Method___eq(larva_obj.NIL).As_bool(); iter.Method___inc()" %
+                                  stmt.iter_obj):
+                    _output_assign(code, stmt.lvalue, "iter.Method_item_0()")
+                    _output_stmt_list(code, stmt.stmt_list)
+        elif stmt.type == "while":
+            with code.new_blk("for (%s).Method___bool().As_bool()" % _gen_expr_code(stmt.expr)):
+                _output_stmt_list(code, stmt.stmt_list)
+        elif stmt.type == "do":
+            with code.new_blk("for first := true; first || (%s).Method___bool().As_bool(); first = false" % _gen_expr_code(stmt.expr)):
+                _output_stmt_list(code, stmt.stmt_list)
+        elif stmt.type == "if":
+            assert len(stmt.if_expr_list) == len(stmt.if_stmt_list_list)
+            for i, if_expr in enumerate(stmt.if_expr_list):
+                if_stmt_list = stmt.if_stmt_list_list[i]
+                with code.new_blk("%sif (%s).Method___bool().As_bool()" % ("" if i == 0 else "else ", _gen_expr_code(if_expr))):
+                    _output_stmt_list(code, if_stmt_list)
+                if stmt.else_stmt_list is not None:
+                    with code.new_blk("else"):
+                        _output_stmt_list(code, stmt.else_stmt_list)
+        elif stmt.type in larc_token.INC_DEC_SYM_SET:
+            code += "(%s).Method___%s()" % (_gen_expr_code(stmt.lvalue), {"++" : "inc", "--" : "dec"}[stmt.type])
         elif stmt.type == "expr":
             code += _gen_expr_code(stmt.expr)
+        elif stmt.type in larc_token.ASSIGN_SYM_SET:
+            _output_assign(code, stmt.lvalue, _gen_expr_code(stmt.expr), stmt.type)
         else:
             raise Exception("Bug")
+    code += "return larva_obj.NIL"
 
 def _gen_str_literal(s):
     code_list = []
