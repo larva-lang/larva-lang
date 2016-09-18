@@ -1,5 +1,10 @@
 //内置builtin模块
 
+native class iterator
+{
+    func item();
+}
+
 native class bool
 {
     func __init();
@@ -24,12 +29,15 @@ native class str
     func to_int();
     func to_int(radix);
     func to_float();
+    func ord_at(idx);
+    func len();
 }
 
 native class list
 {
     func __init();
     func add(obj);
+    func len();
 }
 
 native class dict
@@ -42,4 +50,5 @@ native class range
     func __init(start);
     func __init(start, end);
     func __init(start, end, step);
+    func iter();
 }

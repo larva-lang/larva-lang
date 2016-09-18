@@ -88,7 +88,7 @@ def _gen_expr_code(expr):
         e, = expr.arg
         expr_code = _gen_expr_code(e)
         if expr.op == "!":
-            return "(%s).Method__bool().Bool_not()" % expr_code
+            return "(%s).Method___bool().Bool_not()" % expr_code
         return "(%s).Method__%s()" % (expr_code, {"~" : "inv"}.get(expr.op, expr.op))
 
     if expr.op in larc_token.BINOCULAR_OP_SYM_SET:
@@ -611,7 +611,7 @@ def _complete_runtime_code():
             if args:
                 assert args.endswith(" LarPtr")
                 args = args[: -len(" LarPtr")]
-            with code.new_blk("func (ptr *LarPtr) %s" % method_def):
+            with code.new_blk("func (ptr LarPtr) %s" % method_def):
                 with code.new_blk("if ptr.M_obj_ptr != nil"):
                     code += "return (*ptr.M_obj_ptr).Method_%s_%d(%s)" % (method_name, arg_count, args)
                 code += ('Lar_panic_string(fmt.Sprintf("method (int instance).%s with %s args not implemented"))' % (method_name, arg_count))
