@@ -6,6 +6,9 @@ import (
     "larva_obj"
 )
 
+func NativeInit() {
+}
+
 //File
 
 type LarObj_File struct {

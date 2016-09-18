@@ -274,7 +274,7 @@ class Module:
                 yield i
 
     def compile(self):
-        self.literal_list = []
+        self.literal_set = set()
         for i in self._items():
             i.compile()
         non_local_var_used_map = larc_common.OrderedDict()

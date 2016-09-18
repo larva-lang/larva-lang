@@ -6,4 +6,8 @@ import (
     "lar_mod_io"
 )
 
-var G_stdout larva_obj.LarPtr = lar_mod_io.NewLarObj_File_from_file_handler(os.Stdout)
+func NativeInit() {
+    G_stdout = lar_mod_io.NewLarObj_File_from_file_handler(os.Stdout)
+}
+
+var G_stdout larva_obj.LarPtr

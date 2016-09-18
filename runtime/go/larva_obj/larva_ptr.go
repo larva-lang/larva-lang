@@ -20,6 +20,11 @@ func (ptr LarPtr) As_bool() bool {
     return (*ptr.M_obj_ptr).As_bool()
 }
 
+func (ptr LarPtr) Bool_not() LarPtr {
+    ptr.check_as_obj("bool")
+    return (*ptr.M_obj_ptr).Bool_not()
+}
+
 func (ptr LarPtr) As_int() int64 {
     if ptr.M_obj_ptr != nil {
         Lar_panic_string(fmt.Sprintf("%s is not int type", (*ptr.M_obj_ptr).Get_type_name()))

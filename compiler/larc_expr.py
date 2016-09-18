@@ -43,7 +43,7 @@ class _Expr:
         self.arg = arg
         if op in ("this.attr", "global_var", "local_var", "[]", "[:]", "."):
             self.is_lvalue = True
-        elif op in ("tuple", "list"):
+        elif op == "tuple":
             if self.arg:
                 self.is_lvalue = True
                 for e in self.arg:
@@ -286,7 +286,7 @@ def parse_expr(token_list, module, cls, var_set_list, non_local_var_used_map, en
                             t.syntax_err("未定义的标识符'%s'" % t.value)
         elif t.is_literal:
             assert t.type.startswith("literal_")
-            module.literal_list.append(t)
+            module.literal_set.add(t)
             parse_stk.push_expr(_Expr("literal", t))
         elif t.is_reserved("this"):
             if cls is None:
@@ -396,3 +396,10 @@ def parse_expr(token_list, module, cls, var_set_list, non_local_var_used_map, en
             t.syntax_err("需要二元或三元运算符")
 
     return parse_stk.finish()
+
+def var_name_to_expr(var_name):
+    if isinstance(var_name, str):
+        return _Expr("local_var", var_name)
+
+    assert isinstance(var_name, tuple)
+    return _Expr("tuple", [var_name_to_expr(vn) for vn in var_name])

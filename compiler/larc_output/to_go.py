@@ -59,6 +59,8 @@ class _Code:
             self += title + " ("
             end_line = ")"
         elif title == "else" or title.startswith("else if "):
+            if start_with_blank_line:
+                del self.line_list[-1]
             assert self.line_list[-1] == self.indent + "}"
             del self.line_list[-1]
             self += "} " + title + " {"
@@ -82,13 +84,99 @@ def _output_main_pkg():
             code += "os.Exit(larva_booter.Start_prog(%s.Func_main))" % main_lar_mod_name
 
 def _gen_expr_code(expr):
+    if expr.op in ("~", "!", "neg", "pos"):
+        e, = expr.arg
+        expr_code = _gen_expr_code(e)
+        if expr.op == "!":
+            return "(%s).Method__bool().Bool_not()" % expr_code
+        return "(%s).Method__%s()" % (expr_code, {"~" : "inv"}.get(expr.op, expr.op))
+
+    if expr.op in larc_token.BINOCULAR_OP_SYM_SET:
+        ea, eb = expr.arg
+        ea_code = _gen_expr_code(ea)
+        eb_code = _gen_expr_code(eb)
+        if expr.op in ("&&", "||"):
+            return ("larva_obj.Lar_bool_from_bool((%s).Method___bool().As_bool() %s (%s).Method___bool().As_bool())" %
+                    (ea_code, expr.op, eb_code))
+        if expr.op in ("==", "!="):
+            return "(%s).Method___eq(%s)%s" % (ea_code, eb_code, "" if expr.op == "==" else ".Bool_not()")
+        if expr.op in ("<", "<=", ">", ">="):
+            return "larva_obj.Lar_bool_from_bool((%s).Method___cmp(%s).As_int() %s 0)" % (ea_code, eb_code, expr.op)
+        return ("(%s).Method___%s(%s)" %
+                (ea_code,
+                 {"+" : "add", "-" : "sub", "*" : "mul", "/" : "div", "%" : "mod", "&" : "and", "|" : "or", "^" : "xor", "<<" : "shl",
+                  ">>" : "shr"}[expr.op], eb_code))
+
+    if expr.op == "?:":
+        ea, eb, ec = expr.arg
+        ea_code = _gen_expr_code(ea)
+        eb_code = _gen_expr_code(eb)
+        ec_code = _gen_expr_code(ec)
+        return """func () larva_obj.LarPtr {
+if (%s).Method___bool().As_bool() {
+return (%s)
+}
+return (%s)
+}()""" % (ea_code, eb_code, ec_code)
+
+    if expr.op == "this.attr":
+        name = expr.arg
+        return "self.M_%s" % name
+
+    if expr.op == "call_this.method":
+        method, el = expr.arg
+        return "self.This.Method_%s_%d(%s)" % (method.name, len(el), ", ".join([_gen_expr_code(e) for e in el]))
+
     if expr.op == "global_var":
         gv = expr.arg
-        return "lar_mod_%s.G_%s" % (gv.module.name, gv.name)
+        return "%sG_%s" % ("" if gv.module is curr_module else "lar_mod_%s." % gv.module.name, gv.name)
 
-    if expr.op == "call_method":
-        callee, t, el = expr.arg
-        return "(%s).Method_%s_%d(%s)" % (_gen_expr_code(callee), t.value, len(el), ", ".join([_gen_expr_code(e) for e in el]))
+    if expr.op == "call_func":
+        func, el = expr.arg
+        return ("%sFunc_%s_%d(%s)" %
+                ("" if func.module is curr_module else "lar_mod_%s." % func.module.name, func.name, len(el),
+                 ", ".join([_gen_expr_code(e) for e in el])))
+        
+    if expr.op == "new":
+        cls, el = expr.arg
+        return ("%sNewLarObj_%s_%d(%s)" %
+                ("" if cls.module is curr_module else "lar_mod_%s." % cls.module.name, cls.name, len(el),
+                 ", ".join([_gen_expr_code(e) for e in el])))
+        
+    if expr.op == "tuple":
+        el = expr.arg
+        return "lar_mod___builtins.NewLarObj_tuple_from_var_arg(%s)" % ", ".join([_gen_expr_code(e) for e in el])
+        
+    if expr.op == "list":
+        el = expr.arg
+        return "lar_mod___builtins.NewLarObj_list_from_var_arg(%s)" % ", ".join([_gen_expr_code(e) for e in el])
+        
+    if expr.op == "list_compr":
+        e, for_var_set, lvalue, iter_obj = expr.arg
+        return """func () larva_obj.LarPtr {
+var tmp_list larva_obj.LarPtr = lar_mod___builtins.NewLarObj_list_0()
+%s
+for iter := (%s).Method_iter_0(); !iter.Method___eq(larva_obj.NIL).As_bool(); iter.Method___inc() {
+%s
+tmp_list.Method_add_1(%s)
+}
+return tmp_list
+}()""" % ("\n".join(["var l_%s larva_obj.LarPtr" % name for name in for_var_set]), _gen_expr_code(iter_obj),
+          _gen_assign_code(lvalue, "iter.Method_item_0()"), _gen_expr_code(e))
+        
+    if expr.op == "dict":
+        ekv_list = expr.arg
+        raise Exception("not implemented")
+        return #todo
+        
+    if expr.op == "dict_compr":
+        ek, ev, for_var_set, lvalue, iter_obj = expr.arg
+        raise Exception("not implemented")
+        return #todo
+        
+    if expr.op == "local_var":
+        name = expr.arg
+        return "l_%s" % name
 
     if expr.op == "literal":
         t = expr.arg
@@ -99,10 +187,86 @@ def _gen_expr_code(expr):
             return "larva_obj.%s" % t.value.upper()
         return "literal_%d" % id(t)
 
+    if expr.op == "this":
+        return "self.To_lar_ptr()"
+
+    if expr.op == "[]":
+        e_obj, e_idx = expr.arg
+        return "(%s).Method___get_item(%s)" % (_gen_expr_code(e_obj), _gen_expr_code(e_idx))
+
+    if expr.op == "[:]":
+        e_obj, el = expr.arg
+        raise Exception("not implemented")
+        return #todo
+
+    if expr.op == "call_method":
+        callee, t, el = expr.arg
+        return "(%s).Method_%s_%d(%s)" % (_gen_expr_code(callee), t.value, len(el), ", ".join([_gen_expr_code(e) for e in el]))
+
+    if expr.op == ".":
+        e, t = expr.arg
+        return "(%s).Attr_get_%s()" % (_gen_expr_code(e), t.value)
+        
     raise Exception("Bug")
 
 def _output_assign(code, lvalue, expr_code, assign_sym = "="):
-    raise Exception("todo")
+    assert lvalue.is_lvalue
+    if assign_sym == "=":
+        if lvalue.op == "this.attr":
+            name = lvalue.arg
+            return "self.M_%s = (%s)" % (name, expr_code)
+        if lvalue.op == "global_var":
+            gv = lvalue.arg
+            return "%sG_%s = (%s)" % ("" if gv.module is curr_module else "lar_mod_%s." % gv.module.name, gv.name, expr_code)
+        if lvalue.op == "local_var":
+            name = lvalue.arg
+            return "l_%s = (%s)" % (name, expr_code)
+        if lvalue.op == "[]":
+            e_obj, e_idx = lvalue.arg
+            return "(%s).Method___set_item(%s, %s)" % (_gen_expr_code(e_obj), _gen_expr_code(e_idx), expr_code)
+        if lvalue.op == "[:]":
+            e_obj, el = lvalue.arg
+            raise Exception("not implemented")
+            return #todo
+        if lvalue.op == ".":
+            e, t = lvalue.arg
+            return "(%s).Attr_set_%s(%s)" % (_gen_expr_code(e), t.value, expr_code)
+        raise Exception("Bug")
+    else:
+        assert assign_sym[-1] == "="
+        op = {"+" : "add", "-" : "sub", "*" : "mul", "/" : "div", "%" : "mod", "&" : "and", "|" : "or", "^" : "xor", "<<" : "shl",
+              ">>" : "shr"}[assign_sym[: -1]]
+        if lvalue.op == "this.attr":
+            name = lvalue.arg
+            return "self.M_%s.Method___i%s(%s)" % (name, op, expr_code)
+        if lvalue.op == "global_var":
+            gv = lvalue.arg
+            return "%sG_%s.Method___i%s(%s)" % ("" if gv.module is curr_module else "lar_mod_%s." % gv.module.name, gv.name, op, expr_code)
+        if lvalue.op == "local_var":
+            name = lvalue.arg
+            return "l_%s.Method___i%s(%s)" % (name, op, expr_code)
+        if lvalue.op == "[]":
+            e_obj, e_idx = lvalue.arg
+            return "(%s).Method___item_i%s(%s, %s)" % (_gen_expr_code(e_obj), op, _gen_expr_code(e_idx), expr_code)
+        if lvalue.op == "[:]":
+            e_obj, el = lvalue.arg
+            raise Exception("not implemented")
+            return #todo
+        if lvalue.op == ".":
+            e, t = lvalue.arg
+            return "(%s).Attr_i%s_%s(%s)" % (_gen_expr_code(e), op, t.value, expr_code)
+        raise Exception("Bug")
+
+def _gen_assign_code(lvalue, expr_code):
+    class Code:
+        def __init__(self):
+            self.l = []
+        def __iadd__(self, line):
+            self.l.append(line)
+            return self
+    code = Code()
+    _output_assign(code, lvalue, expr_code)
+    return "\n".join(code.l)
 
 def _output_stmt_list(code, stmt_list):
     for stmt in stmt_list:
@@ -118,9 +282,9 @@ def _output_stmt_list(code, stmt_list):
         elif stmt.type == "for":
             with code.new_blk(""):
                 for vn in stmt.var_set:
-                    code += "var l_%s larva_obj.LarPtr"
+                    code += "var l_%s larva_obj.LarPtr" % vn
                 with code.new_blk("for iter := (%s).Method_iter_0(); !iter.Method___eq(larva_obj.NIL).As_bool(); iter.Method___inc()" %
-                                  stmt.iter_obj):
+                                  _gen_expr_code(stmt.iter_obj)):
                     _output_assign(code, stmt.lvalue, "iter.Method_item_0()")
                     _output_stmt_list(code, stmt.stmt_list)
         elif stmt.type == "while":
@@ -159,7 +323,9 @@ def _gen_str_literal(s):
             code_list.append(c)
     return '"%s"' % "".join(code_list)
 
-def _output_module(module):
+curr_module = None
+def _output_module():
+    module = curr_module
     has_native_item = module.has_native_item()
     mod_dir = os.path.join(out_dir, "src", "lar_mod_" + module.name)
     os.makedirs(mod_dir)
@@ -176,7 +342,7 @@ def _output_module(module):
                     code += '"lar_mod_%s"' % dep_module_name
 
         code += ""
-        for t in module.literal_list:
+        for t in module.literal_set:
             assert t.is_literal
             if t.is_literal("nil") or t.is_literal("bool"):
                 continue
@@ -200,14 +366,22 @@ def _output_module(module):
                 for dep_module_name in module.dep_module_set:
                     if dep_module_name != "__builtins":
                         code += "lar_mod_%s.Init()" % dep_module_name
-                        
+                if has_native_item:
+                    code += "NativeInit()"
+                #todo gv init
                 code += "mod_inited = true"
+
+        code += ""
+        for gv in module.global_var_map.itervalues():
+            if gv.is_native:
+                continue
+            code += "var G_%s larva_obj.LarPtr = larva_obj.NIL" % gv.name
 
         for func in module.func_map.itervalues():
             if func.is_native:
                 continue
             args = ", ".join(["l_%s" % a for a in func.arg_set]) + " larva_obj.LarPtr" if func.arg_set else ""
-            with code.new_blk("func Func_%s(%s) larva_obj.LarPtr" % (func.name, args)):
+            with code.new_blk("func Func_%s_%d(%s) larva_obj.LarPtr" % (func.name, len(func.arg_set), args)):
                 _output_stmt_list(code, func.stmt_list)
 
     if has_native_item:
@@ -375,7 +549,7 @@ def _complete_runtime_code():
                         code += "return FALSE"
                     code += "return TRUE"
                 elif op == "str":
-                    code += 'return NewLarObj_str_from_literal(fmt.Sprintf("%d", ptr.M_int))'
+                    code += 'return NewLarObj_str_from_literal(fmt.Sprint(ptr.M_int))'
                 elif op in ("inv", "pos", "neg"):
                     code += "return LarPtr{M_int : (%sptr.M_int)}" % {"inv" : "^", "pos" : "+", "neg" : "-"}[op]
                 elif op in ("get_item", "set_item"):
@@ -455,7 +629,7 @@ def _gen_makefile():
         raise Exception("Not implemented on '%s'" % sys.platform)
 
 def output():
-    global runtime_dir, out_prog_dir
+    global runtime_dir, out_prog_dir, curr_module
     runtime_dir = os.path.join(runtime_dir, "go")
     out_prog_dir = os.path.join(out_dir, "src", "lar_prog_" + main_module_name)
 
@@ -463,8 +637,8 @@ def output():
     os.makedirs(out_prog_dir)
 
     _output_main_pkg()
-    for m in larc_module.module_map.itervalues():
-        _output_module(m)
+    for curr_module in larc_module.module_map.itervalues():
+        _output_module()
 
     _copy_runtime()
     _complete_runtime_code()

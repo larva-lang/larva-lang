@@ -22,6 +22,11 @@ func (self *LarObjBase) As_bool() bool {
     return false
 }
 
+func (self *LarObjBase) Bool_not() LarPtr {
+    Lar_panic_string(fmt.Sprintf("%s is not bool type", self.Type_name))
+    return FALSE
+}
+
 func (self *LarObjBase) As_float() float64 {
     Lar_panic_string(fmt.Sprintf("%s is not float type", self.Type_name))
     return 0.0

@@ -84,7 +84,7 @@ def parse_for_prefix(token_list, module, cls, var_set_list, non_local_var_used_m
                 if vn in var_set:
                     t.syntax_err("变量名'%s'重定义" % vn)
             for_var_set.add(vn)
-        lvalue = var_name
+        lvalue = larc_expr.var_name_to_expr(var_name)
     else:
         lvalue = larc_expr.parse_expr(token_list, module, cls, var_set_list, non_local_var_used_map)
     token_list.pop_sym(":")
