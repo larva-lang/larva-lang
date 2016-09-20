@@ -9,6 +9,9 @@ type LarPtr struct {
     M_obj_ptr *LarObjIntf
 }
 
+func (ptr LarPtr) Touch() {
+}
+
 func (ptr LarPtr) check_as_obj(tp string) {
     if ptr.M_obj_ptr == nil {
         Lar_panic_string(fmt.Sprintf("int is not %s type", tp))

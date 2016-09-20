@@ -6,7 +6,9 @@ class Record
 
     func __init()
     {
-        Discr, EnumComp, IntComp = 0, 0, 0;
+        Discr = 0;
+        EnumComp = 0;
+        IntComp = 0;
     }
 
     func assign(other)
@@ -19,7 +21,7 @@ class Record
     }
 }
 
-var loops = 50000000,
+var loops = 5000000,
 
     Ident1 = 1,
     Ident2 = 2,
@@ -264,6 +266,6 @@ func main(argv)
     var ts = time.time();
     Proc0();
     var tm = time.time() - ts;
-    sys.stdout.writeln("Time used: %s sec" % tm);
-    sys.stdout.writeln("This machine benchmarks at %s LarStones/second" % (loops / tm));
+    sys.stdout.writeln("Time used: " + tm + " sec");
+    sys.stdout.writeln("This machine benchmarks at " + loops / tm + " LarStones/second");
 }

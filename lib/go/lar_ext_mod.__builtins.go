@@ -138,6 +138,24 @@ func (self *LarObj_float) Method___str() larva_obj.LarPtr {
     return NewLarObj_str_from_literal(fmt.Sprint(self.v))
 }
 
+func (self *LarObj_float) Method___sub(obj larva_obj.LarPtr) larva_obj.LarPtr {
+    if obj.M_obj_ptr == nil {
+        return NewLarObj_float_from_literal(self.v - float64(obj.M_int))
+    }
+    switch v := (*obj.M_obj_ptr).(type) {
+        case *LarObj_float:
+            return NewLarObj_float_from_literal(self.v - v.v)
+    }
+    return (*obj.M_obj_ptr).Method___rsub(self.To_lar_ptr())
+}
+
+func (self *LarObj_float) Method___rdiv(obj larva_obj.LarPtr) larva_obj.LarPtr {
+    if obj.M_obj_ptr == nil {
+        return NewLarObj_float_from_literal(float64(obj.M_int) / self.v)
+    }
+    return self.LarObjBase.Method___rdiv(obj)
+}
+
 func (self *LarObj_float) Method___init_0() larva_obj.LarPtr {
     self.v = 0.0
     return larva_obj.NIL
@@ -204,6 +222,48 @@ func (self *LarObj_str) Method___init_1(obj larva_obj.LarPtr) larva_obj.LarPtr {
     return larva_obj.NIL
 }
 
+func (self *LarObj_str) Method___add(obj larva_obj.LarPtr) larva_obj.LarPtr {
+    return NewLarObj_str_from_literal(self.v + obj.Method___str().As_str())
+}
+
+func (self *LarObj_str) Method___eq(obj larva_obj.LarPtr) larva_obj.LarPtr {
+    if obj.M_obj_ptr != nil {
+        switch v := (*obj.M_obj_ptr).(type) {
+            case *LarObj_str:
+                return larva_obj.Lar_bool_from_bool(self.v == v.v)
+        }
+    }
+    return self.LarObjBase.Method___eq(obj)
+}
+
+func (self *LarObj_str) Method___cmp(obj larva_obj.LarPtr) larva_obj.LarPtr {
+    if obj.M_obj_ptr != nil {
+        switch v := (*obj.M_obj_ptr).(type) {
+            case *LarObj_str:
+                if self.v < v.v {
+                    return larva_obj.LarPtr{M_int : -1}
+                }
+                if self.v > v.v {
+                    return larva_obj.LarPtr{M_int : 1}
+                }
+                return larva_obj.LarPtr{M_int : 0}
+        }
+    }
+    return self.LarObjBase.Method___cmp(obj)
+}
+
+func (self *LarObj_str) Method_ord_at_1(obj larva_obj.LarPtr) larva_obj.LarPtr {
+    idx := obj.As_int()
+    curr_len := int64(len(self.v))
+    if idx < 0 {
+        idx += curr_len
+    }
+    if idx < 0 || idx >= curr_len {
+        larva_exc.Lar_panic_string(fmt.Sprintf("string index out of range %v", idx))
+    }
+    return larva_obj.LarPtr{M_int : int64(self.v[idx])}
+}
+
 //list
 
 type LarObj_list struct {
@@ -224,6 +284,13 @@ func NewLarObj_list_0() larva_obj.LarPtr {
     return o.To_lar_ptr()
 }
 
+func NewLarObj_list_from_var_arg(args ...larva_obj.LarPtr) larva_obj.LarPtr {
+    o := NewLarObj_list()
+    o.l = make([]larva_obj.LarPtr, len(args))
+    copy(o.l, args)
+    return o.To_lar_ptr()
+}
+
 func (self *LarObj_list) Method___bool() larva_obj.LarPtr {
     if len(self.l) == 0 {
         return larva_obj.FALSE
@@ -238,6 +305,51 @@ func (self *LarObj_list) Method___init_0() larva_obj.LarPtr {
 func (self *LarObj_list) Method_add_1(obj larva_obj.LarPtr) larva_obj.LarPtr {
     self.l = append(self.l, obj)
     return self.To_lar_ptr()
+}
+
+func (self *LarObj_list) Method_len_0() larva_obj.LarPtr {
+    return larva_obj.LarPtr{M_int : int64(len(self.l))}
+}
+
+func (self *LarObj_list) Method___mul(obj larva_obj.LarPtr) larva_obj.LarPtr {
+    n := obj.As_int()
+    if n < 0 {
+        larva_exc.Lar_panic_string(fmt.Sprintf("list mul by %v", n))
+    }
+    old_len := int64(len(self.l))
+    new_l := make([]larva_obj.LarPtr, old_len * n)
+    for i := int64(0); i < n; i ++ {
+        for j := int64(0); j < old_len; j++ {
+            new_l[i * old_len + j] = self.l[j]
+        }
+    }
+    self.l = new_l
+    return self.To_lar_ptr()
+}
+
+func (self *LarObj_list) Method___get_item(k larva_obj.LarPtr) larva_obj.LarPtr {
+    idx := k.As_int()
+    curr_len := int64(len(self.l))
+    if idx < 0 {
+        idx += curr_len
+    }
+    if idx < 0 || idx >= curr_len {
+        larva_exc.Lar_panic_string(fmt.Sprintf("list index out of range %v", idx))
+    }
+    return self.l[idx]
+}
+
+func (self *LarObj_list) Method___set_item(k, v larva_obj.LarPtr) larva_obj.LarPtr {
+    idx := k.As_int()
+    curr_len := int64(len(self.l))
+    if idx < 0 {
+        idx += curr_len
+    }
+    if idx < 0 || idx >= curr_len {
+        larva_exc.Lar_panic_string(fmt.Sprintf("list index out of range %v", idx))
+    }
+    self.l[idx] = v
+    return larva_obj.NIL
 }
 
 //range
@@ -296,4 +408,44 @@ func (self *LarObj_range) Method___init_2(start, stop larva_obj.LarPtr) larva_ob
 
 func (self *LarObj_range) Method___init_3(start, stop, step larva_obj.LarPtr) larva_obj.LarPtr {
     return self.init(start.As_int(), stop.As_int(), step.As_int())
+}
+
+func (self *LarObj_range) Method_iter_new_0() larva_obj.LarPtr {
+    return self.To_lar_ptr()
+}
+
+func (self *LarObj_range) Method_iter_end_0() larva_obj.LarPtr {
+    if self.step > 0 {
+        return larva_obj.Lar_bool_from_bool(self.stop <= self.curr)
+    }
+    return larva_obj.Lar_bool_from_bool(self.stop >= self.curr)
+}
+
+func (self *LarObj_range) Method_iter_get_item_0() larva_obj.LarPtr {
+    return larva_obj.LarPtr{M_int : self.curr}
+}
+
+func (self *LarObj_range) Method_iter_next_0() larva_obj.LarPtr {
+    if self.step > 0 {
+        if self.stop <= self.curr {
+            larva_exc.Lar_panic_string("range iter ended")
+        }
+        distance := self.stop - self.curr
+        if distance > 0 && distance < self.step {
+            self.curr = self.stop
+        } else {
+            self.curr += self.step
+        }
+    } else {
+        if self.stop >= self.curr {
+            larva_exc.Lar_panic_string("range iter ended")
+        }
+        distance := self.curr - self.stop
+        if distance > 0 && distance < -self.step {
+            self.curr = self.stop
+        } else {
+            self.curr += self.step
+        }
+    }
+    return larva_obj.NIL
 }

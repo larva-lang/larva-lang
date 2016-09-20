@@ -200,6 +200,7 @@ def parse_stmt_list(token_list, module, cls, var_set_list, loop_deep):
             if lvalue.op in ("[:]", "tuple", "list"):
                 t.syntax_err("分片和解包左值表达式不能做'%s'操作" % inc_dec_op)
             stmt_list.append(_Stmt(inc_dec_op, lvalue = lvalue))
+            token_list.pop_sym(";")
             continue
         #todo: try catch finally throw assert
 

@@ -10,11 +10,14 @@ import sys
 
 import larc_module
 import larc_token
+import larc_expr
 
 main_module_name = None
 out_dir = None
 runtime_dir = None
 out_prog_dir = None
+
+bops = ["add", "sub", "mul", "div", "mod", "and", "or", "xor", "shl", "shr"]
 
 class _Code:
     class _CodeBlk:
@@ -81,7 +84,7 @@ def _output_main_pkg():
             code += '"%s"' % main_lar_mod_name
         with code.new_blk("func main()"):
             code += "%s.Init()" % main_lar_mod_name
-            code += "os.Exit(larva_booter.Start_prog(%s.Func_main))" % main_lar_mod_name
+            code += "os.Exit(larva_booter.Start_prog(%s.Func_main_1))" % main_lar_mod_name
 
 def _gen_expr_code(expr):
     if expr.op in ("~", "!", "neg", "pos"):
@@ -156,13 +159,15 @@ return (%s)
         return """func () larva_obj.LarPtr {
 var tmp_list larva_obj.LarPtr = lar_mod___builtins.NewLarObj_list_0()
 %s
-for iter := (%s).Method_iter_0(); !iter.Method___eq(larva_obj.NIL).As_bool(); iter.Method___inc() {
+for iter := (%s).Method_iter_new_0(); !iter.Method_iter_end_0().As_bool(); iter.Method_iter_next_0() {
+%s
 %s
 tmp_list.Method_add_1(%s)
 }
 return tmp_list
 }()""" % ("\n".join(["var l_%s larva_obj.LarPtr" % name for name in for_var_set]), _gen_expr_code(iter_obj),
-          _gen_assign_code(lvalue, "iter.Method_item_0()"), _gen_expr_code(e))
+          "\n".join(["l_%s.Touch()" % name for name in for_var_set]), _gen_assign_code(lvalue, "iter.Method_iter_get_item_0()"),
+          _gen_expr_code(e))
         
     if expr.op == "dict":
         ekv_list = expr.arg
@@ -214,23 +219,29 @@ def _output_assign(code, lvalue, expr_code, assign_sym = "="):
     if assign_sym == "=":
         if lvalue.op == "this.attr":
             name = lvalue.arg
-            return "self.M_%s = (%s)" % (name, expr_code)
+            code += "self.M_%s = (%s)" % (name, expr_code)
+            return
         if lvalue.op == "global_var":
             gv = lvalue.arg
-            return "%sG_%s = (%s)" % ("" if gv.module is curr_module else "lar_mod_%s." % gv.module.name, gv.name, expr_code)
+            code += "%sG_%s = (%s)" % ("" if gv.module is curr_module else "lar_mod_%s." % gv.module.name, gv.name, expr_code)
+            return
         if lvalue.op == "local_var":
             name = lvalue.arg
-            return "l_%s = (%s)" % (name, expr_code)
+            code += "l_%s = (%s)" % (name, expr_code)
+            return
         if lvalue.op == "[]":
             e_obj, e_idx = lvalue.arg
-            return "(%s).Method___set_item(%s, %s)" % (_gen_expr_code(e_obj), _gen_expr_code(e_idx), expr_code)
+            code += "(%s).Method___set_item(%s, %s)" % (_gen_expr_code(e_obj), _gen_expr_code(e_idx), expr_code)
+            return
         if lvalue.op == "[:]":
             e_obj, el = lvalue.arg
             raise Exception("not implemented")
             return #todo
         if lvalue.op == ".":
             e, t = lvalue.arg
-            return "(%s).Attr_set_%s(%s)" % (_gen_expr_code(e), t.value, expr_code)
+            code += "(%s).Attr_set_%s(%s)" % (_gen_expr_code(e), t.value, expr_code)
+            return
+        print lvalue.op
         raise Exception("Bug")
     else:
         assert assign_sym[-1] == "="
@@ -238,23 +249,28 @@ def _output_assign(code, lvalue, expr_code, assign_sym = "="):
               ">>" : "shr"}[assign_sym[: -1]]
         if lvalue.op == "this.attr":
             name = lvalue.arg
-            return "self.M_%s.Method___i%s(%s)" % (name, op, expr_code)
+            code += "self.M_%s.Method___i%s(%s)" % (name, op, expr_code)
+            return
         if lvalue.op == "global_var":
             gv = lvalue.arg
-            return "%sG_%s.Method___i%s(%s)" % ("" if gv.module is curr_module else "lar_mod_%s." % gv.module.name, gv.name, op, expr_code)
+            code += "%sG_%s.Method___i%s(%s)" % ("" if gv.module is curr_module else "lar_mod_%s." % gv.module.name, gv.name, op, expr_code)
+            return
         if lvalue.op == "local_var":
             name = lvalue.arg
-            return "l_%s.Method___i%s(%s)" % (name, op, expr_code)
+            code += "l_%s.Method___i%s(%s)" % (name, op, expr_code)
+            return
         if lvalue.op == "[]":
             e_obj, e_idx = lvalue.arg
-            return "(%s).Method___item_i%s(%s, %s)" % (_gen_expr_code(e_obj), op, _gen_expr_code(e_idx), expr_code)
+            code += "(%s).Method___item_i%s(%s, %s)" % (_gen_expr_code(e_obj), op, _gen_expr_code(e_idx), expr_code)
+            return
         if lvalue.op == "[:]":
             e_obj, el = lvalue.arg
             raise Exception("not implemented")
             return #todo
         if lvalue.op == ".":
             e, t = lvalue.arg
-            return "(%s).Attr_i%s_%s(%s)" % (_gen_expr_code(e), op, t.value, expr_code)
+            code += "(%s).Attr_i%s_%s(%s)" % (_gen_expr_code(e), op, t.value, expr_code)
+            return
         raise Exception("Bug")
 
 def _gen_assign_code(lvalue, expr_code):
@@ -283,9 +299,11 @@ def _output_stmt_list(code, stmt_list):
             with code.new_blk(""):
                 for vn in stmt.var_set:
                     code += "var l_%s larva_obj.LarPtr" % vn
-                with code.new_blk("for iter := (%s).Method_iter_0(); !iter.Method___eq(larva_obj.NIL).As_bool(); iter.Method___inc()" %
+                with code.new_blk("for iter := (%s).Method_iter_new_0(); !iter.Method_iter_end_0().As_bool(); iter.Method_iter_next_0()" %
                                   _gen_expr_code(stmt.iter_obj)):
-                    _output_assign(code, stmt.lvalue, "iter.Method_item_0()")
+                    for vn in stmt.var_set:
+                        code += "l_%s.Touch()" % vn
+                    _output_assign(code, stmt.lvalue, "iter.Method_iter_get_item_0()")
                     _output_stmt_list(code, stmt.stmt_list)
         elif stmt.type == "while":
             with code.new_blk("for (%s).Method___bool().As_bool()" % _gen_expr_code(stmt.expr)):
@@ -310,7 +328,6 @@ def _output_stmt_list(code, stmt_list):
             _output_assign(code, stmt.lvalue, _gen_expr_code(stmt.expr), stmt.type)
         else:
             raise Exception("Bug")
-    code += "return larva_obj.NIL"
 
 def _gen_str_literal(s):
     code_list = []
@@ -368,14 +385,59 @@ def _output_module():
                         code += "lar_mod_%s.Init()" % dep_module_name
                 if has_native_item:
                     code += "NativeInit()"
-                #todo gv init
+                for gv in module.global_var_map.itervalues():
+                    if gv.is_native:
+                        continue
+                    code += "G_%s = larva_obj.NIL" % gv.name
+                for var_name, expr in module.global_var_init_map.iteritems():
+                    if expr is not None:
+                        lvalue = larc_expr.var_name_to_expr(var_name, module = curr_module)
+                        _output_assign(code, lvalue, _gen_expr_code(expr))
                 code += "mod_inited = true"
+
+        for cls in module.class_map.itervalues():
+            if cls.is_native:
+                continue
+            with code.new_blk("type LarObj_%s struct" % cls.name):
+                code += "larva_obj.LarObjBase"
+                for attr_name in cls.attr_set:
+                    code += "M_%s larva_obj.LarPtr" % attr_name
+            with code.new_blk("func NewLarObj_%s() *LarObj_%s" % (cls.name, cls.name)):
+                code += "o := new(LarObj_%s)" % cls.name
+                code += "o.This = o"
+                code += 'o.Type_name = "%s.%s"' % (cls.module.name, cls.name)
+                code += "return o"
+            for attr_name in cls.attr_set:
+                with code.new_blk("func (self *LarObj_%s) Attr_get_%s() larva_obj.LarPtr" % (cls.name, attr_name)):
+                    code += "return self.M_%s" % attr_name
+                with code.new_blk("func (self *LarObj_%s) Attr_set_%s(v larva_obj.LarPtr)" % (cls.name, attr_name)):
+                    code += "self.M_%s = v" % attr_name
+                for op in "inc", "dec":
+                    with code.new_blk("func (self *LarObj_%s) Attr_%s_%s()" % (cls.name, op, attr_name)):
+                        code += "self.M_%s.Method___%s()" % (attr_name, op)
+                for op in bops:
+                    with code.new_blk("func (self *LarObj_%s) Attr_i%s_%s(v larva_obj.LarPtr)" % (cls.name, op, attr_name)):
+                        code += "self.M_%s.Method___i%s(v)" % (attr_name, op)
+            for method in cls.method_map.itervalues():
+                args = ", ".join(["l_%s" % a for a in method.arg_set])
+                args_def = args
+                if method.arg_set:
+                    args_def += " larva_obj.LarPtr"
+                if method.name == "__init":
+                    with code.new_blk("func NewLarObj_%s_%d(%s) larva_obj.LarPtr" % (cls.name, len(method.arg_set), args_def)):
+                        code += "o := NewLarObj_%s()" % cls.name
+                        code += "o.Method___init_%d(%s)" % (len(method.arg_set), args)
+                        code += "return o.To_lar_ptr()"
+                with code.new_blk("func (self *LarObj_%s) Method_%s_%d(%s) larva_obj.LarPtr" %
+                                  (cls.name, method.name, len(method.arg_set), args_def)):
+                    _output_stmt_list(code, method.stmt_list)
+                    code += "return larva_obj.NIL"
 
         code += ""
         for gv in module.global_var_map.itervalues():
             if gv.is_native:
                 continue
-            code += "var G_%s larva_obj.LarPtr = larva_obj.NIL" % gv.name
+            code += "var G_%s larva_obj.LarPtr" % gv.name
 
         for func in module.func_map.itervalues():
             if func.is_native:
@@ -383,6 +445,7 @@ def _output_module():
             args = ", ".join(["l_%s" % a for a in func.arg_set]) + " larva_obj.LarPtr" if func.arg_set else ""
             with code.new_blk("func Func_%s_%d(%s) larva_obj.LarPtr" % (func.name, len(func.arg_set), args)):
                 _output_stmt_list(code, func.stmt_list)
+                code += "return larva_obj.NIL"
 
     if has_native_item:
         shutil.copy(os.path.join(module.dir, "go", "lar_ext_mod.%s.go" % module.name), mod_dir)
@@ -396,9 +459,12 @@ def _copy_runtime():
             shutil.copytree(pkg_dir, dst_dir)
 
 def _complete_runtime_code():
+    attr_set = set()
     method_def_set = set()
     for m in larc_module.module_map.itervalues():
         for cls in m.class_map.itervalues():
+            for attr_name in cls.attr_set:
+                attr_set.add(attr_name)
             for method_name, arg_count in cls.method_map:
                 if method_name != "__init" and method_name.startswith("__"):
                     continue
@@ -411,7 +477,6 @@ def _complete_runtime_code():
     construct_method_def_list = sorted([method_def for method_def in method_def_set if method_def.startswith("Method___init")])
     method_def_list = sorted([method_def for method_def in method_def_set if not method_def.startswith("Method___init")])
 
-    bops = ["add", "sub", "mul", "div", "mod", "and", "or", "xor", "shl", "shr"]
     bops_to_go_op = {"add" : "+", "sub" : "-", "mul" : "*", "div" : "/", "mod" : "%", "and" : "&", "or" : "|", "xor" : "^", "shl" : "<<",
                      "shr" : ">>"}
     def op_defs():
@@ -452,6 +517,14 @@ def _complete_runtime_code():
             for op, op_def in op_defs():
                 code += op_def
             code += ""
+            for attr_name in attr_set:
+                code += "Attr_get_%s() LarPtr" % attr_name
+                code += "Attr_set_%s(v LarPtr)" % attr_name
+                for op in "inc", "dec":
+                    code += "Attr_%s_%s()" % (op, attr_name)
+                for op in bops:
+                    code += "Attr_i%s_%s(v LarPtr)" % (op, attr_name)
+            code += ""
             for method_def in construct_method_def_list:
                 code += method_def
             code += ""
@@ -490,22 +563,36 @@ def _complete_runtime_code():
                     code += ('Lar_panic_string(fmt.Sprintf("%s(%%v instance) not implemented", self.Type_name))' %
                              {"inc" : "++", "dec" : "--"}[op])
                 elif op == "eq":
-                    with code.new_blk("if self.This.Method___cmp(obj).As_int() == 0"):
-                        code += "return TRUE"
-                    code += "return FALSE"
+                    code += "return Lar_bool_from_bool(&self.This == obj.M_obj_ptr)"
                 elif op == "cmp":
                     code += 'Lar_panic_string(fmt.Sprintf("(%v instance).__cmp(obj) not implemented", self.Type_name))'
                 else:
                     if op[0] == "i" and op[1 :] in bops:
                         code += "return self.This.Method___%s(obj)" % op[1 :]
                     elif op[0] == "r" and op[1 :] in bops:
+                        go_op = bops_to_go_op[op[1 :]]
+                        if go_op == "%":
+                            go_op = "%%"
                         code += ('Lar_panic_string(fmt.Sprintf("(%%v instance) %s (%%v instance) not implemented", '
-                                 'obj.Get_type_name(), self.Type_name))' % bops_to_go_op[op[1 :]])
+                                 'obj.Get_type_name(), self.Type_name))' % go_op)
                     else:
                         assert op in bops
                         code += "return obj.Method___r%s(self.To_lar_ptr())" % op
                 if code.line_list[-1].lstrip().startswith("Lar_panic_string"):
                     code += "return NIL"
+
+        for attr_name in attr_set:
+            with code.new_blk("func (self *LarObjBase) Attr_get_%s() LarPtr" % attr_name):
+                code += '''Lar_panic_string(fmt.Sprintf("(%%v instance) doesn't have attr '%s'", self.Type_name))''' % attr_name
+                code += "return NIL"
+            with code.new_blk("func (self *LarObjBase) Attr_set_%s(v LarPtr)" % attr_name):
+                code += '''Lar_panic_string(fmt.Sprintf("(%%v instance) doesn't have attr '%s'", self.Type_name))''' % attr_name
+            for op in "inc", "dec":
+                with code.new_blk("func (self *LarObjBase) Attr_%s_%s()" % (op, attr_name)):
+                    code += '''Lar_panic_string(fmt.Sprintf("(%%v instance) doesn't have attr '%s'", self.Type_name))''' % attr_name
+            for op in bops:
+                with code.new_blk("func (self *LarObjBase) Attr_i%s_%s(v LarPtr)" % (op, attr_name)):
+                    code += '''Lar_panic_string(fmt.Sprintf("(%%v instance) doesn't have attr '%s'", self.Type_name))''' % attr_name
 
         for method_def in construct_method_def_list + method_def_list:
             assert method_def.startswith("Method_")
@@ -598,6 +685,30 @@ def _complete_runtime_code():
                 if code.line_list[-1].lstrip().startswith("Lar_panic_string"):
                     code += "return NIL"
 
+        for attr_name in attr_set:
+            with code.new_blk("func (ptr LarPtr) Attr_get_%s() LarPtr" % attr_name):
+                with code.new_blk("if ptr.M_obj_ptr != nil"):
+                    code += "return (*ptr.M_obj_ptr).Attr_get_%s()" % attr_name
+                code += '''Lar_panic_string(fmt.Sprintf("(int instance) doesn't have attr '%s'"))''' % attr_name
+                code += "return NIL"
+            with code.new_blk("func (ptr LarPtr) Attr_set_%s(v LarPtr)" % attr_name):
+                with code.new_blk("if ptr.M_obj_ptr != nil"):
+                    code += "(*ptr.M_obj_ptr).Attr_set_%s(v)" % attr_name
+                    code += "return"
+                code += '''Lar_panic_string(fmt.Sprintf("(int instance) doesn't have attr '%s'"))''' % attr_name
+            for op in "inc", "dec":
+                with code.new_blk("func (ptr LarPtr) Attr_%s_%s()" % (op, attr_name)):
+                    with code.new_blk("if ptr.M_obj_ptr != nil"):
+                        code += "(*ptr.M_obj_ptr).Attr_%s_%s()" % (op, attr_name)
+                        code += "return"
+                    code += '''Lar_panic_string(fmt.Sprintf("(int instance) doesn't have attr '%s'"))''' % attr_name
+            for op in bops:
+                with code.new_blk("func (ptr LarPtr) Attr_i%s_%s(v LarPtr)" % (op, attr_name)):
+                    with code.new_blk("if ptr.M_obj_ptr != nil"):
+                        code += "(*ptr.M_obj_ptr).Attr_i%s_%s(v)" % (op, attr_name)
+                        code += "return"
+                    code += '''Lar_panic_string(fmt.Sprintf("(int instance) doesn't have attr '%s'"))''' % attr_name
+
         for method_def in construct_method_def_list + method_def_list:
             assert method_def.startswith("Method_")
             pos = method_def.find("(")
@@ -625,6 +736,16 @@ def _gen_makefile():
         print >> f, "@if %ERRORLEVEL% == 0 goto success"
         print >> f, "@pause"
         print >> f, ":success"
+        f = open(os.path.join(out_dir, "make_and_run.bat"), "w")
+        print >> f, "@set GOPATH=%s" % out_dir
+        print >> f, "go build -o %s.exe src/lar_prog_%s/lar_prog.%s.go" % (main_module_name, main_module_name, main_module_name)
+        print >> f, "@if %ERRORLEVEL% == 0 goto success"
+        print >> f, "@pause"
+        print >> f, "@exit"
+        print >> f, ":success"
+        print >> f, "%s.exe" % main_module_name
+        print >> f, "@pause"
+        print >> f, "@exit"
     else:
         raise Exception("Not implemented on '%s'" % sys.platform)
 

@@ -397,9 +397,11 @@ def parse_expr(token_list, module, cls, var_set_list, non_local_var_used_map, en
 
     return parse_stk.finish()
 
-def var_name_to_expr(var_name):
+def var_name_to_expr(var_name, module = None):
     if isinstance(var_name, str):
-        return _Expr("local_var", var_name)
+        if module is None:
+            return _Expr("local_var", var_name)
+        return _Expr("global_var", module.get_global_var(var_name))
 
     assert isinstance(var_name, tuple)
-    return _Expr("tuple", [var_name_to_expr(vn) for vn in var_name])
+    return _Expr("tuple", [var_name_to_expr(vn, is_global) for vn in var_name])

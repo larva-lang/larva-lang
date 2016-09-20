@@ -2,7 +2,10 @@
 
 native class iterator
 {
-    func item();
+    func iter_new();
+    func iter_end();
+    func iter_get_item();
+    func iter_next();
 }
 
 native class bool
@@ -50,5 +53,5 @@ native class range
     func __init(start);
     func __init(start, end);
     func __init(start, end, step);
-    func iter();
+    func iter_new();
 }
