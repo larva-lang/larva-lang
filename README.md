@@ -22,3 +22,5 @@ larva-lang
 6 coc开发过程中，对于静态类型语言的类型系统的前端分析的复杂性表示不太耐烦，虽然也做完了
 
 7 顺利的话，test case和doc尽量不太监:)
+
+**先暂停更新吧，可能是转golang做得runtime等设计不太好，性能较差，但我也怀疑是golang interface等特性导致**
