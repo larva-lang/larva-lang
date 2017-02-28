@@ -9,6 +9,7 @@ import getopt
 import os
 import larc_common
 import larc_module
+import larc_type
 import larc_output
 
 def _show_usage_and_exit():
@@ -34,7 +35,9 @@ def main():
     lib_dir = os.path.join(os.path.dirname(compiler_dir), "lib")
 
     #预处理builtins等模块
-    larc_module.module_map["__builtins"] = larc_module.Module(os.path.join(lib_dir, "__builtins.lar"))
+    for name in "__builtins", "concurrent":
+        larc_module.module_map[name] = larc_module.Module(os.path.join(lib_dir, name + ".lar"))
+    larc_module.builtins_module = larc_module.module_map["__builtins"]
 
     #先预处理主模块
     main_file_path_name = os.path.abspath(args[0])
@@ -62,19 +65,49 @@ def main():
             new_compiling_set |= m.dep_module_set
         compiling_set = new_compiling_set
 
+    #先扩展嵌套typedef，然后单独对typedef的type进行check
+    larc_module.builtins_module.expand_typedef()
+    for m in larc_module.module_map.itervalues():
+        if m is not larc_module.builtins_module:
+            m.expand_typedef()
+    larc_module.builtins_module.expand_typedef()
+    for m in larc_module.module_map.itervalues():
+        if m is not larc_module.builtins_module:
+            m.check_type_for_typedef()
+
+    #统一check_type
+    larc_module.builtins_module.check_type()
+    for m in larc_module.module_map.itervalues():
+        if m is not larc_module.builtins_module:
+            m.check_type()
+
     #主模块main函数检查
-    if ("main", 1) not in main_module.func_map:
-        larc_common.exit("主模块[%s]没有func main(argv)" % main_module.name)
+    if "main" not in main_module.func_map:
+        larc_common.exit("主模块[%s]没有main函数" % main_module.name)
+    main_func = main_module.func_map["main"]
+    if main_func.type != larc_type.INT_TYPE:
+        larc_common.exit("主模块[%s]的main函数返回类型必须为int" % main_module.name)
+    if len(main_func.arg_map) != 1:
+        larc_common.exit("主模块[%s]的main函数只能有一个类型为'String[]'的参数" % main_module.name)
+    tp = main_func.arg_map.itervalues().next()
+    if tp.array_dim_count != 1 or tp.is_ref or tp.to_elem_type() != larc_type.STR_TYPE:
+        larc_common.exit("主模块[%s]的main函数的参数类型必须为'String[]'" % main_module.name)
+    if "public" not in main_func.decr_set:
+        larc_common.exit("主模块[%s]的main函数必须是public的" % main_module.name)
 
     #检查子类的继承是否合法
-    '''
+    larc_module.builtins_module.check_sub_class()
     for m in larc_module.module_map.itervalues():
-        m.check_sub_class()
-    '''
+        if m is not larc_module.builtins_module:
+            m.check_sub_class()
+
+    #todo：其他一些模块元素的检查和进一步预处理
 
     #正式编译各模块
+    larc_module.builtins_module.compile()
     for m in larc_module.module_map.itervalues():
-        m.compile()
+        if m is not larc_module.builtins_module:
+            m.compile()
 
     #暂时写死output流程
     output_lib = larc_output.to_go

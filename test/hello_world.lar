@@ -1,6 +1,7 @@
 import sys;
 
-func main(argv)
+public int main(String[] argv)
 {
     sys.stdout.writeln("hello world");
+    return 0;
 }

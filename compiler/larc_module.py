@@ -10,7 +10,22 @@ import larc_token
 import larc_stmt
 import larc_expr
 
+builtins_module = None
 module_map = larc_common.OrderedDict()
+
+def _parse_decr_set(token_list):
+    decr_set = set()
+    while True:
+        t = token_list.peek()
+        for decr in "public", "native", "final", "static":
+            if t.is_reserved(decr):
+                if decr in decr_set:
+                    t.syntax_err("重复的修饰'%s'" % decr)
+                decr_set.add(decr)
+                token_list.pop()
+                break
+        else:
+            return decr_set
 
 def _parse_arg_set(token_list, dep_module_set):
     arg_set = larc_common.OrderedSet()
@@ -165,6 +180,13 @@ class Module:
         assert file_name.endswith(".lar")
         self.name = file_name[: -4]
         self._precompile(file_path_name)
+        if self.name == "__builtins":
+            #内建模块需要做一些必要的检查
+            if "String" not in self.class_map: #必须有String类
+                larc_common.exit("内建模块缺少String类")
+            str_cls = self.class_map["String"]
+            if "format" in str_cls.attr_map or "format" in str_cls.method_map:
+                larc_common.exit("String类的format方法属于内建保留方法，禁止显式定义")
 
     __repr__ = __str__ = lambda self : self.name
 
@@ -177,54 +199,87 @@ class Module:
         self.dep_module_set = set()
         import_end = False
         self.class_map = larc_common.OrderedDict()
+        self.gcls_inst_map = larc_common.OrderedDict()
+        self.typedef_map = larc_common.OrderedDict()
         self.func_map = larc_common.OrderedDict()
         self.global_var_map = larc_common.OrderedDict()
-        self.global_var_init_map = larc_common.OrderedDict()
         while token_list:
             #解析import
-            t = token_list.pop()
+            t = token_list.peek()
             if t.is_reserved("import"):
                 #import
                 if import_end:
                     t.syntax_err("import必须在模块代码最前面")
-                if self.name == "__builtins":
-                    t.syntax_err("模块'__builtins'不可以import其他模块")
                 self._parse_import(token_list)
                 continue
             import_end = True
 
-            if t.is_reserved("native"):
-                is_native = True
-                t = token_list.pop()
-            else:
-                is_native = False
+            #解析修饰
+            decr_set = _parse_decr_set(token_list)
 
+            #解析各种定义
+            t = token_list.peek()
             if t.is_reserved("class"):
-                #类定义
-                self._parse_class(token_list, is_native)
+                #解析类
+                if decr_set - set(["public", "final"]):
+                    t.syntax_err("类只能用public和final修饰")
+                self._parse_class(decr_set, token_list)
                 continue
 
-            if t.is_reserved("func"):
-                #类定义
-                self._parse_func(token_list, is_native)
+            if t.is_reserved("typedef"):
+                #解析typedef
+                if decr_set - set(["public"]):
+                    t.syntax_err("typedef只能用public修饰")
+                self._parse_typedef(decr_set, token_list)
                 continue
 
-            if t.is_reserved("var"):
+            #可能是函数或全局变量
+            type = larc_type.parse_type(token_list, self.dep_module_set)
+            t, name = token_list.pop_name()
+            self._check_redefine(t, name)
+            t, sym = token_list.pop_sym()
+            if sym == "(":
+                #函数
+                if decr_set - set(["public", "native"]):
+                    t.syntax_err("函数只能用public和native修饰")
+                self._parse_func(decr_set, type, name, token_list)
+                continue
+            if sym in (";", "=", ","):
                 #全局变量
-                self._parse_global_var(token_list, is_native)
+                if decr_set - set(["public", "native", "final"]):
+                    t.syntax_err("全局变量只能用public、native和final修饰")
+                if type.name == "void":
+                    t.syntax_err("变量类型不可为void")
+                while True:
+                    if sym == "=":
+                        if "native" in decr_set:
+                            t.syntax_err("不能初始化native全局变量")
+                        expr_token_list, sym = larc_token.parse_token_list_until_sym(token_list, (";", ","))
+                    else:
+                        if "native" not in decr_set:
+                            t.syntax_err("非native全局变量必须显式初始化")
+                        expr_token_list = None
+                    self.global_var_map[name] = _GlobalVar(name, self, decr_set, type, expr_token_list)
+                    if sym == ";":
+                        break
+                    #定义了多个变量，继续解析
+                    assert sym == ","
+                    t, name = token_list.pop_name()
+                    self._check_redefine(t, name)
+                    t, sym = token_list.pop_sym()
+                    if sym not in (";", "=", ","):
+                        t.syntax_err()
                 continue
-
             t.syntax_err()
 
-    def _check_redefine(self, t, name, func_arg_count = None):
-        for i in self.dep_module_set, self.class_map, self.global_var_map:
+    def _check_redefine(self, t, name):
+        for i in self.dep_module_set, self.class_map, self.global_var_map, self.func_map:
             if name in i:
-                t.syntax_err("名字重定义")
-        for func_name, arg_count in self.func_map:
-            if name == func_name and (func_arg_count is None or func_arg_count == arg_count):
                 t.syntax_err("名字重定义")
 
     def _parse_import(self, token_list):
+        t = token_list.pop()
+        assert t.is_reserved("import")
         while True:
             t, name = token_list.pop_name()
             if name in self.dep_module_set:
@@ -236,77 +291,42 @@ class Module:
             if sym != ",":
                 t.syntax_err("需要';'或','")
 
-    def _parse_class(self, token_list, is_native):
+    def _parse_class(self, cls_decr_set, token_list):
+        t = token_list.pop()
+        assert t.is_reserved("class")
         t, cls_name = token_list.pop_name()
         self._check_redefine(t, cls_name)
-        token_list.pop_sym("{")
-        cls = _Class(self, cls_name, is_native)
+        gtp_name_list = []
+        t, sym = token_list.pop_sym()
+        #todo
+        if sym == "<":
+            if "native" not in cls_decr_set:
+                t.syntax_err("泛型类必须是native实现")
+            while True:
+                t, name = token_list.pop_name()
+                if name in self.dep_module_set:
+                    t.syntax_err("泛型名与导入模块重名")
+                gtp_name_list.append(name)
+                t, sym = token_list.pop_sym()
+                if sym == ",":
+                    continue
+                if sym == ">":
+                    break
+                t.syntax_err("需要'>'或','")
+            t, sym = token_list.pop_sym()
+        base_cls_type = None
+        if sym == ":":
+            #存在继承关系
+            t = token_list.peek()
+            base_cls_type = cocc_type.parse_type(token_list, self.dep_module_set)
+            if base_cls_type.is_array:
+                t.syntax_err("无法继承数组")
+            if base_cls_type.token.is_reserved:
+                t.syntax_err("无法继承类型'%s'" % base_cls_type.name)
+            t, sym = token_list.pop_sym()
+        if sym != "{":
+            t.syntax_err("需要'{'")
+        cls = _Class(self, cls_decr_set, cls_name, base_cls_type, gtp_name_list)
         cls.parse(token_list)
         token_list.pop_sym("}")
         self.class_map[cls_name] = cls
-
-    def _parse_func(self, token_list, is_native):
-        t, func_name = token_list.pop_name()
-        token_list.pop_sym("(")
-        arg_set = _parse_arg_set(token_list, self.dep_module_set)
-        token_list.pop_sym(")")
-        self._check_redefine(t, func_name, len(arg_set))
-        if is_native:
-            token_list.pop_sym(";")
-            block_token_list = None
-        else:
-            token_list.pop_sym("{")
-            block_token_list = _parse_block_token_list(token_list)
-        self.func_map[(func_name, len(arg_set))] = _Func(self, func_name, arg_set, is_native, block_token_list)
-
-    def _parse_global_var(self, token_list, is_native):
-        for t, var_name, expr_token_list in larc_stmt.parse_var_define(token_list, None, None, None, None, ret_expr_token_list = True):
-            if is_native and expr_token_list is not None:
-                t.syntax_err("native全局变量不可初始化")
-            for vn in larc_stmt.iter_var_name(var_name):
-                self._check_redefine(t, vn)
-                self.global_var_map[vn] = _GlobalVar(self, vn, is_native)
-            self.global_var_init_map[var_name] = expr_token_list
-
-    def _items(self):
-        for map in self.class_map, self.func_map, self.global_var_map:
-            for i in map.itervalues():
-                yield i
-
-    def compile(self):
-        self.literal_set = set()
-        for i in self._items():
-            i.compile()
-        non_local_var_used_map = larc_common.OrderedDict()
-        for var_name, expr_token_list in self.global_var_init_map.iteritems():
-            if expr_token_list is not None:
-                self.global_var_init_map[var_name] = (
-                    larc_expr.parse_expr(expr_token_list, self, None, (), non_local_var_used_map, end_at_comma = True))
-                t, sym = expr_token_list.pop_sym()
-                assert not expr_token_list and sym in (",", ";")
-            for vn in larc_stmt.iter_var_name(var_name):
-                if vn in non_local_var_used_map:
-                    non_local_var_used_map[vn].syntax_err("全局变量'%s'在定义前使用" % vn)
-
-    def has_cls(self, name):
-        return name in self.class_map
-    def get_cls(self, name):
-        return self.class_map[name]
-
-    def has_func(self, name, arg_count = None):
-        if arg_count is None:
-            return name in [func_name for func_name, arg_count in self.func_map]
-        return (name, arg_count) in self.func_map
-    def get_func(self, name, arg_count):
-        return self.func_map[(name, arg_count)]
-
-    def has_global_var(self, name):
-        return name in self.global_var_map
-    def get_global_var(self, name):
-        return self.global_var_map[name]
-
-    def has_native_item(self):
-        for i in self._items():
-            if i.is_native:
-                return True
-        return False

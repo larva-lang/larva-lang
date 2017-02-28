@@ -31,8 +31,9 @@ BINOCULAR_OP_SYM_SET = set(["%", "^", "&", "*", "-", "+", "|", "<", ">", "/", "!
 _SYM_SET = set("""~!%^&*()-+|{}[]:;"'<,>.?/""") | set(["!=", "==", "<<", "<=", ">>", ">=", "&&", "||"]) | ASSIGN_SYM_SET | INC_DEC_SYM_SET
 
 #保留字集
-_RESERVED_WORD_SET = set(["if", "else", "while", "do", "return", "break", "continue", "for", "nil", "func", "import", "true", "false", "class",
-                          "this", "super", "try", "catch", "finally", "assert", "throw", "var", "native"])
+_RESERVED_WORD_SET = set(["import", "class", "void", "bool", "schar", "char", "short", "ushort", "int", "uint", "long", "ulong", "float",
+                          "double", "ref", "for", "while", "do", "if", "else", "return", "nil", "true", "false", "break", "continue", "this",
+                          "super", "public", "interface", "new", "final", "native", "typedef", "static"])
 
 class _Token:
     def __init__(self, type, value, src_file, line_no, pos):
@@ -55,7 +56,7 @@ class _Token:
             def __nonzero__(self):
                 return self.token.type.startswith("literal_")
             def __call__(self, type):
-                assert type in ("nil", "bool", "int", "float", "str")
+                assert type in ("nil", "bool", "char", "int", "uint", "long", "ulong", "float", "double", "str")
                 return self and self.token.type == "literal_" + type
         self.is_literal = IsLiteral(self)
 
@@ -167,6 +168,13 @@ class TokenList:
                 first = t
         self._remove_None()
 
+    def split_shr_sym(self):
+        assert self.i > 0
+        t = self.l[self.i - 1]
+        assert t.is_sym(">>")
+        self.l[self.i - 1] = _Token("sym", ">", t.src_file, t.line_no, t.pos)
+        self.l.insert(self.i, _Token("sym", ">", t.src_file, t.line_no, t.pos + 1))
+
 def _syntax_err(src_file, line_no, pos, msg):
     larc_common.exit("语法错误：文件[%s]行[%d]列[%d]%s" % (src_file, line_no, pos + 1, msg))
 
@@ -242,13 +250,26 @@ def _parse_token(src_file, line_no, line, pos):
 
     if f is not None:
         #浮点数
-        try:
-            value = float(f)
-            if math.isnan(value) or math.isinf(value):
-                raise ValueError
-        except ValueError:
-            _syntax_err(src_file, line_no, pos, "非法的浮点数字面量'%s'" % f)
-        return _Token("literal_float", value, src_file, line_no, pos), len(f)
+        if f[-1] == "F":
+            try:
+                value = float(f[: -1])
+                if math.isnan(value) or math.isinf(value):
+                    raise ValueError
+                if value < float.fromhex("0x1p-126"):
+                    value = 0
+                elif value > float.fromhex("0x1.FFFFFEp127"):
+                    raise ValueError
+            except ValueError:
+                _syntax_err(src_file, line_no, pos, "非法的float字面量'%s'" % f)
+            return _Token("literal_float", value, src_file, line_no, pos), len(f)
+        else:
+            try:
+                value = float(f)
+                if math.isnan(value) or math.isinf(value):
+                    raise ValueError
+            except ValueError:
+                _syntax_err(src_file, line_no, pos, "非法的double字面量'%s'" % f)
+            return _Token("literal_double", value, src_file, line_no, pos), len(f)
 
     if sym is not None:
         #符号
@@ -256,9 +277,15 @@ def _parse_token(src_file, line_no, line, pos):
             _syntax_err(src_file, line_no, pos, "非法的符号'%s'" % sym)
 
         if sym in ("'", '"'):
-            #字符串
+            #字符或字符串
             value, token_len = _parse_str(s, src_file, line_no, pos)
-            return _Token("literal_str", value, src_file, line_no, pos), token_len
+            if sym == '"':
+                #字符串
+                return _Token("literal_str", value, src_file, line_no, pos), token_len
+            #字符
+            if len(value) != 1:
+                _syntax_err(src_file, line_no, pos, "字符字面量长度必须为1")
+            return _Token("literal_char", ord(value), src_file, line_no, pos), token_len
 
         #普通符号token
         return _Token("sym", sym, src_file, line_no, pos), len(sym)
@@ -266,12 +293,29 @@ def _parse_token(src_file, line_no, line, pos):
     if i is not None:
         #整数
         try:
-            value = int(i, 0)
+            if i[-2 :] == "UL":
+                value = int(i[: -2], 0)
+                if value >= 2 ** 64:
+                    _syntax_err(src_file, line_no, pos, "过大的ulong字面量'%s'" % i)
+                type = "ulong"
+            elif i[-1] == "L":
+                value = int(i[: -1], 0)
+                if value >= 2 ** 63:
+                    _syntax_err(src_file, line_no, pos, "过大的long字面量'%s'" % i)
+                type = "long"
+            elif i[-1] == "U":
+                value = int(i[: -1], 0)
+                if value >= 2 ** 32:
+                    _syntax_err(src_file, line_no, pos, "过大的uint字面量'%s'" % i)
+                type = "uint"
+            else:
+                value = int(i, 0)
+                if value >= 2 ** 31:
+                    _syntax_err(src_file, line_no, pos, "过大的int字面量'%s'" % i)
+                type = "int"
         except ValueError:
             _syntax_err(src_file, line_no, pos, "非法的整数字面量'%s'" % i)
-        if value >= 2 ** 63:
-            _syntax_err(src_file, line_no, pos, "过大的整数字面量'%s'" % i)
-        return _Token("literal_int", value, src_file, line_no, pos), len(i)
+        return _Token("literal_" + type, value, src_file, line_no, pos), len(i)
 
     if w is not None:
         if w in ("true", "false"):
