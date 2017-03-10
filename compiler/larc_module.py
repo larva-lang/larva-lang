@@ -17,7 +17,7 @@ def _parse_decr_set(token_list):
     decr_set = set()
     while True:
         t = token_list.peek()
-        for decr in "public", "native", "final", "static":
+        for decr in "public", "native", "final", "abstract":
             if t.is_reserved(decr):
                 if decr in decr_set:
                     t.syntax_err("重复的修饰'%s'" % decr)
@@ -27,122 +27,197 @@ def _parse_decr_set(token_list):
         else:
             return decr_set
 
-def _parse_arg_set(token_list, dep_module_set):
-    arg_set = larc_common.OrderedSet()
+def _parse_arg_map(token_list, dep_module_set):
+    arg_map = larc_common.OrderedDict()
     if token_list.peek().is_sym(")"):
-        return arg_set
+        return arg_map
     while True:
+        if token_list.peek().is_reserved("ref"):
+            token_list.pop()
+            is_ref = True
+        else:
+            is_ref = False
+        type = larc_type.parse_type(token_list, dep_module_set, is_ref = is_ref)
+        if type.name == "void":
+            type.token.syntax_err("参数类型不可为void")
         t, name = token_list.pop_name()
-        if name in arg_set:
+        if name in arg_map:
             t.syntax_err("参数名重定义")
         if name in dep_module_set:
             t.syntax_err("参数名和导入模块名冲突")
-        arg_set.add(name)
+        arg_map[name] = type
         t = token_list.peek()
         if t.is_sym(","):
             token_list.pop_sym(",")
             continue
         if t.is_sym(")"):
-            return arg_set
+            return arg_map
         t.syntax_err("需要','或')'")
 
-def _parse_block_token_list(token_list):
-    block_token_list, sym = larc_token.parse_token_list_until_sym(token_list, ("}",))
-    assert sym == "}"
-    return block_token_list
-
 class _Method:
-    def __init__(self, cls, name, arg_set, block_token_list):
-        self.cls = cls
+    def __init__(self, name, cls, decr_set, type, arg_map, block_token_list, super_construct_expr_list_token_list = None):
         self.name = name
-        self.arg_set = arg_set
+        self.cls = cls
+        self.decr_set = decr_set
+        self.type = type
+        self.arg_map = arg_map
         self.block_token_list = block_token_list
+        self.super_construct_expr_list_token_list = super_construct_expr_list_token_list
 
-    __repr__ = __str__ = lambda self : "%s.%s(...%d args)" % (self.cls, self.name, len(self.arg_set))
+    def check_type(self):
+        self.type.check(self.cls.module, self.cls)
+        for tp in self.arg_map.itervalues():
+            tp.check(self.cls.module, self.cls)
 
     def compile(self):
+        //todo
+        '''
+        if self.super_construct_expr_list_token_list is None:
+            self.super_construct_expr_list, self.super_construct_method = None, None
+        else:
+            self.super_construct_expr_list, self.super_construct_method = cocc_expr.parse_super_construct_expr_list(self)
+            self.super_construct_expr_list_token_list.pop_sym(")")
+            assert not self.super_construct_expr_list_token_list
+        del self.super_construct_expr_list_token_list
+
         if self.block_token_list is None:
             self.stmt_list = None
         else:
-            self.stmt_list = larc_stmt.parse_stmt_list(self.block_token_list, self.cls.module, self.cls, (self.arg_set.copy(),), 0)
+            self.stmt_list = cocc_stmt.parse_stmt_list(self.block_token_list, self.cls.module, self.cls, (self.arg_map.copy(),), 0, self.type)
             self.block_token_list.pop_sym("}")
             assert not self.block_token_list
+            self.stmt_list.analyze_non_raw_var((), self.super_construct_method, self.super_construct_expr_list)
         del self.block_token_list
+        '''
+
+class _Attr:
+    def __init__(self, name, cls, decr_set, type):
+        self.name = name
+        self.cls = cls
+        self.decr_set = decr_set
+        self.type = type
+
+    def check_type(self):
+        self.type.check(self.cls.module, self.cls)
 
 class _Class:
-    def __init__(self, module, name, is_native):
+    def __init__(self, module, decr_set, name, base_cls_type, gtp_name_list):
+        assert "native" not in decr_set
         self.module = module
+        self.decr_set = decr_set
         self.name = name
-        self.is_native = is_native
-        self.attr_set = larc_common.OrderedSet()
-        self.method_map = larc_common.OrderedDict()
+        self.base_cls_type = base_cls_type
+        self.gtp_name_list = gtp_name_list
+        self.construct_method = None
+        self.attr_map = cocc_common.OrderedDict()
+        self.method_map = cocc_common.OrderedDict()
 
     __repr__ = __str__ = lambda self : "%s.%s" % (self.module, self.name)
 
     def parse(self, token_list):
         while True:
-            t = token_list.pop()
+            t = token_list.peek()
             if t.is_sym("}"):
+                break
+
+            #解析修饰
+            decr_set = _parse_decr_set(token_list)
+            if "native" in decr_set:
+                t.syntax_err("类属性或方法定义不可使用native修饰")
+
+            t = token_list.peek()
+            if t.is_name and t.value == self.name:
+                t, name = token_list.pop_name()
+                if token_list.peek().is_sym("("):
+                    #构造方法
+                    if set(["final", "abstract"]) & decr_set:
+                        t.syntax_err("构造方法不可用final或abstract修饰")
+                    token_list.pop_sym("(")
+                    self._parse_method(decr_set, larc_type.VOID_TYPE, name, token_list)
+                    continue
                 token_list.revert()
-                return
 
-            if t.is_reserved("func"):
-                self._parse_method(token_list)
+            if "abstract" in decr_set:
+                if "final" in decr_set:
+                    t.syntax_err("final和abstract不可同时修饰")
+                if "final" in self.decr_set:
+                    t.syntax_err("final类的方法不可修饰为abstract")
+
+            #解析属性或方法
+            type = larc_type.parse_type(token_list, self.module.dep_module_set)
+            t, name = token_list.pop_name()
+            if name == self.name:
+                t.syntax_err("属性或方法不可与类同名")
+            self._check_redefine(t, name)
+            sym_t, sym = token_list.pop_sym()
+            if sym == "(":
+                #方法
+                self._parse_method(decr_set, type, name, token_list)
                 continue
-
-            if t.is_reserved("var"):
-                self._parse_attr(token_list)
+            if sym in (";", ","):
+                #属性
+                if type.name == "void":
+                    t.syntax_err("属性类型不可为void")
+                while True:
+                    if set(["final", "abstract"]) & decr_set:
+                        t.syntax_err("属性不可用final或abstract修饰")
+                    self.attr_map[name] = _Attr(name, self, decr_set, type)
+                    if sym == ";":
+                        break
+                    #多属性定义
+                    assert sym == ","
+                    t, name = token_list.pop_name()
+                    self._check_redefine(t, name)
+                    sym_t, sym = token_list.pop_sym()
+                    if sym not in (";", ","):
+                        t.syntax_err()
                 continue
-
             t.syntax_err()
+        if self.construct_method is None:
+            t.syntax_err("类'%s'缺少构造函数定义" % self)
 
-    def _parse_method(self, token_list):
-        t, name = token_list.pop_name()
-        token_list.pop_sym("(")
-        arg_set = _parse_arg_set(token_list, self.module.dep_module_set)
+    def _check_redefine(self, t, name):
+        if name in self.module.dep_module_set:
+            t.syntax_err("属性或方法名不能与导入模块名相同")
+        for i in self.attr_map, self.method_map:
+            if name in i:
+                t.syntax_err("属性或方法名重定义")
+
+    def _parse_method(self, decr_set, type, name, token_list):
+        start_token = token_list.peek()
+        arg_map = _parse_arg_map(token_list, self.module.dep_module_set)
         token_list.pop_sym(")")
-        self._check_redefine(t, name, len(arg_set))
-        if self.is_native:
+        if "abstract" in decr_set:
+            assert not (name == self.name and type is larc_type.VOID_TYPE) #不可能是构造函数
             token_list.pop_sym(";")
             block_token_list = None
         else:
+            if name == self.name and type is larc_type.VOID_TYPE:
+                #构造方法，若为子类则强制要求指定基类构造方法
+                if self.base_cls_type is None:
+                    super_construct_expr_list_token_list = None
+                else:
+                    token_list.pop_sym(":")
+                    t = token_list.pop()
+                    if not t.is_reserved("super"):
+                        t.syntax_err("需要显式super(...)调用基类构造方法")
+                    token_list.pop_sym("(")
+                    super_construct_expr_list_token_list = _parse_expr_list_token_list(token_list)
             token_list.pop_sym("{")
-            block_token_list = _parse_block_token_list(token_list)
-        self.method_map[(name, len(arg_set))] = _Method(self, name, arg_set, block_token_list)
-
-    def _parse_attr(self, token_list):
-        while True:
-            t, name = token_list.pop_name()
-            self._check_redefine(t, name)
-            self.attr_set.add(name)
-            t, sym = token_list.pop_sym()
-            if t.is_sym(","):
-                continue
-            if t.is_sym(";"):
-                return
-            t.syntax_err("需要','或';'")
-
-    def _check_redefine(self, t, name, method_arg_count = None):
-        for i in self.module.dep_module_set, self.attr_set:
-            if name in i:
-                t.syntax_err("名字重定义")
-        for method_name, arg_count in self.method_map:
-            if name == method_name and (method_arg_count is None or method_arg_count == arg_count):
-                t.syntax_err("名字重定义")
+            block_token_list, sym = larc_token.parse_token_list_until_sym(token_list, ("}",))
+            assert sym == "}"
+        if name == self.name:
+            #构造方法
+            assert type is larc_type.VOID_TYPE:
+            self.construct_method = _Method(name, self, decr_set, cocc_type.VOID_TYPE, arg_map, block_token_list,
+                                            super_construct_expr_list_token_list)
+        else:
+            self.method_map[name] = _Method(name, self, decr_set, type, arg_map, block_token_list)
 
     def compile(self):
+        self.construct_method.compile()
         for method in self.method_map.itervalues():
             method.compile()
-
-    def has_attr(self, name):
-        return name in self.attr_set
-
-    def has_method(self, name, arg_count = None):
-        if arg_count is None:
-            return name in [method_name for method_name, arg_count in self.method_map]
-        return (name, arg_count) in self.method_map
-    def get_method(self, name, arg_count):
-        return self.method_map[(name, arg_count)]
 
 class _Func:
     def __init__(self, module, name, arg_set, is_native, block_token_list):
@@ -194,6 +269,7 @@ class Module:
         #解析token列表，解析正文
         token_list = larc_token.parse_token_list(file_path_name)
         self._parse_text(token_list)
+        self._check_name_hide()
 
     def _parse_text(self, token_list):
         self.dep_module_set = set()
@@ -277,6 +353,9 @@ class Module:
             if name in i:
                 t.syntax_err("名字重定义")
 
+    def _check_name_hide(self):
+        #todo
+
     def _parse_import(self, token_list):
         t = token_list.pop()
         assert t.is_reserved("import")
@@ -298,10 +377,7 @@ class Module:
         self._check_redefine(t, cls_name)
         gtp_name_list = []
         t, sym = token_list.pop_sym()
-        #todo
         if sym == "<":
-            if "native" not in cls_decr_set:
-                t.syntax_err("泛型类必须是native实现")
             while True:
                 t, name = token_list.pop_name()
                 if name in self.dep_module_set:
@@ -318,7 +394,7 @@ class Module:
         if sym == ":":
             #存在继承关系
             t = token_list.peek()
-            base_cls_type = cocc_type.parse_type(token_list, self.dep_module_set)
+            base_cls_type = larc_type.parse_type(token_list, self.dep_module_set)
             if base_cls_type.is_array:
                 t.syntax_err("无法继承数组")
             if base_cls_type.token.is_reserved:
