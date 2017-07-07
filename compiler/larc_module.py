@@ -7,6 +7,7 @@
 import os
 import larc_common
 import larc_token
+import larc_type
 import larc_stmt
 import larc_expr
 
@@ -70,7 +71,7 @@ class _Method:
             tp.check(self.cls.module, self.cls)
 
     def compile(self):
-        //todo
+        raise "todo"
         '''
         if self.super_construct_expr_list_token_list is None:
             self.super_construct_expr_list, self.super_construct_method = None, None
@@ -109,8 +110,8 @@ class _Class:
         self.base_cls_type = base_cls_type
         self.gtp_name_list = gtp_name_list
         self.construct_method = None
-        self.attr_map = cocc_common.OrderedDict()
-        self.method_map = cocc_common.OrderedDict()
+        self.attr_map = larc_common.OrderedDict()
+        self.method_map = larc_common.OrderedDict()
 
     __repr__ = __str__ = lambda self : "%s.%s" % (self.module, self.name)
 
@@ -208,7 +209,7 @@ class _Class:
             assert sym == "}"
         if name == self.name:
             #构造方法
-            assert type is larc_type.VOID_TYPE:
+            assert type is larc_type.VOID_TYPE
             self.construct_method = _Method(name, self, decr_set, cocc_type.VOID_TYPE, arg_map, block_token_list,
                                             super_construct_expr_list_token_list)
         else:
@@ -354,7 +355,7 @@ class Module:
                 t.syntax_err("名字重定义")
 
     def _check_name_hide(self):
-        #todo
+        raise "todo"
 
     def _parse_import(self, token_list):
         t = token_list.pop()
