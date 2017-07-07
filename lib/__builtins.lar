@@ -1,57 +1,15 @@
 //内置builtin模块
 
-native class iterator
+public final class String
 {
-    func iter_new();
-    func iter_end();
-    func iter_get_item();
-    func iter_next();
-}
+    public String(char[] arr)
+    {
+        s = new char[arr.len];
+        for (ulong i = 0; i < arr.len; ++ i)
+        {
+            s[i] = arr[i];
+        }
+    }
 
-native class bool
-{
-    func __init();
-}
-
-native class int
-{
-    func __init();
-    func to_float();
-}
-
-native class float
-{
-    func __init();
-    func to_int();
-}
-
-native class str
-{
-    func __init();
-    func __init(obj);
-    func to_int();
-    func to_int(radix);
-    func to_float();
-    func ord_at(idx);
-    func len();
-}
-
-native class list
-{
-    func __init();
-    func add(obj);
-    func len();
-}
-
-native class dict
-{
-    func __init();
-}
-
-native class range
-{
-    func __init(start);
-    func __init(start, end);
-    func __init(start, end, step);
-    func iter_new();
+    char[] s;
 }
