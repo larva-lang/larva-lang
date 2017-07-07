@@ -65,6 +65,8 @@ def main():
             new_compiling_set |= m.dep_module_set
         compiling_set = new_compiling_set
 
+    raise "todo"
+
     #先扩展嵌套typedef，然后单独对typedef的type进行check
     larc_module.builtins_module.expand_typedef()
     for m in larc_module.module_map.itervalues():
