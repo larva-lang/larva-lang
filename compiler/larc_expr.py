@@ -8,20 +8,22 @@ import larc_common
 import larc_token
 import larc_module
 import larc_stmt
+import larc_type
 
-_UNARY_OP_SET = set(["~", "!", "neg", "pos"])
+_UNARY_OP_SET = set(["~", "!", "neg", "pos", "force_convert"])
 _BINOCULAR_OP_SET = larc_token.BINOCULAR_OP_SYM_SET
 _OP_PRIORITY_LIST = [["?", ":", "?:"],
                      ["||"],
                      ["&&"],
-                     ["==", "!=", "<", "<=", ">", ">="],
                      ["|"],
                      ["^"],
                      ["&"],
+                     ["==", "!="],
+                     ["<", "<=", ">", ">="],
                      ["<<", ">>"],
                      ["+", "-"],
                      ["*", "/", "%"],
-                     ["~", "!", "neg", "pos"]]
+                     ["~", "!", "neg", "pos", "force_convert"]]
 _OP_PRIORITY_MAP = {}
 for _i in xrange(len(_OP_PRIORITY_LIST)):
     for _op in _OP_PRIORITY_LIST[_i]:
@@ -29,42 +31,66 @@ for _i in xrange(len(_OP_PRIORITY_LIST)):
 del _i
 del _op
 
-def _is_expr_end(t):
-    if t.is_sym:
-        if t.value in set([")", "]", "}", ":", ",", ";"]) | larc_token.ASSIGN_SYM_SET:
-            return True
-    if t.is_reserved and t.value in ("for", "if"):
-        return True
-    return False
+#将literal_int expr转换成对应type，type一定是一个integer
+def _convert_literal_int_expr(e, tp):
+    assert e.op == "literal" and e.type == larc_type.LITERAL_INT_TYPE and tp.is_integer_type and not tp.is_literal_int
+    v = e.arg.value
+    bit_num_table = {"schar" : 7, "char" : 8, "short" : 15, "ushort" : 16}
+    if tp.name in bit_num_table and v >= 2 ** bit_num_table[tp.name]:
+        #e的字面量值大于tp支持的范围了
+        return None
+    #将e字面量转为tp类型
+    return _Expr("force_convert", (tp, e), tp)
+
+class _CantMakeNumberTypeSame(Exception):
+    pass
+
+#处理ea、eb类型不同，但是存在literal_int的情况
+def _make_number_type_same(ea, eb):
+    assert ea.type != eb.type and ea.type.is_number_type and eb.type.is_number_type
+
+    if ea.type.is_integer_type and eb.type.is_integer_type:
+        if ea.type.is_literal_int:
+            ea = _convert_literal_int_expr(ea, eb.type)
+            if ea is None:
+                raise _CantMakeNumberTypeSame()
+            return ea, eb
+        if eb.type.is_literal_int:
+            eb = _convert_literal_int_expr(eb, ea.type)
+            if eb is None:
+                raise _CantMakeNumberTypeSame()
+            return ea, eb
+
+    raise _CantMakeNumberTypeSame()
 
 class _Expr:
-    def __init__(self, op, arg):
+    def __init__(self, op, arg, type):
+        if op != "literal" and type.is_literal_int:
+            type = larc_type.INT_TYPE
+        if op != "literal":
+            assert not type.name.startswith("literal_")
+        else:
+            assert type.is_literal_int or not type.name.startswith("literal_")
         self.op = op
         self.arg = arg
-        if op in ("this.attr", "global_var", "local_var", "[]", "[:]", "."):
-            self.is_lvalue = True
-        elif op == "tuple":
-            if self.arg:
-                self.is_lvalue = True
-                for e in self.arg:
-                    if not e.is_lvalue:
-                        self.is_lvalue = False
-                        break
-            else:
-                self.is_lvalue = False
-        else:
-            self.is_lvalue = False
+        self.type = type
+        self.is_lvalue = op in ("this.attr", "global_var", "local_var", "[]", ".")
+        self.is_ref = False #仅用于标识函数或方法的参数ref传递的表达式修饰，由外部修改和使用
 
 class _ParseStk:
     #解析表达式时使用的栈
-    def __init__(self, start_token, module, cls):
+    def __init__(self, start_token, curr_module, cls):
         self.start_token = start_token
-        self.module = module
         self.cls = cls
+        self.curr_module = curr_module
         self.stk = []
         self.op_stk = []
 
-    def push_op(self, op):
+    def push_op(self, op, force_convert_type = None):
+        if op == "force_convert":
+            assert force_convert_type is not None
+        else:
+            assert force_convert_type is None
         #弹出所有优先级高的运算
         while self.op_stk:
             if _OP_PRIORITY_MAP[self.op_stk[-1]] > _OP_PRIORITY_MAP[op]:
@@ -77,6 +103,11 @@ class _ParseStk:
                     #单目、三目运算符右结合
                     break
                 self._pop_top_op()
+        if op == "force_convert":
+            #类型强转额外压入一个类型对象
+            self.op_stk.append(force_convert_type)
+            self.op_stk.append(op)
+            return
         if op == ":":
             if not self.op_stk or self.op_stk[-1] != "?":
                 self.start_token.syntax_err("非法的表达式，存在未匹配'?'的':'")
@@ -91,16 +122,99 @@ class _ParseStk:
             if len(self.stk) < 1:
                 self.start_token.syntax_err("非法的表达式")
             e = self.stk.pop()
-            self.stk.append(_Expr(op, [e]))
+            if op == "force_convert":
+                tp = self.op_stk.pop()
+                if not tp.can_force_convert_from(e.type):
+                    self.start_token.syntax_err("非法的表达式，存在无效的强制类型转换：'%s'到'%s'" % (e.type, tp))
+                self.stk.append(_Expr(op, (tp, e), tp))
+            else:
+                if op in ("neg", "pos"):
+                    if not e.type.is_number_type:
+                        self.start_token.syntax_err("非法的表达式：类型'%s'不可做正负运算" % e.type)
+                elif op == "!":
+                    if not e.type.is_bool_type:
+                        self.start_token.syntax_err("非法的表达式：类型'%s'不可做'!'运算" % e.type)
+                elif op == "~":
+                    if not e.type.is_integer_type:
+                        self.start_token.syntax_err("非法的表达式：类型'%s'不可做'~'运算" % e.type)
+                else:
+                    raise Exception("Bug")
+                self.stk.append(_Expr(op, e, e.type))
+
         elif op in _BINOCULAR_OP_SET:
             #双目运算符
             if len(self.stk) < 2:
                 self.start_token.syntax_err("非法的表达式")
             eb = self.stk.pop()
             ea = self.stk.pop()
-            self.stk.append(_Expr(op, [ea, eb]))
+
+            class _InvalidBinocularOp(Exception):
+                pass
+
+            try:
+                normal_binocular_op = False
+
+                if op in ("&&", "||"):
+                    if not ea.type.is_bool_type or not eb.type.is_bool_type:
+                        self.start_token.syntax_err("非法的表达式：运算'%s'的左右分量必须是bool型" % op)
+                    tp = larc_type.BOOL_TYPE
+                elif op in ("==", "!="):
+                    if ea.type.is_obj_type and eb.type.is_obj_type:
+                        #是否为同一个对象
+                        if ea.type != eb.type:
+                            if ea.type.can_convert_from(eb.type):
+                                eb = _Expr("force_convert", (ea.type, eb), ea.type)
+                            elif eb.type.can_convert_from(ea.type):
+                                ea = _Expr("force_convert", (eb.type, ea), eb.type)
+                            else:
+                                raise _InvalidBinocularOp()
+                    elif ea.type.is_bool_type and eb.type.is_bool_type:
+                        pass #bool类型也可直接比较
+                    elif ea.type.is_number_type and eb.type.is_number_type:
+                        normal_binocular_op = True
+                    else:
+                        raise _InvalidBinocularOp()
+                    tp = larc_type.BOOL_TYPE
+                elif op in ("+", "-", "*", "/", "<", ">", "<=", ">="):
+                    if ea.type.is_number_type and eb.type.is_number_type:
+                        normal_binocular_op = True
+                    else:
+                        raise _InvalidBinocularOp()
+                    if op in ("<", ">", "<=", ">="):
+                        tp = larc_type.BOOL_TYPE
+                    else:
+                        tp = None
+                elif op in ("%", "&", "|", "^"):
+                    if ea.type.is_integer_type and eb.type.is_integer_type:
+                        normal_binocular_op = True
+                    else:
+                        raise _InvalidBinocularOp()
+                    tp = None
+                elif op in ("<<", ">>"):
+                    if not (ea.type.is_integer_type and eb.type.is_unsigned_integer_type):
+                        raise _InvalidBinocularOp()
+                    tp = ea.type
+                else:
+                    raise Exception("Bug")
+
+                if normal_binocular_op:
+                    if ea.type != eb.type:
+                        try:
+                            ea, eb = _make_number_type_same(ea, eb)
+                        except _CantMakeNumberTypeSame:
+                            raise _InvalidBinocularOp()
+                    if tp is None:
+                        tp = ea.type
+                assert tp is not None
+                assert ea.type == eb.type
+                self.stk.append(_Expr(op, (ea, eb), tp))
+
+            except _InvalidBinocularOp:
+                self.start_token.syntax_err("非法的表达式：类型'%s'和'%s'无法做'%s'运算" % (ea.type, eb.type, op))
+
         elif op == "?":
             self.start_token.syntax_err("非法的表达式，存在未匹配':'的'?'")
+
         elif op == "?:":
             #三目运算符
             if len(self.stk) < 3:
@@ -108,7 +222,23 @@ class _ParseStk:
             ec = self.stk.pop()
             eb = self.stk.pop()
             ea = self.stk.pop()
-            self.stk.append(_Expr(op, [ea, eb, ec]))
+            if not ea.type.is_bool_type:
+                self.start_token.syntax_err("非法的表达式：'?:'运算的第一运算分量类型不能是'%s'" % ea.type)
+            if eb.type == ec.type:
+                #完全一样，则使用此类型
+                tp = eb.type
+            else:
+                #类型不相同，只对number类型归一化，其他情况要求强转
+                try:
+                    if eb.type.is_number_type and ec.type.is_number_type:
+                        eb, ec = _make_number_type_same(eb, ec)
+                    else:
+                        raise _CantMakeNumberTypeSame()
+                except _CantMakeNumberTypeSame:
+                    self.start_token.syntax_err("非法的表达式：'?:'运算的第二、三运算分量类型'%s'和'%s'不同" % (eb.type, ec.type))
+                tp = eb.type
+            self.stk.append(_Expr(op, (ea, eb, ec), tp))
+
         else:
             raise Exception("Bug")
 
@@ -122,286 +252,333 @@ class _ParseStk:
             self.start_token.syntax_err("非法的表达式")
         return self.stk.pop()
 
-def _parse_expr_list(token_list, module, cls, var_set_list, non_local_var_used_map, end_sym):
-    if token_list.peek().is_sym(end_sym):
-        #空列表
-        token_list.pop_sym(end_sym)
-        return []
-    expr_list = []
-    while True:
-        expr_list.append(parse_expr(token_list, module, cls, var_set_list, non_local_var_used_map, end_at_comma = True))
-        t = token_list.pop()
-        if t.is_sym(end_sym):
-            return expr_list
-        if t.is_sym(","):
-            continue
-        t.syntax_err("需要','或'%s'" % end_sym)
+def _is_expr_end(t):
+    if t.is_sym:
+        if t.value in (set([")", "]", ",", ";"]) | larc_token.ASSIGN_SYM_SET | larc_token.INC_DEC_SYM_SET):
+            return True
+    return False
 
-def _parse_dict_expr_list(token_list, module, cls, var_set_list, non_local_var_used_map):
-    if token_list.peek().is_sym("}"):
-        #空字典
-        token_list.pop_sym("}")
-        return []
-    expr_list = []
-    while True:
-        ek = parse_expr(token_list, module, cls, var_set_list, non_local_var_used_map, end_at_comma = True)
-        token_list.pop_sym(":")
-        ev = parse_expr(token_list, module, cls, var_set_list, non_local_var_used_map, end_at_comma = True)
-        expr_list.append((ek, ev))
-        t = token_list.pop()
-        if t.is_sym("}"):
-            return expr_list
-        if t.is_sym(","):
-            continue
-        t.syntax_err("需要','或'}'")
+class Parser:
+    def __init__(self, token_list, curr_module, cls, gtp_map):
+        self.token_list = token_list
+        self.curr_module = curr_module
+        self.cls = cls
+        self.gtp_map = gtp_map
 
-def _parse_method_or_attr_of_this_cls((t, name), token_list, module, cls, var_set_list, non_local_var_used_map):
-    if cls.has_attr(name):
-        return _Expr("this.attr", name)
-
-    if not cls.has_method(name):
-        t.syntax_err("类'%s'没有属性或方法'%s'" % (cls, name))
-
-    token_list.pop_sym("(")
-    expr_list = _parse_expr_list(token_list, module, cls, var_set_list, non_local_var_used_map, ")")
-    if not cls.has_method(name, len(expr_list)):
-        t.syntax_err("类'%s'没有方法'%s(...%d args)'" % (cls, name, len(expr_list)))
-    return _Expr("call_this.method", (cls.get_method(name, len(expr_list)), expr_list))
-
-def _parse_global_elem(m, (t, name), token_list, module, cls, var_set_list, non_local_var_used_map):
-    if m.has_global_var(name):
-        return _Expr("global_var", m.get_global_var(name))
-
-    if not m.has_cls(name) and not m.has_func(name):
-        t.syntax_err("模块'%s'没有名为'%s'的类、函数或全局变量" % (m, name))
-
-    token_list.pop_sym("(")
-    expr_list = _parse_expr_list(token_list, module, cls, var_set_list, non_local_var_used_map, ")")
-    if m.has_func(name):
-        if not m.has_func(name, len(expr_list)):
-            t.syntax_err("模块'%s'没有方法'%s(...%d args)'" % (m, name, len(expr_list)))
-        return _Expr("call_func", (m.get_func(name, len(expr_list)), expr_list))
-
-    callee_cls = m.get_cls(name)
-    if not callee_cls.has_method("__init", len(expr_list)):
-        t.syntax_err("类'%s'没有构造方法'__init(...%d args)'" % (callee_cls, len(expr_list)))
-    return _Expr("new", (callee_cls, expr_list))
-
-def _parse_compr(token_list, module, cls, var_set_list, non_local_var_used_map, end_sym):
-    assert token_list.pop().is_reserved("for")
-    for_var_set, lvalue, iter_obj = larc_stmt.parse_for_prefix(token_list, module, cls, var_set_list, non_local_var_used_map)
-    token_list.pop_sym(end_sym)
-    return [for_var_set, lvalue, iter_obj]
-
-def parse_expr(token_list, module, cls, var_set_list, non_local_var_used_map, end_at_comma = False):
-    parse_stk = _ParseStk(token_list.peek(), module, cls)
-    while True:
-        #状态：等待表达式的开始
-        #包括单目运算、名字、常量、tuple、list、dict、圆括号开头的子表达式等
-        t = token_list.pop()
-        if t.is_sym and t.value in ("~", "!", "+", "-"):
-            #单目运算
-            parse_stk.push_op({"+" : "pos", "-" : "neg"}.get(t.value, t.value))
-            continue
-
-        if t.is_sym("("):
-            if token_list.peek().is_sym(")"):
-                #空元组
-                token_list.pop_sym(")")
-                parse_stk.push_expr(_Expr("tuple", []))
-            else:
-                #子表达式开始，使用递归解析
-                parse_stk.push_expr(parse_expr(token_list, module, cls, var_set_list, non_local_var_used_map))
-                token_list.pop_sym(")")
-        elif t.is_sym("["):
-            #列表
-            if token_list.peek().is_sym("]"):
-                token_list.pop_sym("]")
-                parse_stk.push_expr(_Expr("list", []))
-            else:
-                #先解析一个表达式
-                idx = token_list.i
-                e = parse_expr(token_list, module, cls, var_set_list, non_local_var_used_map, end_at_comma = True)
-                t = token_list.peek()
-                if t.is_sym(",") or t.is_sym("]"):
-                    #正常列表
-                    token_list.revert(idx)
-                    parse_stk.push_expr(_Expr("list", _parse_expr_list(token_list, module, cls, var_set_list, non_local_var_used_map, "]")))
-                elif t.is_reserved("for"):
-                    #列表解析式
-                    parse_stk.push_expr(_Expr("list_compr",
-                                              [e] + _parse_compr(token_list, module, cls, var_set_list, non_local_var_used_map, "]")))
-                else:
-                    t.syntax_err("需要','、']'或'for'")
-        elif t.is_sym("{"):
-            #字典
-            if token_list.peek().is_sym("}"):
-                token_list.pop()
-                parse_stk.push_expr(_Expr("dict", []))
-            else:
-                #先解析一对键值
-                idx = token_list.i
-                ek = parse_expr(token_list, module, cls, var_set_list, non_local_var_used_map, end_at_comma = True)
-                token_list.pop_sym(":")
-                ev = parse_expr(token_list, module, cls, var_set_list, non_local_var_used_map, end_at_comma = True)
-                t = token_list.peek()
-                if t.is_sym(",") or t.is_sym("}"):
-                    #正常字典
-                    token_list.revert(idx)
-                    parse_stk.push_expr(_Expr("dict", _parse_dict_expr_list(token_list, module, cls, var_set_list, non_local_var_used_map)))
-                elif t.is_for:
-                    #字典解析式
-                    parse_stk.push_expr(_Expr("dict_compr",
-                                              [ek, ev] + _parse_compr(token_list, module, cls, var_set_list, non_local_var_used_map, "}")))
-                else:
-                    t.syntax_err("需要','、'}'或'for'")
-        elif t.is_name:
-            if t.value in module.dep_module_set:
-                m = larc_module.module_map[t.value]
-                token_list.pop_sym(".")
-                t, name = token_list.pop_name()
-                expr = _parse_global_elem(m, (t, name), token_list, module, cls, var_set_list, non_local_var_used_map)
-                parse_stk.push_expr(expr)
-            else:
-                for var_set in var_set_list:
-                    if t.value in var_set:
-                        #局部变量
-                        parse_stk.push_expr(_Expr("local_var", t.value))
-                        break
-                else:
-                    if t.value not in non_local_var_used_map:
-                        non_local_var_used_map[t.value] = t #记录一下使用过的非局部变量的名字使用
-                    if cls is not None and (cls.has_attr(t.value) or cls.has_method(t.value)):
-                        #类方法或属性
-                        expr = _parse_method_or_attr_of_this_cls((t, t.value), token_list, module, cls, var_set_list, non_local_var_used_map)
-                        parse_stk.push_expr(expr)
-                    else:
-                        #当前模块或内建模块的全局元素
-                        for m in (module, larc_module.module_map["__builtins"]):
-                            if m.has_cls(t.value) or m.has_func(t.value) or m.has_global_var(t.value):
-                                expr = _parse_global_elem(m, (t, t.value), token_list, module, cls, var_set_list, non_local_var_used_map)
-                                parse_stk.push_expr(expr)
-                                break
-                        else:
-                            t.syntax_err("未定义的标识符'%s'" % t.value)
-        elif t.is_literal:
-            assert t.type.startswith("literal_")
-            module.literal_set.add(t)
-            parse_stk.push_expr(_Expr("literal", t))
-        elif t.is_reserved("this"):
-            if cls is None:
-                t.syntax_err("'this'只能用于成员函数中")
-            if token_list.peek().is_sym("."):
-                token_list.pop_sym(".")
-                t, name = token_list.pop_name()
-                expr = _parse_method_or_attr_of_this_cls((t, name), token_list, module, cls, var_set_list, non_local_var_used_map)
-                parse_stk.push_expr(expr)
-            else:
-                #单独的this
-                parse_stk.push_expr(_Expr(t.value, t))
-        else:
-            t.syntax_err("非法的表达式")
-
-        assert parse_stk.stk
-
-        #状态：解析后缀运算
+    def parse(self, var_map_stk, need_type):
+        start_token = self.token_list.peek()
+        parse_stk = _ParseStk(start_token, self.curr_module, self.cls)
         while True:
-            t = token_list.pop()
-            if t.is_sym("["):
-                #下标或分片操作
-                el = []
-                while True:
-                    t = token_list.peek()
-                    if t.is_sym("]"):
-                        el.append(None)
-                        break
-                    if t.is_sym(":"):
-                        el.append(None)
-                        token_list.pop_sym(":")
-                        continue
-                    el.append(parse_expr(token_list, module, cls, var_set_list, non_local_var_used_map, end_at_comma = True))
-                    t = token_list.peek()
-                    if t.is_sym("]"):
-                        break
-                    if t.is_sym(":"):
-                        token_list.pop_sym(":")
-                        continue
-                    t.syntax_err("需要']'或':'")
-                token_list.pop_sym("]")
-                assert len(el) > 0
-                if len(el) == 1:
-                    #下标操作
-                    if el[0] is None:
-                        t.syntax_err("空下标")
-                    parse_stk.stk[-1] = _Expr("[]", [parse_stk.stk[-1], el[0]])
-                else:
-                    #分片操作
-                    if len(el) == 2:
-                        el.append(None)
-                    if len(el) > 3:
-                        t.syntax_err("分片最多只能三个参数")
-                    parse_stk.stk[-1] = _Expr("[:]", [parse_stk.stk[-1], el])
-            elif t.is_sym("."):
-                t, name = token_list.pop_name()
-                if token_list.peek().is_sym("("):
-                    token_list.pop_sym("(")
-                    expr_list = _parse_expr_list(token_list, module, cls, var_set_list, non_local_var_used_map, ")")
-                    parse_stk.stk[-1] = _Expr("call_method", [parse_stk.stk[-1], t, expr_list])
-                else:
-                    parse_stk.stk[-1] = _Expr(".", [parse_stk.stk[-1], t])
-            else:
-                token_list.revert()
-                break
+            t = self.token_list.pop()
 
-        if token_list.peek().is_sym(","):
-            if end_at_comma:
-                #没有在解析元组
-                break
-            #解析元组
-            token_list.pop()
-            arg_list = [parse_stk.finish()]
-            while True:
-                #循环解析元组各项
-                t = token_list.peek()
-                if t.is_sym(","):
-                    #出现连续两个逗号
-                    t.syntax_err("需要表达式")
-                if _is_expr_end(t):
-                    #元组解析结束
-                    break
-                arg_list.append(parse_expr(token_list, module, cls, var_set_list, non_local_var_used_map, end_at_comma = True))
-                #接下来应该是逗号或表达式结束
-                t = token_list.peek()
-                if t.is_sym(","):
-                    #后续可能还有
-                    token_list.pop()
+            if t.is_sym and t.value in ("~", "!", "+", "-"):
+                #单目运算
+                if t.value == "+":
+                    op = "pos"
+                elif t.value == "-":
+                    op = "neg"
+                else:
+                    op = t.value
+                parse_stk.push_op(op)
+                continue
+
+            if t.is_sym("("):
+                tp = larc_type.try_parse_type(self.token_list, self.curr_module, self.gtp_map)
+                if tp is not None:
+                    #类型强转
+                    self.token_list.pop_sym(")")
+                    parse_stk.push_op("force_convert", tp)
                     continue
-                if _is_expr_end(t):
-                    #元组结束
+                #子表达式
+                parse_stk.push_expr(self.parse(var_map_stk, None))
+                self.token_list.pop_sym(")")
+            elif t.is_name:
+                if t.value in self.curr_module.dep_module_set:
+                    m = larc_module.module_map[t.value]
+                    self.token_list.pop_sym(".")
+                    t, name = self.token_list.pop_name()
+                    expr = self._parse_func_or_global_var(m, (t, name), var_map_stk)
+                    parse_stk.push_expr(expr)
+                else:
+                    for var_map in reversed(var_map_stk):
+                        if t.value in var_map:
+                            #局部变量
+                            parse_stk.push_expr(_Expr("local_var", t.value, var_map[t.value]))
+                            break
+                    else:
+                        if self.cls is not None and self.cls.has_method_or_attr(t.value):
+                            #类方法或属性
+                            expr = self._parse_method_or_attr_of_this_cls((t, t.value), var_map_stk)
+                            parse_stk.push_expr(expr)
+                        else:
+                            #当前模块或builtin模块
+                            for m in self.curr_module, larc_module.builtins_module:
+                                if m.has_func(t.value) or m.has_global_var(t.value):
+                                    expr = self._parse_func_or_global_var(m, (t, t.value), var_map_stk)
+                                    parse_stk.push_expr(expr)
+                                    break
+                            else:
+                                t.syntax_err("未定义的标识符'%s'" % t.value)
+            elif t.is_literal:
+                assert t.type.startswith("literal_")
+                if t.type == "literal_int":
+                    #int字面量需要特殊处理
+                    tp = larc_type.LITERAL_INT_TYPE
+                else:
+                    tp = eval("larc_type.%s_TYPE" % t.type[8 :].upper())
+                parse_stk.push_expr(_Expr("literal", t, tp))
+            elif t.is_reserved("new"):
+                base_type = larc_type.parse_type(self.token_list, self.curr_module.dep_module_set, non_array = True)
+                base_type.check(self.curr_module, self.gtp_map)
+                larc_module.check_new_ginst_during_compile()
+                t = self.token_list.pop()
+                if t.is_sym("("):
+                    if base_type.token.is_reserved:
+                        base_type.token.syntax_err("不能用new构造基础类型的实例")
+                    new_cls = base_type.get_coi()
+                    if not (new_cls.is_cls or new_cls.is_gcls_inst):
+                        base_type.token.syntax_err("不能用new创建'%s'的实例" % new_cls)
+                    if new_cls.module is not self.curr_module and "public" not in new_cls.construct_method.decr_set:
+                        base_type.token.syntax_err("无法创建'%s'的实例：对构造函数无访问权限" % new_cls)
+
+                    t = self.token_list.peek()
+                    expr_list = self._parse_expr_list(var_map_stk)
+                    self._make_expr_list_match_arg_map(t, expr_list, new_cls.construct_method.arg_map)
+                    parse_stk.push_expr(_Expr("new", expr_list, base_type))
+                else:
+                    if not t.is_sym("["):
+                        t.syntax_err("需要'('或'['")
+                    if base_type.is_void:
+                        t.syntax_err("无法创建void数组")
+                    size_list = [self.parse(var_map_stk, larc_type.VALID_ARRAY_IDX_TYPES)]
+                    init_dim_count = 1
+                    self.token_list.pop_sym("]")
+                    while self.token_list.peek().is_sym("["):
+                        self.token_list.pop_sym("[")
+                        t = self.token_list.peek()
+                        if t.is_sym("]"):
+                            size_list.append(None)
+                            self.token_list.pop_sym("]")
+                            continue
+                        if size_list[-1] is None:
+                            t.syntax_err("需要']'")
+                        size_list.append(self.parse(var_map_stk, larc_type.VALID_ARRAY_IDX_TYPES))
+                        init_dim_count += 1
+                        self.token_list.pop_sym("]")
+                    parse_stk.push_expr(_Expr("new_array", (base_type, size_list), base_type.to_array_type(len(size_list))))
+            elif t.is_reserved("this"):
+                if self.cls is None:
+                    t.syntax_err("'this'只能用于成员函数中")
+                if self.token_list.peek().is_sym("."):
+                    self.token_list.pop_sym(".")
+                    t, name = self.token_list.pop_name()
+                    expr = self._parse_method_or_attr_of_this_cls((t, name), var_map_stk)
+                    parse_stk.push_expr(expr)
+                else:
+                    #单独的this
+                    parse_stk.push_expr(_Expr("this", t, larc_type.gen_type_from_cls(self.cls)))
+            else:
+                t.syntax_err("非法的表达式")
+
+            assert parse_stk.stk
+
+            #解析后缀运算符
+            while self.token_list:
+                t = self.token_list.pop()
+                if t.is_sym("["):
+                    expr = self.parse(var_map_stk, larc_type.VALID_ARRAY_IDX_TYPES)
+                    self.token_list.pop_sym("]")
+                    array_expr = parse_stk.stk[-1]
+                    if not array_expr.type.is_array:
+                        t.syntax_err("'%s'非数组，不能进行下标运算" % array_expr.type)
+                    parse_stk.stk[-1] = _Expr("[]", [array_expr, expr], array_expr.type.to_elem_type())
+                elif t.is_sym("."):
+                    obj = parse_stk.stk[-1]
+                    if obj.type.is_array:
+                        #数组
+                        t, name = self.token_list.pop_name()
+                        if name not in ("size",):
+                            t.syntax_err("数组没有'%s'属性" % name)
+                        parse_stk.stk[-1] = _Expr("array.size", parse_stk.stk[-1], larc_type.LONG_TYPE)
+                    else:
+                        if obj.type.token.is_reserved:
+                            t.syntax_err("基本类型'%s'无法进行'.'运算" % obj.type)
+                        obj_coi = obj.type.get_coi()
+                        t, name = self.token_list.pop_name()
+                        if obj.op == "literal" and obj.arg.type == "literal_str" and name == "format":
+                            #字符串常量的format语法
+                            fmt, expr_list = self._parse_str_format(var_map_stk, obj)
+                            parse_stk.stk[-1] = _Expr("str_format", (fmt, expr_list), larc_type.STR_TYPE)
+                        else:
+                            method, attr = obj_coi.get_method_or_attr(name, t)
+                            if method is not None:
+                                assert attr is None
+                                self.token_list.pop_sym("(")
+                                if method.module is not self.curr_module and "public" not in method.decr_set:
+                                    t.syntax_err("无法使用方法'%s'：没有权限" % method)
+                                t = self.token_list.peek()
+                                expr_list = self._parse_expr_list(var_map_stk)
+                                self._make_expr_list_match_arg_map(t, expr_list, method.arg_map)
+                                parse_stk.stk[-1] = _Expr("call_method", (parse_stk.stk[-1], method, expr_list), method.type)
+                            else:
+                                assert attr is not None and method is None
+                                if attr.module is not self.curr_module and "public" not in attr.decr_set:
+                                    t.syntax_err("无法访问属性'%s'：没有权限" % attr)
+                                parse_stk.stk[-1] = _Expr(".", (parse_stk.stk[-1], attr), attr.type)
+                else:
+                    self.token_list.revert()
                     break
-                t.syntax_err("非法的元组")
-            parse_stk.push_expr(_Expr("tuple", arg_list))
 
-        t = token_list.peek()
-        if _is_expr_end(t) and (not t.is_sym(":") or "?" not in parse_stk.op_stk):
-            #表达式结束
-            break
+            if _is_expr_end(self.token_list.peek()):
+                #表达式结束
+                break
 
-        #状态：解析普通二元/三元运算符
-        t = token_list.pop()
-        if t.is_sym and t.value in _BINOCULAR_OP_SET | set(["?", ":"]):
-            #二元运算
-            parse_stk.push_op(t.value)
+            #状态：解析普通二元/三元运算符
+            t = self.token_list.pop()
+            if t.is_sym and (t.value in _BINOCULAR_OP_SET or t.value in ("?", ":")):
+                #二元运算
+                parse_stk.push_op(t.value)
+            else:
+                t.syntax_err("需要二元或三元运算符")
+
+        expr = parse_stk.finish()
+        if need_type is not None:
+            if isinstance(need_type, (tuple, list)):
+                need_type_list = list(need_type)
+            else:
+                need_type_list = [need_type]
+            for need_type in need_type_list:
+                if need_type == expr.type:
+                    break
+                if expr.op == "literal" and expr.type == larc_type.LITERAL_INT_TYPE and need_type.is_integer_type:
+                    expr = _convert_literal_int_expr(expr, need_type)
+                if expr is not None and need_type.can_convert_from(expr.type):
+                    expr = _Expr("force_convert", (need_type, expr), need_type)
+                    break
+            else:
+                if len(need_type_list) == 1:
+                    start_token.syntax_err("表达式无法隐式转换为类型'%s'" % need_type_list[0])
+                else:
+                    start_token.syntax_err("表达式无法隐式转换为类型%s其中任意一个" % str(need_type_list))
+        return expr
+
+    def _parse_func_or_global_var(self, module, (t, name), var_map_stk):
+        global_var = module.get_global_var(name)
+        if global_var is not None:
+            if module is not self.curr_module and "public" not in global_var.decr_set:
+                t.syntax_err("无法使用全局变量'%s'：没有权限" % global_var)
+            return _Expr("global_var", global_var, global_var.type)
+
+        if not module.has_func(name):
+            t.syntax_err("未定义的全局变量或函数'%s.%s'" % (module, name))
+
+        if self.token_list.peek().is_sym("<"):
+            self.token_list.pop_sym("<")
+            gtp_list = larc_type.parse_gtp_list(self.token_list, self.curr_module.dep_module_set)
+            for tp in gtp_list:
+                tp.check(self.curr_module, self.gtp_map)
+            larc_module.check_new_ginst_during_compile()
         else:
-            t.syntax_err("需要二元或三元运算符")
+            gtp_list = []
+        func = module.get_func(t, gtp_list)
+        if func.module is not self.curr_module and "public" not in func.decr_set:
+            t.syntax_err("无法使用函数'%s'：没有权限" % func)
+        self.token_list.pop_sym("(")
+        t = self.token_list.peek()
+        expr_list = self._parse_expr_list(var_map_stk)
+        self._make_expr_list_match_arg_map(t, expr_list, func.arg_map)
+        return _Expr("call_func", (func, expr_list), func.type)
 
-    return parse_stk.finish()
+    def _parse_method_or_attr_of_this_cls(self, (t, name), var_map_stk):
+        assert self.cls is not None
+        method, attr = self.cls.get_method_or_attr(name, t)
+        if attr is not None:
+            return _Expr("this.attr", attr, attr.type)
+        assert method is not None
+        self.token_list.pop_sym("(")
+        t = self.token_list.peek()
+        expr_list = self._parse_expr_list(var_map_stk)
+        self._make_expr_list_match_arg_map(t, expr_list, method.arg_map)
+        return _Expr("call_this.method", (method, expr_list), method.type)
 
-def var_name_to_expr(var_name, module = None):
-    if isinstance(var_name, str):
-        if module is None:
-            return _Expr("local_var", var_name)
-        return _Expr("global_var", module.get_global_var(var_name))
+    def _parse_expr_list(self, var_map_stk, allow_ref = True):
+        expr_list = []
+        if self.token_list.peek().is_sym(")"):
+            self.token_list.pop_sym(")")
+            return expr_list
+        while True:
+            t = self.token_list.peek()
+            if t.is_reserved("ref"):
+                if not allow_ref:
+                    t.syntax_err("无效的ref修饰")
+                self.token_list.pop()
+                is_ref = True
+            else:
+                is_ref = False
+            expr = self.parse(var_map_stk, None)
+            if is_ref:
+                if not expr.is_lvalue:
+                    t.syntax_err("ref修饰的实参不是左值表达式")
+                if expr.op == "global_var":
+                    global_var = expr.arg
+                    if "final" in global_var.decr_set:
+                        t.syntax_err("ref修饰了带final属性的全局变量")
+            expr.is_ref = is_ref
+            expr_list.append(expr)
+            if self.token_list.peek().is_sym(")"):
+                self.token_list.pop_sym(")")
+                return expr_list
+            self.token_list.pop_sym(",")
 
-    assert isinstance(var_name, tuple)
-    return _Expr("tuple", [var_name_to_expr(vn, is_global) for vn in var_name])
+    def _make_expr_list_match_arg_map(self, t, expr_list, arg_map):
+        if len(expr_list) != len(arg_map):
+            t.syntax_err("传入参数数量错误：需要%d个，传入了%d个" % (len(arg_map), len(expr_list)))
+        for i in xrange(len(expr_list)):
+            e = expr_list[i]
+            e_type = e.type
+            tp = arg_map.value_at(i)
+            assert not tp.is_literal_int
+            if e.is_ref and not tp.is_ref:
+                t.syntax_err("参数#%d：形参不是ref，无效的实参ref修饰" % (i + 1))
+            if not e.is_ref and tp.is_ref:
+                t.syntax_err("参数#%d：形参是ref，实参缺少ref修饰" % (i + 1))
+            if e.op == "literal" and e.type == larc_type.LITERAL_INT_TYPE and tp.is_integer_type:
+                e = _convert_literal_int_expr(e, tp)
+            if e is None or not tp.can_convert_from(e.type):
+                t.syntax_err("参数#%d：无法从类型'%s'转为'%s'" % (i + 1, e_type, tp))
+            expr_list[i] = e #e可能被转化了
+
+    def _parse_str_format(self, var_map_stk, obj):
+        assert obj.type is larc_type.STR_TYPE
+        self.token_list.pop_sym("(")
+        expr_list = self._parse_expr_list(var_map_stk)
+        fmt = ""
+        pos = 0
+        expr_idx = 0
+        while pos < len(obj.arg.value):
+            if obj.arg.value[pos] != "%":
+                fmt += obj.arg.value[pos]
+                pos += 1
+                continue
+            try:
+                pos += 2
+                conv_spec = obj.arg.value[pos - 1]
+                if conv_spec == "%":
+                    fmt += "%%"
+                    continue
+                if expr_idx >= len(expr_list):
+                    obj.arg.syntax_err("format格式化参数不足")
+                expr = expr_list[expr_idx]
+                if expr.is_ref:
+                    obj.arg.syntax_err("format格式化参数不能有ref修饰")
+                expr_idx += 1
+                if conv_spec == "v":
+                    #自动匹配各种情况的默认格式，先只支持这个，后续再补充其他的
+                    fmt += "%v"
+                    continue
+                raise IndexError()
+            except IndexError:
+                obj.arg.syntax_err("format格式串错误")
+        if expr_idx < len(expr_list):
+            obj.arg.syntax_err("format格式化参数过多")
+        return fmt, expr_list

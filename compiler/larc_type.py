@@ -1,9 +1,10 @@
-#coding=gbk
+#coding=utf8
 
 """
-ÀàĞÍÏà¹Ø
+ç±»å‹ç›¸å…³
 """
 
+import larc_common
 import larc_module
 
 _BASE_TYPE_LIST = ("void", "bool", "schar", "char", "short", "ushort", "int", "uint", "long", "ulong", "float", "double")
@@ -16,33 +17,22 @@ class _Type:
         self.array_dim_count = 0
         self.gtp_list = []
         if not self.token.is_reserved and token_list and token_list.peek().is_sym("<"):
-            #½âÎö·ºĞÍ²ÎÊı
+            #è§£ææ³›å‹å‚æ•°
             token_list.pop_sym("<")
-            while True:
-                self.gtp_list.append(parse_type(token_list, dep_module_set))
-                t = token_list.pop()
-                if t.is_sym(","):
-                    continue
-                if t.is_sym(">"):
-                    break
-                if t.is_sym(">>"):
-                    token_list.split_shr_sym()
-                    break
-                t.syntax_err("ĞèÒª','»ò'>'")
+            self.gtp_list = parse_gtp_list(token_list, dep_module_set)
         if not non_array:
             while token_list and token_list.peek().is_sym("["):
                 if self.name == "void":
-                    token_list.peek().syntax_err("ÎŞ·¨¶¨ÒåvoidµÄÊı×é")
+                    token_list.peek().syntax_err("æ— æ³•å®šä¹‰voidçš„æ•°ç»„")
                 if self.name == "nil":
                     raise Exception("Bug")
                 token_list.pop_sym("[")
                 token_list.pop_sym("]")
                 self.array_dim_count += 1
         self.is_ref = is_ref
-        self.is_gtp_name = False
-        self.set_is_XXX()
+        self._set_is_XXX()
 
-    def set_is_XXX(self):
+    def _set_is_XXX(self):
         self.is_array = self.array_dim_count > 0
         self.is_nil = self.token.is_reserved("nil")
         self.is_obj_type = self.is_nil or self.is_array or self.token.is_name
@@ -51,22 +41,13 @@ class _Type:
         self.is_integer_type = (self.token.is_reserved and
                                 self.name in ("schar", "char", "short", "ushort", "int", "uint", "long", "ulong", "literal_int") and
                                 self.array_dim_count == 0)
+        self.is_unsigned_integer_type = self.is_integer_type and self.name in ("char", "ushort", "uint", "ulong", "literal_int")
+        self.is_literal_int = self.is_integer_type and self.name == "literal_int"
         self.is_float_type = self.token.is_reserved and self.name in ("float", "double") and self.array_dim_count == 0
         self.is_number_type = self.is_integer_type or self.is_float_type
         self.can_inc_dec = self.is_integer_type
 
-    def _copy_from(self, tp):
-        self.token = tp.token
-        self.name = tp.name
-        self.module_name = tp.module_name
-        self.array_dim_count = tp.array_dim_count
-        self.gtp_list = tp.gtp_list
-        assert not tp.is_ref
-        assert not tp.is_gtp_name
-        self.set_is_XXX()
-
     def __repr__(self):
-        assert not self.is_gtp_name
         s = self.name
         if self.module_name is not None:
             s = self.module_name + "." + s
@@ -77,7 +58,6 @@ class _Type:
     __str__ = __repr__
 
     def __eq__(self, other):
-        assert not self.is_gtp_name
         return (self.name == other.name and self.module_name == other.module_name and self.gtp_list == other.gtp_list and
                 self.array_dim_count == other.array_dim_count)
 
@@ -86,130 +66,122 @@ class _Type:
 
     def to_array_type(self, array_dim_count):
         assert self.array_dim_count == 0
-        tp = _Type((self.token, self.name), None, None, self.module_name)
+        tp = _Type((self.token, self.name), None, None, module_name = self.module_name)
         tp.gtp_list = self.gtp_list
         tp.array_dim_count = array_dim_count
-        tp.set_is_XXX()
+        tp._set_is_XXX()
         return tp
 
     def to_elem_type(self):
         assert self.array_dim_count > 0
-        tp = _Type((self.token, self.name), None, None, self.module_name)
+        tp = _Type((self.token, self.name), None, None, module_name = self.module_name)
         tp.gtp_list = self.gtp_list
         tp.array_dim_count = self.array_dim_count - 1
-        tp.set_is_XXX()
+        tp._set_is_XXX()
         return tp
 
-    def to_gcls_inst_type(self, gtp_map):
-        if self.name in gtp_map:
-            assert self.token.is_name and self.module_name is None and not self.gtp_list
-            return gtp_map[self.name]
-        if not self.gtp_list:
-            return self
-        tp = _Type((self.token, self.name), None, None, self.module_name)
-        tp.gtp_list = [gtp.to_gcls_inst_type(gtp_map) for gtp in self.gtp_list]
-        tp.set_is_XXX()
-        return tp
-
-    def get_cls(self):
+    def get_coi(self):
         assert self.token.is_name and self.module_name is not None and not self.is_array
-        m = cocc_module.module_map[self.module_name]
-        tp = m.get_type(self)
-        assert tp is not None
-        return tp
+        m = larc_module.module_map[self.module_name]
+        coi = m.get_coi(self)
+        assert coi is not None
+        return coi
 
-    def check(self, curr_module, cls = None):
-        if cls is not None:
-            assert cls.module is curr_module
+    def check(self, curr_module, gtp_map = None):
         if self.token.is_reserved:
+            #å¿½ç•¥åŸºç¡€ç±»å‹
+            assert not self.gtp_list
             return
         assert self.token.is_name
-        if self.module_name is None:
-            if cls is not None and self.name in cls.gtp_name_list:
-                self.is_gtp_name = True
-                if self.gtp_list:
-                    self.token.syntax_err("·ºĞÍĞÎ²Î²»ÄÜ×÷Îª·ºĞÍÀàÊ¹ÓÃ")
-                return
-            find_path = curr_module, cocc_module.builtins_module
-        else:
-            find_path = cocc_module.module_map[self.module_name],
-        for m in find_path:
-            tpdef = m.get_typedef(self)
-            if tpdef is not None:
-                if self.gtp_list:
-                    self.token.syntax_err("'%s.%s'²»ÊÇ·ºĞÍÀà" % (m.name, tpdef.name))
-                if m is not curr_module:
-                    #·Çµ±Ç°Ä£¿é£¬¼ì²éÈ¨ÏŞ
-                    if "public" not in tpdef.decr_set:
-                        self.token.syntax_err("ÎŞ·¨Ê¹ÓÃÀàĞÍ'%s'£ºÃ»ÓĞÈ¨ÏŞ" % self)
-                self._copy_from(tpdef.type)
-                break
-            tp = m.get_type(self)
-            if tp is not None:
-                self.module_name = m.name #checkµÄÍ¬Ê±Ò²½«²»´øÄ£¿éµÄÀàĞÍ±ê×¼»¯
-                if m is not curr_module:
-                    #·Çµ±Ç°Ä£¿é£¬¼ì²éÈ¨ÏŞ
-                    if "public" not in tp.decr_set:
-                        self.token.syntax_err("ÎŞ·¨Ê¹ÓÃÀàĞÍ'%s'£ºÃ»ÓĞÈ¨ÏŞ" % self)
-                if not self.gtp_list:
-                    assert not tp.gtp_name_list
-                break
-        else:
-            self.token.syntax_err("ÎŞĞ§µÄÀàĞÍ'%s'" % self)
+        #å…ˆcheckæ³›å‹å‚æ•°
         for tp in self.gtp_list:
-            tp.check(curr_module, cls)
+            tp.check(curr_module, gtp_map)
+        #æ„å»ºfind_pathå¹¶æŸ¥æ‰¾ç±»å‹ï¼Œcoi = cls_or_intf
+        if self.module_name is None:
+            if gtp_map is not None and self.name in gtp_map:
+                #æ³›å‹ç±»å‹ï¼Œæ£€æŸ¥åæ›¿æ¢å†…å®¹
+                if self.gtp_list:
+                    self.token.syntax_err("æ³›å‹å‚æ•°ä¸å¯ä½œä¸ºæ³›å‹ç±»å‹ä½¿ç”¨")
+                tp = gtp_map[self.name]
+                self.token = tp.token.copy_on_pos(self.token) #åœ¨å½“å‰ä½ç½®åˆ›å»ºä¸€ä¸ªä¸€æ ·çš„å‡token
+                self.name = tp.name
+                self.module_name = tp.module_name
+                self.gtp_list = tp.gtp_list
+                self.array_dim_count += tp.array_dim_count #æ•°ç»„ç»´åº¦æ˜¯ç´¯åŠ çš„
+                self._set_is_XXX()
+                return
+            find_path = curr_module, larc_module.builtins_module
+        else:
+            find_path = larc_module.module_map[self.module_name],
+        for m in find_path:
+            coi = m.get_coi(self)
+            if coi is not None:
+                self.module_name = m.name #checkçš„åŒæ—¶ä¹Ÿå°†ä¸å¸¦æ¨¡å—çš„ç±»å‹æ ‡å‡†åŒ–
+                if m is not curr_module:
+                    #éå½“å‰æ¨¡å—ï¼Œæ£€æŸ¥æƒé™
+                    if "public" not in coi.decr_set:
+                        self.token.syntax_err("æ— æ³•ä½¿ç”¨ç±»å‹'%s'ï¼šæ²¡æœ‰æƒé™" % self)
+                break
+        else:
+            self.token.syntax_err("æ— æ•ˆçš„ç±»å‹'%s'" % self)
+
+    def can_convert_from(self, type):
+        for tp in self, type:
+            if tp.module_name is None:
+                assert tp.token.is_reserved
+            else:
+                assert tp.token.is_name
+        #nilå’Œliteral_intç±»å‹ä»…ä½œä¸ºå­—é¢é‡çš„ç±»å‹ï¼Œè½¬æ¢çš„ç›®æ ‡ç±»å‹ä¸å¯èƒ½æ˜¯nil
+        assert not self.is_nil
+        if self.is_integer_type:
+            assert not self.is_literal_int
+
+        if self == type:
+            #å®Œå…¨ä¸€æ ·
+            return True
+        if self.is_obj_type and type.is_nil:
+            #å…è®¸nilç›´æ¥èµ‹å€¼ç»™ä»»ä½•å¯¹è±¡
+            return True
+        if self.is_obj_type and not self.is_array and type.is_obj_type and not type.is_array:
+            coi = self.get_coi()
+            from_coi = type.get_coi()
+            #è‹¥selfæ˜¯æ¥å£ï¼Œåˆ™æ£€æŸ¥å…¶ä»–å¯¹è±¡æˆ–æ¥å£åˆ°æ¥å£çš„è½¬æ¢
+            if coi.can_convert_from(from_coi):
+                return True
+
+        return False
 
     def can_force_convert_from(self, type):
         if self.can_convert_from(type):
+            #èƒ½éšå¼è½¬æ¢ï¼Œåˆ™ä¹Ÿèƒ½å¼ºåˆ¶è½¬æ¢
             return True
-        #ÏÂÃæÖ»¼ì²â²»¿ÉÒşÊ½×ª»»µ¥¿ÉÇ¿ÖÆ×ª»»µÄ²¿·Ö¼´¿É
-        if self.is_void:
-            #ÈÎºÎÀàĞÍ¶¼¿ÉÒÔ×ªvoid
-            return True
-        if self.is_number_type and type.is_number_type:
-            #ÊıÖµÀàĞÍ¿É»¥ÏàÇ¿×ª
-            return True
-        if self.is_array or type.is_array:
-            #´æÔÚÊı×éÇÒ²»ÄÜÒşÊ½×ª£¬Ôò²»¿ÉÄÜÇ¿×ªÁË
-            return False
-        if self.is_obj_type and type.is_obj_type:
-            #ÕâÀïÁ©¶¼²»¿ÉÄÜÊÇnull type£¬ÇÒtype²»ÊÇselfµÄ×ÓÀà£¬³ı·Ç±àÒëÆ÷bug
-            if self.get_cls().is_sub_cls_of(type.get_cls()):
-                #»ùÀàµ½×ÓÀàµÄÇ¿×ª
-                return True
-        return False
 
-    def can_convert_from(self, type):
-        if self.module_name is None:
-            assert self.token.is_reserved
-        else:
-            assert self.token.is_name
-        if self == type:
-            #ÍêÈ«Ò»Ñù
-            return True
-        if self.is_obj_type and type.is_null:
-            #ÔÊĞínullÖ±½Ó¸³Öµ¸øËùÓĞ¶ÔÏó
-            return True
+        #å­˜åœ¨æ•°ç»„çš„æƒ…å½¢
         if self.array_dim_count != type.array_dim_count:
-            #²»Í¬Î¬¶ÈµÄÊı×é¿Ï¶¨²»ÄÜ×ª»»
+            #ä¸åŒç»´åº¦çš„æ•°ç»„è‚¯å®šä¸èƒ½è½¬æ¢
             return False
         if self.array_dim_count > 0:
-            #²»Í¬ÀàĞÍµÄÊı×éÒ²²»ÄÜ»¥Ïà×ª
+            #ä¸åŒç±»å‹çš„æ•°ç»„ä¹Ÿä¸èƒ½äº’ç›¸è½¬
             return False
+        assert not (self.is_array or type.is_array) #å·²æ’é™¤æ•°ç»„
+
+        #å­˜åœ¨åŸºç¡€ç±»å‹çš„æƒ…å½¢
         if self.module_name is None:
             if type.module_name is not None:
-                return False #»ù´¡ÀàĞÍºÍ¶ÔÏóÎŞ·¨»¥Ïà×ª»»
-            #Á½¸ö»ù´¡ÀàĞÍ£¬ÅĞ¶ÏÏÂ¼æÈİĞÔ
-            if type.name not in _BASE_TYPE_CONVERT_TBL:
-                return False
-            return self.name in _BASE_TYPE_CONVERT_TBL[type.name]
+                return False #åŸºç¡€ç±»å‹å’Œå¯¹è±¡æ— æ³•äº’ç›¸è½¬æ¢
+            #ä¸¤ä¸ªåŸºç¡€ç±»å‹ï¼Œåªè¦ä¸å­˜åœ¨voidéƒ½å¯ä»¥ç›¸äº’è½¬æ¢
+            return "void" not in (self.name, type.name)
         if type.module_name is None:
-            return False #»ù´¡ÀàĞÍºÍ¶ÔÏóÎŞ·¨»¥Ïà×ª»»
-        return type.get_cls().is_sub_cls_of(self.get_cls())
+            return False #åŸºç¡€ç±»å‹å’Œå¯¹è±¡æ— æ³•äº’ç›¸è½¬æ¢
 
-    def check_convert_from(self, type, token):
-        if not self.can_convert_from(type):
-            token.syntax_err("ÀàĞÍ'%s'ÎŞ·¨ÒşÊ½×ª»»Îª'%s'" % (type, self))
+        if self.is_obj_type and type.is_obj_type:
+            coi = self.get_coi()
+            from_coi = type.get_coi()
+            #è‹¥typeæ˜¯æ¥å£ï¼Œåˆ™æ£€æŸ¥å®ƒåˆ°å…¶ä»–å¯¹è±¡æˆ–æ¥å£çš„åå‘è½¬æ¢ï¼ˆæ­£å‘çš„ä¸Šé¢éšå¼è½¬æ¢åˆ¤æ–­äº†ï¼‰
+            if from_coi.can_convert_from(coi):
+                return True
+
+        return False
 
 class _FakeReservedToken:
     def __init__(self, tp):
@@ -232,8 +204,86 @@ class _FakeNonReservedToken:
 
     is_name = True
 
-for _tp in ("null", "void", "bool", "byte", "ubyte", "char", "short", "ushort", "int", "uint", "long", "ulong", "float", "double", "ldouble",
-            "literal_byte", "literal_ubyte", "literal_short", "literal_ushort", "literal_int"):
+for _tp in _BASE_TYPE_LIST + ("literal_int", "nil"):
     exec '%s_TYPE = _Type((_FakeReservedToken("%s"), "%s"), None, None)' % (_tp.upper(), _tp, _tp)
-del _tp
 STR_TYPE = _Type((_FakeNonReservedToken("String"), "String"), None, None, module_name = "__builtins")
+VALID_ARRAY_IDX_TYPES = [SCHAR_TYPE, CHAR_TYPE]
+for _tp in "short", "int", "long":
+    VALID_ARRAY_IDX_TYPES.append(eval("%s_TYPE" % _tp.upper()))
+    VALID_ARRAY_IDX_TYPES.append(eval("U%s_TYPE" % _tp.upper()))
+del _tp
+
+def parse_type(token_list, dep_module_set, is_ref = False, non_array = False):
+    assert not (is_ref and non_array) #ä¸å¯èƒ½æ—¢æ˜¯refåˆè§£ææ•°ç»„base
+    t = token_list.pop()
+    if t.is_reserved and t.value in _BASE_TYPE_LIST:
+        return _Type((t, t.value), token_list, dep_module_set, is_ref = is_ref, non_array = non_array)
+    if t.is_name:
+        if t.value in dep_module_set:
+            token_list.pop_sym(".")
+            return _Type(token_list.pop_name(), token_list, dep_module_set, module_name = t.value, is_ref = is_ref, non_array = non_array)
+        return _Type((t, t.value), token_list, dep_module_set, is_ref = is_ref, non_array = non_array)
+    t.syntax_err()
+
+def _try_parse_type(token_list, curr_module, gtp_map):
+    t = token_list.pop()
+    if t.is_reserved and t.value in _BASE_TYPE_LIST:
+        return _Type((t, t.value), token_list, curr_module.dep_module_set)
+    if t.is_name:
+        name = t.value
+        if name in curr_module.dep_module_set:
+            module = larc_module.module_map[name]
+            token_list.pop_sym(".")
+            t, name = token_list.pop_name()
+            if module.has_type(name):
+                tp = _Type((t, name), token_list, curr_module.dep_module_set, module_name = module.name)
+                tp.check(curr_module, gtp_map)
+                larc_module.check_new_ginst_during_compile()
+                return tp
+        else:
+            if gtp_map is not None and name in gtp_map:
+                tp = _Type((t, name), token_list, curr_module.dep_module_set)
+                tp.check(curr_module, gtp_map)
+                larc_module.check_new_ginst_during_compile()
+                return tp
+            for module in curr_module, larc_module.builtins_module:
+                if module.has_type(name):
+                    tp = _Type((t, name), token_list, curr_module.dep_module_set, module_name = module.name)
+                    tp.check(curr_module, gtp_map)
+                    larc_module.check_new_ginst_during_compile()
+                    return tp
+    return None
+
+#è‹¥è§£æç±»å‹æˆåŠŸï¼Œåˆ™ç»Ÿä¸€åšcheck_new_ginst_during_compileï¼Œå³è¿™ä¸ªå‡½æ•°åªç”¨äºç¼–è¯‘è¿‡ç¨‹
+def try_parse_type(token_list, curr_module, gtp_map):
+    revert_idx = token_list.i #ç”¨äºè§£æå¤±è´¥æ—¶å€™å›æ»š
+    ret = _try_parse_type(token_list, curr_module, gtp_map)
+    if ret is None:
+        token_list.revert(revert_idx)
+    return ret
+
+def parse_gtp_list(token_list, dep_module_set):
+    gtp_list = []
+    while True:
+        tp = parse_type(token_list, dep_module_set)
+        if tp.is_array:
+            tp.token.syntax_err("æ•°ç»„ç±»å‹ä¸å¯ä½œä¸ºæ³›å‹å‚æ•°ä¼ å…¥")
+        gtp_list.append(tp)
+        t = token_list.pop()
+        if t.is_sym(","):
+            continue
+        if t.is_sym(">"):
+            break
+        if t.is_sym(">>"):
+            token_list.split_shr_sym()
+            break
+        t.syntax_err("éœ€è¦','æˆ–'>'")
+    return gtp_list
+
+def gen_type_from_cls(cls):
+    tp = _Type((_FakeNonReservedToken(cls.name), cls.name), None, None, module_name = cls.module.name)
+    if cls.is_gcls_inst:
+        tp.gtp_list = list(cls.gtp_map.itervalues())
+    #è¿™ä¸ªç±»å‹æ²¡å¿…è¦checkäº†ï¼Œæ ¡éªŒä¸€ä¸‹get_coiæ­£å¸¸å°±ç›´æ¥è¿”å›
+    assert tp.get_coi() is cls
+    return tp

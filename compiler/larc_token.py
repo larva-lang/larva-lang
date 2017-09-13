@@ -28,12 +28,12 @@ INC_DEC_SYM_SET = set(["++", "--"])
 BINOCULAR_OP_SYM_SET = set(["%", "^", "&", "*", "-", "+", "|", "<", ">", "/", "!=", "==", "<<", "<=", ">>", ">=", "&&", "||"])
 
 #合法的符号集
-_SYM_SET = set("""~!%^&*()-+|{}[];"'<,>./""") | set(["!=", "==", "<<", "<=", ">>", ">=", "&&", "||"]) | ASSIGN_SYM_SET | INC_DEC_SYM_SET
+_SYM_SET = set("""~!%^&*()-+|{}[]:;"'<,>.?/""") | set(["!=", "==", "<<", "<=", ">>", ">=", "&&", "||"]) | ASSIGN_SYM_SET | INC_DEC_SYM_SET
 
 #保留字集
 _RESERVED_WORD_SET = set(["import", "class", "void", "bool", "schar", "char", "short", "ushort", "int", "uint", "long", "ulong", "float",
-                          "double", "ref", "for", "while", "do", "if", "else", "return", "nil", "true", "false", "break", "continue", "this",
-                          "super", "public", "interface", "new", "final", "native", "typedef", "abstract"])
+                          "double", "ref", "for", "while", "if", "else", "return", "nil", "true", "false", "break", "continue", "this",
+                          "public", "interface", "new", "final", "usemethod", "native"])
 
 class _Token:
     def __init__(self, type, value, src_file, line_no, pos):
@@ -87,6 +87,10 @@ class _Token:
     def __repr__(self):
         return self.__str__()
 
+    def copy_on_pos(self, t):
+        #用t的位置构建一个自身的副本，用于泛型替换时
+        return _Token(self.type, self.value, t.src_file, t.line_no, t.pos)
+
     def syntax_err(self, msg = ""):
         larc_common.exit("语法错误：文件[%s]行[%d]列[%d]%s" % (self.src_file, self.line_no, self.pos + 1, msg))
 
@@ -101,6 +105,16 @@ class TokenList:
 
     def __nonzero__(self):
         return self.i < len(self.l)
+
+    def __iter__(self):
+        for i in xrange(self.i, len(self.l)):
+            yield self.l[i]
+
+    def copy(self):
+        #拷贝时候也拷贝当前解析到的状态
+        c = TokenList(self.src_file)
+        c.l = self.l[:]
+        c.i = self.i
 
     def peek(self):
         if not self:

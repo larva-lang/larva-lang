@@ -6,38 +6,47 @@ random模块，产生随机数
 
 import time;
 
-var seed = nil;
+bool seed_inited = false;
+long seed_x = 0;
+long seed_y = 0;
+long seed_z = 0;
 
-func _init_seed()
+void init_seed()
 {
-    var x, y, z;
-    var a = (time.time() * 256).to_int();
-    a, x = a / 30268, a % 30268;
-    a, y = a / 30306, a % 30306;
-    a, z = a / 30322, a % 30322;
-    seed = x + 1, y + 1, z + 1;
+    long a = (long)(time.time() * 256);
+
+    seed_x = a % 30268;
+    a /= 30268;
+    ++ seed_x;
+
+    seed_y = a % 30306;
+    a /= 30306;
+    ++ seed_y;
+
+    seed_z = a % 30322;
+    a /= 30322;
+    ++ seed_z;
 }
 
-func random()
+public double random()
 {
-    if (seed == nil)
+    if (!seed_inited)
     {
-        _init_seed();
+        init_seed();
     }
-    var (x, y, z) = seed;
-    x, y, z = x * 171 % 30269,
-              y * 172 % 30307,
-              z * 170 % 30323;
-    seed = x, y, z;
-    return (x / 30269.0 + y / 30307.0 + z / 30323.0) % 1.0;
+    seed_x = seed_x * 171 % 30269;
+    seed_y = seed_y * 172 % 30307;
+    seed_z = seed_z * 170 % 30323;
+    return ((double)seed_x / 30269.0 + (double)seed_y / 30307.0 + (double)seed_z / 30323.0) % 1.0;
 }
 
-func shuffle(l)
+public void shuffle<T>(T[] arr)
 {
-    for (var i : range(l.len() - 1, 0, -1))
+    for (long i = arr.len - 1; i > 0; -- i)
     {
-        var rand_i = (random() * (i + 1)).to_int();
-        l[i], l[rand_i] = l[rand_i], l[i];
+        long rand_i = (long)(random() * (i + 1));
+        T tmp = arr[i];
+        arr[i] = arr[rand_i];
+        arr[rand_i] = tmp;
     }
-    return l;
 }

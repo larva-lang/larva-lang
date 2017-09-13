@@ -1,6 +1,6 @@
 import sys, time;
 
-final class Record
+class Record
 {
     Record PtrComp;
     int Discr, EnumComp, IntComp;
@@ -50,7 +50,7 @@ bool Func2(String StrParI1, String StrParI2)
     char CharLoc = 0;
     while (IntLoc <= 1)
     {
-        if (Func1(StrParI1.char_at(IntLoc), StrParI2.char_at(IntLoc + 1)) == Ident1)
+        if (Func1(StrParI1.char_at((long)IntLoc), StrParI2.char_at((long)IntLoc + 1)) == Ident1)
         {
             CharLoc = 65;
             ++ IntLoc;
@@ -82,14 +82,7 @@ int Func1(char CharPar1, char CharPar2)
 {
     char CharLoc1 = CharPar1,
          CharLoc2 = CharLoc1;
-    if (CharLoc2 != CharPar2)
-    {
-        return Ident1;
-    }
-    else
-    {
-        return Ident2;
-    }
+    return CharLoc2 != CharPar2 ? Ident1 : Ident2;
 }
 
 void Proc8(int[] Array1Par, int[][] Array2Par, int IntParI1, int IntParI2)
@@ -221,8 +214,8 @@ Record Proc1(Record PtrParIn)
 
 void Proc0()
 {
-    PtrGlbNext = Record();
-    PtrGlb = Record();
+    PtrGlbNext = new Record();
+    PtrGlb = new Record();
     PtrGlb.PtrComp = PtrGlbNext;
     PtrGlb.Discr = Ident1;
     PtrGlb.EnumComp = Ident3;
@@ -265,19 +258,19 @@ void Proc0()
 
 public int main(String[] argv)
 {
-    if (argv.len > 1)
+    if (argv.size > 1)
     {
         Error err = argv[1].to_int(ref loops);
         if (err != nil)
         {
-            sys.stdout.writeln("Invalid loop arg [%s]".format(argv[1]));
+            sys.stdout.write("Invalid loop arg [%v]\n".format(argv[1]));
             return 1;
         }
     }
     double ts = time.time();
     Proc0();
     double tm = time.time() - ts;
-    sys.stdout.writeln("Time used: %s sec".format(tm));
-    sys.stdout.writeln("This machine benchmarks at %s LarStones/second".format(loops / tm));
+    sys.stdout.write("Time used: %v sec\n".format(tm));
+    sys.stdout.write("This machine benchmarks at %v LarStones/second\n".format((double)loops / tm));
     return 0;
 }

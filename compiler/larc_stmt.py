@@ -7,57 +7,7 @@
 import larc_common
 import larc_token
 import larc_expr
-
-def _parse_var_init_expr_token_list(token_list):
-    return larc_token.parse_token_list_until_sym(token_list, (";", ","))
-
-def parse_var_name(token_list):
-    t = token_list.pop()
-    if t.is_sym("("):
-        vn_list = []
-        while True:
-            vn = parse_var_name(token_list)
-            vn_list.append(vn)
-            t, sym = token_list.pop_sym()
-            if len(vn_list) > 1 and sym == ")":
-                return tuple(vn_list)
-            if sym != ",":
-                t.syntax_err("需要','")
-            if token_list.peek().is_sym(")"):
-                token_list.pop_sym(")")
-                return tuple(vn_list)
-    if t.is_name:
-        return t.value
-    syntax_err("需要变量名定义")
-
-def iter_var_name(var_name):
-    if isinstance(var_name, str):
-        yield var_name
-        return
-
-    assert isinstance(var_name, tuple)
-    for each_vn in var_name:
-        for vn in iter_var_name(each_vn):
-            yield vn
-
-def parse_var_define(token_list, module, cls, var_set_list, non_local_var_used_map, ret_expr_token_list = False):
-    while True:
-        start_t = token_list.peek()
-        var_name = parse_var_name(token_list)
-        t, sym = token_list.pop_sym()
-        if not isinstance(var_name, str) or sym == "=":
-            if ret_expr_token_list:
-                expr, sym = _parse_var_init_expr_token_list(token_list)
-            else:
-                expr = larc_expr.parse_expr(token_list, module, cls, var_set_list, non_local_var_used_map, end_at_comma = True)
-                t, sym = token_list.pop_sym()
-        else:
-            expr = None
-        yield start_t, var_name, expr
-        if sym == ";":
-            return
-        if sym != ",":
-            t.syntax_err("需要','或';'")
+import larc_type
 
 class _Stmt:
     def __init__(self, type, **kw_arg):
@@ -66,170 +16,254 @@ class _Stmt:
             setattr(self, k, v)
 
 class _StmtList(list):
-    def __init__(self, var_set):
+    def __init__(self, var_map):
         list.__init__(self)
-        self.var_set = var_set
+        self.var_map = var_map
 
-def parse_for_prefix(token_list, module, cls, var_set_list, non_local_var_used_map):
-    token_list.pop_sym("(")
-    for_var_set = larc_common.OrderedSet()
-    if token_list.peek().is_reserved("var"):
-        token_list.pop()
-        t = token_list.peek()
-        var_name = parse_var_name(token_list)
-        for vn in iter_var_name(var_name):
-            if vn in module.dep_module_set:
-                t.syntax_err("变量名'%s'与导入模块重名" % vn)
-            for var_set in var_set_list + (for_var_set,):
-                if vn in var_set:
-                    t.syntax_err("变量名'%s'重定义" % vn)
-            for_var_set.add(vn)
-        lvalue = larc_expr.var_name_to_expr(var_name)
-    else:
-        lvalue = larc_expr.parse_expr(token_list, module, cls, var_set_list, non_local_var_used_map)
-    token_list.pop_sym(":")
-    iter_obj = larc_expr.parse_expr(token_list, module, cls, var_set_list, non_local_var_used_map)
-    token_list.pop_sym(")")
-    return for_var_set, lvalue, iter_obj
+class _SeExpr:
+    def __init__(self, lvalue, op, expr):
+        self.lvalue = lvalue
+        self.op = op
+        self.expr = expr
 
-def parse_stmt_list(token_list, module, cls, var_set_list, loop_deep):
-    assert var_set_list
-    stmt_list = _StmtList(var_set_list[-1])
-    non_local_var_used_map = larc_common.OrderedDict()
-    while token_list:
-        if token_list.peek().is_sym("}"):
-            break
+class Parser:
+    def __init__(self, token_list, module, cls, gtp_map, ret_type):
+        self.token_list = token_list
+        self.module = module
+        self.cls = cls
+        self.gtp_map = gtp_map
+        self.ret_type = ret_type
+        self.expr_parser = larc_expr.Parser(token_list, module, cls, gtp_map)
 
-        #解析语句
-        t = token_list.pop()
-        if t.is_sym(";"):
-            t.warning("空语句")
-            continue
-        if t.is_sym("{"):
-            stmt = _Stmt("block", stmt_list = parse_stmt_list(token_list, module, cls, var_set_list + (larc_common.OrderedSet(),), loop_deep))
-            token_list.pop_sym("}")
-            stmt_list.append(stmt)
-            continue
-        if t.is_reserved("var"):
-            def add_to_curr_var_set(t, vn):
-                if vn in module.dep_module_set:
-                    t.syntax_err("变量名'%s'与导入模块重名" % vn)
-                for var_set in var_set_list:
-                    if vn in var_set:
-                        t.syntax_err("变量名'%s'重定义" % vn)
-                if vn in non_local_var_used_map:
-                    non_local_var_used_map[vn].syntax_err("局部变量在定义之前使用")
-                var_set_list[-1].add(vn)
-            for t, var_name, expr in parse_var_define(token_list, module, cls, var_set_list, non_local_var_used_map):
-                for vn in iter_var_name(var_name):
-                    add_to_curr_var_set(t, vn)
-                stmt_list.append(_Stmt("var", name = var_name, expr = expr))
-            continue
-        if t.is_reserved and t.value in ("break", "continue"):
-            if loop_deep == 0:
-                t.syntax_err("循环外的'%s'" % t.value)
-            token_list.pop_sym(";")
-            stmt_list.append(_Stmt(t.value))
-            continue
-        if t.is_reserved("return"):
-            expr = larc_expr.parse_expr(token_list, module, cls, var_set_list, non_local_var_used_map)
-            token_list.pop_sym(";")
-            stmt_list.append(_Stmt("return", expr = expr))
-            continue
-        if t.is_reserved("for"):
-            for_var_set, lvalue, iter_obj = parse_for_prefix(token_list, module, cls, var_set_list, non_local_var_used_map)
-            token_list.pop_sym("{")
-            for_stmt_list = parse_stmt_list(token_list, module, cls, var_set_list + (for_var_set.copy(),), loop_deep + 1)
-            token_list.pop_sym("}")
-            stmt_list.append(_Stmt("for", var_set = for_var_set, lvalue = lvalue, iter_obj = iter_obj, stmt_list = for_stmt_list))
-            continue
-        if t.is_reserved("while"):
-            token_list.pop_sym("(")
-            expr = larc_expr.parse_expr(token_list, module, cls, var_set_list, non_local_var_used_map)
-            token_list.pop_sym(")")
-            token_list.pop_sym("{")
-            while_stmt_list = parse_stmt_list(token_list, module, cls, var_set_list + (larc_common.OrderedDict(),), loop_deep + 1)
-            token_list.pop_sym("}")
-            stmt_list.append(_Stmt("while", expr = expr, stmt_list = while_stmt_list))
-            continue
-        if t.is_reserved("do"):
-            token_list.pop_sym("{")
-            do_stmt_list = parse_stmt_list(token_list, module, cls, var_set_list + (larc_common.OrderedDict(),), loop_deep + 1)
-            token_list.pop_sym("}")
-            t = token_list.pop()
-            if not t.is_reserved("while"):
-                t.syntax_err("需要'while'")
-            token_list.pop_sym("(")
-            expr = larc_expr.parse_expr(token_list, module, cls, var_set_list, non_local_var_used_map)
-            token_list.pop_sym(")")
-            token_list.pop_sym(";")
-            stmt_list.append(_Stmt("do", expr = expr, stmt_list = do_stmt_list))
-            continue
-        if t.is_reserved("if"):
-            if_expr_list = []
-            if_stmt_list_list = []
-            else_stmt_list = None
-            while True:
-                token_list.pop_sym("(")
-                expr = larc_expr.parse_expr(token_list, module, cls, var_set_list, non_local_var_used_map)
-                token_list.pop_sym(")")
-                token_list.pop_sym("{")
-                if_stmt_list = parse_stmt_list(token_list, module, cls, var_set_list + (larc_common.OrderedDict(),), loop_deep)
-                token_list.pop_sym("}")
-                if_expr_list.append(expr)
-                if_stmt_list_list.append(if_stmt_list)
-                if not token_list.peek().is_reserved("else"):
-                    break
-                token_list.pop()
-                t = token_list.pop()
-                if t.is_reserved("if"):
-                    continue
-                if not t.is_sym("{"):
-                    t.syntax_err("需要'{'")
-                else_stmt_list = parse_stmt_list(token_list, module, cls, var_set_list + (larc_common.OrderedDict(),), loop_deep)
-                token_list.pop_sym("}")
+    def parse(self, var_map_stk, loop_deep):
+        assert var_map_stk
+        stmt_list = _StmtList(var_map_stk[-1])
+        while True:
+            if self.token_list.peek().is_sym("}"):
                 break
-            stmt_list.append(_Stmt("if", if_expr_list = if_expr_list, if_stmt_list_list = if_stmt_list_list, else_stmt_list = else_stmt_list))
-            continue
-        if t.is_sym and t.value in larc_token.INC_DEC_SYM_SET:
-            inc_dec_op = t.value
-            t = token_list.peek()
-            lvalue = larc_expr.parse_expr(token_list, module, cls, var_set_list, non_local_var_used_map)
-            if not lvalue.is_lvalue:
-                t.syntax_err("非左值表达式不能做'%s'操作" % inc_dec_op)
-            if lvalue.op in ("[:]", "tuple", "list"):
-                t.syntax_err("分片和解包左值表达式不能做'%s'操作" % inc_dec_op)
-            stmt_list.append(_Stmt(inc_dec_op, lvalue = lvalue))
-            token_list.pop_sym(";")
-            continue
-        #todo: try catch finally throw assert
 
-        #剩下的就是表达式和赋值了
-        token_list.revert()
-        expr = larc_expr.parse_expr(token_list, module, cls, var_set_list, non_local_var_used_map)
-        if token_list.peek().is_sym(";"):
+            t = self.token_list.pop()
+            if t.is_sym(";"):
+                continue
+            if t.is_sym("{"):
+                #新代码块
+                stmt_list.append(_Stmt("block", stmt_list = self.parse(var_map_stk + (larc_common.OrderedDict(),), loop_deep)))
+                self.token_list.pop_sym("}")
+                continue
+            if t.is_reserved and t.value in ("break", "continue"):
+                if loop_deep == 0:
+                    t.syntax_err("循环外的'%s'" % t.value)
+                stmt_list.append(_Stmt(t.value))
+                continue
+            if t.is_reserved("return"):
+                stmt_list.append(_Stmt("return", expr = self._parse_return(var_map_stk)))
+                continue
+            if t.is_reserved("for"):
+                for_var_map, init_expr_list, judge_expr, loop_expr_list = self._parse_for_prefix(var_map_stk)
+                self.token_list.pop_sym("{")
+                for_stmt_list = self.parse(var_map_stk + (for_var_map.copy(),), loop_deep + 1)
+                self.token_list.pop_sym("}")
+                stmt_list.append(_Stmt("for", for_var_map = for_var_map, init_expr_list = init_expr_list, judge_expr = judge_expr,
+                                       loop_expr_list = loop_expr_list, stmt_list = for_stmt_list))
+                continue
+            if t.is_reserved("while"):
+                self.token_list.pop_sym("(")
+                expr = self.expr_parser.parse(var_map_stk, larc_type.BOOL_TYPE)
+                self.token_list.pop_sym(")")
+                self.token_list.pop_sym("{")
+                while_stmt_list = self.parse(var_map_stk + (larc_common.OrderedDict(),), loop_deep + 1)
+                self.token_list.pop_sym("}")
+                stmt_list.append(_Stmt("while", expr = expr, stmt_list = while_stmt_list))
+                continue
+            if t.is_reserved("if"):
+                if_expr_list = []
+                if_stmt_list_list = []
+                else_stmt_list = None
+                while True:
+                    self.token_list.pop_sym("(")
+                    expr = self.expr_parser.parse(var_map_stk, larc_type.BOOL_TYPE)
+                    self.token_list.pop_sym(")")
+                    self.token_list.pop_sym("{")
+                    if_stmt_list = self.parse(var_map_stk + (larc_common.OrderedDict(),), loop_deep)
+                    self.token_list.pop_sym("}")
+                    if_expr_list.append(expr)
+                    if_stmt_list_list.append(if_stmt_list)
+                    if not self.token_list.peek().is_reserved("else"):
+                        break
+                    self.token_list.pop()
+                    t = self.token_list.pop()
+                    if t.is_reserved("if"):
+                        continue
+                    if not t.is_sym("{"):
+                        t.syntax_err("需要'{'")
+                    else_stmt_list = self.parse(var_map_stk + (larc_common.OrderedDict(),), loop_deep)
+                    self.token_list.pop_sym("}")
+                    break
+                stmt_list.append(_Stmt("if", if_expr_list = if_expr_list, if_stmt_list_list = if_stmt_list_list,
+                                       else_stmt_list = else_stmt_list))
+                continue
+
+            self.token_list.revert()
+            t = self.token_list.peek()
+            tp = larc_type.try_parse_type(self.token_list, self.module, self.gtp_map)
+            if tp is not None:
+                #变量定义
+                if tp.is_void:
+                    t.syntax_err("变量类型不能为void")
+                while True:
+                    t, name = self.token_list.pop_name()
+                    if name in self.module.dep_module_set:
+                        t.syntax_err("变量名和导入模块重名")
+                    if name in var_map_stk[-1]:
+                        t.syntax_err("变量名重定义")
+                    for var_map in var_map_stk[: -1]:
+                        if name in var_map:
+                            t.syntax_err("与上层的变量名冲突")
+                    var_map_stk[-1][name] = tp
+                    t = self.token_list.pop()
+                    if not t.is_sym("="):
+                        t.syntax_err("变量必须显式初始化")
+                    expr = self.expr_parser.parse(var_map_stk, tp)
+                    stmt_list.append(_Stmt("var", name = name, expr = expr))
+                    if self.token_list.peek().is_sym(";"):
+                        break
+                    self.token_list.pop_sym(",")
+                self.token_list.pop_sym(";")
+                continue
+
             #表达式
-            token_list.pop_sym(";")
+            expr = self._parse_expr_with_se(var_map_stk)
             stmt_list.append(_Stmt("expr", expr = expr))
-            continue
+            self.token_list.pop_sym(";")
 
-        t = token_list.peek()
+        return stmt_list
+
+    def _parse_return(self, var_map_stk):
+        if self.token_list.peek().is_sym(";"):
+            expr = None
+            if not self.ret_type.is_void:
+                token_list.peek().syntax_err("需要表达式")
+        else:
+            expr = self.expr_parser.parse(var_map_stk, self.ret_type)
+        self.token_list.pop_sym(";")
+        return expr
+
+    def _parse_for_prefix(self, var_map_stk):
+        self.token_list.pop_sym("(")
+
+        for_var_map = larc_common.OrderedDict()
+        tp = larc_type.try_parse_type(self.token_list, self.module, self.gtp_map)
+        if tp is None:
+            #第一部分为表达式列表
+            init_expr_list = []
+            if not self.token_list.peek().is_sym(";"):
+                init_expr_list += self._parse_expr_list_with_se(var_map_stk + (for_var_map,))
+        else:
+            #第一部分为若干变量定义
+            init_expr_list = []
+            while True:
+                t, name = self.token_list.pop_name()
+                if name in self.module.dep_module_set:
+                    t.syntax_err("变量名和导入模块重名")
+                if name in for_var_map:
+                    t.syntax_err("变量名重定义")
+                for var_map in var_map_stk:
+                    if name in var_map:
+                        t.syntax_err("与上层的变量名冲突")
+                t = self.token_list.pop()
+                if not t.is_sym("="):
+                    t.syntax_err("变量必须显式初始化")
+                expr = self.expr_parser.parse(var_map_stk + (for_var_map,), tp)
+                for_var_map[name] = tp
+                init_expr_list.append(expr)
+                if self.token_list.peek().is_sym(";"):
+                    break
+                self.token_list.pop_sym(",")
+        self.token_list.pop_sym(";")
+
+        if self.token_list.peek().is_sym(";"):
+            #没有第二部分
+            judge_expr = None
+        else:
+            judge_expr = self.expr_parser.parse(var_map_stk + (for_var_map,), larc_type.BOOL_TYPE)
+        self.token_list.pop_sym(";")
+
+        loop_expr_list = []
+        if not self.token_list.peek().is_sym(")"):
+            loop_expr_list += self._parse_expr_list_with_se(var_map_stk + (for_var_map,))
+
+        self.token_list.pop_sym(")")
+
+        return for_var_map, init_expr_list, judge_expr, loop_expr_list
+
+    def _parse_expr_with_se(self, var_map_stk):
+        def check_lvalue(lvalue):
+            if not lvalue.is_lvalue:
+                t.syntax_err("需要左值")
+            if lvalue.op == "global_var":
+                global_var = lvalue.arg
+                if "final" in global_var.decr_set:
+                    t.syntax_err("final修饰的全局变量'%s'不可修改" % global_var)
+
+        def build_inc_dec_expr(op, lvalue, t):
+            check_lvalue(lvalue)
+            return _SeExpr(lvalue, op, None)
+
+        t = self.token_list.peek()
+        if t.is_sym and t.value in larc_token.INC_DEC_SYM_SET:
+            #前缀自增自减
+            op = t.value
+            self.token_list.pop_sym(op)
+            t = self.token_list.peek()
+            return build_inc_dec_expr(op, self.expr_parser.parse(var_map_stk, None), t)
+
+        expr = self.expr_parser.parse(var_map_stk, None)
+        t = self.token_list.pop()
+        if t.is_sym and t.value in larc_token.INC_DEC_SYM_SET:
+            #后缀自增自减
+            op = t.value
+            return build_inc_dec_expr(op, expr, t)
+
         if t.is_sym and t.value in larc_token.ASSIGN_SYM_SET:
             #赋值
-            assign_sym = t.value
+            if t.value != "=":
+                assert t.value.endswith("=")
+                op = t.value[: -1]
+
+                class _InvalidType(Exception):
+                    pass
+
+                try:
+                    if op in ("+", "-", "*", "/"):
+                        if not expr.type.is_number_type:
+                            raise _InvalidType()
+                    elif op in ("%", "&", "|", "^", "<<", ">>"):
+                        if not expr.type.is_integer_type:
+                            raise _InvalidType()
+                    else:
+                        raise Exception("Bug")
+
+                except _InvalidType:
+                    t.syntax_err("类型'%s'无法做增量赋值'%s'" % (expr.type, t.value))
+
+            op = t.value
             lvalue = expr
-            if not lvalue.is_lvalue:
-                t.syntax_err("赋值操作'%s'左边非左值表达式" % assign_sym)
-            if assign_sym != "=":
-                #增量赋值
-                if lvalue.op in ("[:]", "tuple", "list"):
-                    t.syntax_err("分片和解包左值表达式无法增量赋值")
-            token_list.pop_sym(assign_sym)
-            expr = larc_expr.parse_expr(token_list, module, cls, var_set_list, non_local_var_used_map)
-            token_list.pop_sym(";")
-            stmt_list.append(_Stmt(assign_sym, lvalue = lvalue, expr = expr))
-            continue
+            check_lvalue(lvalue)
+            if op in ("<<=", ">>="):
+                need_type = [larc_type.CHAR_TYPE, larc_type.USHORT_TYPE, larc_type.UINT_TYPE, larc_type.ULONG_TYPE]
+            else:
+                need_type = lvalue.type
+            expr = self.expr_parser.parse(var_map_stk, need_type)
+            return _SeExpr(lvalue, op, expr)
 
-        t.syntax_err()
+        self.token_list.revert()
+        return expr
 
-    return stmt_list
+    def _parse_expr_list_with_se(self, var_map_stk):
+        expr_list = []
+        while True:
+            expr = self._parse_expr_with_se(var_map_stk)
+            expr_list.append(expr)
+            if not self.token_list.peek().is_sym(","):
+                return expr_list
+            self.token_list.pop_sym(",")

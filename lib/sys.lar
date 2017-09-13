@@ -2,4 +2,4 @@
 
 import io;
 
-native var stdout;
+public native io.File stdout;

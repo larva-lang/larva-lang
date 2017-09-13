@@ -2,6 +2,7 @@ import sys;
 
 public int main(String[] argv)
 {
-    sys.stdout.writeln("hello world");
+    int a = "abc";
+    sys.stdout.write("hello world\n");
     return 0;
 }

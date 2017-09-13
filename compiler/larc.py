@@ -35,7 +35,7 @@ def main():
     lib_dir = os.path.join(os.path.dirname(compiler_dir), "lib")
 
     #预处理builtins等模块
-    for name in "__builtins", "concurrent":
+    for name in "__builtins",:
         larc_module.module_map[name] = larc_module.Module(os.path.join(lib_dir, name + ".lar"))
     larc_module.builtins_module = larc_module.module_map["__builtins"]
 
@@ -64,52 +64,59 @@ def main():
             larc_module.module_map[module_name] = m = larc_module.Module(module_file_path_name)
             new_compiling_set |= m.dep_module_set
         compiling_set = new_compiling_set
+    assert larc_module.module_map.value_at(0) is larc_module.builtins_module
+
+    #模块元素级别的check_type，先对非泛型元素做check，然后对泛型实例采用类似深度优先的方式，直到没有ginst生成
+    for m in larc_module.module_map.itervalues():
+        m.check_type_for_non_ginst()
+    larc_module.check_type_for_ginst()
+
+    #扩展通过usemethod继承的方法
+    for m in larc_module.module_map.itervalues():
+        m.expand_usemethod()
+
+    #主模块main函数检查
+    main_module.check_main_func()
+
+    #编译各模块代码，先编译非泛型元素，然后反复编译到没有ginst生成，类似上面的check type过程
+    for m in larc_module.module_map.itervalues():
+        m.compile_non_ginst()
+    while True:
+        for m in larc_module.module_map.itervalues():
+            if m.compile_ginst():
+                #有一个模块刚编译了新的ginst，有可能生成新ginst，重启编译流程
+                break
+        else:
+            #所有ginst都编译完毕
+            break
 
     raise "todo"
 
-    #先扩展嵌套typedef，然后单独对typedef的type进行check
-    larc_module.builtins_module.expand_typedef()
-    for m in larc_module.module_map.itervalues():
-        if m is not larc_module.builtins_module:
-            m.expand_typedef()
-    larc_module.builtins_module.expand_typedef()
-    for m in larc_module.module_map.itervalues():
-        if m is not larc_module.builtins_module:
-            m.check_type_for_typedef()
-
-    #统一check_type
-    larc_module.builtins_module.check_type()
-    for m in larc_module.module_map.itervalues():
-        if m is not larc_module.builtins_module:
-            m.check_type()
-
-    #主模块main函数检查
-    if "main" not in main_module.func_map:
-        larc_common.exit("主模块[%s]没有main函数" % main_module.name)
-    main_func = main_module.func_map["main"]
-    if main_func.type != larc_type.INT_TYPE:
-        larc_common.exit("主模块[%s]的main函数返回类型必须为int" % main_module.name)
-    if len(main_func.arg_map) != 1:
-        larc_common.exit("主模块[%s]的main函数只能有一个类型为'String[]'的参数" % main_module.name)
-    tp = main_func.arg_map.itervalues().next()
-    if tp.array_dim_count != 1 or tp.is_ref or tp.to_elem_type() != larc_type.STR_TYPE:
-        larc_common.exit("主模块[%s]的main函数的参数类型必须为'String[]'" % main_module.name)
-    if "public" not in main_func.decr_set:
-        larc_common.exit("主模块[%s]的main函数必须是public的" % main_module.name)
-
-    #检查子类的继承是否合法
-    larc_module.builtins_module.check_sub_class()
-    for m in larc_module.module_map.itervalues():
-        if m is not larc_module.builtins_module:
-            m.check_sub_class()
-
-    #todo：其他一些模块元素的检查和进一步预处理
-
-    #正式编译各模块
+    #单独编译各模块，这里的compile过程只是对每个函数生成AST（stmt_list），
+    #做模块级别元素等调用的检查，但不做类型匹配、方法和属性等合法性检查，因为这个过程可能产生更多的泛型实例，
+    #需要等类型都齐全了再做usemethod扩展等工作
     larc_module.builtins_module.compile()
     for m in larc_module.module_map.itervalues():
         if m is not larc_module.builtins_module:
             m.compile()
+
+    #根据compile的结果创建所有涉及到的ginst
+    larc_module.builtins_module.create_ginst()
+    for m in larc_module.module_map.itervalues():
+        if m is not larc_module.builtins_module:
+            m.create_ginst()
+
+    #扩展每个类通过usemethod继承的方法
+    larc_module.builtins_module.expand_usemethod()
+    for m in larc_module.module_map.itervalues():
+        if m is not larc_module.builtins_module:
+            m.expand_usemethod()
+
+    #扩展方法后还需要检查一次name hide
+    larc_module.builtins_module.check_name_hide_after_expand_usemethod()
+    for m in larc_module.module_map.itervalues():
+        if m is not larc_module.builtins_module:
+            m.check_name_hide_after_expand_usemethod()
 
     #暂时写死output流程
     output_lib = larc_output.to_go

@@ -1,6 +1,6 @@
 //io模块，输入输出相关接口
 
-native class File
+public interface File
 {
-    func writeln(s);
+    public Error write(String s);
 }
