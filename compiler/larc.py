@@ -90,35 +90,7 @@ def main():
             #所有ginst都编译完毕
             break
 
-    raise "todo"
-
-    #单独编译各模块，这里的compile过程只是对每个函数生成AST（stmt_list），
-    #做模块级别元素等调用的检查，但不做类型匹配、方法和属性等合法性检查，因为这个过程可能产生更多的泛型实例，
-    #需要等类型都齐全了再做usemethod扩展等工作
-    larc_module.builtins_module.compile()
-    for m in larc_module.module_map.itervalues():
-        if m is not larc_module.builtins_module:
-            m.compile()
-
-    #根据compile的结果创建所有涉及到的ginst
-    larc_module.builtins_module.create_ginst()
-    for m in larc_module.module_map.itervalues():
-        if m is not larc_module.builtins_module:
-            m.create_ginst()
-
-    #扩展每个类通过usemethod继承的方法
-    larc_module.builtins_module.expand_usemethod()
-    for m in larc_module.module_map.itervalues():
-        if m is not larc_module.builtins_module:
-            m.expand_usemethod()
-
-    #扩展方法后还需要检查一次name hide
-    larc_module.builtins_module.check_name_hide_after_expand_usemethod()
-    for m in larc_module.module_map.itervalues():
-        if m is not larc_module.builtins_module:
-            m.check_name_hide_after_expand_usemethod()
-
-    #暂时写死output流程
+    #暂时写死output流程，输出为go
     output_lib = larc_output.to_go
     output_lib.main_module_name = main_module.name
     output_lib.out_dir = os.path.join(src_dir, main_module.name)

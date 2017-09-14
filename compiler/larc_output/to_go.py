@@ -8,6 +8,7 @@ import os
 import shutil
 import sys
 
+import larc_common
 import larc_module
 import larc_token
 import larc_expr
@@ -15,9 +16,11 @@ import larc_expr
 main_module_name = None
 out_dir = None
 runtime_dir = None
-out_prog_dir = None
 
-bops = ["add", "sub", "mul", "div", "mod", "and", "or", "xor", "shl", "shr"]
+out_prog_dir = None
+prog_module_name = None
+
+curr_module = None
 
 class _Code:
     class _CodeBlk:
@@ -26,7 +29,7 @@ class _Code:
             self.end_line = end_line
 
         def __enter__(self):
-            pass
+            return self
 
         def __exit__(self, exc_type, exc_value, traceback):
             if exc_type is not None:
@@ -747,15 +750,18 @@ def _gen_makefile():
         print >> f, "@pause"
         print >> f, "@exit"
     else:
-        raise Exception("Not implemented on '%s'" % sys.platform)
+        larc_common.exit("不支持在平台'%s'生成make脚本" % sys.platform)
 
 def output():
-    global runtime_dir, out_prog_dir, curr_module
+    global runtime_dir, out_prog_dir, prog_module_name, curr_module
+
     runtime_dir = os.path.join(runtime_dir, "go")
     out_prog_dir = os.path.join(out_dir, "src", "lar_prog_" + main_module_name)
 
     shutil.rmtree(out_dir, True)
     os.makedirs(out_prog_dir)
+
+    prog_module_name = "lar_prog_" + main_module_name
 
     _output_main_pkg()
     for curr_module in larc_module.module_map.itervalues():
