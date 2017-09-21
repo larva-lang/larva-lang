@@ -88,6 +88,7 @@ def _output_main_pkg():
     with _Code(os.path.join(out_prog_dir, "%s.booter.go" % prog_module_name)) as code:
         with code.new_blk("import"):
             code += '"os"'
+        #aaaaa
         with code.new_blk("func Start_prog() int"):
             
 
