@@ -86,6 +86,7 @@ def _output_main_pkg():
         with code.new_blk("func main()"):
             code += "os.Exit(%s.Start_prog())" % prog_module_name
     with _Code(os.path.join(out_prog_dir, "%s.booter.go" % prog_module_name)) as code:
+        #aaaaa
         with code.new_blk("func Start_prog() int"):
 
 def _gen_expr_code(expr):
