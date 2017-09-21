@@ -12,6 +12,7 @@ import larc_common
 import larc_module
 import larc_token
 import larc_expr
+import larc_type
 
 main_module_name = None
 out_dir = None
@@ -42,7 +43,7 @@ class _Code:
         self.file_path_name = file_path_name
         self.indent = ""
         self.line_list = []
-        self.+= "package %s" % (prog_module_name if pkg_name is None else pkg_name)
+        self += "package %s" % (prog_module_name if pkg_name is None else pkg_name)
 
     def __iadd__(self, line):
         self.line_list.append(self.indent + line)
@@ -78,6 +79,19 @@ class _Code:
         self.indent += " " * 4
         return self._CodeBlk(self, end_line)
 
+def _gen_tp_name(tp):
+    assert not tp.is_array
+
+_new_arr_func_name_set = set()
+def _gen_new_arr_func_name(tp, dim, new_dim):
+    assert not tp.is_array and dim >= new_dim > 0
+    func_name = "new_arr_%s_%d_%d" % (_gen_tp_name(tp), dim, new_dim)
+    _new_arr_func_name_set.add(func_name)
+    if new_dim > 1:
+        #递归记录需要生成的内层的new_arr_func_name
+        _gen_new_arr_func(tp, dim - 1, new_dim - 1)
+    return func_name
+
 def _output_main_pkg():
     with _Code(os.path.join(out_prog_dir, "lar_prog.%s.go" % main_module_name), "main") as code:
         with code.new_blk("import"):
@@ -89,7 +103,9 @@ def _output_main_pkg():
         with code.new_blk("import"):
             code += '"os"'
         with code.new_blk("func Start_prog() int"):
-            
+            code += "argv := %s(lar_ulong_t(len(os.Args)))" % _gen_new_arr_func_name(larc_type.STR_TYPE, 1, 1)
+            with code.new_blk("for i := 0; i < len(os.Args); i ++"):
+                code += "argv[i] = create_lar_str_from_go_str(os.Args[i])"
 
 def _gen_expr_code(expr):
     if expr.op in ("~", "!", "neg", "pos"):
