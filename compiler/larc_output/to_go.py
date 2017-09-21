@@ -38,10 +38,11 @@ class _Code:
             self.code.indent = self.code.indent[: -4]
             self.code += self.end_line
 
-    def __init__(self, file_path_name):
+    def __init__(self, file_path_name, pkg_name = None):
         self.file_path_name = file_path_name
         self.indent = ""
         self.line_list = []
+        self.+= "package %s" % (prog_module_name if pkg_name is None else pkg_name)
 
     def __iadd__(self, line):
         self.line_list.append(self.indent + line)
@@ -78,16 +79,14 @@ class _Code:
         return self._CodeBlk(self, end_line)
 
 def _output_main_pkg():
-    main_lar_mod_name = "lar_mod_" + main_module_name
-    with _Code(os.path.join(out_prog_dir, "lar_prog.%s.go" % main_module_name)) as code:
-        code += "package main"
+    with _Code(os.path.join(out_prog_dir, "lar_prog.%s.go" % main_module_name), "main") as code:
         with code.new_blk("import"):
             code += '"os"'
-            code += '"larva_booter"'
-            code += '"%s"' % main_lar_mod_name
+            code += '"%s"' % prog_module_name
         with code.new_blk("func main()"):
-            code += "%s.Init()" % main_lar_mod_name
-            code += "os.Exit(larva_booter.Start_prog(%s.Func_main_1))" % main_lar_mod_name
+            code += "os.Exit(%s.Start_prog())" % prog_module_name
+    with _Code(os.path.join(out_prog_dir, "%s.booter.go" % prog_module_name)) as code:
+        with code.new_blk("func Start_prog() int"):
 
 def _gen_expr_code(expr):
     if expr.op in ("~", "!", "neg", "pos"):

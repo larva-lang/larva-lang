@@ -2,14 +2,15 @@ import sys, time;
 
 class Record
 {
-    var PtrComp, Discr, EnumComp, IntComp, StringComp;
+    Record PtrComp;
+    int Discr, EnumComp, IntComp;
+    String StringComp;
 
-    func __init()
+    Record()
     {
-        Discr, EnumComp, IntComp = 0, 0, 0;
     }
 
-    func assign(other)
+    void assign(Record other)
     {
         PtrComp = other.PtrComp;
         Discr = other.Discr;
@@ -19,40 +20,40 @@ class Record
     }
 }
 
-var loops = 50000000,
+int loops = 5000000;
 
-    Ident1 = 1,
-    Ident2 = 2,
-    Ident3 = 3,
-    Ident4 = 4,
-    Ident5 = 5,
+final int Ident1 = 1,
+          Ident2 = 2,
+          Ident3 = 3,
+          Ident4 = 4,
+          Ident5 = 5;
 
-    IntGlob = 0,
-    BoolGlob = false,
-    Char1Glob = 0,
-    Char2Glob = 0,
-    Array1Glob = [0] * 51,
-    Array2Glob = [[0] * 51 for (var i : range(51))],
+int IntGlob = 0;
+bool BoolGlob = false;
+char Char1Glob = 0,
+     Char2Glob = 0;
+int[] Array1Glob = new int[51];
+int[][] Array2Glob = new int[51][51];
 
-    PtrGlb = nil,
-    PtrGlbNext = nil;
+Record PtrGlb = nil,
+       PtrGlbNext = nil;
 
-func Func3(EnumParIn)
+bool Func3(int EnumParIn)
 {
-    var EnumLoc = EnumParIn;
+    int EnumLoc = EnumParIn;
     return EnumLoc == Ident3;
 }
 
-func Func2(StrParI1, StrParI2)
+bool Func2(String StrParI1, String StrParI2)
 {
-    var IntLoc = 1,
-        CharLoc = 0;
+    int IntLoc = 1;
+    char CharLoc = 0;
     while (IntLoc <= 1)
     {
-        if (Func1(StrParI1.ord_at(IntLoc), StrParI2.ord_at(IntLoc + 1)) == Ident1)
+        if (Func1(StrParI1.char_at((long)IntLoc), StrParI2.char_at((long)IntLoc + 1)) == Ident1)
         {
             CharLoc = 65;
-            IntLoc += 1;
+            ++ IntLoc;
         }
     }
     if (CharLoc >= 87 && CharLoc <= 90)
@@ -65,7 +66,7 @@ func Func2(StrParI1, StrParI2)
     }
     else
     {
-        if (StrParI1 > StrParI2)
+        if (StrParI1.cmp(StrParI2) > 0)
         {
             IntLoc += 7;
             return true;
@@ -77,38 +78,38 @@ func Func2(StrParI1, StrParI2)
     }
 }
 
-func Func1(CharPar1, CharPar2)
+int Func1(char CharPar1, char CharPar2)
 {
-    var CharLoc1 = CharPar1,
-        CharLoc2 = CharLoc1;
+    char CharLoc1 = CharPar1,
+         CharLoc2 = CharLoc1;
     return CharLoc2 != CharPar2 ? Ident1 : Ident2;
 }
 
-func Proc8(Array1Par, Array2Par, IntParI1, IntParI2)
+void Proc8(int[] Array1Par, int[][] Array2Par, int IntParI1, int IntParI2)
 {
-    var IntLoc = IntParI1 + 5;
+    int IntLoc = IntParI1 + 5;
     Array1Par[IntLoc] = IntParI2;
     Array1Par[IntLoc + 1] = Array1Par[IntLoc];
     Array1Par[IntLoc + 30] = IntLoc;
-    for (var IntIndex : range(IntLoc, IntLoc + 2))
+    for (int IntIndex = IntLoc; IntIndex <= IntLoc + 1; ++ IntIndex)
     {
         Array2Par[IntLoc][IntIndex] = IntLoc;
     }
-    Array2Par[IntLoc][IntLoc - 1] = Array2Par[IntLoc][IntLoc - 1] + 1;
+    ++ Array2Par[IntLoc][IntLoc - 1];
     Array2Par[IntLoc + 20][IntLoc] = Array1Par[IntLoc];
     IntGlob = 5;
 }
 
-func Proc7(IntParI1, IntParI2)
+int Proc7(int IntParI1, int IntParI2)
 {
-    var IntLoc = IntParI1 + 2,
+    int IntLoc = IntParI1 + 2,
         IntParOut = IntParI2 + IntLoc;
     return IntParOut;
 }
 
-func Proc6(EnumParIn)
+int Proc6(int EnumParIn)
 {
-    var EnumParOut = EnumParIn;
+    int EnumParOut = EnumParIn;
     if (!Func3(EnumParIn))
     {
         EnumParOut = Ident4;
@@ -142,20 +143,20 @@ func Proc6(EnumParIn)
     return EnumParOut;
 }
 
-func Proc5()
+void Proc5()
 {
     Char1Glob = 65;
     BoolGlob = false;
 }
 
-func Proc4()
+void Proc4()
 {
-    var BoolLoc = Char1Glob == 65;
+    bool BoolLoc = Char1Glob == 65;
     BoolLoc = BoolLoc || BoolGlob;
     Char2Glob = 66;
 }
 
-func Proc3(PtrParOut)
+Record Proc3(Record PtrParOut)
 {
     if (PtrGlb != nil)
     {
@@ -169,15 +170,15 @@ func Proc3(PtrParOut)
     return PtrParOut;
 }
 
-func Proc2(IntParIO)
+int Proc2(int IntParIO)
 {
-    var IntLoc = IntParIO + 10,
+    int IntLoc = IntParIO + 10,
         EnumLoc = 0;
     while (true)
     {
         if (Char1Glob == 65)
         {
-            IntLoc -= 1;
+            -- IntLoc;
             IntParIO = IntLoc - IntGlob;
             EnumLoc = Ident1;
         }
@@ -189,9 +190,9 @@ func Proc2(IntParIO)
     return IntParIO;
 }
 
-func Proc1(PtrParIn)
+Record Proc1(Record PtrParIn)
 {
-    var NextRecord = PtrParIn.PtrComp;
+    Record NextRecord = PtrParIn.PtrComp;
     NextRecord.assign(PtrGlb);
     PtrParIn.IntComp = 5;
     NextRecord.IntComp = PtrParIn.IntComp;
@@ -211,37 +212,37 @@ func Proc1(PtrParIn)
     return PtrParIn;
 }
 
-func Proc0()
+void Proc0()
 {
-    PtrGlbNext = Record();
-    PtrGlb = Record();
+    PtrGlbNext = new Record();
+    PtrGlb = new Record();
     PtrGlb.PtrComp = PtrGlbNext;
     PtrGlb.Discr = Ident1;
     PtrGlb.EnumComp = Ident3;
     PtrGlb.IntComp = 40;
     PtrGlb.StringComp = "DHRYSTONE PROGRAM, SOME STRING";
-    var String1Loc = "DHRYSTONE PROGRAM, 1'ST STRING";
+    String String1Loc = "DHRYSTONE PROGRAM, 1'ST STRING";
     Array2Glob[8][7] = 10;
 
-    for (var i : range(loops))
+    for (int i = 0; i < loops; ++ i)
     {
         Proc5();
         Proc4();
-        var IntLoc1 = 2,
+        int IntLoc1 = 2,
             IntLoc2 = 3,
-            String2Loc = "DHRYSTONE PROGRAM, 2'ND STRING",
             EnumLoc = Ident2;
+        String String2Loc = "DHRYSTONE PROGRAM, 2'ND STRING";
         BoolGlob = !Func2(String1Loc, String2Loc);
-        var IntLoc3 = 0;
+        int IntLoc3 = 0;
         while (IntLoc1 < IntLoc2)
         {
             IntLoc3 = 5 * IntLoc1 - IntLoc2;
             IntLoc3 = Proc7(IntLoc1, IntLoc2);
-            IntLoc1 += 1;
+            ++ IntLoc1;
         }
         Proc8(Array1Glob, Array2Glob, IntLoc1, IntLoc3);
         PtrGlb = Proc1(PtrGlb);
-        for (var CharIndex : range(65, Char2Glob + 1))
+        for (char CharIndex = 65; CharIndex < Char2Glob + 1; ++ CharIndex)
         {
             if (EnumLoc == Func1(CharIndex, 67))
             {
@@ -255,15 +256,21 @@ func Proc0()
     }
 }
 
-func main(argv)
+public int main(String[] argv)
 {
-    if (argv.len() > 1)
+    if (argv.size > 1)
     {
-        loops = argv[1].to_int();
+        Error err = argv[1].to_int(ref loops);
+        if (err != nil)
+        {
+            sys.stdout.write("Invalid loop arg [%v]\n".format(argv[1]));
+            return 1;
+        }
     }
-    var ts = time.time();
+    double ts = time.time();
     Proc0();
-    var tm = time.time() - ts;
-    sys.stdout.writeln("Time used: %s sec" % tm);
-    sys.stdout.writeln("This machine benchmarks at %s LarStones/second" % (loops / tm));
+    double tm = time.time() - ts;
+    sys.stdout.write("Time used: %v sec\n".format(tm));
+    sys.stdout.write("This machine benchmarks at %v LarStones/second\n".format((double)loops / tm));
+    return 0;
 }
