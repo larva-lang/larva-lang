@@ -81,6 +81,7 @@ class _Code:
 
 def _gen_tp_name(tp):
     assert not tp.is_array
+    raise "todo"
 
 _new_arr_func_name_set = set()
 def _gen_new_arr_func_name(tp, dim, new_dim):
