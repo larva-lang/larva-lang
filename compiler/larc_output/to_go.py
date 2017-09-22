@@ -106,7 +106,7 @@ def _gen_new_arr_func_name(tp, dim, new_dim):
     _new_arr_func_name_set.add(func_name)
     if new_dim > 1:
         #递归记录需要生成的内层的new_arr_func_name
-        _gen_new_arr_func(tp, dim - 1, new_dim - 1)
+        _gen_new_arr_func_name(tp, dim - 1, new_dim - 1)
     return func_name
 
 def _gen_func_name(func):
