@@ -535,6 +535,7 @@ class _GintfInst(_IntfBase):
             self.gtp_map[gintf.gtp_name_list[i]] = gtp_list[i]
 
         self.module = gintf.module
+        self.name = gintf.name
         self._init_method()
         self.type_checked = False
 
@@ -553,8 +554,16 @@ class _GintfInst(_IntfBase):
         self.type_checked = True
         return True
 
-class _Func:
+class _FuncBase:
+    def __init__(self):
+        self.is_func = isinstance(self, _Func)
+        self.is_gfunc_inst = isinstance(self, _GfuncInst)
+        assert [self.is_func, self.is_gfunc_inst].count(True) == 1
+
+class _Func(_FuncBase):
     def __init__(self, module, decr_set, type, name, gtp_name_list, arg_map, block_token_list):
+        _FuncBase.__init__(self)
+
         self.module = module
         self.decr_set = decr_set
         self.type = type
@@ -580,9 +589,14 @@ class _Func:
             assert not self.block_token_list
         del self.block_token_list
 
-class _GfuncInst:
+class _GfuncInst(_FuncBase):
     def __init__(self, gfunc, gtp_list):
+        _FuncBase.__init__(self)
+
         self.gfunc = gfunc
+
+        self.module = gfunc.module
+        self.name = gfunc.name
 
         self.gtp_map = larc_common.OrderedDict()
         assert len(gfunc.gtp_name_list) == len(gtp_list)
@@ -770,8 +784,6 @@ class Module:
         self._check_redefine(t, name)
         t = token_list.peek()
         if t.is_sym("<"):
-            if "native" in decr_set:
-                t.syntax_err("不可定义native泛型类")
             token_list.pop_sym("<")
             gtp_name_list = _parse_gtp_name_list(token_list, self.dep_module_set)
             if name in gtp_name_list:
@@ -989,6 +1001,10 @@ class Module:
 
     def has_global_var(self, name):
         return name in self.global_var_map
+
+    def get_main_func(self):
+        assert "main" in self.func_map
+        return self.func_map["main"]
 
 #反复对所有新增的ginst进行check type，直到完成
 def check_type_for_ginst():

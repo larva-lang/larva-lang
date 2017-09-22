@@ -21,8 +21,6 @@ runtime_dir = None
 out_prog_dir = None
 prog_module_name = None
 
-curr_module = None
-
 class _Code:
     class _CodeBlk:
         def __init__(self, code, end_line):
@@ -79,18 +77,51 @@ class _Code:
         self.indent += " " * 4
         return self._CodeBlk(self, end_line)
 
+def _gen_coi_name(coi):
+    for i in "cls", "gcls_inst", "intf", "gintf_inst":
+        if eval("coi.is_" + i):
+            coi_name = "lar_" + i
+            break
+    else:
+        raise Exception("Bug")
+    coi_name += "_%d_%s_%d_%s" % (len(coi.module.name), coi.module.name, len(coi.name), coi.name)
+    if coi.is_gcls_inst or coi.is_gintf_inst:
+        #泛型实例还需增加泛型参数信息
+        coi_name += "_%d" % len(coi.gtp_map)
+        for tp in coi.gtp_map.itervalues():
+            coi_name += "_%s" % _gen_tp_name(tp)
+    return coi_name
+
 def _gen_tp_name(tp):
-    assert not tp.is_array
-    raise "todo"
+    assert not (tp.is_array or tp.is_nil or tp.is_void or tp.is_literal_int)
+    if tp.is_obj_type:
+        return _gen_coi_name(tp.get_coi())
+    assert tp.token.is_reserved
+    return "lar_type_%s" % tp.name
 
 _new_arr_func_name_set = set()
 def _gen_new_arr_func_name(tp, dim, new_dim):
     assert not tp.is_array and dim >= new_dim > 0
-    func_name = "new_arr_%s_%d_%d" % (_gen_tp_name(tp), dim, new_dim)
+    func_name = "lar_util_new_arr_%s_%d_%d" % (_gen_tp_name(tp), dim, new_dim)
     _new_arr_func_name_set.add(func_name)
     if new_dim > 1:
         #递归记录需要生成的内层的new_arr_func_name
         _gen_new_arr_func(tp, dim - 1, new_dim - 1)
+    return func_name
+
+def _gen_func_name(func):
+    for i in "func", "gfunc_inst":
+        if eval("func.is_" + i):
+            func_name = "lar_" + i
+            break
+    else:
+        raise Exception("Bug")
+    func_name += "_%d_%s_%d_%s" % (len(func.module.name), func.module.name, len(func.name), func.name)
+    if func.is_gfunc_inst:
+        #泛型实例还需增加泛型参数信息
+        func_name += "_%d" % len(func.gtp_map)
+        for tp in func.gtp_map.itervalues():
+            func_name += "_%s" % _gen_tp_name(tp)
     return func_name
 
 def _output_main_pkg():
@@ -99,14 +130,17 @@ def _output_main_pkg():
             code += '"os"'
             code += '"%s"' % prog_module_name
         with code.new_blk("func main()"):
-            code += "os.Exit(%s.Start_prog())" % prog_module_name
+            code += "os.Exit(%s.Lar_booter_start_prog())" % prog_module_name
+
+def _output_booter():
     with _Code(os.path.join(out_prog_dir, "%s.booter.go" % prog_module_name)) as code:
         with code.new_blk("import"):
             code += '"os"'
-        with code.new_blk("func Start_prog() int"):
-            code += "argv := %s(lar_ulong_t(len(os.Args)))" % _gen_new_arr_func_name(larc_type.STR_TYPE, 1, 1)
+        with code.new_blk("func Lar_booter_start_prog() int"):
+            code += "argv := %s(%s(len(os.Args)))" % (_gen_new_arr_func_name(larc_type.STR_TYPE, 1, 1), _gen_tp_name(larc_type.ULONG_TYPE))
             with code.new_blk("for i := 0; i < len(os.Args); i ++"):
-                code += "argv[i] = create_lar_str_from_go_str(os.Args[i])"
+                code += "argv[i] = lar_util_create_lar_str_from_go_str(os.Args[i])"
+            code += "return %s(argv)" % _gen_func_name(larc_module.module_map[main_module_name].get_main_func())
 
 def _gen_expr_code(expr):
     if expr.op in ("~", "!", "neg", "pos"):
@@ -366,33 +400,13 @@ curr_module = None
 def _output_module():
     module = curr_module
     has_native_item = module.has_native_item()
-    mod_dir = os.path.join(out_dir, "src", "lar_mod_" + module.name)
-    os.makedirs(mod_dir)
-    with _Code(os.path.join(mod_dir, "lar_mod.%s.go" % module.name)) as code:
-        code += "package lar_mod_" + module.name
-
-        with code.new_blk("import"):
-            code += '"larva_obj"'
-            code += '"larva_exc"'
-            if module.name != "__builtins":
-                code += '"lar_mod___builtins"'
-            for dep_module_name in module.dep_module_set:
-                if dep_module_name != "__builtins":
-                    code += '"lar_mod_%s"' % dep_module_name
-
+    module_file_name = os.path.join(out_dir, "src", "%s.mod.%s.go" % (prog_module_name, module.name))
+    with _Code(module_file_name) as code:
         code += ""
-        for t in module.literal_set:
-            assert t.is_literal
-            if t.is_literal("nil") or t.is_literal("bool"):
-                continue
-            if t.is_literal("int"):
-                code += "var literal_%d larva_obj.LarPtr = larva_obj.LarPtr{M_int : %s}" % (id(t), t.value)
-            elif t.is_literal("float"):
-                code += "var literal_%d larva_obj.LarPtr = lar_mod___builtins.NewLarObj_float_from_literal(%s)" % (id(t), t.value)
-            else:
-                assert t.is_literal("str")
-                code += ("var literal_%d larva_obj.LarPtr = lar_mod___builtins.NewLarObj_str_from_literal(%s)" %
-                         (id(t), _gen_str_literal(t.value)))
+        for t in module.literal_str_list:
+            assert t.is_literal("str")
+            code += ("var lar_literal_str_%d %s = lar_util_create_lar_str_from_go_str(%s)" %
+                     (id(t), _gen_tp_name(larc_type.STR_TYPE), _gen_str_literal(t.value)))
 
         code += ""
         code += "var mod_inited bool = false"
@@ -472,285 +486,10 @@ def _output_module():
     if has_native_item:
         shutil.copy(os.path.join(module.dir, "go", "lar_ext_mod.%s.go" % module.name), mod_dir)
 
-def _copy_runtime():
-    out_runtime_dir = os.path.join(out_dir, "src")
-    for pkg_dir in os.listdir(os.path.join(runtime_dir)):
-        dst_dir = os.path.join(out_dir, "src", pkg_dir)
-        pkg_dir = os.path.join(runtime_dir, pkg_dir)
-        if os.path.isdir(pkg_dir):
-            shutil.copytree(pkg_dir, dst_dir)
+def _output_util():
+    raise "todo"
 
-def _complete_runtime_code():
-    attr_set = set()
-    method_def_set = set()
-    for m in larc_module.module_map.itervalues():
-        for cls in m.class_map.itervalues():
-            for attr_name in cls.attr_set:
-                attr_set.add(attr_name)
-            for method_name, arg_count in cls.method_map:
-                if method_name != "__init" and method_name.startswith("__"):
-                    continue
-                method_name = "Method_%s" % method_name
-                if arg_count == 0:
-                    arg_def = ""
-                else:
-                    arg_def = "%s LarPtr" % ", ".join(["arg_%s" % (i + 1) for i in xrange(arg_count)])
-                method_def_set.add("%s_%s(%s) LarPtr" % (method_name, arg_count, arg_def))
-    construct_method_def_list = sorted([method_def for method_def in method_def_set if method_def.startswith("Method___init")])
-    method_def_list = sorted([method_def for method_def in method_def_set if not method_def.startswith("Method___init")])
-
-    bops_to_go_op = {"add" : "+", "sub" : "-", "mul" : "*", "div" : "/", "mod" : "%", "and" : "&", "or" : "|", "xor" : "^", "shl" : "<<",
-                     "shr" : ">>"}
-    def op_defs():
-        def _op_defs():
-            for op in "bool", "str", "inv", "pos", "neg":
-                yield "Method___%s()" % op
-            yield "Method___get_item(k LarPtr)"
-            yield "Method___set_item(k, v LarPtr)"
-            for op in "inc", "dec":
-                yield "Method___item_%s(k LarPtr)" % op
-            for op in bops:
-                yield "Method___item_i%s(k, obj LarPtr)" % op
-            yield "Method___get_slice(start, stop, step LarPtr)"
-            yield "Method___set_slice(start, stop, step, obj LarPtr)"
-            for op in "inc", "dec":
-                yield "Method___%s()" % op
-            for op in "eq", "cmp":
-                yield "Method___%s(obj LarPtr)" % op
-            for op in bops:
-                for prefix in "", "r", "i":
-                    yield "Method___%s%s(obj LarPtr)" % (prefix, op)
-        for i in _op_defs():
-            assert i.startswith("Method___")
-            pos = i.find("(")
-            assert pos > 0
-            op = i[len("Method___") : pos]
-            assert op
-            yield op, i + " LarPtr"
-
-    larva_obj_dir = os.path.join(out_dir, "src", "larva_obj")
-
-    #自动生成统一化的动态类型接口
-    with _Code(os.path.join(larva_obj_dir, "larva_obj.auto_gen.go")) as code:
-        code += "package larva_obj"
-        with code.new_blk("type LarObjIntf interface"):
-            code += "LarObjIntfBase"
-            code += ""
-            for op, op_def in op_defs():
-                code += op_def
-            code += ""
-            for attr_name in attr_set:
-                code += "Attr_get_%s() LarPtr" % attr_name
-                code += "Attr_set_%s(v LarPtr)" % attr_name
-                for op in "inc", "dec":
-                    code += "Attr_%s_%s()" % (op, attr_name)
-                for op in bops:
-                    code += "Attr_i%s_%s(v LarPtr)" % (op, attr_name)
-            code += ""
-            for method_def in construct_method_def_list:
-                code += method_def
-            code += ""
-            for method_def in method_def_list:
-                code += method_def
-
-    #自动生成所有接口的默认实现
-    with _Code(os.path.join(larva_obj_dir, "larva_obj_base.auto_gen.go")) as code:
-        code += "package larva_obj"
-        with code.new_blk("import"):
-            code += '"fmt"'
-        for op, op_def in op_defs():
-            with code.new_blk("func (self *LarObjBase) %s" % op_def):
-                if op == "bool":
-                    code += "return TRUE"
-                elif op == "str":
-                    code += 'return NewLarObj_str_from_literal(fmt.Sprintf("<%v object at %v>", self.Type_name, self))'
-                elif op in ("inv", "pos", "neg"):
-                    code += ('Lar_panic_string(fmt.Sprintf("%s(%%v instance) not implemented", self.Type_name))' %
-                             {"inv" : "~", "pos" : "+", "neg" : "-"}[op])
-                elif op in ("get_item", "set_item"):
-                    code += ('Lar_panic_string(fmt.Sprintf("(%%v instance)[obj]%s not implemented", self.Type_name))' %
-                             (" = obj" if op == "set_item" else ""))
-                elif op.startswith("item_"):
-                    op = op[len("item_") :]
-                    if op in ("inc", "dec"):
-                        code += ('Lar_panic_string(fmt.Sprintf("%s(%%v instance)[obj] not implemented", self.Type_name))' %
-                                 {"inc" : "++", "dec" : "--"}[op])
-                    else:
-                        assert op[0] == "i"
-                        code += 'return self.This.Method___set_item(k, self.This.Method___get_item(k).Method___%s(obj))' % op[1 :]
-                elif op in ("get_slice", "set_slice"):
-                    code += ('Lar_panic_string(fmt.Sprintf("(%%v instance)[x:y:z]%s not implemented", self.Type_name))' %
-                             (" = obj" if op == "set_slice" else ""))
-                elif op in ("inc", "dec"):
-                    code += ('Lar_panic_string(fmt.Sprintf("%s(%%v instance) not implemented", self.Type_name))' %
-                             {"inc" : "++", "dec" : "--"}[op])
-                elif op == "eq":
-                    code += "return Lar_bool_from_bool(&self.This == obj.M_obj_ptr)"
-                elif op == "cmp":
-                    code += 'Lar_panic_string(fmt.Sprintf("(%v instance).__cmp(obj) not implemented", self.Type_name))'
-                else:
-                    if op[0] == "i" and op[1 :] in bops:
-                        code += "return self.This.Method___%s(obj)" % op[1 :]
-                    elif op[0] == "r" and op[1 :] in bops:
-                        go_op = bops_to_go_op[op[1 :]]
-                        if go_op == "%":
-                            go_op = "%%"
-                        code += ('Lar_panic_string(fmt.Sprintf("(%%v instance) %s (%%v instance) not implemented", '
-                                 'obj.Get_type_name(), self.Type_name))' % go_op)
-                    else:
-                        assert op in bops
-                        code += "return obj.Method___r%s(self.To_lar_ptr())" % op
-                if code.line_list[-1].lstrip().startswith("Lar_panic_string"):
-                    code += "return NIL"
-
-        for attr_name in attr_set:
-            with code.new_blk("func (self *LarObjBase) Attr_get_%s() LarPtr" % attr_name):
-                code += '''Lar_panic_string(fmt.Sprintf("(%%v instance) doesn't have attr '%s'", self.Type_name))''' % attr_name
-                code += "return NIL"
-            with code.new_blk("func (self *LarObjBase) Attr_set_%s(v LarPtr)" % attr_name):
-                code += '''Lar_panic_string(fmt.Sprintf("(%%v instance) doesn't have attr '%s'", self.Type_name))''' % attr_name
-            for op in "inc", "dec":
-                with code.new_blk("func (self *LarObjBase) Attr_%s_%s()" % (op, attr_name)):
-                    code += '''Lar_panic_string(fmt.Sprintf("(%%v instance) doesn't have attr '%s'", self.Type_name))''' % attr_name
-            for op in bops:
-                with code.new_blk("func (self *LarObjBase) Attr_i%s_%s(v LarPtr)" % (op, attr_name)):
-                    code += '''Lar_panic_string(fmt.Sprintf("(%%v instance) doesn't have attr '%s'", self.Type_name))''' % attr_name
-
-        for method_def in construct_method_def_list + method_def_list:
-            assert method_def.startswith("Method_")
-            pos = method_def.find("(")
-            assert pos > 0
-            method_name = method_def[len("Method_") : pos]
-            method_name, arg_count = method_name.rsplit("_", 1)
-            arg_count = int(arg_count)
-            with code.new_blk("func (self *LarObjBase) %s" % method_def):
-                code += ('Lar_panic_string(fmt.Sprintf("method (%%v instance).%s with %s args not implemented", self.Type_name))' %
-                         (method_name, arg_count))
-                code += "return NIL"
-
-    #自动生成LarPtr的所有对应接口的方法
-    with _Code(os.path.join(larva_obj_dir, "larva_ptr.auto_gen.go")) as code:
-        code += "package larva_obj"
-        with code.new_blk("import"):
-            code += '"fmt"'
-        for op, op_def in op_defs():
-            assert op_def.endswith(" LarPtr")
-            se_op = (op in ("inc", "dec")) or (op[0] == "i" and op[1 :] in bops)
-            if se_op:
-                op_def = op_def[: -len(" LarPtr")]
-            assert op_def.count("(") == op_def.count(")") == 1
-            start_pos = op_def.find("(")
-            end_pos = op_def.find(")")
-            assert start_pos < end_pos
-            args = op_def[start_pos + 1 : end_pos]
-            if args:
-                assert args.endswith(" LarPtr")
-                args = args[: -len(" LarPtr")]
-            with code.new_blk("func (ptr %sLarPtr) %s" % ("*" if se_op else "", op_def)):
-                with code.new_blk("if ptr.M_obj_ptr != nil"):
-                    if se_op:
-                        code += "*ptr = (*ptr.M_obj_ptr).Method___%s(%s)" % (op, args)
-                        code += "return"
-                    else:
-                        code += "return (*ptr.M_obj_ptr).Method___%s(%s)" % (op, args)
-                if op == "bool":
-                    with code.new_blk("if ptr.M_int == 0"):
-                        code += "return FALSE"
-                    code += "return TRUE"
-                elif op == "str":
-                    code += 'return NewLarObj_str_from_literal(fmt.Sprint(ptr.M_int))'
-                elif op in ("inv", "pos", "neg"):
-                    code += "return LarPtr{M_int : (%sptr.M_int)}" % {"inv" : "^", "pos" : "+", "neg" : "-"}[op]
-                elif op in ("get_item", "set_item"):
-                    code += ('Lar_panic_string(fmt.Sprintf("(int instance)[obj]%s not implemented"))' %
-                             (" = obj" if op == "set_item" else ""))
-                elif op.startswith("item_"):
-                    code += 'Lar_panic_string(fmt.Sprintf("(int instance)[obj] not implemented"))'
-                elif op in ("get_slice", "set_slice"):
-                    code += 'Lar_panic_string(fmt.Sprintf("(int instance)[x:y:z] not implemented"))'
-                elif op in ("inc", "dec"):
-                    code += 'ptr.M_int %s' % {"inc" : "++", "dec" : "--"}[op]
-                elif op == "eq":
-                    with code.new_blk("if obj.M_obj_ptr != nil"):
-                        code += "return (*obj.M_obj_ptr).Method___eq(ptr)"
-                    with code.new_blk("if ptr.M_int == obj.M_int"):
-                        code += "return TRUE"
-                    code += "return FALSE"
-                elif op == "cmp":
-                    with code.new_blk("if obj.M_obj_ptr != nil"):
-                        code += "return LarPtr{M_int : -(*obj.M_obj_ptr).Method___cmp(ptr).M_int}"
-                    with code.new_blk("if ptr.M_int < obj.M_int"):
-                        code += "return LarPtr{M_int : -1}"
-                    with code.new_blk("if ptr.M_int > obj.M_int"):
-                        code += "return LarPtr{M_int : 1}"
-                    code += "return LarPtr{M_int : 0}"
-                else:
-                    if op[0] == "i" and op[1 :] in bops:
-                        with code.new_blk("if obj.M_obj_ptr != nil"):
-                            code += "*ptr = (*obj.M_obj_ptr).Method___r%s(*ptr)" % op[1 :]
-                            code += "return"
-                        if op[1 :] in ("shl", "shr"):
-                            code += "ptr.M_int %s= int_to_shift_count(obj.M_int)" % bops_to_go_op[op[1 :]]
-                        else:
-                            code += "ptr.M_int %s= obj.M_int" % bops_to_go_op[op[1 :]]
-                    elif op[0] == "r" and op[1 :] in bops:
-                        code += ('Lar_panic_string(fmt.Sprintf("(%%v instance) %s (int instance) not implemented", obj.Get_type_name()))' %
-                                 bops_to_go_op[op[1 :]])
-                    else:
-                        assert op in bops
-                        with code.new_blk("if obj.M_obj_ptr != nil"):
-                            code += "return obj.Method___r%s(ptr)" % op
-                        if op in ("shl", "shr"):
-                            code += "return LarPtr{M_int : ptr.M_int %s int_to_shift_count(obj.M_int)}" % bops_to_go_op[op]
-                        else:
-                            code += "return LarPtr{M_int : ptr.M_int %s obj.M_int}" % bops_to_go_op[op]
-                if code.line_list[-1].lstrip().startswith("Lar_panic_string"):
-                    code += "return NIL"
-
-        for attr_name in attr_set:
-            with code.new_blk("func (ptr LarPtr) Attr_get_%s() LarPtr" % attr_name):
-                with code.new_blk("if ptr.M_obj_ptr != nil"):
-                    code += "return (*ptr.M_obj_ptr).Attr_get_%s()" % attr_name
-                code += '''Lar_panic_string(fmt.Sprintf("(int instance) doesn't have attr '%s'"))''' % attr_name
-                code += "return NIL"
-            with code.new_blk("func (ptr LarPtr) Attr_set_%s(v LarPtr)" % attr_name):
-                with code.new_blk("if ptr.M_obj_ptr != nil"):
-                    code += "(*ptr.M_obj_ptr).Attr_set_%s(v)" % attr_name
-                    code += "return"
-                code += '''Lar_panic_string(fmt.Sprintf("(int instance) doesn't have attr '%s'"))''' % attr_name
-            for op in "inc", "dec":
-                with code.new_blk("func (ptr LarPtr) Attr_%s_%s()" % (op, attr_name)):
-                    with code.new_blk("if ptr.M_obj_ptr != nil"):
-                        code += "(*ptr.M_obj_ptr).Attr_%s_%s()" % (op, attr_name)
-                        code += "return"
-                    code += '''Lar_panic_string(fmt.Sprintf("(int instance) doesn't have attr '%s'"))''' % attr_name
-            for op in bops:
-                with code.new_blk("func (ptr LarPtr) Attr_i%s_%s(v LarPtr)" % (op, attr_name)):
-                    with code.new_blk("if ptr.M_obj_ptr != nil"):
-                        code += "(*ptr.M_obj_ptr).Attr_i%s_%s(v)" % (op, attr_name)
-                        code += "return"
-                    code += '''Lar_panic_string(fmt.Sprintf("(int instance) doesn't have attr '%s'"))''' % attr_name
-
-        for method_def in construct_method_def_list + method_def_list:
-            assert method_def.startswith("Method_")
-            pos = method_def.find("(")
-            assert pos > 0
-            method_name = method_def[len("Method_") : pos]
-            method_name, arg_count = method_name.rsplit("_", 1)
-            arg_count = int(arg_count)
-            args = method_def[pos + 1 :]
-            assert args.count(")") == 1
-            args = args[: args.find(")")]
-            if args:
-                assert args.endswith(" LarPtr")
-                args = args[: -len(" LarPtr")]
-            with code.new_blk("func (ptr LarPtr) %s" % method_def):
-                with code.new_blk("if ptr.M_obj_ptr != nil"):
-                    code += "return (*ptr.M_obj_ptr).Method_%s_%d(%s)" % (method_name, arg_count, args)
-                code += ('Lar_panic_string(fmt.Sprintf("method (int instance).%s with %s args not implemented"))' % (method_name, arg_count))
-                code += "return NIL"
-
-def _gen_makefile():
+def _output_makefile():
     if sys.platform.lower().startswith("win"):
         f = open(os.path.join(out_dir, "make.bat"), "w")
         print >> f, "@set GOPATH=%s" % out_dir
@@ -783,10 +522,8 @@ def output():
     prog_module_name = "lar_prog_" + main_module_name
 
     _output_main_pkg()
+    _output_booter()
     for curr_module in larc_module.module_map.itervalues():
         _output_module()
-
-    _copy_runtime()
-    _complete_runtime_code()
-
-    _gen_makefile()
+    _output_util()
+    _output_makefile()
