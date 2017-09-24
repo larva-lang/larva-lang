@@ -1,5 +1,8 @@
 //sys模块，系统相关接口
 
-import io;
+public interface Stdio
+{
+    public Error write(String s);
+}
 
-public native io.File stdout;
+public native Stdio get_stdio();

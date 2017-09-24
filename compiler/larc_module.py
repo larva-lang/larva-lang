@@ -250,8 +250,8 @@ class _Cls(_ClsBase):
 
             #解析修饰
             decr_set = _parse_decr_set(token_list)
-            if "final" in decr_set:
-                t.syntax_err("方法或属性不能用final修饰")
+            if "final" in decr_set or "native" in decr_set:
+                t.syntax_err("方法或属性不能用final或native修饰")
 
             t = token_list.peek()
             if t.is_name and t.value == self.name:
@@ -283,8 +283,6 @@ class _Cls(_ClsBase):
                 if type.name == "void":
                     t.syntax_err("属性类型不可为void")
                 while True:
-                    if "native" in decr_set:
-                        t.syntax_err("属性不可用native修饰")
                     if "usemethod" in decr_set and (type.is_nil or type.is_array or not type.is_obj_type):
                         t.syntax_err("usemethod不可用于类型'%s'" % type)
                     self.attr_map[name] = _Attr(self, decr_set, type, name)
@@ -316,13 +314,9 @@ class _Cls(_ClsBase):
         arg_map = _parse_arg_map(token_list, self.module.dep_module_set, [])
         token_list.pop_sym(")")
 
-        if "native" in decr_set:
-            token_list.pop_sym(";")
-            block_token_list = None
-        else:
-            token_list.pop_sym("{")
-            block_token_list, sym = larc_token.parse_token_list_until_sym(token_list, ("}",))
-            assert sym == "}"
+        token_list.pop_sym("{")
+        block_token_list, sym = larc_token.parse_token_list_until_sym(token_list, ("}",))
+        assert sym == "}"
 
         if name == self.name:
             #构造方法
@@ -730,19 +724,14 @@ class Module:
                 continue
             if sym in (";", "=", ","):
                 #全局变量
-                if decr_set - set(["public", "native", "final"]):
-                    t.syntax_err("全局变量只能用public、native和final修饰")
+                if decr_set - set(["public", "final"]):
+                    t.syntax_err("全局变量只能用public和final修饰")
                 if type.name == "void":
                     t.syntax_err("变量类型不可为void")
                 while True:
-                    if sym == "=":
-                        if "native" in decr_set:
-                            t.syntax_err("不能初始化native全局变量")
-                        expr_token_list, sym = larc_token.parse_token_list_until_sym(token_list, (";", ","))
-                    else:
-                        if "native" not in decr_set:
-                            t.syntax_err("非native全局变量必须显式初始化")
-                        expr_token_list = None
+                    if sym != "=":
+                        t.syntax_err("必须显式初始化")
+                    expr_token_list, sym = larc_token.parse_token_list_until_sym(token_list, (";", ","))
                     self.global_var_map[name] = _GlobalVar(self, decr_set, type, name, expr_token_list)
                     if sym == ";":
                         break
@@ -813,8 +802,8 @@ class Module:
         token_list.pop_sym("}")
         self.intf_map[name] = intf
 
-    def _parse_func(self, decr_set, type, name, is_gtp_method, token_list):
-        if is_gtp_method:
+    def _parse_func(self, decr_set, type, name, is_gfunc, token_list):
+        if is_gfunc:
             gtp_name_list = _parse_gtp_name_list(token_list, self.dep_module_set)
             token_list.pop_sym("(")
         else:
@@ -823,6 +812,7 @@ class Module:
         token_list.pop_sym(")")
 
         if "native" in decr_set:
+            assert not is_gfunc
             token_list.pop_sym(";")
             block_token_list = None
         else:
@@ -1005,6 +995,12 @@ class Module:
     def get_main_func(self):
         assert "main" in self.func_map
         return self.func_map["main"]
+
+    def has_native_func(self):
+        for func in self.func_map.itervalues():
+            if "native" in func.decr_set:
+                return True
+        return False
 
 #反复对所有新增的ginst进行check type，直到完成
 def check_type_for_ginst():

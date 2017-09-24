@@ -41,8 +41,6 @@ public class String
         return 0;
     }
 
-    public native Error to_int(ref int n);
-
     char[] s;
 }
 
