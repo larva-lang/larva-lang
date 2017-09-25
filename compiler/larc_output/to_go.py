@@ -89,20 +89,40 @@ def _gen_coi_name(coi):
         #泛型实例还需增加泛型参数信息
         coi_name += "_%d" % len(coi.gtp_map)
         for tp in coi.gtp_map.itervalues():
-            coi_name += "_%s" % _gen_tp_name(tp)
+            coi_name += "_%s" % _gen_non_array_type_name(tp)
     return coi_name
 
-def _gen_tp_name(tp):
+def _gen_non_array_type_name(tp):
     assert not (tp.is_array or tp.is_nil or tp.is_void or tp.is_literal_int)
     if tp.is_obj_type:
         return _gen_coi_name(tp.get_coi())
     assert tp.token.is_reserved
     return "lar_type_%s" % tp.name
 
+def _gen_non_array_type_name_code(tp):
+    type_name_code = _gen_non_array_type_name(tp)
+    if tp.is_obj_type:
+        type_name_code = "*" + type_name_code
+    return type_name_code
+
+def _gen_type_name(tp):
+    if tp.is_void:
+        return ""
+    array_dim_count = tp.array_dim_count
+    while tp.is_array:
+        tp = tp.to_elem_type()
+    return "*[]" * array_dim_count + _gen_non_array_type_name_code(tp)
+
+def _gen_type_name_code(tp):
+    type_name_code = _gen_type_name(tp)
+    if tp.is_obj_type and not tp.is_array:
+        type_name_code = "*" + type_name_code
+    return type_name_code
+
 _new_arr_func_name_set = set()
 def _gen_new_arr_func_name(tp, dim, new_dim):
     assert not tp.is_array and dim >= new_dim > 0
-    func_name = "lar_util_new_arr_%s_%d_%d" % (_gen_tp_name(tp), dim, new_dim)
+    func_name = "lar_util_new_arr_%s_%d_%d" % (_gen_non_array_type_name(tp), dim, new_dim)
     _new_arr_func_name_set.add(func_name)
     if new_dim > 1:
         #递归记录需要生成的内层的new_arr_func_name
@@ -121,7 +141,7 @@ def _gen_func_name(func):
         #泛型实例还需增加泛型参数信息
         func_name += "_%d" % len(func.gtp_map)
         for tp in func.gtp_map.itervalues():
-            func_name += "_%s" % _gen_tp_name(tp)
+            func_name += "_%s" % _gen_non_array_type_name(tp)
     return func_name
 
 def _output_main_pkg():
@@ -137,11 +157,12 @@ def _output_booter():
         with code.new_blk("import"):
             code += '"os"'
         with code.new_blk("func Lar_booter_start_prog() int"):
-            code += "argv := %s(%s(len(os.Args)))" % (_gen_new_arr_func_name(larc_type.STR_TYPE, 1, 1), _gen_tp_name(larc_type.ULONG_TYPE))
+            code += ("argv := %s((%s)(len(os.Args)))" %
+                     (_gen_new_arr_func_name(larc_type.STR_TYPE, 1, 1), _gen_type_name_code(larc_type.ULONG_TYPE)))
             with code.new_blk("for i := 0; i < len(os.Args); i ++"):
                 code += "argv[i] = lar_util_create_lar_str_from_go_str(os.Args[i])"
             code += "lar_env_init_mod___builtins()"
-            code += "lar_env_init_mod_%s" % main_module_name
+            code += "lar_env_init_mod_%s()" % main_module_name
             code += "return %s(argv)" % _gen_func_name(larc_module.module_map[main_module_name].get_main_func())
 
 def _gen_str_literal(s):
@@ -158,6 +179,28 @@ def _gen_str_literal(s):
 def _gen_gv_name(gv):
     return "lar_gv_%d_%s_%d_%s" % (len(gv.module.name), gv.module.name, len(gv.name), gv.name)
 
+def _gen_default_value_code(tp):
+    if tp.is_void:
+        return ""
+    if tp.is_bool_type:
+        return "false"
+    if tp.is_number_type:
+        return "0"
+    assert tp.is_obj_type
+    return "nil"
+
+def _gen_expr_code(expr):
+    return "expr_todo"
+    raise "todo"
+
+def _gen_arg_def(arg_map):
+    return ", ".join(["l_%s %s" % (name, _gen_type_name_code(tp)) for name, tp in arg_map.iteritems()])
+
+def _output_stmt_list(code, stmt_list):
+    code += "stmt_list_todo"
+    return
+    raise "todo"
+
 curr_module = None
 def _output_module():
     module = curr_module
@@ -168,7 +211,11 @@ def _output_module():
         for t in module.literal_str_list:
             assert t.is_literal("str")
             code += ("var lar_literal_str_%s_%d %s = lar_util_create_lar_str_from_go_str(%s)" %
-                     (module.name, id(t), _gen_tp_name(larc_type.STR_TYPE), _gen_str_literal(t.value)))
+                     (module.name, id(t), _gen_type_name_code(larc_type.STR_TYPE), _gen_str_literal(t.value)))
+
+        code += ""
+        for gv in module.global_var_map.itervalues():
+            code += "var %s %s = %s" % (_gen_gv_name(gv), _gen_type_name_code(gv.type), _gen_default_value_code(gv.type))
 
         code += ""
         mod_inited_flag_name = "lar_env_inited_flag_of_mod_%s" % module.name
@@ -182,63 +229,27 @@ def _output_module():
                     assert gv.expr is not None
                     code += "%s = %s" % (_gen_gv_name(gv), _gen_expr_code(gv.expr))
 
-        code += ""
-        for gv in module.global_var_map.itervalues():
-            if gv.type.is_bool_type:
-                v = "false"
-            elif gv.type.is_number_type:
-                v = "0"
-            else:
-                assert gv.type.is_obj_type
-                v = "nil"
-            code += "var %s %s = %s" % (_gen_gv_name(gv), _gen_tp_name(gv.type), v)
-
-        for cls in module.class_map.itervalues():
-            if cls.is_native:
-                continue
-            with code.new_blk("type LarObj_%s struct" % cls.name):
-                code += "larva_obj.LarObjBase"
-                for attr_name in cls.attr_set:
-                    code += "M_%s larva_obj.LarPtr" % attr_name
-            with code.new_blk("func NewLarObj_%s() *LarObj_%s" % (cls.name, cls.name)):
-                code += "o := new(LarObj_%s)" % cls.name
-                code += "o.This = o"
-                code += 'o.Type_name = "%s.%s"' % (cls.module.name, cls.name)
+        for cls in list(module.cls_map.itervalues()) + list(module.gcls_inst_map.itervalues()):
+            lar_cls_name = _gen_coi_name(cls)
+            with code.new_blk("type %s struct" % (lar_cls_name)):
+                for attr in cls.attr_map.itervalues():
+                    code += "m_%s %s" % (attr.name, _gen_type_name_code(attr.type))
+            with code.new_blk("func lar_new_obj_%s(%s) *%s" % (lar_cls_name, _gen_arg_def(cls.construct_method.arg_map), lar_cls_name)):
+                code += "o := new(%s)" % lar_cls_name
+                code += "o.method_%s(%s)" % (cls.name, ", ".join(["l_%s" % name for name in cls.construct_method.arg_map]))
                 code += "return o"
-            for attr_name in cls.attr_set:
-                with code.new_blk("func (self *LarObj_%s) Attr_get_%s() larva_obj.LarPtr" % (cls.name, attr_name)):
-                    code += "return self.M_%s" % attr_name
-                with code.new_blk("func (self *LarObj_%s) Attr_set_%s(v larva_obj.LarPtr)" % (cls.name, attr_name)):
-                    code += "self.M_%s = v" % attr_name
-                for op in "inc", "dec":
-                    with code.new_blk("func (self *LarObj_%s) Attr_%s_%s()" % (cls.name, op, attr_name)):
-                        code += "self.M_%s.Method___%s()" % (attr_name, op)
-                for op in bops:
-                    with code.new_blk("func (self *LarObj_%s) Attr_i%s_%s(v larva_obj.LarPtr)" % (cls.name, op, attr_name)):
-                        code += "self.M_%s.Method___i%s(v)" % (attr_name, op)
-            for method in cls.method_map.itervalues():
-                args = ", ".join(["l_%s" % a for a in method.arg_set])
-                args_def = args
-                if method.arg_set:
-                    args_def += " larva_obj.LarPtr"
-                if method.name == "__init":
-                    with code.new_blk("func NewLarObj_%s_%d(%s) larva_obj.LarPtr" % (cls.name, len(method.arg_set), args_def)):
-                        code += "o := NewLarObj_%s()" % cls.name
-                        code += "o.Method___init_%d(%s)" % (len(method.arg_set), args)
-                        code += "return o.To_lar_ptr()"
-                with code.new_blk("func (self *LarObj_%s) Method_%s_%d(%s) larva_obj.LarPtr" %
-                                  (cls.name, method.name, len(method.arg_set), args_def)):
+            for method in [cls.construct_method] + list(cls.method_map.itervalues()):
+                with code.new_blk("func (this *%s) method_%s(%s) %s" %
+                                  (lar_cls_name, method.name, _gen_arg_def(method.arg_map), _gen_type_name_code(method.type))):
                     _output_stmt_list(code, method.stmt_list)
-                    code += "return larva_obj.NIL"
+                    code += "return %s" % _gen_default_value_code(method.type)
 
-
-        for func in module.func_map.itervalues():
-            if func.is_native:
-                continue
-            args = ", ".join(["l_%s" % a for a in func.arg_set]) + " larva_obj.LarPtr" if func.arg_set else ""
-            with code.new_blk("func Func_%s_%d(%s) larva_obj.LarPtr" % (func.name, len(func.arg_set), args)):
-                _output_stmt_list(code, func.stmt_list)
-                code += "return larva_obj.NIL"
+        for func in list(module.func_map.itervalues()) + list(module.gfunc_inst_map.itervalues()):
+            if "native" not in func.decr_set:
+                with code.new_blk("func %s(%s) %s" %
+                                  (_gen_func_name(func), _gen_arg_def(func.arg_map), _gen_type_name_code(func.type))):
+                    _output_stmt_list(code, func.stmt_list)
+                    code += "return %s" % _gen_default_value_code(func.type)
 
     if has_native_func:
         native_code_file_path_name = os.path.join(module.dir, "native_go", "lar_native.%s.go" % module.name)
