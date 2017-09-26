@@ -105,20 +105,26 @@ def _gen_type_name_code(tp):
     array_dim_count = tp.array_dim_count
     while tp.is_array:
         tp = tp.to_elem_type()
+    _reg_new_arr_func_info(tp, array_dim_count)
     type_name_code = _gen_non_array_type_name(tp)
     if tp.is_obj_type:
         type_name_code = "*" + type_name_code
     return "*[]" * array_dim_count + type_name_code
 
-_new_arr_func_name_set = set()
-def _gen_new_arr_func_name(tp, dim, new_dim):
-    assert not tp.is_array and dim >= new_dim > 0
-    func_name = "lar_util_new_arr_%s_%d_%d" % (_gen_non_array_type_name(tp), dim, new_dim)
-    _new_arr_func_name_set.add(func_name)
-    if new_dim > 1:
-        #递归记录需要生成的内层的new_arr_func_name
-        _gen_new_arr_func_name(tp, dim - 1, new_dim - 1)
-    return func_name
+def _gen_new_arr_func_name(tp, dim_count, new_dim_count):
+    assert not tp.is_array and dim_count >= new_dim_count > 0
+    _reg_new_arr_func_info(tp, dim_count)
+    return "lar_util_new_arr_%s_%d_%d" % (_gen_non_array_type_name(tp), dim_count, new_dim_count)
+
+_new_arr_func_info_set = set()
+def _reg_new_arr_func_info(tp, dim_count):
+    while tp.is_array:
+        dim_count += 1
+        tp = tp.to_elem_type()
+    tp_name = _gen_non_array_type_name(tp)
+    while dim_count > 0:
+        _new_arr_func_info_set.add((tp_name, dim_count))
+        dim_count -= 1
 
 def _gen_func_name(func):
     for i in "func", "gfunc_inst":
@@ -185,12 +191,66 @@ def _gen_expr_code(expr):
     raise "todo"
 
 def _gen_arg_def(arg_map):
-    return ", ".join(["l_%s %s" % (name, _gen_type_name_code(tp)) for name, tp in arg_map.iteritems()])
+    return ", ".join(["l_%s %s%s" % (name, "*" if tp.is_ref else "", _gen_type_name_code(tp)) for name, tp in arg_map.iteritems()])
 
 def _output_stmt_list(code, stmt_list):
-    code += "stmt_list_todo"
-    return
-    raise "todo"
+    for stmt in stmt_list:
+        if stmt.type == "block":
+            with code.new_blk(""):
+                _output_stmt_list(code, stmt.stmt_list)
+            continue
+        if stmt.type in ("break", "continue"):
+            code += stmt.type
+            continue
+        if stmt.type == "return":
+            if stmt.expr is None:
+                code += "return"
+            else:
+                code += "return (%s)" % _gen_expr_code(stmt.expr)
+            continue
+        if stmt.type == "for":
+            with code.new_blk(""):
+                if len(stmt.for_var_map) == 0:
+                    for expr in stmt.init_expr_list:
+                        code += _gen_expr_code(expr)
+                else:
+                    assert len(stmt.for_var_map) == len(stmt.init_expr_list)
+                    for (name, tp), expr in zip(stmt.for_var_map.iteritems(), stmt.init_expr_list):
+                        code += "var l_%s %s = (%s)" % (name, _gen_type_name_code(tp), _gen_expr_code(expr))
+                if stmt.judge_expr is None:
+                    judge_expr_code = ""
+                else:
+                    judge_expr_code = _gen_expr_code(stmt.judge_expr)
+                if len(stmt.loop_expr_list) == 0:
+                    loop_expr_code = ""
+                elif len(stmt.loop_expr_list) == 1:
+                    loop_expr_code = _gen_expr_code(stmt.loop_expr_list[0])
+                else:
+                    loop_expr_code = "func () {%s}()" % "; ".join([_gen_expr_code(e) for e in loop_expr_list])
+                with code.new_blk("for ; %s; %s" % (judge_expr_code, loop_expr_code)):
+                    _output_stmt_list(code, stmt.stmt_list)
+            continue
+        if stmt.type == "while":
+            with code.new_blk("for (%s)" % stmt.expr):
+                _output_stmt_list(code, stmt.stmt_list)
+            continue
+        if stmt.type == "if":
+            assert len(stmt.if_expr_list) == len(stmt.if_stmt_list_list)
+            for i, (if_expr, if_stmt_list) in enumerate(zip(stmt.if_expr_list, stmt.if_stmt_list_list)):
+                with code.new_blk("%sif (%s)" % ("" if i == 0 else "else ", _gen_expr_code(if_expr))):
+                    _output_stmt_list(code, if_stmt_list)
+            if stmt.else_stmt_list is not None:
+                with code.new_blk("else"):
+                    _output_stmt_list(code, stmt.else_stmt_list)
+            continue
+        if stmt.type == "var":
+            code += ("var l_%s %s = (%s)" %
+                     (stmt.name, _gen_type_name_code(stmt_list.var_map[stmt.name]), _gen_expr_code(stmt.expr)))
+            continue
+        if stmt.type == "expr":
+            code += _gen_expr_code(stmt.expr)
+            continue
+        raise Exception("Bug")
 
 curr_module = None
 def _output_module():
