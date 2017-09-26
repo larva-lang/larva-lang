@@ -99,25 +99,16 @@ def _gen_non_array_type_name(tp):
     assert tp.token.is_reserved
     return "lar_type_%s" % tp.name
 
-def _gen_non_array_type_name_code(tp):
-    type_name_code = _gen_non_array_type_name(tp)
-    if tp.is_obj_type:
-        type_name_code = "*" + type_name_code
-    return type_name_code
-
-def _gen_type_name(tp):
+def _gen_type_name_code(tp):
     if tp.is_void:
         return ""
     array_dim_count = tp.array_dim_count
     while tp.is_array:
         tp = tp.to_elem_type()
-    return "*[]" * array_dim_count + _gen_non_array_type_name_code(tp)
-
-def _gen_type_name_code(tp):
-    type_name_code = _gen_type_name(tp)
-    if tp.is_obj_type and not tp.is_array:
+    type_name_code = _gen_non_array_type_name(tp)
+    if tp.is_obj_type:
         type_name_code = "*" + type_name_code
-    return type_name_code
+    return "*[]" * array_dim_count + type_name_code
 
 _new_arr_func_name_set = set()
 def _gen_new_arr_func_name(tp, dim, new_dim):
