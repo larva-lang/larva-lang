@@ -63,8 +63,15 @@ def _make_number_type_same(ea, eb):
 
     raise _CantMakeNumberTypeSame()
 
-class _Expr:
+class ExprBase:
+    def __init__(self, expr_name):
+        self.is_expr = self.is_se_expr = False
+        setattr(self, "is_" + expr_name, True)
+
+class _Expr(ExprBase):
     def __init__(self, op, arg, type):
+        ExprBase.__init__(self, "expr")
+
         if op != "literal" and type.is_literal_int:
             type = larc_type.INT_TYPE
         if op != "literal":

@@ -20,8 +20,9 @@ class _StmtList(list):
         list.__init__(self)
         self.var_map = var_map
 
-class _SeExpr:
+class _SeExpr(larc_expr.ExprBase):
     def __init__(self, lvalue, op, expr):
+        larc_expr.ExprBase.__init__(self, "se_expr")
         self.lvalue = lvalue
         self.op = op
         self.expr = expr

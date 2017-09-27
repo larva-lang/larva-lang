@@ -186,9 +186,69 @@ def _gen_default_value_code(tp):
     assert tp.is_obj_type
     return "nil"
 
+def _gen_se_expr_code(expr):
+    return "todo"
+
 def _gen_expr_code(expr):
-    return "expr_todo"
-    raise "todo"
+    if expr.is_se_expr:
+        return _gen_se_expr_code(expr)
+    assert expr.is_expr
+
+    if expr.op == "force_convert":
+        return "todo"
+
+    if expr.op in ("~", "!", "neg", "pos"):
+        return "todo"
+
+    if expr.op in larc_token.BINOCULAR_OP_SYM_SET:
+        return "todo"
+
+    if expr.op == "?:":
+        return "todo"
+
+    if expr.op == "local_var":
+        return "todo"
+
+    if expr.op == "literal":
+        return "todo"
+
+    if expr.op == "new":
+        return "todo"
+
+    if expr.op == "new_array":
+        return "todo"
+
+    if expr.op == "this":
+        return "todo"
+
+    if expr.op == "[]":
+        return "todo"
+
+    if expr.op == "array.size":
+        return "todo"
+
+    if expr.op == "str_format":
+        return "todo"
+
+    if expr.op == "call_method":
+        return "todo"
+
+    if expr.op == ".":
+        return "todo"
+
+    if expr.op == "global_var":
+        return "todo"
+
+    if expr.op == "call_func":
+        return "todo"
+
+    if expr.op == "this.attr":
+        return "todo"
+
+    if expr.op == "call_this.method":
+        return "todo"
+
+    raise Exception("Bug")
 
 def _gen_arg_def(arg_map):
     return ", ".join(["l_%s %s%s" % (name, "*" if tp.is_ref else "", _gen_type_name_code(tp)) for name, tp in arg_map.iteritems()])
