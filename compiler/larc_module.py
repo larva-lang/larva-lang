@@ -1005,7 +1005,10 @@ class Module:
         assert "main" in self.func_map
         return self.func_map["main"]
 
-    def has_native_func(self):
+    def has_native_item(self):
+        for cls in self.cls_map.itervalues():
+            if "native" in cls.decr_set:
+                return True
         for func in self.func_map.itervalues():
             if "native" in func.decr_set:
                 return True

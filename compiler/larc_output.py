@@ -118,6 +118,8 @@ def _gen_new_arr_func_name(tp, dim_count, new_dim_count):
 
 _new_arr_func_info_set = set()
 def _reg_new_arr_func_info(tp, dim_count):
+    if tp.is_void:
+        return
     while tp.is_array:
         dim_count += 1
         tp = tp.to_elem_type()
@@ -315,7 +317,7 @@ def _output_stmt_list(code, stmt_list):
 curr_module = None
 def _output_module():
     module = curr_module
-    has_native_func = module.has_native_func()
+    has_native_item = module.has_native_item()
     module_file_name = os.path.join(out_prog_dir, "%s.mod.%s.go" % (prog_module_name, module.name))
     with _Code(module_file_name) as code:
         code += ""
@@ -343,6 +345,12 @@ def _output_module():
         for cls in list(module.cls_map.itervalues()) + list(module.gcls_inst_map.itervalues()):
             if "native" in cls.decr_set:
                 #todo reg arrs
+                for attr in cls.attr_map.itervalues():
+                    _reg_new_arr_func_info(attr.type, 0)
+                for method in [cls.construct_method] + list(cls.method_map.itervalues()):
+                    _reg_new_arr_func_info(method.type, 0)
+                    for tp in method.arg_map.itervalues():
+                        _reg_new_arr_func_info(tp, 0)
                 continue
             lar_cls_name = _gen_coi_name(cls)
             with code.new_blk("type %s struct" % (lar_cls_name)):
@@ -360,14 +368,15 @@ def _output_module():
 
         for func in list(module.func_map.itervalues()) + list(module.gfunc_inst_map.itervalues()):
             if "native" in func.decr_set:
-                #todo reg arrs
+                _reg_new_arr_func_info(func.type, 0)
+                for tp in func.arg_map.itervalues():
+                    _reg_new_arr_func_info(tp, 0)
                 continue
-            with code.new_blk("func %s(%s) %s" %
-                                (_gen_func_name(func), _gen_arg_def(func.arg_map), _gen_type_name_code(func.type))):
+            with code.new_blk("func %s(%s) %s" % (_gen_func_name(func), _gen_arg_def(func.arg_map), _gen_type_name_code(func.type))):
                 _output_stmt_list(code, func.stmt_list)
                 code += "return %s" % _gen_default_value_code(func.type)
 
-    if has_native_func:
+    if has_native_item:
         native_code_file_path_name = os.path.join(module.dir, "native_go", "lar_native.%s.go" % module.name)
         if not os.path.exists(native_code_file_path_name):
             larc_common.exit("找不到模块'%s'的go语言的native部分实现：[%s]" % (module.name, native_code_file_path_name))
