@@ -137,11 +137,11 @@ class _ClsBase(_CoiBase):
                 coi = attr.type.get_coi()
                 if isinstance(coi, (_Cls, _GclsInst)):
                     coi.expand_usemethod(expand_chain + "." + attr.name)
-                usemethod_coi_list.append(coi)
+                usemethod_coi_list.append((attr, coi))
 
         #列表中的类或接口的可见方法都use过来
         usemethod_map = larc_common.OrderedDict()
-        for coi in usemethod_coi_list:
+        for attr, coi in usemethod_coi_list:
             for method in coi.method_map.itervalues():
                 if coi.module is not self.module and "public" not in method.decr_set:
                     #无访问权限的忽略
@@ -157,7 +157,7 @@ class _ClsBase(_CoiBase):
                     larc_common.exit("类'%s'通过usemethod引入的方法'%s'与导入模块同名" % (self, method.name))
                 if self.is_gcls_inst and method.name in self.gcls.gtp_name_list:
                     larc_common.exit("类'%s'通过usemethod引入的方法'%s'与泛型参数同名" % (self, method.name))
-                usemethod_map[method.name] = _UseMethod(self, method)
+                usemethod_map[method.name] = _UseMethod(self, attr, method)
         for method in usemethod_map.itervalues():
             assert method.name not in self.method_map
             self.method_map[method.name] = method
@@ -215,7 +215,8 @@ class _Attr:
         self.type.check(self.cls.module)
 
 class _UseMethod:
-    def __init__(self, cls, method):
+    def __init__(self, cls, attr, method):
+        self.attr = attr
         self.method = method
 
         self.cls = cls

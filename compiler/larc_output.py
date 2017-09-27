@@ -366,6 +366,11 @@ def _output_module():
                     _output_stmt_list(code, method.stmt_list)
                     code += "return %s" % _gen_default_value_code(method.type)
 
+        for intf in list(module.intf_map.itervalues()) + list(module.gintf_inst_map.itervalues()):
+            with code.new_blk("type %s interface" % (_gen_coi_name(intf))):
+                for method in intf.method_map.itervalues():
+                    code += "method_%s(%s) %s" % (method.name, _gen_arg_def(method.arg_map), _gen_type_name_code(method.type))
+
         for func in list(module.func_map.itervalues()) + list(module.gfunc_inst_map.itervalues()):
             if "native" in func.decr_set:
                 _reg_new_arr_func_info(func.type, 0)
