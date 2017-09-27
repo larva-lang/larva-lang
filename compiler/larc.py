@@ -90,12 +90,11 @@ def main():
             #所有ginst都编译完毕
             break
 
-    #暂时写死output流程，输出为go
-    output_lib = larc_output.to_go
-    output_lib.main_module_name = main_module.name
-    output_lib.out_dir = os.path.join(src_dir, main_module.name)
-    output_lib.runtime_dir = os.path.join(os.path.dirname(lib_dir), "runtime")
-    output_lib.output()
+    #输出目标代码
+    larc_output.main_module_name = main_module.name
+    larc_output.out_dir = os.path.join(src_dir, main_module.name)
+    larc_output.runtime_dir = os.path.join(os.path.dirname(lib_dir), "runtime")
+    larc_output.output()
 
 if __name__ == "__main__":
     main()
