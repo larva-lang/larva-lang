@@ -303,7 +303,7 @@ def _output_stmt_list(code, stmt_list):
                 elif len(stmt.loop_expr_list) == 1:
                     loop_expr_code = _gen_expr_code(stmt.loop_expr_list[0])
                 else:
-                    loop_expr_code = "func () {%s}()" % "; ".join([_gen_expr_code(e) for e in loop_expr_list])
+                    loop_expr_code = "func () {%s}()" % "; ".join([_gen_expr_code(e) for e in stmt.loop_expr_list])
                 with code.new_blk("for ; %s; %s" % (judge_expr_code, loop_expr_code)):
                     _output_stmt_list(code, stmt.stmt_list)
             continue
