@@ -189,7 +189,10 @@ def _gen_default_value_code(tp):
     return "nil"
 
 def _gen_se_expr_code(expr):
-    return "todo"
+    if expr.expr is None:
+        assert expr.op in ("++", "--")
+        return "%s %s" % (_gen_expr_code(expr.lvalue), expr.op)
+    return "%s %s %s" % (_gen_expr_code(expr.lvalue), expr.op, _gen_expr_code(expr.expr))
 
 def _gen_expr_code(expr):
     if expr.is_se_expr:
@@ -197,16 +200,28 @@ def _gen_expr_code(expr):
     assert expr.is_expr
 
     if expr.op == "force_convert":
-        return "todo"
+        tp, e = expr.arg
+        return "(%s)(%s)" % (_gen_type_name_code(tp), _gen_expr_code(e))
 
     if expr.op in ("~", "!", "neg", "pos"):
-        return "todo"
+        e = expr.arg
+        return "%s(%s)" % ({"~" : "^", "!" : "!", "neg" : "-", "pos" : "+"}[expr.op], _gen_expr_code(e))
 
     if expr.op in larc_token.BINOCULAR_OP_SYM_SET:
-        return "todo"
+        ea, eb = expr.arg
+        return "(%s) %s (%s)" % (_gen_expr_code(ea), expr.op, _gen_expr_code(eb))
 
     if expr.op == "?:":
-        return "todo"
+        ea, eb, ec = expr.arg
+        ea_code = _gen_expr_code(ea)
+        eb_code = _gen_expr_code(eb)
+        ec_code = _gen_expr_code(ec)
+        return """func () %s {
+if (%s) {
+return (%s)
+}
+return (%s)
+}()""" % (_gen_type_name_code(expr.type), _gen_expr_code(ea), _gen_expr_code(eb), _gen_expr_code(ec))
 
     if expr.op == "local_var":
         return "todo"
