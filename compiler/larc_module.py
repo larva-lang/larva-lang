@@ -231,6 +231,9 @@ class _Cls(_ClsBase):
     def __init__(self, module, decr_set, name, gtp_name_list):
         _ClsBase.__init__(self)
 
+        if gtp_name_list:
+            assert "native" not in decr_set
+
         self.module = module
         self.decr_set = decr_set
         self.name = name
@@ -314,9 +317,13 @@ class _Cls(_ClsBase):
         arg_map = _parse_arg_map(token_list, self.module.dep_module_set, [])
         token_list.pop_sym(")")
 
-        token_list.pop_sym("{")
-        block_token_list, sym = larc_token.parse_token_list_until_sym(token_list, ("}",))
-        assert sym == "}"
+        if "native" in self.decr_set:
+            token_list.pop_sym(";")
+            block_token_list = None
+        else:
+            token_list.pop_sym("{")
+            block_token_list, sym = larc_token.parse_token_list_until_sym(token_list, ("}",))
+            assert sym == "}"
 
         if name == self.name:
             #构造方法
@@ -697,8 +704,8 @@ class Module:
             t = token_list.peek()
             if t.is_reserved("class"):
                 #解析类
-                if decr_set - set(["public"]):
-                    t.syntax_err("类只能用public修饰")
+                if decr_set - set(["public", "native"]):
+                    t.syntax_err("类只能用public和native修饰")
                 self._parse_cls(decr_set, token_list)
                 continue
 
@@ -773,6 +780,8 @@ class Module:
         self._check_redefine(t, name)
         t = token_list.peek()
         if t.is_sym("<"):
+            if "native" in decr_set:
+                t.syntax_err("不可定义native泛型类")
             token_list.pop_sym("<")
             gtp_name_list = _parse_gtp_name_list(token_list, self.dep_module_set)
             if name in gtp_name_list:

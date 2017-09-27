@@ -341,6 +341,9 @@ def _output_module():
                     code += "%s = %s" % (_gen_gv_name(gv), _gen_expr_code(gv.expr))
 
         for cls in list(module.cls_map.itervalues()) + list(module.gcls_inst_map.itervalues()):
+            if "native" in cls.decr_set:
+                #todo reg arrs
+                continue
             lar_cls_name = _gen_coi_name(cls)
             with code.new_blk("type %s struct" % (lar_cls_name)):
                 for attr in cls.attr_map.itervalues():
@@ -356,11 +359,13 @@ def _output_module():
                     code += "return %s" % _gen_default_value_code(method.type)
 
         for func in list(module.func_map.itervalues()) + list(module.gfunc_inst_map.itervalues()):
-            if "native" not in func.decr_set:
-                with code.new_blk("func %s(%s) %s" %
-                                  (_gen_func_name(func), _gen_arg_def(func.arg_map), _gen_type_name_code(func.type))):
-                    _output_stmt_list(code, func.stmt_list)
-                    code += "return %s" % _gen_default_value_code(func.type)
+            if "native" in func.decr_set:
+                #todo reg arrs
+                continue
+            with code.new_blk("func %s(%s) %s" %
+                                (_gen_func_name(func), _gen_arg_def(func.arg_map), _gen_type_name_code(func.type))):
+                _output_stmt_list(code, func.stmt_list)
+                code += "return %s" % _gen_default_value_code(func.type)
 
     if has_native_func:
         native_code_file_path_name = os.path.join(module.dir, "native_go", "lar_native.%s.go" % module.name)

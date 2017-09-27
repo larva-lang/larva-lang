@@ -1,49 +1,20 @@
 //内置builtin模块
 
-public class String
+public native class String
 {
-    public String(char[] arr)
-    {
-        s = new char[arr.size];
-        for (long i = 0; i < arr.size; ++ i)
-        {
-            s[i] = arr[i];
-        }
-    }
-
-    public char char_at(long idx)
-    {
-        return s[idx];
-    }
-
-    public int cmp(String other)
-    {
-        long min_size = s.size > other.s.size ? other.s.size : s.size;
-        for (long i = 0; i < min_size; ++ i)
-        {
-            if (s[i] < other.s[i])
-            {
-                return -1;
-            }
-            if (s[i] > other.s[i])
-            {
-                return 1;
-            }
-        }
-        if (min_size < s.size)
-        {
-            return 1;
-        }
-        if (min_size < other.s.size)
-        {
-            return -1;
-        }
-        return 0;
-    }
-
-    char[] s;
+    public String(char[] arr);
+    public char char_at(long idx);
+    public int cmp(String other);
 }
 
-public interface Error
+public class Error
 {
+    public Error(int code, String msg)
+    {
+        this.code = code;
+        this.msg = msg;
+    }
+
+    public int code;
+    public String msg;
 }

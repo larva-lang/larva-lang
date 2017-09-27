@@ -1,6 +1,0 @@
-//io模块，输入输出相关接口
-
-public interface File
-{
-    public Error write(String s);
-}

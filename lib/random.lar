@@ -26,6 +26,8 @@ void init_seed()
     seed_z = a % 30322;
     a /= 30322;
     ++ seed_z;
+
+    seed_inited = true;
 }
 
 public double random()
