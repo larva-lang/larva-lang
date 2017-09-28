@@ -3,6 +3,7 @@
 public native class String
 {
     public String(char[] arr);
+    public long size();
     public char char_at(long idx);
     public int cmp(String other);
 

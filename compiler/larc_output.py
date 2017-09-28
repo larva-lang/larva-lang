@@ -277,7 +277,7 @@ return (%s)
 
     if expr.op == "array.size":
         arr_e = expr.arg
-        return "(lar_type_ulong)(len(*(%s)))" % _gen_expr_code(arr_e)
+        return "(lar_type_long)(len(*(%s)))" % _gen_expr_code(arr_e)
 
     if expr.op == "str_format":
         fmt, expr_list = expr.arg
