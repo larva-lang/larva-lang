@@ -198,7 +198,12 @@ def _gen_expr_code(expr):
     if expr.is_se_expr:
         return _gen_se_expr_code(expr)
     assert expr.is_expr
+    expr_code = _gen_expr_code_ex(expr)
+    if expr.is_ref:
+        expr_code = "&(%s)" % expr_code
+    return expr_code
 
+def _gen_expr_code_ex(expr):
     if expr.op == "force_convert":
         tp, e = expr.arg
         return "(%s)(%s)" % (_gen_type_name_code(tp), _gen_expr_code(e))
@@ -213,9 +218,6 @@ def _gen_expr_code(expr):
 
     if expr.op == "?:":
         ea, eb, ec = expr.arg
-        ea_code = _gen_expr_code(ea)
-        eb_code = _gen_expr_code(eb)
-        ec_code = _gen_expr_code(ec)
         return """func () %s {
 if (%s) {
 return (%s)
@@ -224,25 +226,40 @@ return (%s)
 }()""" % (_gen_type_name_code(expr.type), _gen_expr_code(ea), _gen_expr_code(eb), _gen_expr_code(ec))
 
     if expr.op == "local_var":
-        return "todo"
+        name = expr.arg
+        return "%sl_%s" % ("*" if expr.type.is_ref else "", name)
 
     if expr.op == "literal":
-        return "todo"
+        t = expr.arg
+        assert t.type.startswith("literal_")
+        literal_type = t.type[8 :]
+        tp = expr.type
+        if literal_type in ("nil", "bool"):
+            return t.value
+        if literal_type == "int":
+            assert tp == larc_type.LITERAL_INT_TYPE
+            return "%d" % t.value
+        if literal_type == "str":
+            return _gen_str_literal(t.value)
+        return "%s(%s)" % (_gen_type_name_code(tp), t.value)
 
     if expr.op == "new":
         return "todo"
 
     if expr.op == "new_array":
+        #todo reg arr
         return "todo"
 
     if expr.op == "this":
-        return "todo"
+        return "this"
 
     if expr.op == "[]":
-        return "todo"
+        arr_e, e = expr.arg
+        return "(%s)[%s]" % (_gen_expr_code(arr_e), _gen_expr_code(e))
 
     if expr.op == "array.size":
-        return "todo"
+        arr_e = expr.arg
+        return "(%s)(len(%s))" % (_gen_type_name_code(larc_type.ULONG_TYPE), _gen_expr_code(arr_e))
 
     if expr.op == "str_format":
         return "todo"
@@ -251,16 +268,19 @@ return (%s)
         return "todo"
 
     if expr.op == ".":
-        return "todo"
+        e, attr = expr.arg
+        return "(%s).m_%s" % (_gen_expr_code(e), attr.name)
 
     if expr.op == "global_var":
-        return "todo"
+        gv = expr.arg
+        return _gen_gv_name(gv)
 
     if expr.op == "call_func":
         return "todo"
 
     if expr.op == "this.attr":
-        return "todo"
+        attr = expr.arg
+        return "this.m_%s" % attr.name
 
     if expr.op == "call_this.method":
         return "todo"
@@ -359,7 +379,6 @@ def _output_module():
 
         for cls in list(module.cls_map.itervalues()) + list(module.gcls_inst_map.itervalues()):
             if "native" in cls.decr_set:
-                #todo reg arrs
                 for attr in cls.attr_map.itervalues():
                     _reg_new_arr_func_info(attr.type, 0)
                 for method in [cls.construct_method] + list(cls.method_map.itervalues()):

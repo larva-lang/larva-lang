@@ -406,7 +406,7 @@ class Parser:
                         t, name = self.token_list.pop_name()
                         if name not in ("size",):
                             t.syntax_err("数组没有'%s'属性" % name)
-                        parse_stk.stk[-1] = _Expr("array.size", parse_stk.stk[-1], larc_type.LONG_TYPE)
+                        parse_stk.stk[-1] = _Expr("array.size", parse_stk.stk[-1], larc_type.ULONG_TYPE)
                     else:
                         if obj.type.token.is_reserved:
                             t.syntax_err("基本类型'%s'无法进行'.'运算" % obj.type)
