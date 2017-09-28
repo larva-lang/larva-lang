@@ -1,1 +1,1 @@
-//todo native builtins module
+type lar_cls_10___builtins_6_String string

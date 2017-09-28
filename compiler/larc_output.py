@@ -162,7 +162,7 @@ def _output_booter():
                 code += "argv[i] = lar_util_create_lar_str_from_go_str(os.Args[i])"
             code += "lar_env_init_mod___builtins()"
             code += "lar_env_init_mod_%s()" % main_module_name
-            code += "return %s(argv)" % _gen_func_name(larc_module.module_map[main_module_name].get_main_func())
+            code += "return int(%s(argv))" % _gen_func_name(larc_module.module_map[main_module_name].get_main_func())
 
 def _gen_str_literal(s):
     code_list = []
@@ -443,6 +443,17 @@ def _output_module():
         f.close()
 
 def _output_util():
+    #拷贝runtime中固定的util代码
+    util_fix_file_path_name = os.path.join(runtime_dir, "lar_util.go")
+    if not os.path.exists(util_fix_file_path_name):
+        larc_common.exit("runtime文件缺失，请检查编译器环境：[%s]" % util_fix_file_path_name)
+    f = open(os.path.join(out_prog_dir, "%s.util_fix.go" % prog_module_name), "w")
+    print >> f, "package %s" % prog_module_name
+    print >> f
+    f.write(open(util_fix_file_path_name).read())
+    f.close()
+
+    #生成util代码
     return "todo"
 
 def _output_makefile():
@@ -469,7 +480,6 @@ def _output_makefile():
 def output():
     global runtime_dir, out_prog_dir, prog_module_name, curr_module
 
-    runtime_dir = os.path.join(runtime_dir, "go")
     out_prog_dir = os.path.join(out_dir, "src", "lar_prog_" + main_module_name)
 
     shutil.rmtree(out_dir, True)
