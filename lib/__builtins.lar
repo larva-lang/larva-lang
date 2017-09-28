@@ -5,6 +5,15 @@ public native class String
     public String(char[] arr);
     public char char_at(long idx);
     public int cmp(String other);
+
+    public Error parse_short(int base, ref short n);
+    public Error parse_ushort(int base, ref ushort n);
+    public Error parse_int(int base, ref int n);
+    public Error parse_uint(int base, ref uint n);
+    public Error parse_long(int base, ref long n);
+    public Error parse_ulong(int base, ref ulong n);
+    public Error parse_float(ref float n);
+    public Error parse_double(ref double n);
 }
 
 public class Error

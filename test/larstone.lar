@@ -20,7 +20,7 @@ class Record
     }
 }
 
-int loops = 5000000;
+int loops = 50000000;
 
 final int Ident1 = 1,
           Ident2 = 2,
@@ -260,17 +260,17 @@ public int main(String[] argv)
 {
     if (argv.size > 1)
     {
-        Error err = argv[1].to_int(ref loops);
+        Error err = argv[1].parse_int(0, ref loops);
         if (err != nil)
         {
-            sys.stdout.write("Invalid loop arg [%v]\n".format(argv[1]));
+            sys.println("Invalid loop arg [%v]".format(argv[1]));
             return 1;
         }
     }
     double ts = time.time();
     Proc0();
     double tm = time.time() - ts;
-    sys.stdout.write("Time used: %v sec\n".format(tm));
-    sys.stdout.write("This machine benchmarks at %v LarStones/second\n".format((double)loops / tm));
+    sys.println("Time used: %v sec".format(tm));
+    sys.println("This machine benchmarks at %v LarStones/second".format((double)loops / tm));
     return 0;
 }

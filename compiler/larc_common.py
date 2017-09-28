@@ -8,7 +8,6 @@ import sys
 
 def exit(msg):
     print >> sys.stderr, "Error:", msg.decode("utf8")
-    raise #only for debugging compiler
     sys.exit(1)
 
 def warning(msg):

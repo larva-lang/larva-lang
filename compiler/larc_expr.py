@@ -458,7 +458,10 @@ class Parser:
                 if need_type == expr.type:
                     break
                 if expr.op == "literal" and expr.type == larc_type.LITERAL_INT_TYPE and need_type.is_integer_type:
-                    expr = _convert_literal_int_expr(expr, need_type)
+                    e = _convert_literal_int_expr(expr, need_type)
+                    if e is None:
+                        continue
+                    expr = e
                 if expr is not None and need_type.can_convert_from(expr.type):
                     expr = _Expr("force_convert", (need_type, expr), need_type)
                     break
