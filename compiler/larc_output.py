@@ -144,7 +144,7 @@ def _gen_func_name(func):
     return func_name
 
 def _output_main_pkg():
-    with _Code(os.path.join(out_prog_dir, "lar_prog.%s.go" % main_module_name), "main") as code:
+    with _Code(os.path.join(out_dir, "src", "lar_prog.%s.go" % main_module_name), "main") as code:
         with code.new_blk("import"):
             code += '"os"'
             code += '"%s"' % prog_module_name
@@ -433,7 +433,7 @@ def _output_module():
                 code += "return %s" % _gen_default_value_code(func.type)
 
     if has_native_item:
-        native_code_file_path_name = os.path.join(module.dir, "native_go", "lar_native.%s.go" % module.name)
+        native_code_file_path_name = os.path.join(module.dir, "%s.lar_native.go" % module.name)
         if not os.path.exists(native_code_file_path_name):
             larc_common.exit("找不到模块'%s'的go语言的native部分实现：[%s]" % (module.name, native_code_file_path_name))
         f = open(os.path.join(out_prog_dir, "%s.mod.%s.native.go" % (prog_module_name, module.name)), "w")
@@ -443,19 +443,19 @@ def _output_module():
         f.close()
 
 def _output_util():
-    raise "todo"
+    return "todo"
 
 def _output_makefile():
     if sys.platform.lower().startswith("win"):
         f = open(os.path.join(out_dir, "make.bat"), "w")
         print >> f, "@set GOPATH=%s" % out_dir
-        print >> f, "go build -o %s.exe src/lar_prog_%s/lar_prog.%s.go" % (main_module_name, main_module_name, main_module_name)
+        print >> f, "go build -o %s.exe src/lar_prog.%s.go" % (main_module_name, main_module_name)
         print >> f, "@if %ERRORLEVEL% == 0 goto success"
         print >> f, "@pause"
         print >> f, ":success"
         f = open(os.path.join(out_dir, "make_and_run.bat"), "w")
         print >> f, "@set GOPATH=%s" % out_dir
-        print >> f, "go build -o %s.exe src/lar_prog_%s/lar_prog.%s.go" % (main_module_name, main_module_name, main_module_name)
+        print >> f, "go build -o %s.exe src/lar_prog.%s.go" % (main_module_name, main_module_name)
         print >> f, "@if %ERRORLEVEL% == 0 goto success"
         print >> f, "@pause"
         print >> f, "@exit"
