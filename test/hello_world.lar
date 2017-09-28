@@ -2,6 +2,6 @@ import sys;
 
 public int main(String[] argv)
 {
-    sys.get_stdio().write("hello world\n");
+    sys.println("hello world");
     return 0;
 }

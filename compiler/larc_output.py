@@ -111,10 +111,14 @@ def _gen_type_name_code(tp):
         type_name_code = "*" + type_name_code
     return "*[]" * array_dim_count + type_name_code
 
+def _gen_new_arr_func_name_by_tp_name(tp_name, dim_count, new_dim_count):
+    assert dim_count >= new_dim_count > 0
+    return "lar_util_new_arr_%s_%d_%d" % (tp_name, dim_count, new_dim_count)
+
 def _gen_new_arr_func_name(tp, dim_count, new_dim_count):
     assert not tp.is_array and dim_count >= new_dim_count > 0
     _reg_new_arr_func_info(tp, dim_count)
-    return "lar_util_new_arr_%s_%d_%d" % (_gen_non_array_type_name(tp), dim_count, new_dim_count)
+    return _gen_new_arr_func_name_by_tp_name(_gen_non_array_type_name(tp), dim_count, new_dim_count)
 
 _new_arr_func_info_set = set()
 def _reg_new_arr_func_info(tp, dim_count):
@@ -156,13 +160,15 @@ def _output_booter():
         with code.new_blk("import"):
             code += '"os"'
         with code.new_blk("func Lar_booter_start_prog() int"):
-            code += ("argv := %s((%s)(len(os.Args)))" %
-                     (_gen_new_arr_func_name(larc_type.STR_TYPE, 1, 1), _gen_type_name_code(larc_type.LONG_TYPE)))
+            code += "argv := %s((lar_type_long)(len(os.Args)))" % (_gen_new_arr_func_name(larc_type.STR_TYPE, 1, 1))
             with code.new_blk("for i := 0; i < len(os.Args); i ++"):
-                code += "argv[i] = lar_util_create_lar_str_from_go_str(os.Args[i])"
+                code += "(*argv)[i] = lar_util_create_lar_str_from_go_str(os.Args[i])"
             code += "lar_env_init_mod___builtins()"
             code += "lar_env_init_mod_%s()" % main_module_name
             code += "return int(%s(argv))" % _gen_func_name(larc_module.module_map[main_module_name].get_main_func())
+
+def _gen_str_literal_name(t):
+    return "lar_literal_str_%s_%d" % (curr_module.name, id(t))
 
 def _gen_str_literal(s):
     code_list = []
@@ -243,7 +249,7 @@ return (%s)
             assert tp == larc_type.LITERAL_INT_TYPE
             return "%d" % t.value
         if literal_type == "str":
-            return _gen_str_literal(t.value)
+            return _gen_str_literal_name(t)
         return "%s(%s)" % (_gen_type_name_code(tp), t.value)
 
     if expr.op == "new":
@@ -260,19 +266,18 @@ return (%s)
             new_dim_count = len(size_list)
         assert new_dim_count > 0
         return "%s(%s)" % (_gen_new_arr_func_name(tp, len(size_list), new_dim_count),
-                           ", ".join(["(%s)(%s)" % (_gen_type_name_code(larc_type.LONG_TYPE), _gen_expr_code(e))
-                                      for e in size_list[: new_dim_count]]))
+                           ", ".join(["(lar_type_long)(%s)" % _gen_expr_code(e) for e in size_list[: new_dim_count]]))
 
     if expr.op == "this":
         return "this"
 
     if expr.op == "[]":
         arr_e, e = expr.arg
-        return "(%s)[%s]" % (_gen_expr_code(arr_e), _gen_expr_code(e))
+        return "(*(%s))[%s]" % (_gen_expr_code(arr_e), _gen_expr_code(e))
 
     if expr.op == "array.size":
         arr_e = expr.arg
-        return "(%s)(len(%s))" % (_gen_type_name_code(larc_type.ULONG_TYPE), _gen_expr_code(arr_e))
+        return "(lar_type_ulong)(len(%s))" % _gen_expr_code(arr_e)
 
     if expr.op == "str_format":
         fmt, expr_list = expr.arg
@@ -375,8 +380,8 @@ def _output_module():
         code += ""
         for t in module.literal_str_list:
             assert t.is_literal("str")
-            code += ("var lar_literal_str_%s_%d %s = lar_util_create_lar_str_from_go_str(%s)" %
-                     (module.name, id(t), _gen_type_name_code(larc_type.STR_TYPE), _gen_str_literal(t.value)))
+            code += ("var %s %s = lar_util_create_lar_str_from_go_str(%s)" %
+                     (_gen_str_literal_name(t), _gen_type_name_code(larc_type.STR_TYPE), _gen_str_literal(t.value)))
 
         code += ""
         for gv in module.global_var_map.itervalues():
@@ -454,7 +459,27 @@ def _output_util():
     f.close()
 
     #生成util代码
-    return "todo"
+    with _Code(os.path.join(out_prog_dir, "%s.util.go" % prog_module_name)) as code:
+        for tp_name, dim_count in _new_arr_func_info_set:
+            assert dim_count > 0
+            tp_name_code = tp_name
+            if not tp_name.startswith("lar_type"):
+                tp_name_code = "*" + tp_name_code
+            for new_dim_count in xrange(1, dim_count + 1):
+                new_arr_func_name = _gen_new_arr_func_name_by_tp_name(tp_name, dim_count, new_dim_count)
+                arg_code = ", ".join(["d%d_size" % i for i in xrange(new_dim_count)]) + " lar_type_long"
+                arr_tp_name_code = "*[]" * dim_count + tp_name_code
+                if new_dim_count == 1:
+                    elem_code = "nil" if arr_tp_name_code[3] == "*" else "0"
+                else:
+                    assert new_dim_count > 1
+                    elem_code = "%s(%s)" % (_gen_new_arr_func_name_by_tp_name(tp_name, dim_count - 1, new_dim_count - 1), 
+                                            ", ".join(["d%d_size" % i for i in xrange(1, new_dim_count)]))
+                with code.new_blk("func %s(%s) %s" % (new_arr_func_name, arg_code, arr_tp_name_code)):
+                    code += "arr := make(%s, d0_size)" % arr_tp_name_code[1 :]
+                    with code.new_blk("for i := lar_type_long(0); i < d0_size; i ++"):
+                        code += "arr[i] = %s" % elem_code
+                    code += "return &arr"
 
 def _output_makefile():
     if sys.platform.lower().startswith("win"):

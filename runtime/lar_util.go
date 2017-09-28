@@ -9,8 +9,3 @@ type lar_type_long int64
 type lar_type_ulong uint64
 type lar_type_float float32
 type lar_type_double float64
-
-func lar_util_create_lar_str_from_go_str(s string) *lar_cls_10___builtins_6_String {
-	ls := lar_cls_10___builtins_6_String(s)
-	return &ls
-}
