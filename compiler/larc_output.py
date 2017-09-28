@@ -157,7 +157,7 @@ def _output_booter():
             code += '"os"'
         with code.new_blk("func Lar_booter_start_prog() int"):
             code += ("argv := %s((%s)(len(os.Args)))" %
-                     (_gen_new_arr_func_name(larc_type.STR_TYPE, 1, 1), _gen_type_name_code(larc_type.ULONG_TYPE)))
+                     (_gen_new_arr_func_name(larc_type.STR_TYPE, 1, 1), _gen_type_name_code(larc_type.LONG_TYPE)))
             with code.new_blk("for i := 0; i < len(os.Args); i ++"):
                 code += "argv[i] = lar_util_create_lar_str_from_go_str(os.Args[i])"
             code += "lar_env_init_mod___builtins()"
@@ -193,6 +193,9 @@ def _gen_se_expr_code(expr):
         assert expr.op in ("++", "--")
         return "%s %s" % (_gen_expr_code(expr.lvalue), expr.op)
     return "%s %s %s" % (_gen_expr_code(expr.lvalue), expr.op, _gen_expr_code(expr.expr))
+
+def _gen_expr_list_code(expr_list):
+    return ", ".join([_gen_expr_code(e) for e in expr_list])
 
 def _gen_expr_code(expr):
     if expr.is_se_expr:
@@ -244,11 +247,21 @@ return (%s)
         return "%s(%s)" % (_gen_type_name_code(tp), t.value)
 
     if expr.op == "new":
-        return "todo"
+        expr_list = expr.arg
+        tp = expr.type
+        return "lar_new_obj_%s(%s)" % (_gen_non_array_type_name(tp), _gen_expr_list_code(expr_list))
 
     if expr.op == "new_array":
-        #todo reg arr
-        return "todo"
+        tp, size_list = expr.arg
+        _reg_new_arr_func_info(tp, len(size_list))
+        try:
+            new_dim_count = size_list.index(None)
+        except ValueError:
+            new_dim_count = len(size_list)
+        assert new_dim_count > 0
+        return "%s(%s)" % (_gen_new_arr_func_name(tp, len(size_list), new_dim_count),
+                           ", ".join(["(%s)(%s)" % (_gen_type_name_code(larc_type.LONG_TYPE), _gen_expr_code(e))
+                                      for e in size_list[: new_dim_count]]))
 
     if expr.op == "this":
         return "this"
@@ -262,10 +275,12 @@ return (%s)
         return "(%s)(len(%s))" % (_gen_type_name_code(larc_type.ULONG_TYPE), _gen_expr_code(arr_e))
 
     if expr.op == "str_format":
-        return "todo"
+        fmt, expr_list = expr.arg
+        return "lar_str_fmt(%s%s%s)" % (_gen_str_literal(fmt), ", " if expr_list else "", _gen_expr_list_code(expr_list))
 
     if expr.op == "call_method":
-        return "todo"
+        e, method, expr_list = expr.arg
+        return "(%s).method_%s(%s)" % (_gen_expr_code(e), method.name, _gen_expr_list_code(expr_list))
 
     if expr.op == ".":
         e, attr = expr.arg
@@ -276,14 +291,16 @@ return (%s)
         return _gen_gv_name(gv)
 
     if expr.op == "call_func":
-        return "todo"
+        func, expr_list = expr.arg
+        return "%s(%s)" % (_gen_func_name(func), _gen_expr_list_code(expr_list))
 
     if expr.op == "this.attr":
         attr = expr.arg
         return "this.m_%s" % attr.name
 
     if expr.op == "call_this.method":
-        return "todo"
+        method, expr_list = expr.arg
+        return "this.method_%s(%s)" % (method.name, _gen_expr_list_code(expr_list))
 
     raise Exception("Bug")
 
