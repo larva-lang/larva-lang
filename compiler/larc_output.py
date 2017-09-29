@@ -404,7 +404,7 @@ def _output_module():
         with code.new_blk("func lar_env_init_mod_%s()" % module.name, False):
             with code.new_blk("if !%s" % mod_inited_flag_name):
                 code += "%s = true" % mod_inited_flag_name
-                for dep_module_name in module.dep_module_set:
+                for dep_module_name in module.get_dep_module_set():
                     code += "lar_env_init_mod_%s()" % dep_module_name
                 for gv in module.global_var_map.itervalues():
                     if gv.expr is not None:

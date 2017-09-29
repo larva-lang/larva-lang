@@ -19,8 +19,19 @@ def _find_module_file(module_dir_list, module_name):
     #按目录查找
     for module_dir in module_dir_list:
         module_file_path_name = os.path.join(module_dir, module_name) + ".lar"
-        if os.path.exists(module_file_path_name):
+        has_module_file = os.path.isfile(module_file_path_name)
+        if os.path.isdir(module_file_path_name):
+            larc_common.exit("模块实现[%s]必须是一个文件" % module_file_path_name)
+        module_pkg_path = os.path.join(module_dir, module_name)
+        has_module_pkg = os.path.isdir(module_pkg_path)
+        if os.path.isfile(module_pkg_path):
+            larc_common.exit("模块实现[%s]缺少.lar后缀名，若实现为包则必须是一个目录" % module_pkg_path)
+        if has_module_file and has_module_pkg:
+            larc_common.exit("模块'%s'在目录[%s]下同时存在文件和包的实现" % (module_name, module_dir))
+        if has_module_file:
             return module_file_path_name
+        if has_module_pkg:
+            return module_pkg_path
     larc_common.exit("找不到模块：%s" % module_name)
 
 def main():
@@ -53,7 +64,7 @@ def main():
     module_dir_list = [src_dir, lib_dir]
 
     #预处理所有涉及到的模块
-    compiling_set = main_module.dep_module_set #需要预处理的模块名集合
+    compiling_set = main_module.get_dep_module_set() #需要预处理的模块名集合
     while compiling_set:
         new_compiling_set = set()
         for module_name in compiling_set:
@@ -62,7 +73,7 @@ def main():
                 continue
             module_file_path_name = _find_module_file(module_dir_list, module_name)
             larc_module.module_map[module_name] = m = larc_module.Module(module_file_path_name)
-            new_compiling_set |= m.dep_module_set
+            new_compiling_set |= m.get_dep_module_set()
         compiling_set = new_compiling_set
     assert larc_module.module_map.value_at(0) is larc_module.builtins_module
 

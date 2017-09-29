@@ -290,7 +290,7 @@ class Parser:
                 continue
 
             if t.is_sym("("):
-                tp = larc_type.try_parse_type(self.token_list, self.curr_module, self.gtp_map)
+                tp = larc_type.try_parse_type(self.token_list, self.curr_module, self.curr_module.dep_module_set, self.gtp_map)
                 if tp is not None:
                     #类型强转
                     self.token_list.pop_sym(")")

@@ -225,39 +225,39 @@ def parse_type(token_list, dep_module_set, is_ref = False, non_array = False):
         return _Type((t, t.value), token_list, dep_module_set, is_ref = is_ref, non_array = non_array)
     t.syntax_err()
 
-def _try_parse_type(token_list, curr_module, gtp_map):
+def _try_parse_type(token_list, curr_module, dep_module_set, gtp_map):
     t = token_list.pop()
     if t.is_reserved and t.value in _BASE_TYPE_LIST:
-        return _Type((t, t.value), token_list, curr_module.dep_module_set)
+        return _Type((t, t.value), token_list, dep_module_set)
     if t.is_name:
         name = t.value
-        if name in curr_module.dep_module_set:
+        if name in dep_module_set:
             module = larc_module.module_map[name]
             token_list.pop_sym(".")
             t, name = token_list.pop_name()
             if module.has_type(name):
-                tp = _Type((t, name), token_list, curr_module.dep_module_set, module_name = module.name)
+                tp = _Type((t, name), token_list, dep_module_set, module_name = module.name)
                 tp.check(curr_module, gtp_map)
                 larc_module.check_new_ginst_during_compile()
                 return tp
         else:
             if gtp_map is not None and name in gtp_map:
-                tp = _Type((t, name), token_list, curr_module.dep_module_set)
+                tp = _Type((t, name), token_list, dep_module_set)
                 tp.check(curr_module, gtp_map)
                 larc_module.check_new_ginst_during_compile()
                 return tp
             for module in curr_module, larc_module.builtins_module:
                 if module.has_type(name):
-                    tp = _Type((t, name), token_list, curr_module.dep_module_set, module_name = module.name)
+                    tp = _Type((t, name), token_list, dep_module_set, module_name = module.name)
                     tp.check(curr_module, gtp_map)
                     larc_module.check_new_ginst_during_compile()
                     return tp
     return None
 
 #若解析类型成功，则统一做check_new_ginst_during_compile，即这个函数只用于编译过程
-def try_parse_type(token_list, curr_module, gtp_map):
+def try_parse_type(token_list, curr_module, dep_module_set, gtp_map):
     revert_idx = token_list.i #用于解析失败时候回滚
-    ret = _try_parse_type(token_list, curr_module, gtp_map)
+    ret = _try_parse_type(token_list, curr_module, dep_module_set, gtp_map)
     if ret is None:
         token_list.revert(revert_idx)
     return ret

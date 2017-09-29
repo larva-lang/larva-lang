@@ -106,7 +106,7 @@ class Parser:
 
             self.token_list.revert()
             t = self.token_list.peek()
-            tp = larc_type.try_parse_type(self.token_list, self.module, self.gtp_map)
+            tp = larc_type.try_parse_type(self.token_list, self.module, self.module.dep_module_set, self.gtp_map)
             if tp is not None:
                 #变量定义
                 if tp.is_void:
@@ -160,7 +160,7 @@ class Parser:
         self.token_list.pop_sym("(")
 
         for_var_map = larc_common.OrderedDict()
-        tp = larc_type.try_parse_type(self.token_list, self.module, self.gtp_map)
+        tp = larc_type.try_parse_type(self.token_list, self.module, self.module.dep_module_set, self.gtp_map)
         if tp is None:
             #第一部分为表达式列表
             init_expr_list = []

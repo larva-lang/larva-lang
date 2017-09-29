@@ -28,3 +28,7 @@ public class Error
     public int code;
     public String msg;
 }
+
+public interface Any
+{
+}

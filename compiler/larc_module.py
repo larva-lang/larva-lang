@@ -153,7 +153,7 @@ class _ClsBase(_CoiBase):
                     larc_common.exit("类'%s'对方法'%s'存在多个可能的usemethod来源" % (self, method.name))
                 if method.name in self.attr_map:
                     larc_common.exit("类'%s'中的属性'%s'和通过usemethod引入的方法同名" % (self, method.name))
-                if method.name in self.module.dep_module_set:
+                if method.name in self.module.get_dep_module_set(self.file_name):
                     larc_common.exit("类'%s'通过usemethod引入的方法'%s'与导入模块同名" % (self, method.name))
                 if self.is_gcls_inst and method.name in self.gcls.gtp_name_list:
                     larc_common.exit("类'%s'通过usemethod引入的方法'%s'与泛型参数同名" % (self, method.name))
@@ -239,13 +239,14 @@ class _UseMethod(_MethodBase):
     __repr__ = __str__ = lambda self : "%s.usemethod[%s]" % (self.cls, self.method)
 
 class _Cls(_ClsBase):
-    def __init__(self, module, decr_set, name, gtp_name_list):
+    def __init__(self, module, file_name, decr_set, name, gtp_name_list):
         _ClsBase.__init__(self)
 
         if gtp_name_list:
             assert "native" not in decr_set
 
         self.module = module
+        self.file_name = file_name
         self.decr_set = decr_set
         self.name = name
         self.gtp_name_list = gtp_name_list
@@ -280,7 +281,7 @@ class _Cls(_ClsBase):
                 token_list.revert()
 
             #解析属性或方法
-            type = larc_type.parse_type(token_list, self.module.dep_module_set)
+            type = larc_type.parse_type(token_list, self.module.get_dep_module_set(self.file_name))
             t, name = token_list.pop_name()
             if name == self.name:
                 t.syntax_err("属性或方法不可与类同名")
@@ -316,7 +317,7 @@ class _Cls(_ClsBase):
         self.usemethod_stat = "to_expand"
 
     def _check_redefine(self, t, name):
-        if name in self.module.dep_module_set:
+        if name in self.module.get_dep_module_set(self.file_name):
             t.syntax_err("属性或方法名与导入模块名相同")
         if name in self.gtp_name_list:
             t.syntax_err("属性或方法名与泛型参数名相同")
@@ -325,7 +326,7 @@ class _Cls(_ClsBase):
                 t.syntax_err("属性或方法名重定义")
 
     def _parse_method(self, decr_set, type, name, token_list):
-        arg_map = _parse_arg_map(token_list, self.module.dep_module_set, [])
+        arg_map = _parse_arg_map(token_list, self.module.get_dep_module_set(self.file_name), [])
         token_list.pop_sym(")")
 
         if "native" in self.decr_set:
@@ -477,10 +478,11 @@ class _IntfMethod:
             tp.check(self.intf.module)
 
 class _Intf(_IntfBase):
-    def __init__(self, module, decr_set, name, gtp_name_list):
+    def __init__(self, module, file_name, decr_set, name, gtp_name_list):
         _IntfBase.__init__(self)
 
         self.module = module
+        self.file_name = file_name
         self.decr_set = decr_set
         self.name = name
         self.gtp_name_list = gtp_name_list
@@ -498,14 +500,14 @@ class _Intf(_IntfBase):
             if decr_set - set(["public"]):
                 t.syntax_err("接口方法只能用public修饰")
 
-            type = larc_type.parse_type(token_list, self.module.dep_module_set)
+            type = larc_type.parse_type(token_list, self.module.get_dep_module_set(self.file_name))
             t, name = token_list.pop_name()
             self._check_redefine(t, name)
             token_list.pop_sym("(")
             self._parse_method(decr_set, type, name, token_list)
 
     def _check_redefine(self, t, name):
-        if name in self.module.dep_module_set:
+        if name in self.module.get_dep_module_set(self.file_name):
             t.syntax_err("接口方法名与导入模块名相同")
         if name in self.gtp_name_list:
             t.syntax_err("接口方法名与泛型参数名相同")
@@ -513,7 +515,7 @@ class _Intf(_IntfBase):
             t.syntax_err("接口方法名重定义")
 
     def _parse_method(self, decr_set, type, name, token_list):
-        arg_map = _parse_arg_map(token_list, self.module.dep_module_set, [])
+        arg_map = _parse_arg_map(token_list, self.module.get_dep_module_set(self.file_name), [])
         token_list.pop_sym(")")
         token_list.pop_sym(";")
         self.method_map[name] = _IntfMethod(self, decr_set, type, name, arg_map)
@@ -579,10 +581,11 @@ class _FuncBase:
         assert [self.is_func, self.is_gfunc_inst].count(True) == 1
 
 class _Func(_FuncBase):
-    def __init__(self, module, decr_set, type, name, gtp_name_list, arg_map, block_token_list):
+    def __init__(self, module, file_name, decr_set, type, name, gtp_name_list, arg_map, block_token_list):
         _FuncBase.__init__(self)
 
         self.module = module
+        self.file_name = file_name
         self.decr_set = decr_set
         self.type = type
         self.name = name
@@ -650,8 +653,9 @@ class _GfuncInst(_FuncBase):
         return True
 
 class _GlobalVar:
-    def __init__(self, module, decr_set, type, name, expr_token_list):
+    def __init__(self, module, file_name, decr_set, type, name, expr_token_list):
         self.module = module
+        self.file_name = file_name
         self.decr_set = decr_set
         self.type = type
         self.name = name
@@ -673,10 +677,18 @@ class _GlobalVar:
 
 class Module:
     def __init__(self, file_path_name):
-        self.dir, file_name = os.path.split(file_path_name)
-        assert file_name.endswith(".lar")
-        self.name = file_name[: -4]
-        self._precompile(file_path_name)
+        if file_path_name.endswith(".lar"):
+            self.dir, file_name = os.path.split(file_path_name)
+            self.name = file_name[: -4]
+            file_name_list = [file_name]
+        else:
+            assert os.path.isdir(file_path_name)
+            self.dir = file_path_name
+            self.name = os.path.basename(file_path_name)
+            file_name_list = [fn for fn in os.listdir(self.dir) if fn.endswith(".lar")]
+        self.file_dep_module_set_map = {}
+        for file_name in file_name_list:
+            self._precompile(file_name)
         if self.name == "__builtins":
             #内建模块需要做一些必要的检查
             if "String" not in self.cls_map: #必须有String类
@@ -687,13 +699,13 @@ class Module:
 
     __repr__ = __str__ = lambda self : self.name
 
-    def _precompile(self, file_path_name):
+    def _precompile(self, file_name):
         #解析token列表，解析正文
-        token_list = larc_token.parse_token_list(file_path_name)
-        self._parse_text(token_list)
+        token_list = larc_token.parse_token_list(os.path.join(self.dir, file_name))
+        self._parse_text(file_name, token_list)
 
-    def _parse_text(self, token_list):
-        self.dep_module_set = set()
+    def _parse_text(self, file_name, token_list):
+        self.file_dep_module_set_map[file_name] = dep_module_set = set()
         import_end = False
         self.cls_map = larc_common.OrderedDict()
         self.gcls_inst_map = larc_common.OrderedDict()
@@ -710,7 +722,7 @@ class Module:
                 #import
                 if import_end:
                     t.syntax_err("import必须在模块代码最前面")
-                self._parse_import(token_list)
+                self._parse_import(token_list, dep_module_set)
                 continue
             import_end = True
 
@@ -723,20 +735,20 @@ class Module:
                 #解析类
                 if decr_set - set(["public", "native"]):
                     t.syntax_err("类只能用public和native修饰")
-                self._parse_cls(decr_set, token_list)
+                self._parse_cls(file_name, dep_module_set, decr_set, token_list)
                 continue
 
             if t.is_reserved("interface"):
                 #解析interface
                 if decr_set - set(["public"]):
                     t.syntax_err("interface只能用public修饰")
-                self._parse_intf(decr_set, token_list)
+                self._parse_intf(file_name, dep_module_set, decr_set, token_list)
                 continue
 
             #可能是函数或全局变量
-            type = larc_type.parse_type(token_list, self.dep_module_set)
+            type = larc_type.parse_type(token_list, dep_module_set)
             t, name = token_list.pop_name()
-            self._check_redefine(t, name)
+            self._check_redefine(t, name, dep_module_set)
             t, sym = token_list.pop_sym()
             if sym in ("(", "<"):
                 #函数
@@ -744,7 +756,7 @@ class Module:
                     t.syntax_err("函数只能用public和native修饰")
                 if sym == "<" and "native" in decr_set:
                     t.syntax_err("不可定义native泛型函数")
-                self._parse_func(decr_set, type, name, sym == "<", token_list)
+                self._parse_func(file_name, dep_module_set, decr_set, type, name, sym == "<", token_list)
                 continue
             if sym in (";", "=", ","):
                 #全局变量
@@ -757,85 +769,85 @@ class Module:
                         expr_token_list, sym = larc_token.parse_token_list_until_sym(token_list, (";", ","))
                     else:
                         expr_token_list = None
-                    self.global_var_map[name] = _GlobalVar(self, decr_set, type, name, expr_token_list)
+                    self.global_var_map[name] = _GlobalVar(self, file_name, decr_set, type, name, expr_token_list)
                     if sym == ";":
                         break
                     #定义了多个变量，继续解析
                     assert sym == ","
                     t, name = token_list.pop_name()
-                    self._check_redefine(t, name)
+                    self._check_redefine(t, name, dep_module_set)
                     t, sym = token_list.pop_sym()
                     if sym not in (";", "=", ","):
                         t.syntax_err()
                 continue
             t.syntax_err()
 
-    def _check_redefine(self, t, name):
-        if name in self.dep_module_set:
+    def _check_redefine(self, t, name, dep_module_set):
+        if name in dep_module_set:
             t.syntax_err("定义的名字和导入模块名重名")
         for i in self.cls_map, self.intf_map, self.global_var_map, self.func_map:
             if name in i:
                 t.syntax_err("名字重定义")
 
-    def _parse_import(self, token_list):
+    def _parse_import(self, token_list, dep_module_set):
         t = token_list.pop()
         assert t.is_reserved("import")
         while True:
             t, name = token_list.pop_name()
-            if name in self.dep_module_set:
+            if name in dep_module_set:
                 t.syntax_err("模块重复import")
-            self.dep_module_set.add(name)
+            dep_module_set.add(name)
             t, sym = token_list.pop_sym()
             if sym == ";":
                 return
             if sym != ",":
                 t.syntax_err("需要';'或','")
 
-    def _parse_cls(self, decr_set, token_list):
+    def _parse_cls(self, file_name, dep_module_set, decr_set, token_list):
         t = token_list.pop()
         assert t.is_reserved("class")
         t, name = token_list.pop_name()
-        self._check_redefine(t, name)
+        self._check_redefine(t, name, dep_module_set)
         t = token_list.peek()
         if t.is_sym("<"):
             if "native" in decr_set:
                 t.syntax_err("不可定义native泛型类")
             token_list.pop_sym("<")
-            gtp_name_list = _parse_gtp_name_list(token_list, self.dep_module_set)
+            gtp_name_list = _parse_gtp_name_list(token_list, dep_module_set)
             if name in gtp_name_list:
                 t.syntax_err("存在与类名相同的泛型参数名")
         else:
             gtp_name_list = []
         token_list.pop_sym("{")
-        cls = _Cls(self, decr_set, name, gtp_name_list)
+        cls = _Cls(self, file_name, decr_set, name, gtp_name_list)
         cls.parse(token_list)
         token_list.pop_sym("}")
         self.cls_map[name] = cls
 
-    def _parse_intf(self, decr_set, token_list):
+    def _parse_intf(self, file_name, dep_module_set, decr_set, token_list):
         t = token_list.pop()
         assert t.is_reserved("interface")
         t, name = token_list.pop_name()
-        self._check_redefine(t, name)
+        self._check_redefine(t, name, dep_module_set)
         t = token_list.peek()
         if t.is_sym("<"):
             token_list.pop_sym("<")
-            gtp_name_list = _parse_gtp_name_list(token_list, self.dep_module_set)
+            gtp_name_list = _parse_gtp_name_list(token_list, dep_module_set)
         else:
             gtp_name_list = []
         token_list.pop_sym("{")
-        intf = _Intf(self, decr_set, name, gtp_name_list)
+        intf = _Intf(self, file_name, decr_set, name, gtp_name_list)
         intf.parse(token_list)
         token_list.pop_sym("}")
         self.intf_map[name] = intf
 
-    def _parse_func(self, decr_set, type, name, is_gfunc, token_list):
+    def _parse_func(self, file_name, dep_module_set, decr_set, type, name, is_gfunc, token_list):
         if is_gfunc:
-            gtp_name_list = _parse_gtp_name_list(token_list, self.dep_module_set)
+            gtp_name_list = _parse_gtp_name_list(token_list, dep_module_set)
             token_list.pop_sym("(")
         else:
             gtp_name_list = []
-        arg_map = _parse_arg_map(token_list, self.dep_module_set, gtp_name_list)
+        arg_map = _parse_arg_map(token_list, dep_module_set, gtp_name_list)
         token_list.pop_sym(")")
 
         if "native" in decr_set:
@@ -847,7 +859,7 @@ class Module:
             block_token_list, sym = larc_token.parse_token_list_until_sym(token_list, ("}",))
             assert sym == "}"
 
-        self.func_map[name] = _Func(self, decr_set, type, name, gtp_name_list, arg_map, block_token_list)
+        self.func_map[name] = _Func(self, file_name, decr_set, type, name, gtp_name_list, arg_map, block_token_list)
 
     def check_type_for_non_ginst(self):
         for map in self.cls_map, self.intf_map, self.func_map:
@@ -1031,6 +1043,14 @@ class Module:
             if "native" in func.decr_set:
                 return True
         return False
+
+    def get_dep_module_set(self, file_name = None):
+        if file_name is None:
+            dep_module_set = set()
+            for s in self.file_dep_module_set_map.itervalues():
+                dep_module_set |= s
+            return dep_module_set
+        return self.file_dep_module_set_map[file_name]
 
 #反复对所有新增的ginst进行check type，直到完成
 def check_type_for_ginst():
