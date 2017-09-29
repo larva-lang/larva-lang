@@ -223,7 +223,15 @@ def _gen_expr_code_ex(expr):
 
     if expr.op in larc_token.BINOCULAR_OP_SYM_SET:
         ea, eb = expr.arg
-        return "(%s) %s (%s)" % (_gen_expr_code(ea), expr.op, _gen_expr_code(eb))
+        ea_code = _gen_expr_code(ea)
+        eb_code = _gen_expr_code(eb)
+        if expr.op in ("==", "!=") and ea.type.is_obj_type and eb.type.is_obj_type:
+            ea_coi = ea.type.get_coi()
+            eb_coi = eb.type.get_coi()
+            if ea_coi.is_intf or ea_coi.is_gintf_inst:
+                assert eb_coi.is_intf or eb_coi.is_gintf_inst
+                return "%slar_util_is_same_intf((%s), (%s))" % ("!" if expr.op == "!=" else "", ea_code, eb_code)
+        return "(%s) %s (%s)" % (ea_code, expr.op, eb_code)
 
     if expr.op == "?:":
         ea, eb, ec = expr.arg
