@@ -115,6 +115,7 @@ class TokenList:
         c = TokenList(self.src_file)
         c.l = self.l[:]
         c.i = self.i
+        return c
 
     def peek(self):
         if not self:

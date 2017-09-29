@@ -410,7 +410,7 @@ def _output_module():
                     if gv.expr is not None:
                         code += "%s = %s" % (_gen_gv_name(gv), _gen_expr_code(gv.expr))
 
-        for cls in list(module.cls_map.itervalues()) + list(module.gcls_inst_map.itervalues()):
+        for cls in [i for i in module.cls_map.itervalues() if not i.gtp_name_list] + list(module.gcls_inst_map.itervalues()):
             if "native" in cls.decr_set:
                 for attr in cls.attr_map.itervalues():
                     _reg_new_arr_func_info(attr.type, 0)
@@ -439,12 +439,12 @@ def _output_module():
                                  ("" if method.type.is_void else "return ", method.attr.name, method.name,
                                   ", ".join(["l_%s" % name for name in method.arg_map])))
 
-        for intf in list(module.intf_map.itervalues()) + list(module.gintf_inst_map.itervalues()):
+        for intf in [i for i in module.intf_map.itervalues() if not i.gtp_name_list] + list(module.gintf_inst_map.itervalues()):
             with code.new_blk("type %s interface" % (_gen_coi_name(intf))):
                 for method in intf.method_map.itervalues():
                     code += "method_%s(%s) %s" % (method.name, _gen_arg_def(method.arg_map), _gen_type_name_code(method.type))
 
-        for func in list(module.func_map.itervalues()) + list(module.gfunc_inst_map.itervalues()):
+        for func in [i for i in module.func_map.itervalues() if not i.gtp_name_list] + list(module.gfunc_inst_map.itervalues()):
             if "native" in func.decr_set:
                 _reg_new_arr_func_info(func.type, 0)
                 for tp in func.arg_map.itervalues():

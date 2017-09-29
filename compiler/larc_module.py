@@ -176,7 +176,7 @@ class _ClsBase(_CoiBase):
 
 class _MethodBase:
     def __init__(self):
-        self.is_method = isinstance(self, _Method)
+        self.is_method = isinstance(self, _Method) or isinstance(self, _GclsInstMethod)
         self.is_usemethod = isinstance(self, _UseMethod)
         assert [self.is_method, self.is_usemethod].count(True) == 1
 
@@ -358,8 +358,10 @@ class _Cls(_ClsBase):
                 continue
             method.compile()
 
-class _GclsInstMethod:
+class _GclsInstMethod(_MethodBase):
     def __init__(self, gcls_inst, method):
+        _MethodBase.__init__(self)
+
         self.cls = gcls_inst
         self.method = method
 
@@ -411,6 +413,7 @@ class _GclsInst(_ClsBase):
             self.gtp_map[gcls.gtp_name_list[i]] = gtp_list[i]
 
         self.module = gcls.module
+        self.decr_set = gcls.decr_set
         self.name = gcls.name
         self._init_attr_and_method()
         self.type_checked = False
@@ -525,9 +528,9 @@ class _GintfInstMethod:
         self.method = method
 
         self.module = gintf_inst.module
-        self.decr_set = decr_set
+        self.decr_set = method.decr_set
         self.type = copy.deepcopy(method.type)
-        self.name = name
+        self.name = method.name
         self.arg_map = copy.deepcopy(method.arg_map)
 
     __repr__ = __str__ = lambda self : "%s.%s" % (self.intf, self.method.name)
@@ -549,6 +552,7 @@ class _GintfInst(_IntfBase):
             self.gtp_map[gintf.gtp_name_list[i]] = gtp_list[i]
 
         self.module = gintf.module
+        self.decr_set = gintf.decr_set
         self.name = gintf.name
         self._init_method()
         self.type_checked = False

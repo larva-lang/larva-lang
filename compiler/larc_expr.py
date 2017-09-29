@@ -467,9 +467,9 @@ class Parser:
                     break
             else:
                 if len(need_type_list) == 1:
-                    start_token.syntax_err("表达式无法隐式转换为类型'%s'" % need_type_list[0])
+                    start_token.syntax_err("表达式（类型'%s'）无法隐式转换为类型'%s'" % (expr.type, need_type_list[0]))
                 else:
-                    start_token.syntax_err("表达式无法隐式转换为类型%s其中任意一个" % str(need_type_list))
+                    start_token.syntax_err("表达式（类型'%s'）无法隐式转换为类型%s其中任意一个" % (expr.type, str(need_type_list)))
         return expr
 
     def _parse_func_or_global_var(self, module, (t, name), var_map_stk):
