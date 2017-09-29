@@ -107,7 +107,7 @@ def _gen_type_name_code(tp):
         tp = tp.to_elem_type()
     _reg_new_arr_func_info(tp, array_dim_count)
     type_name_code = _gen_non_array_type_name(tp)
-    if tp.is_obj_type:
+    if type_name_code.startswith("lar_cls") or type_name_code.startswith("lar_gcls"):
         type_name_code = "*" + type_name_code
     return "*[]" * array_dim_count + type_name_code
 
@@ -363,8 +363,11 @@ def _output_stmt_list(code, stmt_list):
                     _output_stmt_list(code, stmt.else_stmt_list)
             continue
         if stmt.type == "var":
-            code += ("var l_%s %s = (%s)" %
-                     (stmt.name, _gen_type_name_code(stmt_list.var_map[stmt.name]), _gen_expr_code(stmt.expr)))
+            if stmt.expr is None:
+                expr_code = _gen_default_value_code(stmt_list.var_map[stmt.name])
+            else:
+                expr_code = _gen_expr_code(stmt.expr)
+            code += ("var l_%s %s = (%s)" % (stmt.name, _gen_type_name_code(stmt_list.var_map[stmt.name]), expr_code))
             continue
         if stmt.type == "expr":
             code += _gen_expr_code(stmt.expr)
@@ -396,8 +399,8 @@ def _output_module():
                 for dep_module_name in module.dep_module_set:
                     code += "lar_env_init_mod_%s()" % dep_module_name
                 for gv in module.global_var_map.itervalues():
-                    assert gv.expr is not None
-                    code += "%s = %s" % (_gen_gv_name(gv), _gen_expr_code(gv.expr))
+                    if gv.expr is not None:
+                        code += "%s = %s" % (_gen_gv_name(gv), _gen_expr_code(gv.expr))
 
         for cls in list(module.cls_map.itervalues()) + list(module.gcls_inst_map.itervalues()):
             if "native" in cls.decr_set:
@@ -419,8 +422,14 @@ def _output_module():
             for method in [cls.construct_method] + list(cls.method_map.itervalues()):
                 with code.new_blk("func (this *%s) method_%s(%s) %s" %
                                   (lar_cls_name, method.name, _gen_arg_def(method.arg_map), _gen_type_name_code(method.type))):
-                    _output_stmt_list(code, method.stmt_list)
-                    code += "return %s" % _gen_default_value_code(method.type)
+                    if method.is_method:
+                        _output_stmt_list(code, method.stmt_list)
+                        code += "return %s" % _gen_default_value_code(method.type)
+                    else:
+                        assert method.is_usemethod
+                        code += ("%sthis.m_%s.method_%s(%s)" %
+                                 ("" if method.type.is_void else "return ", method.attr.name, method.name,
+                                  ", ".join(["l_%s" % name for name in method.arg_map])))
 
         for intf in list(module.intf_map.itervalues()) + list(module.gintf_inst_map.itervalues()):
             with code.new_blk("type %s interface" % (_gen_coi_name(intf))):
@@ -463,14 +472,22 @@ def _output_util():
         for tp_name, dim_count in _new_arr_func_info_set:
             assert dim_count > 0
             tp_name_code = tp_name
-            if not tp_name.startswith("lar_type"):
+            if tp_name.startswith("lar_cls") or tp_name.startswith("lar_gcls"):
                 tp_name_code = "*" + tp_name_code
             for new_dim_count in xrange(1, dim_count + 1):
                 new_arr_func_name = _gen_new_arr_func_name_by_tp_name(tp_name, dim_count, new_dim_count)
                 arg_code = ", ".join(["d%d_size" % i for i in xrange(new_dim_count)]) + " lar_type_long"
                 arr_tp_name_code = "*[]" * dim_count + tp_name_code
                 if new_dim_count == 1:
-                    elem_code = "nil" if arr_tp_name_code[3] == "*" else "0"
+                    elem_type_name_code = arr_tp_name_code[3 :]
+                    if (elem_type_name_code[0] == "*" or elem_type_name_code.startswith("lar_intf") or
+                        elem_type_name_code.startswith("lar_gintf")):
+                        elem_code = "nil"
+                    elif elem_type_name_code.startswith("lar_type_bool"):
+                        elem_code = "false"
+                    else:
+                        assert elem_type_name_code.startswith("lar_type")
+                        elem_code = "0"
                 else:
                     assert new_dim_count > 1
                     elem_code = "%s(%s)" % (_gen_new_arr_func_name_by_tp_name(tp_name, dim_count - 1, new_dim_count - 1), 

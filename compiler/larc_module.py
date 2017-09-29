@@ -174,8 +174,16 @@ class _ClsBase(_CoiBase):
             return None, self.attr_map[name]
         token.syntax_err("类'%s'没有方法或属性'%s'" % (self, name))
 
-class _Method:
+class _MethodBase:
+    def __init__(self):
+        self.is_method = isinstance(self, _Method)
+        self.is_usemethod = isinstance(self, _UseMethod)
+        assert [self.is_method, self.is_usemethod].count(True) == 1
+
+class _Method(_MethodBase):
     def __init__(self, cls, decr_set, type, name, arg_map, block_token_list):
+        _MethodBase.__init__(self)
+
         self.cls = cls
         self.module = cls.module
         self.decr_set = decr_set
@@ -214,8 +222,10 @@ class _Attr:
     def check_type(self):
         self.type.check(self.cls.module)
 
-class _UseMethod:
+class _UseMethod(_MethodBase):
     def __init__(self, cls, attr, method):
+        _MethodBase.__init__(self)
+
         self.attr = attr
         self.method = method
 
@@ -344,6 +354,8 @@ class _Cls(_ClsBase):
         assert not self.gtp_name_list
         self.construct_method.compile()
         for method in self.method_map.itervalues():
+            if isinstance(method, _UseMethod):
+                continue
             method.compile()
 
 class _GclsInstMethod:
@@ -737,9 +749,10 @@ class Module:
                 if type.name == "void":
                     t.syntax_err("变量类型不可为void")
                 while True:
-                    if sym != "=":
-                        t.syntax_err("必须显式初始化")
-                    expr_token_list, sym = larc_token.parse_token_list_until_sym(token_list, (";", ","))
+                    if sym == "=":
+                        expr_token_list, sym = larc_token.parse_token_list_until_sym(token_list, (";", ","))
+                    else:
+                        expr_token_list = None
                     self.global_var_map[name] = _GlobalVar(self, decr_set, type, name, expr_token_list)
                     if sym == ";":
                         break

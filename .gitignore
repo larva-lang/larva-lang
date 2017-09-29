@@ -2,4 +2,5 @@
 *.pyc
 /test/*
 !/test/*.lar
+test/test.lar
 .vscode

@@ -122,11 +122,18 @@ class Parser:
                             t.syntax_err("与上层的变量名冲突")
                     var_map_stk[-1][name] = tp
                     t = self.token_list.pop()
-                    if not t.is_sym("="):
-                        t.syntax_err("变量必须显式初始化")
-                    expr = self.expr_parser.parse(var_map_stk, tp)
+                    if not t.is_sym or t.value not in ("=", ",", ";"):
+                        t.syntax_err("需要'='、';'或','")
+                    if t.value == "=":
+                        expr = self.expr_parser.parse(var_map_stk, tp)
+                    else:
+                        expr = None
+                        self.token_list.revert()
                     stmt_list.append(_Stmt("var", name = name, expr = expr))
-                    if self.token_list.peek().is_sym(";"):
+                    t = self.token_list.peek()
+                    if not t.is_sym or t.value not in (";", ","):
+                        t.syntax_err("需要';'或','")
+                    if t.is_sym(";"):
                         break
                     self.token_list.pop_sym(",")
                 self.token_list.pop_sym(";")
@@ -173,7 +180,7 @@ class Parser:
                         t.syntax_err("与上层的变量名冲突")
                 t = self.token_list.pop()
                 if not t.is_sym("="):
-                    t.syntax_err("变量必须显式初始化")
+                    t.syntax_err("for语句定义的变量必须显式初始化")
                 expr = self.expr_parser.parse(var_map_stk + (for_var_map,), tp)
                 for_var_map[name] = tp
                 init_expr_list.append(expr)
