@@ -464,7 +464,8 @@ class Parser:
                         continue
                     expr = e
                 if expr is not None and need_type.can_convert_from(expr.type):
-                    expr = _Expr("force_convert", (need_type, expr), need_type)
+                    if need_type != expr.type:
+                        expr = _Expr("force_convert", (need_type, expr), need_type)
                     break
             else:
                 if len(need_type_list) == 1:

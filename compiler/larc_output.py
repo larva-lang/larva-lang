@@ -217,6 +217,15 @@ def _gen_expr_code_ex(expr):
         tp, e = expr.arg
         tp_name_code = _gen_type_name_code(tp)
         e_code = _gen_expr_code(e)
+        if tp.is_bool_type and e.type.is_number_type:
+            return "(%s) != 0" % e_code
+        if tp.is_number_type and e.type.is_bool_type:
+            return """func () %s {
+if (%s) {
+    return 1
+}
+return 0
+}()""" % (tp_name_code, e_code)
         if tp.can_convert_from(e.type) or not tp.is_obj_type:
             return "(%s)(%s)" % (tp_name_code, e_code)
         assert e.type.is_obj_type and not (e.type.is_array or e.type.is_nil)
