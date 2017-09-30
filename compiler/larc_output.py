@@ -215,7 +215,20 @@ def _gen_expr_code(expr):
 def _gen_expr_code_ex(expr):
     if expr.op == "force_convert":
         tp, e = expr.arg
-        return "(%s)(%s)" % (_gen_type_name_code(tp), _gen_expr_code(e))
+        tp_name_code = _gen_type_name_code(tp)
+        e_code = _gen_expr_code(e)
+        if tp.can_convert_from(e.type) or not tp.is_obj_type:
+            return "(%s)(%s)" % (tp_name_code, e_code)
+        assert e.type.is_obj_type and not (e.type.is_array or e.type.is_nil)
+        e_coi = e.type.get_coi()
+        assert e_coi.is_intf or e_coi.is_gintf_inst
+        return """func () %s {
+r, ok := (%s).(%s)
+if ok {
+    return r
+}
+return nil
+}()""" % (tp_name_code, e_code, tp_name_code)
 
     if expr.op in ("~", "!", "neg", "pos"):
         e = expr.arg
@@ -258,7 +271,7 @@ return (%s)
             return "%d" % t.value
         if literal_type == "str":
             return _gen_str_literal_name(t)
-        return "%s(%s)" % (_gen_type_name_code(tp), t.value)
+        return "(%s)(%s)" % (_gen_type_name_code(tp), t.value)
 
     if expr.op == "new":
         expr_list = expr.arg
