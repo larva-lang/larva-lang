@@ -47,7 +47,7 @@ def main():
 
     #预处理builtins等模块
     for name in "__builtins",:
-        larc_module.module_map[name] = larc_module.Module(os.path.join(lib_dir, name + ".lar"))
+        larc_module.module_map[name] = larc_module.Module(_find_module_file([lib_dir], name))
     larc_module.builtins_module = larc_module.module_map["__builtins"]
 
     #先预处理主模块

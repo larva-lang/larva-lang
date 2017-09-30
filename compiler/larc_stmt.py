@@ -28,13 +28,14 @@ class _SeExpr(larc_expr.ExprBase):
         self.expr = expr
 
 class Parser:
-    def __init__(self, token_list, module, cls, gtp_map, ret_type):
+    def __init__(self, token_list, module, dep_module_set, cls, gtp_map, ret_type):
         self.token_list = token_list
         self.module = module
+        self.dep_module_set = dep_module_set
         self.cls = cls
         self.gtp_map = gtp_map
         self.ret_type = ret_type
-        self.expr_parser = larc_expr.Parser(token_list, module, cls, gtp_map)
+        self.expr_parser = larc_expr.Parser(token_list, module, dep_module_set, cls, gtp_map)
 
     def parse(self, var_map_stk, loop_deep):
         assert var_map_stk
@@ -106,14 +107,14 @@ class Parser:
 
             self.token_list.revert()
             t = self.token_list.peek()
-            tp = larc_type.try_parse_type(self.token_list, self.module, self.module.dep_module_set, self.gtp_map)
+            tp = larc_type.try_parse_type(self.token_list, self.module, self.dep_module_set, self.gtp_map)
             if tp is not None:
                 #变量定义
                 if tp.is_void:
                     t.syntax_err("变量类型不能为void")
                 while True:
                     t, name = self.token_list.pop_name()
-                    if name in self.module.dep_module_set:
+                    if name in self.dep_module_set:
                         t.syntax_err("变量名和导入模块重名")
                     if name in var_map_stk[-1]:
                         t.syntax_err("变量名重定义")
@@ -160,7 +161,7 @@ class Parser:
         self.token_list.pop_sym("(")
 
         for_var_map = larc_common.OrderedDict()
-        tp = larc_type.try_parse_type(self.token_list, self.module, self.module.dep_module_set, self.gtp_map)
+        tp = larc_type.try_parse_type(self.token_list, self.module, self.dep_module_set, self.gtp_map)
         if tp is None:
             #第一部分为表达式列表
             init_expr_list = []
@@ -171,7 +172,7 @@ class Parser:
             init_expr_list = []
             while True:
                 t, name = self.token_list.pop_name()
-                if name in self.module.dep_module_set:
+                if name in self.dep_module_set:
                     t.syntax_err("变量名和导入模块重名")
                 if name in for_var_map:
                     t.syntax_err("变量名重定义")

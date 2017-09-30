@@ -382,6 +382,8 @@ def _output_stmt_list(code, stmt_list):
             continue
         raise Exception("Bug")
 
+_literal_str_token_id_set = set()
+
 curr_module = None
 def _output_module():
     module = curr_module
@@ -390,7 +392,8 @@ def _output_module():
     with _Code(module_file_name) as code:
         code += ""
         for t in module.literal_str_list:
-            assert t.is_literal("str")
+            assert t.is_literal("str") and id(t) not in _literal_str_token_id_set
+            _literal_str_token_id_set.add(id(t))
             code += ("var %s %s = lar_util_create_lar_str_from_go_str(%s)" %
                      (_gen_str_literal_name(t), _gen_type_name_code(larc_type.STR_TYPE), _gen_str_literal(t.value)))
 
@@ -455,14 +458,27 @@ def _output_module():
                 code += "return %s" % _gen_default_value_code(func.type)
 
     if has_native_item:
-        native_code_file_path_name = os.path.join(module.dir, "%s.lar_native.go" % module.name)
-        if not os.path.exists(native_code_file_path_name):
-            larc_common.exit("找不到模块'%s'的go语言的native部分实现：[%s]" % (module.name, native_code_file_path_name))
-        f = open(os.path.join(out_prog_dir, "%s.mod.%s.native.go" % (prog_module_name, module.name)), "w")
-        print >> f, "package %s" % prog_module_name
-        print >> f
-        f.write(open(native_code_file_path_name).read())
-        f.close()
+        if module.is_pkg:
+            for fn in os.listdir(module.dir):
+                if fn.endswith(".lar_native.go"):
+                    native_code_file_path_name = os.path.join(module.dir, fn)
+                    if not os.path.isfile(native_code_file_path_name):
+                        larc_common.exit("模块包'%s'的go语言的native部分实现[%s]需要是一个文件" % (module.name, native_code_file_path_name))
+                    sub_mod_name = fn[: -14]
+                    f = open(os.path.join(out_prog_dir, "%s.mod.%s.native.%s.go" % (prog_module_name, module.name, sub_mod_name)), "w")
+                    print >> f, "package %s" % prog_module_name
+                    print >> f
+                    f.write(open(native_code_file_path_name).read())
+                    f.close()
+        else:
+            native_code_file_path_name = os.path.join(module.dir, "%s.lar_native.go" % module.name)
+            if not os.path.exists(native_code_file_path_name):
+                larc_common.exit("找不到模块'%s'的go语言的native部分实现：[%s]" % (module.name, native_code_file_path_name))
+            f = open(os.path.join(out_prog_dir, "%s.mod.%s.native.go" % (prog_module_name, module.name)), "w")
+            print >> f, "package %s" % prog_module_name
+            print >> f
+            f.write(open(native_code_file_path_name).read())
+            f.close()
 
 def _output_util():
     #拷贝runtime中固定的util代码

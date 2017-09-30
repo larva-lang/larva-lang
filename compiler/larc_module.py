@@ -203,8 +203,8 @@ class _Method(_MethodBase):
         if self.block_token_list is None:
             self.stmt_list = None
         else:
-            self.stmt_list = (
-                larc_stmt.Parser(self.block_token_list, self.cls.module, self.cls, None, self.type).parse((self.arg_map.copy(),), 0))
+            self.stmt_list = larc_stmt.Parser(self.block_token_list, self.cls.module, self.cls.module.get_dep_module_set(self.cls.file_name),
+                                              self.cls, None, self.type).parse((self.arg_map.copy(),), 0)
             self.block_token_list.pop_sym("}")
             assert not self.block_token_list
         del self.block_token_list
@@ -381,8 +381,8 @@ class _GclsInstMethod(_MethodBase):
             tp.check(self.cls.gcls.module, self.cls.gtp_map)
 
     def compile(self):
-        self.stmt_list = (
-            larc_stmt.Parser(self.block_token_list, self.module, self.cls, self.cls.gtp_map, self.type).parse((self.arg_map.copy(),), 0))
+        self.stmt_list = larc_stmt.Parser(self.block_token_list, self.module, self.module.get_dep_module_set(self.cls.gcls.file_name),
+                                          self.cls, self.cls.gtp_map, self.type).parse((self.arg_map.copy(),), 0)
         self.block_token_list.pop_sym("}")
         assert not self.block_token_list
         del self.block_token_list
@@ -605,7 +605,8 @@ class _Func(_FuncBase):
         if self.block_token_list is None:
             self.stmt_list = None
         else:
-            self.stmt_list = larc_stmt.Parser(self.block_token_list, self.module, None, None, self.type).parse((self.arg_map.copy(),), 0)
+            self.stmt_list = larc_stmt.Parser(self.block_token_list, self.module, self.module.get_dep_module_set(self.file_name), None, None,
+                                              self.type).parse((self.arg_map.copy(),), 0)
             self.block_token_list.pop_sym("}")
             assert not self.block_token_list
         del self.block_token_list
@@ -645,7 +646,8 @@ class _GfuncInst(_FuncBase):
     def compile(self):
         if self.compiled:
             return False
-        self.stmt_list = larc_stmt.Parser(self.block_token_list, self.module, None, self.gtp_map, self.type).parse((self.arg_map.copy(),), 0)
+        self.stmt_list = larc_stmt.Parser(self.block_token_list, self.module, self.module.get_dep_module_set(self.gfunc.file_name), None,
+                                          self.gtp_map, self.type).parse((self.arg_map.copy(),), 0)
         self.block_token_list.pop_sym("}")
         assert not self.block_token_list
         del self.block_token_list
@@ -670,7 +672,8 @@ class _GlobalVar:
         if self.expr_token_list is None:
             self.expr = None
         else:
-            self.expr = larc_expr.Parser(self.expr_token_list, self.module, None, None).parse((), self.type)
+            self.expr = larc_expr.Parser(self.expr_token_list, self.module, self.module.get_dep_module_set(self.file_name), None,
+                                         None).parse((), self.type)
             t, sym = self.expr_token_list.pop_sym()
             assert not self.expr_token_list and sym in (";", ",")
         del self.expr_token_list
@@ -681,12 +684,22 @@ class Module:
             self.dir, file_name = os.path.split(file_path_name)
             self.name = file_name[: -4]
             file_name_list = [file_name]
+            self.is_pkg = False
         else:
             assert os.path.isdir(file_path_name)
             self.dir = file_path_name
             self.name = os.path.basename(file_path_name)
             file_name_list = [fn for fn in os.listdir(self.dir) if fn.endswith(".lar")]
+            self.is_pkg = True
         self.file_dep_module_set_map = {}
+        self.cls_map = larc_common.OrderedDict()
+        self.gcls_inst_map = larc_common.OrderedDict()
+        self.intf_map = larc_common.OrderedDict()
+        self.gintf_inst_map = larc_common.OrderedDict()
+        self.func_map = larc_common.OrderedDict()
+        self.gfunc_inst_map = larc_common.OrderedDict()
+        self.global_var_map = larc_common.OrderedDict()
+        self.literal_str_list = []
         for file_name in file_name_list:
             self._precompile(file_name)
         if self.name == "__builtins":
@@ -707,14 +720,7 @@ class Module:
     def _parse_text(self, file_name, token_list):
         self.file_dep_module_set_map[file_name] = dep_module_set = set()
         import_end = False
-        self.cls_map = larc_common.OrderedDict()
-        self.gcls_inst_map = larc_common.OrderedDict()
-        self.intf_map = larc_common.OrderedDict()
-        self.gintf_inst_map = larc_common.OrderedDict()
-        self.func_map = larc_common.OrderedDict()
-        self.gfunc_inst_map = larc_common.OrderedDict()
-        self.global_var_map = larc_common.OrderedDict()
-        self.literal_str_list = [t for t in token_list if t.type == "literal_str"]
+        self.literal_str_list += [t for t in token_list if t.type == "literal_str"]
         while token_list:
             #解析import
             t = token_list.peek()

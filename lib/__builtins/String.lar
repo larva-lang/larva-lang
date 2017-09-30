@@ -1,4 +1,4 @@
-//内置builtin模块
+//String类的定义
 
 public native class String
 {
@@ -15,20 +15,4 @@ public native class String
     public Error parse_ulong(int base, ref ulong n);
     public Error parse_float(ref float n);
     public Error parse_double(ref double n);
-}
-
-public class Error
-{
-    public Error(int code, String msg)
-    {
-        this.code = code;
-        this.msg = msg;
-    }
-
-    public int code;
-    public String msg;
-}
-
-public interface Any
-{
 }
