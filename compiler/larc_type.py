@@ -87,7 +87,7 @@ class _Type:
         assert coi is not None
         return coi
 
-    def check(self, curr_module, gtp_map = None):
+    def check(self, curr_module, gtp_map = None, used_dep_module_set = None):
         if self.token.is_reserved:
             #忽略基础类型
             assert not self.gtp_list
@@ -95,7 +95,7 @@ class _Type:
         assert self.token.is_name
         #先check泛型参数
         for tp in self.gtp_list:
-            tp.check(curr_module, gtp_map)
+            tp.check(curr_module, gtp_map, used_dep_module_set)
         #构建find_path并查找类型，coi = cls_or_intf
         if self.module_name is None:
             if gtp_map is not None and self.name in gtp_map:
@@ -109,6 +109,8 @@ class _Type:
                 self.gtp_list = tp.gtp_list
                 self.array_dim_count += tp.array_dim_count #数组维度是累加的
                 self._set_is_XXX()
+                if used_dep_module_set is not None:
+                    used_dep_module_set.add(self.module_name)
                 return
             find_path = curr_module, larc_module.builtins_module
         else:
@@ -124,6 +126,8 @@ class _Type:
                 break
         else:
             self.token.syntax_err("无效的类型'%s'" % self)
+        if used_dep_module_set is not None:
+            used_dep_module_set.add(self.module_name)
 
     def can_convert_from(self, type):
         for tp in self, type:
@@ -169,8 +173,8 @@ class _Type:
         if self.module_name is None:
             if type.module_name is not None:
                 return False #基础类型和对象无法互相转换
-            #两个基础类型，只要不存在void都可以相互转换
-            return "void" not in (self.name, type.name)
+            #两个基础类型，只要都是number就可以
+            return self.is_number_type and type.is_number_type
         if type.module_name is None:
             return False #基础类型和对象无法互相转换
 
@@ -225,7 +229,7 @@ def parse_type(token_list, dep_module_set, is_ref = False, non_array = False):
         return _Type((t, t.value), token_list, dep_module_set, is_ref = is_ref, non_array = non_array)
     t.syntax_err()
 
-def _try_parse_type(token_list, curr_module, dep_module_set, gtp_map):
+def _try_parse_type(token_list, curr_module, dep_module_set, gtp_map, used_dep_module_set):
     t = token_list.pop()
     if t.is_reserved and t.value in _BASE_TYPE_LIST:
         return _Type((t, t.value), token_list, dep_module_set)
@@ -237,27 +241,27 @@ def _try_parse_type(token_list, curr_module, dep_module_set, gtp_map):
             t, name = token_list.pop_name()
             if module.has_type(name):
                 tp = _Type((t, name), token_list, dep_module_set, module_name = module.name)
-                tp.check(curr_module, gtp_map)
+                tp.check(curr_module, gtp_map, used_dep_module_set)
                 larc_module.check_new_ginst_during_compile()
                 return tp
         else:
             if gtp_map is not None and name in gtp_map:
                 tp = _Type((t, name), token_list, dep_module_set)
-                tp.check(curr_module, gtp_map)
+                tp.check(curr_module, gtp_map, used_dep_module_set)
                 larc_module.check_new_ginst_during_compile()
                 return tp
             for module in curr_module, larc_module.builtins_module:
                 if module.has_type(name):
                     tp = _Type((t, name), token_list, dep_module_set, module_name = module.name)
-                    tp.check(curr_module, gtp_map)
+                    tp.check(curr_module, gtp_map, used_dep_module_set)
                     larc_module.check_new_ginst_during_compile()
                     return tp
     return None
 
 #若解析类型成功，则统一做check_new_ginst_during_compile，即这个函数只用于编译过程
-def try_parse_type(token_list, curr_module, dep_module_set, gtp_map):
+def try_parse_type(token_list, curr_module, dep_module_set, gtp_map, used_dep_module_set = None):
     revert_idx = token_list.i #用于解析失败时候回滚
-    ret = _try_parse_type(token_list, curr_module, dep_module_set, gtp_map)
+    ret = _try_parse_type(token_list, curr_module, dep_module_set, gtp_map, used_dep_module_set)
     if ret is None:
         token_list.revert(revert_idx)
     return ret

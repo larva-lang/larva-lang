@@ -236,7 +236,7 @@ class _UseMethod(_MethodBase):
         self.name = method.name
         self.arg_map = method.arg_map
 
-    __repr__ = __str__ = lambda self : "%s.usemethod[%s]" % (self.cls, self.method)
+    __repr__ = __str__ = lambda self : "%s.usemethod[%s.%s]" % (self.cls, self.attr.name, self.method)
 
 class _Cls(_ClsBase):
     def __init__(self, module, file_name, decr_set, name, gtp_name_list):
@@ -662,6 +662,7 @@ class _GlobalVar:
         self.type = type
         self.name = name
         self.expr_token_list = expr_token_list
+        self.used_dep_module_set = set()
 
     __repr__ = __str__ = lambda self : "%s.%s" % (self.module, self.name)
 
@@ -673,10 +674,15 @@ class _GlobalVar:
             self.expr = None
         else:
             self.expr = larc_expr.Parser(self.expr_token_list, self.module, self.module.get_dep_module_set(self.file_name), None,
-                                         None).parse((), self.type)
+                                         None, self.used_dep_module_set).parse((), self.type)
             t, sym = self.expr_token_list.pop_sym()
             assert not self.expr_token_list and sym in (";", ",")
         del self.expr_token_list
+
+        if self.module.name in self.used_dep_module_set:
+            self.used_dep_module_set.remove(self.module.name)
+        for used_dep_module in self.used_dep_module_set:
+            module_map[used_dep_module].check_cycle_import_for_gv_init(self, [used_dep_module])
 
 class Module:
     def __init__(self, file_path_name):
@@ -803,6 +809,9 @@ class Module:
             if name in dep_module_set:
                 t.syntax_err("模块重复import")
             dep_module_set.add(name)
+            t = token_list.peek()
+            if not t.is_sym:
+                t.syntax_err("需要';'或','")
             t, sym = token_list.pop_sym()
             if sym == ";":
                 return
@@ -929,6 +938,19 @@ class Module:
                     return True
         #全部都无需处理
         return False
+
+    def check_cycle_import_for_gv_init(self, gv, stk):
+        assert stk and stk[-1] == self.name
+        for dep_module in self.get_dep_module_set():
+            if dep_module == gv.module.name:
+                larc_common.exit("全局变量'%s'的初始化依赖于模块'%s'，且存在从其依赖关系开始并包含模块'%s'的循环模块依赖：%s" %
+                                 (gv, stk[0], gv.module.name, "->".join([gv.module.name] + stk + [dep_module])))
+            if dep_module in stk:
+                #进入循环依赖但不包含gv模块，继续探测
+                continue
+            stk.append(dep_module)
+            module_map[dep_module].check_cycle_import_for_gv_init(gv, stk)
+            stk.pop()
 
     def get_coi(self, type):
         is_cls = is_intf = False
