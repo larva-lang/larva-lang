@@ -265,7 +265,7 @@ def _parse_token(src_file, line_no, line, pos):
 
     if f is not None:
         #浮点数
-        if f[-1] == "F":
+        if f[-1].upper() == "F":
             try:
                 value = float(f[: -1])
                 if math.isnan(value) or math.isinf(value):
@@ -308,17 +308,17 @@ def _parse_token(src_file, line_no, line, pos):
     if i is not None:
         #整数
         try:
-            if i[-2 :] == "UL":
+            if i[-2 :].upper() == "UL":
                 value = int(i[: -2], 0)
                 if value >= 2 ** 64:
                     _syntax_err(src_file, line_no, pos, "过大的ulong字面量'%s'" % i)
                 type = "ulong"
-            elif i[-1] == "L":
+            elif i[-1].upper() == "L":
                 value = int(i[: -1], 0)
                 if value >= 2 ** 63:
                     _syntax_err(src_file, line_no, pos, "过大的long字面量'%s'" % i)
                 type = "long"
-            elif i[-1] == "U":
+            elif i[-1].upper() == "U":
                 value = int(i[: -1], 0)
                 if value >= 2 ** 32:
                     _syntax_err(src_file, line_no, pos, "过大的uint字面量'%s'" % i)

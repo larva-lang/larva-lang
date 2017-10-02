@@ -287,6 +287,11 @@ return (%s)
         tp = expr.type
         return "lar_new_obj_%s(%s)" % (_gen_non_array_type_name(tp), _gen_expr_list_code(expr_list))
 
+    if expr.op == "default_value":
+        tp = expr.arg
+        assert tp == expr.type
+        return "(%s)(%s)" % (_gen_type_name_code(tp), _gen_default_value_code(tp))
+
     if expr.op == "new_array":
         tp, size_list = expr.arg
         _reg_new_arr_func_info(tp, len(size_list))

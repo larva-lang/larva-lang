@@ -342,18 +342,28 @@ class Parser:
                 larc_module.check_new_ginst_during_compile()
                 t = self.token_list.pop()
                 if t.is_sym("("):
-                    if base_type.token.is_reserved:
-                        base_type.token.syntax_err("不能用new构造基础类型的实例")
-                    new_cls = base_type.get_coi()
-                    if not (new_cls.is_cls or new_cls.is_gcls_inst):
-                        base_type.token.syntax_err("不能用new创建'%s'的实例" % new_cls)
-                    if new_cls.module is not self.curr_module and "public" not in new_cls.construct_method.decr_set:
-                        base_type.token.syntax_err("无法创建'%s'的实例：对构造函数无访问权限" % new_cls)
-
                     t = self.token_list.peek()
                     expr_list = self._parse_expr_list(var_map_stk)
-                    self._make_expr_list_match_arg_map(t, expr_list, new_cls.construct_method.arg_map)
-                    parse_stk.push_expr(_Expr("new", expr_list, base_type))
+                    is_new_cls = False
+                    if not base_type.token.is_reserved:
+                        new_coi = base_type.get_coi()
+                        if new_coi.is_cls or new_coi.is_gcls_inst:
+                            if new_coi.module is not self.curr_module and "public" not in new_coi.construct_method.decr_set:
+                                base_type.token.syntax_err("无法创建'%s'的实例：对构造函数无访问权限" % new_coi)
+                            self._make_expr_list_match_arg_map(t, expr_list, new_coi.construct_method.arg_map)
+                            parse_stk.push_expr(_Expr("new", expr_list, base_type))
+                            is_new_cls = True
+                    if not is_new_cls:
+                        #对基础类型或接口使用new语法
+                        if len(expr_list) == 0:
+                            #构建默认值的语法
+                            parse_stk.push_expr(_Expr("default_value", base_type, base_type))
+                        elif len(expr_list) == 1:
+                            #类型强制转换的语法
+                            parse_stk.push_op("force_convert", base_type)
+                            parse_stk.push_expr(expr_list[0])
+                        else:
+                            t.syntax_err("基础类型或接口的new只能输入0或1个参数")
                 else:
                     if not t.is_sym("["):
                         t.syntax_err("需要'('或'['")
