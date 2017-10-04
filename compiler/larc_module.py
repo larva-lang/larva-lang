@@ -618,6 +618,7 @@ class _GfuncInst(_FuncBase):
         self.gfunc = gfunc
 
         self.module = gfunc.module
+        self.decr_set = gfunc.decr_set
         self.name = gfunc.name
 
         self.gtp_map = larc_common.OrderedDict()

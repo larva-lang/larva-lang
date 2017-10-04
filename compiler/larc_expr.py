@@ -502,10 +502,10 @@ class Parser:
             gtp_list = larc_type.parse_gtp_list(self.token_list, self.dep_module_set)
             for tp in gtp_list:
                 tp.check(self.curr_module, self.gtp_map, self.used_dep_module_set)
-            larc_module.check_new_ginst_during_compile()
         else:
             gtp_list = []
         func = module.get_func(t, gtp_list)
+        larc_module.check_new_ginst_during_compile() #这个check必须在get_func之后，因为get_func同时负责创建gfunc_inst
         if func.module is not self.curr_module and "public" not in func.decr_set:
             t.syntax_err("无法使用函数'%s'：没有权限" % func)
         self.token_list.pop_sym("(")

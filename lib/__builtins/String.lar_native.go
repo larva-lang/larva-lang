@@ -117,6 +117,12 @@ func lar_util_convert_lar_str_to_go_str(s *lar_cls_10___builtins_6_String) strin
 }
 
 func lar_str_fmt(format string, a ...interface{}) *lar_cls_10___builtins_6_String {
+    for i, v := range a {
+        s, ok := v.(*lar_cls_10___builtins_6_String)
+        if ok {
+            a[i] = (string)(*s)
+        }
+    }
     ls := lar_cls_10___builtins_6_String(fmt.Sprintf(format, a...))
     return &ls
 }
