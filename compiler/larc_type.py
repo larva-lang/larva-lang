@@ -215,6 +215,7 @@ VALID_ARRAY_IDX_TYPES = [SCHAR_TYPE, CHAR_TYPE]
 for _tp in "short", "int", "long":
     VALID_ARRAY_IDX_TYPES.append(eval("%s_TYPE" % _tp.upper()))
     VALID_ARRAY_IDX_TYPES.append(eval("U%s_TYPE" % _tp.upper()))
+PTM_TYPE_LIST = [_tp for _tp in _BASE_TYPE_LIST if _tp != "void"]
 del _tp
 
 def parse_type(token_list, dep_module_set, is_ref = False, non_array = False):
@@ -270,8 +271,8 @@ def parse_gtp_list(token_list, dep_module_set):
     gtp_list = []
     while True:
         tp = parse_type(token_list, dep_module_set)
-        if tp.is_array:
-            tp.token.syntax_err("数组类型不可作为泛型参数传入")
+        if tp.is_void or tp.is_array:
+            tp.token.syntax_err("void或数组不可作为泛型参数传入")
         gtp_list.append(tp)
         t = token_list.pop()
         if t.is_sym(","):

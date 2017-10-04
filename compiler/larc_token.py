@@ -88,8 +88,11 @@ class _Token:
         return self.__str__()
 
     def copy_on_pos(self, t):
-        #用t的位置构建一个自身的副本，用于泛型替换时
+        #用t的位置构建一个自身的副本，用于泛型替换等场景
         return _Token(self.type, self.value, t.src_file, t.line_no, t.pos)
+
+    def copy(self):
+        return self.copy_on_pos(self)
 
     def syntax_err(self, msg = ""):
         larc_common.exit("语法错误：文件[%s]行[%d]列[%d]%s" % (self.src_file, self.line_no, self.pos + 1, msg))

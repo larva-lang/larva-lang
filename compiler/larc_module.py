@@ -760,8 +760,8 @@ class Module:
 
             #可能是函数或全局变量
             type = larc_type.parse_type(token_list, dep_module_set)
-            t, name = token_list.pop_name()
-            self._check_redefine(t, name, dep_module_set)
+            name_t, name = token_list.pop_name()
+            self._check_redefine(name_t, name, dep_module_set)
             t, sym = token_list.pop_sym()
             if sym in ("(", "<"):
                 #函数
@@ -769,7 +769,7 @@ class Module:
                     t.syntax_err("函数只能用public和native修饰")
                 if sym == "<" and "native" in decr_set:
                     t.syntax_err("不可定义native泛型函数")
-                self._parse_func(file_name, dep_module_set, decr_set, type, name, sym == "<", token_list)
+                self._parse_func(file_name, dep_module_set, decr_set, type, name_t, sym == "<", token_list)
                 continue
             if sym in (";", "=", ","):
                 #全局变量
@@ -857,7 +857,9 @@ class Module:
         token_list.pop_sym("}")
         self.intf_map[name] = intf
 
-    def _parse_func(self, file_name, dep_module_set, decr_set, type, name, is_gfunc, token_list):
+    def _parse_func(self, file_name, dep_module_set, decr_set, type, name_t, is_gfunc, token_list):
+        name = name_t.value
+
         if is_gfunc:
             gtp_name_list = _parse_gtp_name_list(token_list, dep_module_set)
             token_list.pop_sym("(")
@@ -876,6 +878,15 @@ class Module:
             assert sym == "}"
 
         self.func_map[name] = _Func(self, file_name, decr_set, type, name, gtp_name_list, arg_map, block_token_list)
+        if name.startswith("__ptm_"):
+            l = name[6 :].split("_")
+            if len(l) < 2 or l[0] not in larc_type.PTM_TYPE_LIST:
+                name_t.syntax_err("非法的基础类型方法名")
+            ptm_tp = l[0]
+            if gtp_name_list:
+                name_t.syntax_err("基础类型方法不能实现为泛型函数")
+            if len(arg_map) == 0 or arg_map.value_at(0) != eval("larc_type.%s_TYPE" % ptm_tp.upper()):
+                name_t.syntax_err("基础类型方法的第一个参数类型必须和方法所属类型一致：需要[%s]" % ptm_tp)
 
     def check_type_for_non_ginst(self):
         for map in self.cls_map, self.intf_map, self.func_map:
