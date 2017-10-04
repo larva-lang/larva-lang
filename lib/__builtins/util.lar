@@ -10,6 +10,8 @@ public class Error
     public String msg;
 }
 
+public native void panic(String msg);
+
 public interface Any
 {
 }
