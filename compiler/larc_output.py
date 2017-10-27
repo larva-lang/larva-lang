@@ -370,7 +370,8 @@ def _output_stmt_list(code, stmt_list):
                 else:
                     assert len(stmt.for_var_map) == len(stmt.init_expr_list)
                     for (name, tp), expr in zip(stmt.for_var_map.iteritems(), stmt.init_expr_list):
-                        code += "var l_%s %s = (%s)" % (name, _gen_type_name_code(tp), _gen_expr_code(expr))
+                        code += "var l_%s %s = (%s)" % (name, _gen_type_name_code(tp),
+                                                        _gen_default_value_code(tp) if expr is None else _gen_expr_code(expr))
                 if stmt.judge_expr is None:
                     judge_expr_code = ""
                 else:

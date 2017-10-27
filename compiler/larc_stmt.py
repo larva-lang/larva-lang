@@ -104,6 +104,31 @@ class Parser:
                 stmt_list.append(_Stmt("if", if_expr_list = if_expr_list, if_stmt_list_list = if_stmt_list_list,
                                        else_stmt_list = else_stmt_list))
                 continue
+            if t.is_reserved("var"):
+                while True:
+                    t, name = self.token_list.pop_name()
+                    self._check_var_redefine(t, name, var_map_stk)
+                    self.token_list.pop_sym("=")
+                    t = self.token_list.peek()
+                    expr = self.expr_parser.parse(var_map_stk, None)
+                    if expr.type.is_void:
+                        t.syntax_err("变量类型不能为void")
+                    if expr.type.is_nil:
+                        t.syntax_err("var定义的变量不能用无类型的nil初始化")
+                    if expr.type.is_literal_int:
+                        tp = larc_type.INT_TYPE
+                    else:
+                        tp = expr.type
+                    var_map_stk[-1][name] = tp
+                    stmt_list.append(_Stmt("var", name = name, expr = expr))
+                    t = self.token_list.peek()
+                    if not t.is_sym or t.value not in (";", ","):
+                        t.syntax_err("需要';'或','")
+                    if t.is_sym(";"):
+                        break
+                    self.token_list.pop_sym(",")
+                self.token_list.pop_sym(";")
+                continue
 
             self.token_list.revert()
             t = self.token_list.peek()
@@ -114,14 +139,7 @@ class Parser:
                     t.syntax_err("变量类型不能为void")
                 while True:
                     t, name = self.token_list.pop_name()
-                    if name in self.dep_module_set:
-                        t.syntax_err("变量名和导入模块重名")
-                    if name in var_map_stk[-1]:
-                        t.syntax_err("变量名重定义")
-                    for var_map in var_map_stk[: -1]:
-                        if name in var_map:
-                            t.syntax_err("与上层的变量名冲突")
-                    var_map_stk[-1][name] = tp
+                    self._check_var_redefine(t, name, var_map_stk)
                     t = self.token_list.pop()
                     if not t.is_sym or t.value not in ("=", ",", ";"):
                         t.syntax_err("需要'='、';'或','")
@@ -130,6 +148,7 @@ class Parser:
                     else:
                         expr = None
                         self.token_list.revert()
+                    var_map_stk[-1][name] = tp
                     stmt_list.append(_Stmt("var", name = name, expr = expr))
                     t = self.token_list.peek()
                     if not t.is_sym or t.value not in (";", ","):
@@ -147,6 +166,15 @@ class Parser:
 
         return stmt_list
 
+    def _check_var_redefine(self, t, name, var_map_stk):
+        if name in self.dep_module_set:
+            t.syntax_err("变量名和导入模块重名")
+        if name in var_map_stk[-1]:
+            t.syntax_err("变量名重定义")
+        for var_map in var_map_stk[: -1]:
+            if name in var_map:
+                t.syntax_err("与上层的变量名冲突")
+
     def _parse_return(self, var_map_stk):
         if self.token_list.peek().is_sym(";"):
             expr = None
@@ -161,33 +189,61 @@ class Parser:
         self.token_list.pop_sym("(")
 
         for_var_map = larc_common.OrderedDict()
-        tp = larc_type.try_parse_type(self.token_list, self.module, self.dep_module_set, self.gtp_map)
-        if tp is None:
-            #第一部分为表达式列表
-            init_expr_list = []
-            if not self.token_list.peek().is_sym(";"):
-                init_expr_list += self._parse_expr_list_with_se(var_map_stk + (for_var_map,))
-        else:
-            #第一部分为若干变量定义
-            init_expr_list = []
+        init_expr_list = []
+        if self.token_list.peek().is_reserved("var"):
+            #第一部分为var变量定义
+            self.token_list.pop()
             while True:
                 t, name = self.token_list.pop_name()
-                if name in self.dep_module_set:
-                    t.syntax_err("变量名和导入模块重名")
-                if name in for_var_map:
-                    t.syntax_err("变量名重定义")
-                for var_map in var_map_stk:
-                    if name in var_map:
-                        t.syntax_err("与上层的变量名冲突")
-                t = self.token_list.pop()
-                if not t.is_sym("="):
-                    t.syntax_err("for语句定义的变量必须显式初始化")
-                expr = self.expr_parser.parse(var_map_stk + (for_var_map,), tp)
+                self._check_var_redefine(t, name, var_map_stk + (for_var_map,))
+                self.token_list.pop_sym("=")
+                t = self.token_list.peek()
+                expr = self.expr_parser.parse(var_map_stk + (for_var_map,), None)
+                if expr.type.is_void:
+                    t.syntax_err("变量类型不能为void")
+                if expr.type.is_nil:
+                    t.syntax_err("var定义的变量不能用无类型的nil初始化")
+                if expr.type.is_literal_int:
+                    tp = larc_type.INT_TYPE
+                else:
+                    tp = expr.type
                 for_var_map[name] = tp
                 init_expr_list.append(expr)
-                if self.token_list.peek().is_sym(";"):
+                t = self.token_list.peek()
+                if not t.is_sym or t.value not in (";", ","):
+                    t.syntax_err("需要';'或','")
+                if t.is_sym(";"):
                     break
                 self.token_list.pop_sym(",")
+        else:
+            tp = larc_type.try_parse_type(self.token_list, self.module, self.dep_module_set, self.gtp_map)
+            if tp is None:
+                #第一部分为表达式列表
+                if not self.token_list.peek().is_sym(";"):
+                    init_expr_list += self._parse_expr_list_with_se(var_map_stk + (for_var_map,))
+            else:
+                #第一部分为若干指定类型的变量定义
+                if tp.is_void:
+                    t.syntax_err("变量类型不能为void")
+                while True:
+                    t, name = self.token_list.pop_name()
+                    self._check_var_redefine(t, name, var_map_stk + (for_var_map,))
+                    t = self.token_list.pop()
+                    if not t.is_sym or t.value not in ("=", ",", ";"):
+                        t.syntax_err("需要'='、';'或','")
+                    if t.value == "=":
+                        expr = self.expr_parser.parse(var_map_stk + (for_var_map,), tp)
+                    else:
+                        expr = None
+                        self.token_list.revert()
+                    for_var_map[name] = tp
+                    init_expr_list.append(expr)
+                    t = self.token_list.peek()
+                    if not t.is_sym or t.value not in (";", ","):
+                        t.syntax_err("需要';'或','")
+                    if t.is_sym(";"):
+                        break
+                    self.token_list.pop_sym(",")
         self.token_list.pop_sym(";")
 
         if self.token_list.peek().is_sym(";"):
