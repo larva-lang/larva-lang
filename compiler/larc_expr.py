@@ -182,7 +182,7 @@ class _ParseStk:
                     else:
                         raise _InvalidBinocularOp()
                     tp = larc_type.BOOL_TYPE
-                elif op in ("+", "-", "*", "/", "<", ">", "<=", ">="):
+                elif op in ("+", "-", "*", "/", "%", "<", ">", "<=", ">="):
                     if ea.type.is_number_type and eb.type.is_number_type:
                         normal_binocular_op = True
                     else:
@@ -191,7 +191,7 @@ class _ParseStk:
                         tp = larc_type.BOOL_TYPE
                     else:
                         tp = None
-                elif op in ("%", "&", "|", "^"):
+                elif op in ("&", "|", "^"):
                     if ea.type.is_integer_type and eb.type.is_integer_type:
                         normal_binocular_op = True
                     else:
@@ -213,7 +213,8 @@ class _ParseStk:
                     if tp is None:
                         tp = ea.type
                 assert tp is not None
-                assert ea.type == eb.type
+                if op not in ("<<", ">>"):
+                    assert ea.type == eb.type
                 self.stk.append(_Expr(op, (ea, eb), tp))
 
             except _InvalidBinocularOp:

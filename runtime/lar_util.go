@@ -1,5 +1,6 @@
 import (
     "unsafe"
+    "math"
 )
 
 type lar_type_bool bool
@@ -21,4 +22,12 @@ type lar_util_intf_stru struct {
 
 func lar_util_is_same_intf(a, b interface{}) bool {
     return ((*lar_util_intf_stru)(unsafe.Pointer(&a))).data == ((*lar_util_intf_stru)(unsafe.Pointer(&b))).data
+}
+
+func lar_util_fmod_float(a, b lar_type_float) lar_type_float {
+    return lar_type_float(math.Mod(float64(a), float64(b)))
+}
+
+func lar_util_fmod_double(a, b lar_type_double) lar_type_double {
+    return lar_type_double(math.Mod(float64(a), float64(b)))
 }
