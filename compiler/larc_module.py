@@ -113,6 +113,13 @@ class _CoiBase:
                     return False
         return True
 
+    def get_method_type_info(self, t):
+        assert t.is_name
+        if t.value not in self.method_map:
+            t.syntax_err("'%s'没有方法'%s'" % (self, t.value))
+        method = self.method_map[t.value]
+        return method.type, list(method.arg_map.itervalues())
+
 #下面_Cls和_GclsInst的基类，只用于定义一些通用属性和方法
 class _ClsBase(_CoiBase):
     def expand_usemethod(self, expand_chain):
@@ -173,6 +180,12 @@ class _ClsBase(_CoiBase):
         if name in self.attr_map:
             return None, self.attr_map[name]
         token.syntax_err("类'%s'没有方法或属性'%s'" % (self, name))
+
+    def get_attr_type_info(self, t):
+        assert t.is_name
+        if t.value not in self.attr_map:
+            t.syntax_err("类'%s'没有属性'%s'" % (self, t.value))
+        return self.attr_map[t.value]
 
 class _MethodBase:
     def __init__(self):
@@ -459,6 +472,10 @@ class _IntfBase(_CoiBase):
         if name in self.method_map:
             return self.method_map[name], None
         token.syntax_err("接口'%s'没有方法'%s'" % (self, name))
+
+    def get_attr_type_info(self, t):
+        assert t.is_name
+        t.syntax_err("不能对接口'%s'进行取属性操作" % self)
 
 class _IntfMethod:
     def __init__(self, intf, decr_set, type, name, arg_map):

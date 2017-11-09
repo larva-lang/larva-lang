@@ -33,7 +33,7 @@ _SYM_SET = set("""~!%^&*()-+|{}[]:;"'<,>.?/""") | set(["!=", "==", "<<", "<=", "
 #保留字集
 _RESERVED_WORD_SET = set(["import", "class", "void", "bool", "schar", "char", "short", "ushort", "int", "uint", "long", "ulong", "float",
                           "double", "ref", "for", "while", "if", "else", "return", "nil", "true", "false", "break", "continue", "this",
-                          "public", "interface", "new", "final", "usemethod", "native", "var"])
+                          "public", "interface", "new", "final", "usemethod", "native", "var", "typeof"])
 
 class _Token:
     def __init__(self, type, value, src_file, line_no, pos):

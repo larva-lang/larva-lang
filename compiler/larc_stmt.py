@@ -132,7 +132,8 @@ class Parser:
 
             self.token_list.revert()
             t = self.token_list.peek()
-            tp = larc_type.try_parse_type(self.token_list, self.module, self.dep_module_set, self.gtp_map)
+            tp = larc_type.try_parse_type(self.token_list, self.module, self.dep_module_set, self.gtp_map,
+                                          allow_typeof = bool(self.gtp_map and var_map_stk))
             if tp is not None:
                 #变量定义
                 if tp.is_void:
@@ -216,7 +217,8 @@ class Parser:
                     break
                 self.token_list.pop_sym(",")
         else:
-            tp = larc_type.try_parse_type(self.token_list, self.module, self.dep_module_set, self.gtp_map)
+            tp = larc_type.try_parse_type(self.token_list, self.module, self.dep_module_set, self.gtp_map,
+                                          allow_typeof = bool(self.gtp_map and var_map_stk))
             if tp is None:
                 #第一部分为表达式列表
                 if not self.token_list.peek().is_sym(";"):

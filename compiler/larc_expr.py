@@ -293,7 +293,8 @@ class Parser:
                 continue
 
             if t.is_sym("("):
-                tp = larc_type.try_parse_type(self.token_list, self.curr_module, self.dep_module_set, self.gtp_map, self.used_dep_module_set)
+                tp = larc_type.try_parse_type(self.token_list, self.curr_module, self.dep_module_set, self.gtp_map,
+                                              used_dep_module_set = self.used_dep_module_set, allow_typeof = bool(self.gtp_map and var_map_stk))
                 if tp is not None:
                     #类型强转
                     self.token_list.pop_sym(")")
@@ -338,7 +339,8 @@ class Parser:
                     tp = eval("larc_type.%s_TYPE" % t.type[8 :].upper())
                 parse_stk.push_expr(_Expr("literal", t, tp))
             elif t.is_reserved("new"):
-                base_type = larc_type.parse_type(self.token_list, self.dep_module_set, non_array = True)
+                base_type = larc_type.parse_type(self.token_list, self.dep_module_set, non_array = True,
+                                                 allow_typeof = bool(self.gtp_map and var_map_stk))
                 base_type.check(self.curr_module, self.gtp_map, self.used_dep_module_set)
                 larc_module.check_new_ginst_during_compile()
                 t = self.token_list.pop()
@@ -505,7 +507,7 @@ class Parser:
 
         if self.token_list.peek().is_sym("<"):
             self.token_list.pop_sym("<")
-            gtp_list = larc_type.parse_gtp_list(self.token_list, self.dep_module_set)
+            gtp_list = larc_type.parse_gtp_list(self.token_list, self.dep_module_set, allow_typeof = bool(self.gtp_map and var_map_stk))
             for tp in gtp_list:
                 tp.check(self.curr_module, self.gtp_map, self.used_dep_module_set)
         else:
