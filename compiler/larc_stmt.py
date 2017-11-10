@@ -20,6 +20,12 @@ class _StmtList(list):
         list.__init__(self)
         self.var_map = var_map
 
+    def has_defer(self):
+        for stmt in self:
+            if stmt.type == "defer":
+                return True
+        return False
+
 class _SeExpr(larc_expr.ExprBase):
     def __init__(self, lvalue, op, expr):
         larc_expr.ExprBase.__init__(self, "se_expr")
@@ -37,7 +43,7 @@ class Parser:
         self.ret_type = ret_type
         self.expr_parser = larc_expr.Parser(token_list, module, dep_module_set, cls, gtp_map)
 
-    def parse(self, var_map_stk, loop_deep):
+    def parse(self, var_map_stk, loop_deep, parse_defer_block = False):
         assert var_map_stk
         stmt_list = _StmtList(var_map_stk[-1])
         while True:
@@ -58,6 +64,8 @@ class Parser:
                 stmt_list.append(_Stmt(t.value))
                 continue
             if t.is_reserved("return"):
+                if parse_defer_block:
+                    t.syntax_err("defer代码块中不能return")
                 stmt_list.append(_Stmt("return", expr = self._parse_return(var_map_stk)))
                 continue
             if t.is_reserved("for"):
@@ -128,6 +136,12 @@ class Parser:
                         break
                     self.token_list.pop_sym(",")
                 self.token_list.pop_sym(";")
+                continue
+            if t.is_reserved("defer"):
+                self.token_list.pop_sym("{")
+                stmt_list.append(_Stmt("defer", stmt_list = self.parse(var_map_stk + (larc_common.OrderedDict(),), loop_deep,
+                                                                       parse_defer_block = True)))
+                self.token_list.pop_sym("}")
                 continue
 
             self.token_list.revert()

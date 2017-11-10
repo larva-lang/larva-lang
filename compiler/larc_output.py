@@ -220,24 +220,13 @@ def _gen_expr_code_ex(expr):
         if tp.is_bool_type and e.type.is_number_type:
             return "(%s) != 0" % e_code
         if tp.is_number_type and e.type.is_bool_type:
-            return """func () %s {
-if (%s) {
-    return 1
-}
-return 0
-}()""" % (tp_name_code, e_code)
+            return "func () %s {if (%s) {return 1} else {return 0}}()" % (tp_name_code, e_code)
         if tp.can_convert_from(e.type) or not tp.is_obj_type:
             return "(%s)(%s)" % (tp_name_code, e_code)
         assert e.type.is_obj_type and not (e.type.is_array or e.type.is_nil)
         e_coi = e.type.get_coi()
         assert e_coi.is_intf or e_coi.is_gintf_inst
-        return """func () %s {
-r, ok := (%s).(%s)
-if ok {
-    return r
-}
-return nil
-}()""" % (tp_name_code, e_code, tp_name_code)
+        return "func () %s {r, ok := (%s).(%s); if ok {return r} else {return nil}}()" % (tp_name_code, e_code, tp_name_code)
 
     if expr.op in ("~", "!", "neg", "pos"):
         e = expr.arg
@@ -260,12 +249,8 @@ return nil
 
     if expr.op == "?:":
         ea, eb, ec = expr.arg
-        return """func () %s {
-if (%s) {
-return (%s)
-}
-return (%s)
-}()""" % (_gen_type_name_code(expr.type), _gen_expr_code(ea), _gen_expr_code(eb), _gen_expr_code(ec))
+        return ("func () %s {if (%s) {return (%s)} else {return (%s)}}()" %
+                (_gen_type_name_code(expr.type), _gen_expr_code(ea), _gen_expr_code(eb), _gen_expr_code(ec)))
 
     if expr.op == "local_var":
         name = expr.arg
@@ -350,7 +335,13 @@ return (%s)
 def _gen_arg_def(arg_map):
     return ", ".join(["l_%s %s%s" % (name, "*" if tp.is_ref else "", _gen_type_name_code(tp)) for name, tp in arg_map.iteritems()])
 
-def _output_stmt_list(code, stmt_list):
+def _output_stmt_list(code, stmt_list, check_defer = True):
+    if check_defer and stmt_list.has_defer():
+        with code.new_blk("func ()"):
+            _output_stmt_list(code, stmt_list, check_defer = False)
+        assert code.line_list[-1].strip() == "}"
+        code.line_list[-1] += "()"
+        return
     for stmt in stmt_list:
         if stmt.type == "block":
             with code.new_blk(""):
@@ -411,6 +402,12 @@ def _output_stmt_list(code, stmt_list):
         if stmt.type == "expr":
             code += _gen_expr_code(stmt.expr)
             continue
+        if stmt.type == "defer":
+            with code.new_blk("defer func ()"):
+                _output_stmt_list(code, stmt.stmt_list)
+            assert code.line_list[-1].strip() == "}"
+            code.line_list[-1] += "()"
+            continue
         raise Exception("Bug")
 
 _literal_str_token_id_set = set()
@@ -465,7 +462,7 @@ def _output_module():
                 with code.new_blk("func (this *%s) method_%s(%s) %s" %
                                   (lar_cls_name, method.name, _gen_arg_def(method.arg_map), _gen_type_name_code(method.type))):
                     if method.is_method:
-                        _output_stmt_list(code, method.stmt_list)
+                        _output_stmt_list(code, method.stmt_list, check_defer = False)
                         code += "return %s" % _gen_default_value_code(method.type)
                     else:
                         assert method.is_usemethod
@@ -485,7 +482,7 @@ def _output_module():
                     _reg_new_arr_func_info(tp, 0)
                 continue
             with code.new_blk("func %s(%s) %s" % (_gen_func_name(func), _gen_arg_def(func.arg_map), _gen_type_name_code(func.type))):
-                _output_stmt_list(code, func.stmt_list)
+                _output_stmt_list(code, func.stmt_list, check_defer = False)
                 code += "return %s" % _gen_default_value_code(func.type)
 
     if has_native_item:
