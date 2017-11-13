@@ -145,9 +145,9 @@ class _Type:
             for attr_name_t, t, arr_dim_count in self.typeof_info[1 :]:
                 if t is None:
                     #取属性的类型
-                    if tp.is_reserved:
+                    if tp.token.is_reserved:
                         attr_name_t.syntax_err("不能对基础类型'%s'取属性" % tp)
-                    tp = tp.get_coi().get_attr_type_info(attr_name_t)
+                    tp = tp.get_coi().get_attr_type_info(attr_name_t, curr_module)
                 else:
                     #先找到对应的方法，基础类型则取ptm
                     if tp.token.is_reserved:
@@ -164,8 +164,10 @@ class _Type:
                             t.syntax_err("未定义基础类型方法'%s'" % ptm_name)
                         ret_type = ptm.type
                         arg_type_list = list(ptm.arg_map.itervalues())
+                        assert arg_type_list[0] == tp
+                        arg_type_list = arg_type_list[1 :]
                     else:
-                        ret_type, arg_type_list = tp.get_coi().get_method_type_info(attr_name_t)
+                        ret_type, arg_type_list = tp.get_coi().get_method_type_info(attr_name_t, curr_module)
                     if t.is_sym("("):
                         #取方法返回值的类型
                         if ret_type.is_void:

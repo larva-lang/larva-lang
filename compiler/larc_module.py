@@ -113,11 +113,13 @@ class _CoiBase:
                     return False
         return True
 
-    def get_method_type_info(self, t):
+    def get_method_type_info(self, t, curr_module):
         assert t.is_name
         if t.value not in self.method_map:
             t.syntax_err("'%s'没有方法'%s'" % (self, t.value))
         method = self.method_map[t.value]
+        if self.module is not curr_module and "public" not in method.decr_set:
+            t.syntax_err("无法访问'%s'的方法'%s'：没有权限" % (self, t.value))
         return method.type, list(method.arg_map.itervalues())
 
 #下面_Cls和_GclsInst的基类，只用于定义一些通用属性和方法
@@ -181,11 +183,14 @@ class _ClsBase(_CoiBase):
             return None, self.attr_map[name]
         token.syntax_err("类'%s'没有方法或属性'%s'" % (self, name))
 
-    def get_attr_type_info(self, t):
+    def get_attr_type_info(self, t, curr_module):
         assert t.is_name
         if t.value not in self.attr_map:
             t.syntax_err("类'%s'没有属性'%s'" % (self, t.value))
-        return self.attr_map[t.value]
+        attr = self.attr_map[t.value]
+        if self.module is not curr_module and "public" not in attr.decr_set:
+            t.syntax_err("无法访问类'%s'的属性'%s'：没有权限" % (self, t.value))
+        return attr.type
 
 class _MethodBase:
     def __init__(self):
