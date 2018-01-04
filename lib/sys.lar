@@ -1,9 +1,0 @@
-//sys模块，系统相关接口
-
-public native void print(String s);
-
-public void println(String s)
-{
-    print(s);
-    print("\n");
-}

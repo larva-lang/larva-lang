@@ -1,0 +1,143 @@
+import time, net, random;
+
+void log(String msg)
+{
+    println("[%v] %v\n".format(time.strftime("%Y-%m-%d %H:%M:%S", time.time()), msg));
+}
+
+class Client
+{
+    net.TcpConn m_sock;
+    String m_result;
+
+    Client(net.TcpConn sock)
+    {
+        m_sock = sock;
+        m_result = "";
+        while (m_result.len() < 4)
+        {
+            String c = "%v".format((int)(random.random() * 10.0));
+            if (m_result.index(c) < 0)
+            {
+                m_result = m_result.concat(c);
+            }
+        }
+        client_log("start with result [%v]".format(m_result));
+    }
+
+    void client_log(String s)
+    {
+        log("client [%v]: %v".format(m_sock.remote_addr(), s));
+    }
+
+    bool is_valid_input(char[] s, long sz)
+    {
+        if (sz != 6)
+        {
+            return false;
+        }
+        bool[] selected = new bool[10];
+        for (uint i = 0; i < 4; ++ i)
+        {
+            char c = s[i];
+            if (c < '0' || c > '9' || selected[c - '0'])
+            {
+                return false;
+            }
+            selected[c - '0'] = true;
+        }
+        return true;
+    }
+
+    void send_all(String s)
+    {
+        char[] a = s.to_char_array();
+        for (long offset = 0; offset < a.size;)
+        {
+            offset += m_sock.send(a, offset, a.size - offset);
+        }
+    }
+
+    void _run()
+    {
+        char[] recv_buf = new char[1000];
+        int[] rsp = new int[2];
+        while (true)
+        {
+            send_all("Guess a number, 4 different digits:");
+
+            long recved_size = m_sock.recv(recv_buf, 0);
+            if (recved_size == 0)
+            {
+                client_log("client over");
+                return;
+            }
+
+            if (recved_size < 2 || recv_buf[recved_size - 1] != '\n' || recv_buf[recved_size - 2] != '\r')
+            {
+                throw("proto error");
+            }
+            if (recved_size == 2)
+            {
+                continue;
+            }
+
+            if (!is_valid_input(recv_buf, recved_size))
+            {
+                send_all("Invalid input\r\n");
+                continue;
+            }
+
+            rsp[0] = 0;
+            rsp[1] = 0;
+            for (long i = 0; i < 4; ++ i)
+            {
+                for (long j = 0; j < 4; ++ j)
+                {
+                    if (m_result.char_at(i) == recv_buf[j])
+                    {
+                        ++ rsp[i == j ? 0 : 1];
+                    }
+                }
+            }
+            if (rsp[0] == 4)
+            {
+                send_all("You got it\r\n");
+                client_log("player win");
+                return;
+            }
+            send_all("%vA%vB\r\n".format(rsp[0], rsp[1]));
+        }
+    }
+
+    public void run()
+    {
+        var c = [
+            _run();
+        ];
+        if (c != nil)
+        {
+            client_log("client ends with exception [%v], traceback[%v]".format(c.throwed.to_str(), c.traceback));
+        }
+    }
+}
+
+public int main(String[] args)
+{
+    net.TcpListener listener = net.listen_tcp(":9999");
+    log("game start!");
+    while (true)
+    {
+        var c = [
+            net.TcpConn new_client = listener.accept();
+            log("accept success, new client [%v]".format(new_client.remote_addr()));
+
+            start_coroutine(new Client(new_client));
+        ];
+        if (c != nil)
+        {
+            log("accept new client failed [%v][%v]".format(c.throwed.to_str(), c.traceback));
+        }
+    }
+    return 0;
+}

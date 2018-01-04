@@ -1,18 +1,52 @@
 //String类的定义
 
-public native class String
+//String内部实现
+public native class _String
 {
-    public String(char[] arr);
-    public long size();
-    public char char_at(long idx);
-    public int cmp(String other);
+    _String(char[] arr);
 
-    public Error parse_short(int base, ref short n);
-    public Error parse_ushort(int base, ref ushort n);
-    public Error parse_int(int base, ref int n);
-    public Error parse_uint(int base, ref uint n);
-    public Error parse_long(int base, ref long n);
-    public Error parse_ulong(int base, ref ulong n);
-    public Error parse_float(ref float n);
-    public Error parse_double(ref double n);
+    public long len();
+    public char char_at(long idx);
+    public char[] to_char_array();
+    ulong hash();
+
+    public int cmp(String other);
+    public long index(String s);
+    public String concat(String s);
+
+    public bool parse_bool();
+    public long parse_long(int base);
+    public ulong parse_ulong(int base);
+    public double parse_double();
+}
+
+//在内部实现基础上实现String
+public class String
+{
+    public String(char[] arr)
+    {
+        s = new _String(arr);
+        h = 0;
+    }
+
+    public String to_str()
+    {
+        return this;
+    }
+
+    public ulong hash()
+    {
+        if (h == 0)
+        {
+            h = s.hash();
+            if (h == 0)
+            {
+                h = 1;
+            }
+        }
+        return h;
+    }
+
+    usemethod _String s; //内部实现
+    ulong h; //缓存的hash值，为0表示还没有计算
 }

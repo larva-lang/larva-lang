@@ -1,4 +1,4 @@
-import sys, time;
+import time;
 
 class Record
 {
@@ -256,21 +256,16 @@ void Proc0()
     }
 }
 
-public int main(String[] argv)
+public int main(String[] args)
 {
-    if (argv.size > 1)
+    if (args.size > 1)
     {
-        Error err = argv[1].parse_int(0, ref loops);
-        if (err != nil)
-        {
-            sys.println("Invalid loop arg [%v]".format(argv[1]));
-            return 1;
-        }
+        loops = (int)args[1].parse_long(0);
     }
     double ts = time.time();
     Proc0();
     double tm = time.time() - ts;
-    sys.println("Time used: %v sec".format(tm));
-    sys.println("This machine benchmarks at %v LarStones/second".format((double)loops / tm));
+    println("Time used: %v sec".format(tm));
+    println("This machine benchmarks at %v LarStones/second".format((double)loops / tm));
     return 0;
 }

@@ -97,7 +97,12 @@ def _gen_non_array_type_name(tp):
     if tp.is_obj_type:
         return _gen_coi_name(tp.get_coi())
     assert tp.token.is_reserved
-    return "lar_type_%s" % tp.name
+    return {"bool" : "bool",
+            "schar" : "int8", "char" : "uint8",
+            "short" : "int16", "ushort" : "uint16",
+            "int" : "int32", "uint" : "uint32",
+            "long" : "int64", "ulong" : "uint64",
+            "float" : "float32", "double" : "float64"}[tp.name]
 
 def _gen_type_name_code(tp):
     if tp.is_void:
@@ -160,7 +165,7 @@ def _output_booter():
         with code.new_blk("import"):
             code += '"os"'
         with code.new_blk("func Lar_booter_start_prog() int"):
-            code += "argv := %s((lar_type_long)(len(os.Args)))" % (_gen_new_arr_func_name(larc_type.STR_TYPE, 1, 1))
+            code += "argv := %s(int64(len(os.Args)))" % (_gen_new_arr_func_name(larc_type.STR_TYPE, 1, 1))
             with code.new_blk("for i := 0; i < len(os.Args); i ++"):
                 code += "(*argv)[i] = lar_util_create_lar_str_from_go_str(os.Args[i])"
             code += "lar_env_init_mod___builtins()"
@@ -289,7 +294,7 @@ def _gen_expr_code_ex(expr):
             new_dim_count = len(size_list)
         assert new_dim_count > 0
         return "%s(%s)" % (_gen_new_arr_func_name(tp, len(size_list), new_dim_count),
-                           ", ".join(["(lar_type_long)(%s)" % _gen_expr_code(e) for e in size_list[: new_dim_count]]))
+                           ", ".join(["int64(%s)" % _gen_expr_code(e) for e in size_list[: new_dim_count]]))
 
     if expr.op == "this":
         return "this"
@@ -300,7 +305,7 @@ def _gen_expr_code_ex(expr):
 
     if expr.op == "array.size":
         arr_e = expr.arg
-        return "(lar_type_long)(len(*(%s)))" % _gen_expr_code(arr_e)
+        return "int64(len(*(%s)))" % _gen_expr_code(arr_e)
 
     if expr.op == "str_format":
         fmt, expr_list = expr.arg
@@ -528,17 +533,16 @@ def _output_util():
                 tp_name_code = "*" + tp_name_code
             for new_dim_count in xrange(1, dim_count + 1):
                 new_arr_func_name = _gen_new_arr_func_name_by_tp_name(tp_name, dim_count, new_dim_count)
-                arg_code = ", ".join(["d%d_size" % i for i in xrange(new_dim_count)]) + " lar_type_long"
+                arg_code = ", ".join(["d%d_size" % i for i in xrange(new_dim_count)]) + " int64"
                 arr_tp_name_code = "*[]" * dim_count + tp_name_code
                 if new_dim_count == 1:
                     elem_type_name_code = arr_tp_name_code[3 :]
                     if (elem_type_name_code[0] == "*" or elem_type_name_code.startswith("lar_intf") or
                         elem_type_name_code.startswith("lar_gintf")):
                         elem_code = "nil"
-                    elif elem_type_name_code.startswith("lar_type_bool"):
+                    elif elem_type_name_code.startswith("bool"):
                         elem_code = "false"
                     else:
-                        assert elem_type_name_code.startswith("lar_type")
                         elem_code = "0"
                 else:
                     assert new_dim_count > 1
@@ -546,7 +550,7 @@ def _output_util():
                                             ", ".join(["d%d_size" % i for i in xrange(1, new_dim_count)]))
                 with code.new_blk("func %s(%s) %s" % (new_arr_func_name, arg_code, arr_tp_name_code)):
                     code += "arr := make(%s, d0_size)" % arr_tp_name_code[1 :]
-                    with code.new_blk("for i := lar_type_long(0); i < d0_size; i ++"):
+                    with code.new_blk("for i := int64(0); i < d0_size; i ++"):
                         code += "arr[i] = %s" % elem_code
                     code += "return &arr"
 

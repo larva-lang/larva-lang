@@ -1,0 +1,52 @@
+//可以用throw函数抛出的对象类型
+public interface Throwable
+{
+    public String to_str();
+}
+
+//抛出异常
+public native void throw(Throwable t);
+
+//捕获语法返回的对象：抛出的对象+traceback的组合
+public class Catched
+{
+    Catched(Throwable t, String tb)
+    {
+        throwed = t;
+        traceback = tb;
+    }
+
+    public Throwable throwed;
+    public String traceback;
+}
+
+//继续往上抛Catched对象
+public native void rethrow(Catched c);
+
+//一个基本的常用异常的实现：仅包含一个字符串info
+public class Exception
+{
+    public Exception(String s)
+    {
+        info = s;
+    }
+
+    public String to_str()
+    {
+        return info;
+    }
+
+    String info;
+}
+
+//这里是通用的一些异常类型
+
+public class ValueError
+{
+    public ValueError(String s)
+    {
+        e = new Exception("ValueError: ".concat(s));
+    }
+
+    usemethod Exception e;
+}

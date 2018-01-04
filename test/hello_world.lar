@@ -1,7 +1,5 @@
-import sys;
-
-public int main(String[] argv)
+public int main(String[] args)
 {
-    sys.println("hello world");
+    println("hello world");
     return 0;
 }

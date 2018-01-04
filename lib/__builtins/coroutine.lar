@@ -1,0 +1,6 @@
+public interface Coroutine
+{
+    public void run();
+}
+
+public native void start_coroutine(Coroutine co);
