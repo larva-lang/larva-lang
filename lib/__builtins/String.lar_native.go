@@ -51,7 +51,7 @@ func (this *lar_cls_10___builtins_7__String) method_parse_bool() bool {
     s := string(*this)
     r, err := strconv.ParseBool(s)
     if err != nil {
-        lar_util_throw(lar_new_obj_lar_cls_10___builtins_10_ValueError(lar_str_fmt("无效的bool字面量：'%s'", s)))
+        lar_func_10___builtins_5_throw(lar_new_obj_lar_cls_10___builtins_10_ValueError(lar_str_fmt("无效的bool字面量：'%s'", s)))
     }
     return r
 }
@@ -66,7 +66,7 @@ func (this *lar_cls_10___builtins_7__String) method_parse_long(base int32) int64
         } else {
             err_info = lar_str_fmt("无效的%d进制long字面量：'%s'", base, s)
         }
-        lar_util_throw(lar_new_obj_lar_cls_10___builtins_10_ValueError(err_info))
+        lar_func_10___builtins_5_throw(lar_new_obj_lar_cls_10___builtins_10_ValueError(err_info))
     }
     return r
 }
@@ -81,7 +81,7 @@ func (this *lar_cls_10___builtins_7__String) method_parse_ulong(base int32) uint
         } else {
             err_info = lar_str_fmt("无效的%d进制ulong字面量：'%s'", base, s)
         }
-        lar_util_throw(lar_new_obj_lar_cls_10___builtins_10_ValueError(err_info))
+        lar_func_10___builtins_5_throw(lar_new_obj_lar_cls_10___builtins_10_ValueError(err_info))
     }
     return r
 }
@@ -91,7 +91,7 @@ func (this *lar_cls_10___builtins_7__String) method_parse_double() float64 {
     r, err := strconv.ParseFloat(string(*this), 64)
     if err != nil {
         err_info := lar_str_fmt("无效的double字面量：'%s'", s)
-        lar_util_throw(lar_new_obj_lar_cls_10___builtins_10_ValueError(err_info))
+        lar_func_10___builtins_5_throw(lar_new_obj_lar_cls_10___builtins_10_ValueError(err_info))
     }
     return r
 }
