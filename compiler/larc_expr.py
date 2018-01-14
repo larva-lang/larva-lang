@@ -33,14 +33,25 @@ del _op
 
 #将literal_int expr转换成对应type，type一定是一个integer
 def _convert_literal_int_expr(e, tp):
-    assert e.op == "literal" and e.type == larc_type.LITERAL_INT_TYPE and tp.is_integer_type and not tp.is_literal_int
-    v = e.arg.value
-    bit_num_table = {"schar" : 7, "char" : 8, "short" : 15, "ushort" : 16}
-    if tp.name in bit_num_table and v >= 2 ** bit_num_table[tp.name]:
-        #e的字面量值大于tp支持的范围了
-        return None
-    #将e字面量转为tp类型
-    return _Expr("force_convert", (tp, e), tp)
+    assert e.op in ("literal", "?:") and e.type == larc_type.LITERAL_INT_TYPE and tp.is_integer_type and not tp.is_literal_int
+    if e.op == "?:":
+        #若两个结果分量都可转为tp，则可转换
+        ea, eb, ec = e.arg
+        eb = _convert_literal_int_expr(eb, tp)
+        ec = _convert_literal_int_expr(ec, tp)
+        if eb is None or ec is None:
+            return None
+        assert eb.type == tp and ec.type == tp
+        return _Expr("?:", (ea, eb, ec), tp)
+    else:
+        #literal int
+        v = e.arg.value
+        bit_num_table = {"schar" : 7, "char" : 8, "short" : 15, "ushort" : 16}
+        if tp.name in bit_num_table and v >= 2 ** bit_num_table[tp.name]:
+            #e的字面量值大于tp支持的范围了
+            return None
+        #将e字面量转为tp类型
+        return _Expr("force_convert", (tp, e), tp)
 
 class _CantMakeNumberTypeSame(Exception):
     pass
@@ -72,9 +83,9 @@ class _Expr(ExprBase):
     def __init__(self, op, arg, type):
         ExprBase.__init__(self, "expr")
 
-        if op != "literal" and type.is_literal_int:
+        if op not in ("literal", "?:") and type.is_literal_int:
             type = larc_type.INT_TYPE
-        if op != "literal":
+        if op not in ("literal", "?:"):
             assert not type.name.startswith("literal_")
         else:
             assert type.is_literal_int or not type.name.startswith("literal_")
@@ -477,7 +488,7 @@ class Parser:
             for need_type in need_type_list:
                 if need_type == expr.type:
                     break
-                if expr.op == "literal" and expr.type == larc_type.LITERAL_INT_TYPE and need_type.is_integer_type:
+                if expr.op in ("literal", "?:") and expr.type == larc_type.LITERAL_INT_TYPE and need_type.is_integer_type:
                     e = _convert_literal_int_expr(expr, need_type)
                     if e is None:
                         continue
@@ -575,7 +586,7 @@ class Parser:
                 t.syntax_err("参数#%d：形参不是ref，无效的实参ref修饰" % (i + 1))
             if not e.is_ref and tp.is_ref:
                 t.syntax_err("参数#%d：形参是ref，实参缺少ref修饰" % (i + 1))
-            if e.op == "literal" and e.type == larc_type.LITERAL_INT_TYPE and tp.is_integer_type:
+            if e.op in ("literal", "?:") and e.type == larc_type.LITERAL_INT_TYPE and tp.is_integer_type:
                 e = _convert_literal_int_expr(e, tp)
             if e is None or not tp.can_convert_from(e.type):
                 t.syntax_err("参数#%d：无法从类型'%s'转为'%s'" % (i + 1, e_type, tp))

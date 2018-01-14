@@ -22,7 +22,7 @@ func lar_func_10___builtins_10_catch_base() *lar_gcls_inst_10___builtins_7_Catch
     r := recover()
     c, ok := r.(*lar_gcls_inst_10___builtins_7_Catched_1_lar_intf_10___builtins_9_Throwable)
     if !ok {
-        //不是larvar自己的异常
+        //不是larva自己的异常
         panic(r)
     }
     return c

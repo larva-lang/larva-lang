@@ -7,6 +7,7 @@
 import os
 import shutil
 import sys
+import platform
 
 import larc_common
 import larc_module
@@ -222,10 +223,6 @@ def _gen_expr_code_ex(expr):
         tp, e = expr.arg
         tp_name_code = _gen_type_name_code(tp)
         e_code = _gen_expr_code(e)
-        if tp.is_bool_type and e.type.is_number_type:
-            return "(%s) != 0" % e_code
-        if tp.is_number_type and e.type.is_bool_type:
-            return "func () %s {if (%s) {return 1} else {return 0}}()" % (tp_name_code, e_code)
         if tp.can_convert_from(e.type) or not tp.is_obj_type:
             return "(%s)(%s)" % (tp_name_code, e_code)
         assert e.type.is_obj_type and not (e.type.is_array or e.type.is_nil)
@@ -340,26 +337,53 @@ def _gen_expr_code_ex(expr):
 def _gen_arg_def(arg_map):
     return ", ".join(["l_%s %s%s" % (name, "*" if tp.is_ref else "", _gen_type_name_code(tp)) for name, tp in arg_map.iteritems()])
 
-def _output_stmt_list(code, stmt_list, check_defer = True):
-    if check_defer and stmt_list.has_defer():
-        with code.new_blk("func ()"):
-            _output_stmt_list(code, stmt_list, check_defer = False)
-        assert code.line_list[-1].strip() == "}"
-        code.line_list[-1] += "()"
-        return
+#fom:func or method; boc:break or continue
+def _output_stmt_list(code, stmt_list, fom, long_ret_nest_deep, need_check_defer = True):
+    if need_check_defer:
+        #需要检查当前block是否有defer，若有则转为输出一个嵌套函数调用
+        if stmt_list.has_defer():
+            if long_ret_nest_deep >= 0:
+                if not fom.type.is_void:
+                    code += "var ret_%d %s" % (long_ret_nest_deep, _gen_type_name_code(fom.type))
+                code += "need_ret_%d := false" % long_ret_nest_deep
+
+            with code.new_blk("func ()"):
+                _output_stmt_list(code, stmt_list, fom, long_ret_nest_deep + 1, need_check_defer = False)
+            assert code.line_list[-1].strip() == "}"
+            code.line_list[-1] += "()"
+
+            if long_ret_nest_deep >= 0:
+                with code.new_blk("if need_ret_%d" % long_ret_nest_deep):
+                    if long_ret_nest_deep == 0:
+                        #已经是顶层了
+                        code += "return %s" % ("" if fom.type.is_void else "ret_%d" % long_ret_nest_deep)
+                    else:
+                        #设置上一层的ret，return上去
+                        if not fom.type.is_void:
+                            code += "ret_%d = ret_%d" % (long_ret_nest_deep - 1, long_ret_nest_deep)
+                        code += "need_ret_%d = true" % (long_ret_nest_deep - 1)
+                        code += "return"
+            return
+
     for stmt in stmt_list:
         if stmt.type == "block":
             with code.new_blk(""):
-                _output_stmt_list(code, stmt.stmt_list)
+                _output_stmt_list(code, stmt.stmt_list, fom, long_ret_nest_deep)
             continue
         if stmt.type in ("break", "continue"):
             code += stmt.type
             continue
         if stmt.type == "return":
-            if stmt.expr is None:
-                code += "return"
+            assert long_ret_nest_deep >= 0 #defer代码块中不会有return stmt，校验下
+            if long_ret_nest_deep == 0:
+                #顶层，普通return
+                code += "return %s" % ("" if stmt.expr is None else "(%s)" % _gen_expr_code(stmt.expr))
             else:
-                code += "return (%s)" % _gen_expr_code(stmt.expr)
+                #内层，设置上一层的ret并return上去
+                if stmt.expr is not None:
+                    code += "ret_%d = (%s)" % (long_ret_nest_deep - 1, _gen_expr_code(stmt.expr))
+                code += "need_ret_%d = true" % (long_ret_nest_deep - 1)
+                code += "return"
             continue
         if stmt.type == "for":
             with code.new_blk(""):
@@ -382,34 +406,35 @@ def _output_stmt_list(code, stmt_list, check_defer = True):
                 else:
                     loop_expr_code = "func () {%s}()" % "; ".join([_gen_expr_code(e) for e in stmt.loop_expr_list])
                 with code.new_blk("for ; %s; %s" % (judge_expr_code, loop_expr_code)):
-                    _output_stmt_list(code, stmt.stmt_list)
+                    _output_stmt_list(code, stmt.stmt_list, fom, long_ret_nest_deep)
             continue
         if stmt.type == "while":
             with code.new_blk("for (%s)" % _gen_expr_code(stmt.expr)):
-                _output_stmt_list(code, stmt.stmt_list)
+                _output_stmt_list(code, stmt.stmt_list, fom, long_ret_nest_deep)
             continue
         if stmt.type == "if":
             assert len(stmt.if_expr_list) == len(stmt.if_stmt_list_list)
             for i, (if_expr, if_stmt_list) in enumerate(zip(stmt.if_expr_list, stmt.if_stmt_list_list)):
                 with code.new_blk("%sif (%s)" % ("" if i == 0 else "else ", _gen_expr_code(if_expr))):
-                    _output_stmt_list(code, if_stmt_list)
+                    _output_stmt_list(code, if_stmt_list, fom, long_ret_nest_deep)
             if stmt.else_stmt_list is not None:
                 with code.new_blk("else"):
-                    _output_stmt_list(code, stmt.else_stmt_list)
+                    _output_stmt_list(code, stmt.else_stmt_list, fom, long_ret_nest_deep)
             continue
         if stmt.type == "var":
             if stmt.expr is None:
                 expr_code = _gen_default_value_code(stmt_list.var_map[stmt.name])
             else:
                 expr_code = _gen_expr_code(stmt.expr)
-            code += ("var l_%s %s = (%s)" % (stmt.name, _gen_type_name_code(stmt_list.var_map[stmt.name]), expr_code))
+            code += "var l_%s %s = (%s)" % (stmt.name, _gen_type_name_code(stmt_list.var_map[stmt.name]), expr_code)
             continue
         if stmt.type == "expr":
             code += _gen_expr_code(stmt.expr)
             continue
         if stmt.type == "defer":
             with code.new_blk("defer func ()"):
-                _output_stmt_list(code, stmt.stmt_list)
+                #defer中不允许return，long_ret_nest_deep设为一个很小的负数
+                _output_stmt_list(code, stmt.stmt_list, fom, -(10 ** 10), need_check_defer = False)
             assert code.line_list[-1].strip() == "}"
             code.line_list[-1] += "()"
             continue
@@ -467,7 +492,7 @@ def _output_module():
                 with code.new_blk("func (this *%s) method_%s(%s) %s" %
                                   (lar_cls_name, method.name, _gen_arg_def(method.arg_map), _gen_type_name_code(method.type))):
                     if method.is_method:
-                        _output_stmt_list(code, method.stmt_list, check_defer = False)
+                        _output_stmt_list(code, method.stmt_list, method, 0, need_check_defer = False)
                         code += "return %s" % _gen_default_value_code(method.type)
                     else:
                         assert method.is_usemethod
@@ -487,7 +512,7 @@ def _output_module():
                     _reg_new_arr_func_info(tp, 0)
                 continue
             with code.new_blk("func %s(%s) %s" % (_gen_func_name(func), _gen_arg_def(func.arg_map), _gen_type_name_code(func.type))):
-                _output_stmt_list(code, func.stmt_list, check_defer = False)
+                _output_stmt_list(code, func.stmt_list, func, 0, need_check_defer = False)
                 code += "return %s" % _gen_default_value_code(func.type)
 
     if has_native_item:
@@ -555,7 +580,7 @@ def _output_util():
                     code += "return &arr"
 
 def _output_makefile():
-    if sys.platform.lower().startswith("win"):
+    if platform.system() == "Windows":
         f = open(os.path.join(out_dir, "make.bat"), "w")
         print >> f, "@set GOPATH=%s" % out_dir
         print >> f, "go build -o %s.exe src/lar_prog.%s.go" % (main_module_name, main_module_name)
@@ -572,8 +597,15 @@ def _output_makefile():
         print >> f, "%s.exe" % main_module_name
         print >> f, "@pause"
         print >> f, "@exit"
+    elif platform.system() in ("Darwin", "Linux"):
+        f = open(os.path.join(out_dir, "Makefile"), "w")
+        print >> f, "all:"
+        print >> f, "\t@export GOPATH=%s; go build -o %s src/lar_prog.%s.go" % (out_dir, main_module_name, main_module_name)
+        print >> f, ""
+        print >> f, "run: all"
+        print >> f, "\t@./%s" % main_module_name
     else:
-        larc_common.exit("不支持在平台'%s'生成make脚本" % sys.platform)
+        larc_common.exit("不支持在平台'%s'生成make脚本" % platform.system())
 
 def output():
     global runtime_dir, out_prog_dir, prog_module_name, curr_module

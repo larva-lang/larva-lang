@@ -82,7 +82,14 @@ int Func1(char CharPar1, char CharPar2)
 {
     char CharLoc1 = CharPar1,
          CharLoc2 = CharLoc1;
-    return CharLoc2 != CharPar2 ? Ident1 : Ident2;
+    if (CharLoc2 != CharPar2)
+    {
+        return Ident1;
+    }
+    else
+    {
+        return Ident2;
+    }
 }
 
 void Proc8(int[] Array1Par, int[][] Array2Par, int IntParI1, int IntParI2)
