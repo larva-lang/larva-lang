@@ -2,7 +2,7 @@ import time, net, random;
 
 void log(String msg)
 {
-    println("[%v] %v\n".format(time.strftime("%Y-%m-%d %H:%M:%S", time.time()), msg));
+    println("[%v] %v\n"(time.strftime("%Y-%m-%d %H:%M:%S", time.time()), msg));
 }
 
 class Client
@@ -16,18 +16,18 @@ class Client
         m_result = "";
         while (m_result.len() < 4)
         {
-            String c = "%v".format((int)(random.random() * 10.0));
+            String c = "%v"((int)(random.random() * 10.0));
             if (m_result.index(c) < 0)
             {
                 m_result = m_result.concat(c);
             }
         }
-        client_log("start with result [%v]".format(m_result));
+        client_log("start with result [%v]"(m_result));
     }
 
     void client_log(String s)
     {
-        log("client [%v]: %v".format(m_sock.remote_addr(), s));
+        log("client [%v]: %v"(m_sock.remote_addr(), s));
     }
 
     bool is_valid_input(char[] s, long sz)
@@ -106,7 +106,7 @@ class Client
                 client_log("player win");
                 return;
             }
-            send_all("%vA%vB\r\n".format(rsp[0], rsp[1]));
+            send_all("%vA%vB\r\n"(rsp[0], rsp[1]));
         }
     }
 
@@ -117,7 +117,7 @@ class Client
             var c = catch_base();
             if (c != nil)
             {
-                client_log("client ends with exception [%v], traceback[%v]".format(c.throwed.to_str(), c.traceback));
+                client_log("client ends with exception [%v], traceback[%v]"(c.throwed.to_str(), c.traceback));
             }
         }
 
@@ -136,12 +136,12 @@ public int main(String[] args)
             var c = catch_base();
             if (c != nil)
             {
-                log("accept new client failed [%v][%v]".format(c.throwed.to_str(), c.traceback));
+                log("accept new client failed [%v][%v]"(c.throwed.to_str(), c.traceback));
             }
         }
 
         net.TcpConn new_client = listener.accept();
-        log("accept success, new client [%v]".format(new_client.remote_addr()));
+        log("accept success, new client [%v]"(new_client.remote_addr()));
 
         start_coroutine(new Client(new_client));
     }

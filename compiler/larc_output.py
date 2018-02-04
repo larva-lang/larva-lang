@@ -444,11 +444,14 @@ def _output_stmt_list(code, stmt_list, fom, long_ret_nest_deep, long_boc_nest_de
         if stmt.type == "expr":
             code += _gen_expr_code(stmt.expr)
             continue
-        if stmt.type == "defer":
+        if stmt.type == "defer_block":
             with code.new_blk("defer func ()"):
                 _output_stmt_list(code, stmt.stmt_list, fom, _NEST_LOOP_INVALID, _NEST_LOOP_INVALID, need_check_defer = False)
             assert code.line_list[-1].strip() == "}"
             code.line_list[-1] += "()"
+            continue
+        if stmt.type == "defer_expr":
+            code += "defer " + _gen_expr_code(stmt.expr)
             continue
         raise Exception("Bug")
 

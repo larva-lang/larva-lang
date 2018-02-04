@@ -348,7 +348,12 @@ class Parser:
                     tp = larc_type.LITERAL_INT_TYPE
                 else:
                     tp = eval("larc_type.%s_TYPE" % t.type[8 :].upper())
-                parse_stk.push_expr(_Expr("literal", t, tp))
+                e = _Expr("literal", t, tp)
+                if t.type == "literal_str" and self.token_list.peek().is_sym("("):
+                    #字符串常量的format语法
+                    fmt, expr_list = self._parse_str_format(var_map_stk, e)
+                    e = _Expr("str_format", (fmt, expr_list), larc_type.STR_TYPE)
+                parse_stk.push_expr(e)
             elif t.is_reserved("new"):
                 base_type = larc_type.parse_type(self.token_list, self.dep_module_set, non_array = True,
                                                  allow_typeof = bool(self.gtp_map and var_map_stk))
@@ -443,26 +448,21 @@ class Parser:
                                 t.syntax_err("不能对基础类型做取属性操作")
                         else:
                             obj_coi = obj.type.get_coi()
-                            if obj.op == "literal" and obj.arg.type == "literal_str" and name == "format":
-                                #字符串常量的format语法
-                                fmt, expr_list = self._parse_str_format(var_map_stk, obj)
-                                parse_stk.stk[-1] = _Expr("str_format", (fmt, expr_list), larc_type.STR_TYPE)
+                            method, attr = obj_coi.get_method_or_attr(name, t)
+                            if method is not None:
+                                assert attr is None
+                                self.token_list.pop_sym("(")
+                                if method.module is not self.curr_module and "public" not in method.decr_set:
+                                    t.syntax_err("无法使用方法'%s'：没有权限" % method)
+                                t = self.token_list.peek()
+                                expr_list = self._parse_expr_list(var_map_stk)
+                                self._make_expr_list_match_arg_map(t, expr_list, method.arg_map)
+                                parse_stk.stk[-1] = _Expr("call_method", (parse_stk.stk[-1], method, expr_list), method.type)
                             else:
-                                method, attr = obj_coi.get_method_or_attr(name, t)
-                                if method is not None:
-                                    assert attr is None
-                                    self.token_list.pop_sym("(")
-                                    if method.module is not self.curr_module and "public" not in method.decr_set:
-                                        t.syntax_err("无法使用方法'%s'：没有权限" % method)
-                                    t = self.token_list.peek()
-                                    expr_list = self._parse_expr_list(var_map_stk)
-                                    self._make_expr_list_match_arg_map(t, expr_list, method.arg_map)
-                                    parse_stk.stk[-1] = _Expr("call_method", (parse_stk.stk[-1], method, expr_list), method.type)
-                                else:
-                                    assert attr is not None and method is None
-                                    if attr.module is not self.curr_module and "public" not in attr.decr_set:
-                                        t.syntax_err("无法访问属性'%s'：没有权限" % attr)
-                                    parse_stk.stk[-1] = _Expr(".", (parse_stk.stk[-1], attr), attr.type)
+                                assert attr is not None and method is None
+                                if attr.module is not self.curr_module and "public" not in attr.decr_set:
+                                    t.syntax_err("无法访问属性'%s'：没有权限" % attr)
+                                parse_stk.stk[-1] = _Expr(".", (parse_stk.stk[-1], attr), attr.type)
                 else:
                     self.token_list.revert()
                     break

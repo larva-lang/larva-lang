@@ -736,8 +736,6 @@ class Module:
             if "String" not in self.cls_map: #必须有String类
                 larc_common.exit("内建模块缺少String类")
             str_cls = self.cls_map["String"]
-            if "format" in str_cls.attr_map or "format" in str_cls.method_map:
-                larc_common.exit("String类的format方法属于内建保留方法，禁止显式定义")
 
     __repr__ = __str__ = lambda self : self.name
 

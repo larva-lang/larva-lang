@@ -272,7 +272,7 @@ public int main(String[] args)
     double ts = time.time();
     Proc0();
     double tm = time.time() - ts;
-    println("Time used: %v sec".format(tm));
-    println("This machine benchmarks at %v LarStones/second".format((double)loops / tm));
+    println("Time used: %v sec"(tm));
+    println("This machine benchmarks at %v LarStones/second"((double)loops / tm));
     return 0;
 }

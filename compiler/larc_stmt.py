@@ -22,7 +22,7 @@ class _StmtList(list):
 
     def has_defer(self):
         for stmt in self:
-            if stmt.type == "defer":
+            if stmt.type in ("defer_block", "defer_expr"):
                 return True
         return False
 
@@ -141,10 +141,18 @@ class Parser:
                 self.token_list.pop_sym(";")
                 continue
             if t.is_reserved("defer"):
-                #解析stmt_list时，外层loop_deep清零，defer_deep加一
-                self.token_list.pop_sym("{")
-                stmt_list.append(_Stmt("defer", stmt_list = self.parse(var_map_stk + (larc_common.OrderedDict(),), 0, defer_deep + 1)))
-                self.token_list.pop_sym("}")
+                if self.token_list.peek().is_sym("{"):
+                    #解析stmt_list时，外层loop_deep清零，defer_deep加一
+                    self.token_list.pop_sym("{")
+                    stmt_list.append(
+                        _Stmt("defer_block", stmt_list = self.parse(var_map_stk + (larc_common.OrderedDict(),), 0, defer_deep + 1)))
+                    self.token_list.pop_sym("}")
+                else:
+                    #单条call表达式的defer
+                    expr = self.expr_parser.parse(var_map_stk, None)
+                    if expr.op not in ("call_method", "call_func", "call_this.method"):
+                        t.syntax_err("defer表达式必须是一个函数或方法调用")
+                    stmt_list.append(_Stmt("defer_expr", expr = expr))
                 continue
 
             self.token_list.revert()

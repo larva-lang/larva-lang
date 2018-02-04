@@ -1,4 +1,4 @@
-import sys, time;
+import time;
 
 class Record
 {
@@ -20,7 +20,7 @@ class Record
     }
 }
 
-int loops = 5000000;
+int loops = 50000000;
 
 final int Ident1 = 1,
           Ident2 = 2,
@@ -82,7 +82,14 @@ int Func1(char CharPar1, char CharPar2)
 {
     char CharLoc1 = CharPar1,
          CharLoc2 = CharLoc1;
-    return CharLoc2 != CharPar2 ? Ident1 : Ident2;
+    if (CharLoc2 != CharPar2)
+    {
+        return Ident1;
+    }
+    else
+    {
+        return Ident2;
+    }
 }
 
 void Proc8(int[] Array1Par, int[][] Array2Par, int IntParI1, int IntParI2)
@@ -256,21 +263,16 @@ void Proc0()
     }
 }
 
-public int main(String[] argv)
+public int main(String[] args)
 {
-    if (argv.size > 1)
+    if (args.size > 1)
     {
-        Error err = argv[1].to_int(ref loops);
-        if (err != nil)
-        {
-            sys.stdout.write("Invalid loop arg [%v]\n".format(argv[1]));
-            return 1;
-        }
+        loops = (int)args[1].parse_long(0);
     }
     double ts = time.time();
     Proc0();
     double tm = time.time() - ts;
-    sys.stdout.write("Time used: %v sec\n".format(tm));
-    sys.stdout.write("This machine benchmarks at %v LarStones/second\n".format((double)loops / tm));
+    println("Time used: %v sec"(tm));
+    println("This machine benchmarks at %v LarStones/second"((double)loops / tm));
     return 0;
 }
