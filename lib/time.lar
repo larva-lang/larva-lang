@@ -1,4 +1,11 @@
 //time模块，时间相关接口
 
-public native double time(); //返回当前unix时间戳
-public native String strftime(String fmt, double tm); //格式化时间
+public native class Time
+{
+    Time();
+
+    public long unix_nano();
+    public String format(String layout);
+}
+
+public native Time now();

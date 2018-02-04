@@ -2,32 +2,36 @@ import time, net, random;
 
 void log(String msg)
 {
-    println("[%v] %v\n"(time.strftime("%Y-%m-%d %H:%M:%S", time.time()), msg));
+    println("[%v] %v"(time.now().format("2006-01-02 15:04:05"), msg));
 }
 
 class Client
 {
     net.TcpConn m_sock;
-    String m_result;
+    char[] m_result;
 
     Client(net.TcpConn sock)
     {
         m_sock = sock;
-        m_result = "";
-        while (m_result.len() < 4)
+        m_result = new char[4];
+        bool[] selected = new bool[10];
+        for (int i = 0; i < 4; )
         {
-            String c = "%v"((int)(random.random() * 10.0));
-            if (m_result.index(c) < 0)
+            char c = (char)(random.random() * 10.0);
+            if (selected[c])
             {
-                m_result = m_result.concat(c);
+                continue;
             }
+            selected[c] = true;
+            m_result[i] = '0' + c;
+            ++ i;
         }
-        client_log("start with result [%v]"(m_result));
+        client_log("start with result [%v]"(new String(m_result)));
     }
 
     void client_log(String s)
     {
-        log("client [%v]: %v"(m_sock.remote_addr(), s));
+        log("client [%v]: %v"(m_sock.get_remote_addr(), s));
     }
 
     bool is_valid_input(char[] s, long sz)
@@ -49,13 +53,13 @@ class Client
         return true;
     }
 
-    void send_all(String s)
+    void send_str(String s)
     {
-        char[] a = s.to_char_array();
-        for (long offset = 0; offset < a.size;)
-        {
-            offset += m_sock.send(a, offset, a.size - offset);
-        }
+        m_sock.send(s.to_char_array(), 0, s.len());
+    }
+    void send_line(String s)
+    {
+        send_str(s.concat("\r\n"));
     }
 
     void _run()
@@ -64,7 +68,7 @@ class Client
         int[] rsp = new int[2];
         while (true)
         {
-            send_all("Guess a number, 4 different digits:");
+            send_str("Guess a number, 4 different digits:");
 
             long recved_size = m_sock.recv(recv_buf, 0, recv_buf.size);
             if (recved_size == 0)
@@ -84,7 +88,7 @@ class Client
 
             if (!is_valid_input(recv_buf, recved_size))
             {
-                send_all("Invalid input\r\n");
+                send_line("Invalid input");
                 continue;
             }
 
@@ -94,7 +98,7 @@ class Client
             {
                 for (long j = 0; j < 4; ++ j)
                 {
-                    if (m_result.char_at(i) == recv_buf[j])
+                    if (m_result[i] == recv_buf[j])
                     {
                         ++ rsp[i == j ? 0 : 1];
                     }
@@ -102,11 +106,11 @@ class Client
             }
             if (rsp[0] == 4)
             {
-                send_all("You got it\r\n");
+                send_line("You got it");
                 client_log("player win");
                 return;
             }
-            send_all("%vA%vB\r\n"(rsp[0], rsp[1]));
+            send_line("%vA%vB"(rsp[0], rsp[1]));
         }
     }
 
@@ -120,6 +124,7 @@ class Client
                 client_log("client ends with exception [%v], traceback[%v]"(c.throwed.to_str(), c.traceback));
             }
         }
+        defer m_sock.close();
 
         _run();
     }
@@ -128,6 +133,8 @@ class Client
 public int main(String[] args)
 {
     net.TcpListener listener = new net.TcpListener(":9999");
+    defer listener.close();
+
     log("game start!");
     while (true)
     {
@@ -141,7 +148,7 @@ public int main(String[] args)
         }
 
         net.TcpConn new_client = listener.accept();
-        log("accept success, new client [%v]"(new_client.remote_addr()));
+        log("accept success, new client [%v]"(new_client.get_remote_addr()));
 
         start_coroutine(new Client(new_client));
     }

@@ -13,7 +13,7 @@ long seed_z = 0;
 
 void init_seed()
 {
-    long a = (long)(time.time() * 256.0);
+    long a = (long)((double)time.now().unix_nano() / 1e9 * 256.0);
 
     seed_x = a % 30268;
     a /= 30268;

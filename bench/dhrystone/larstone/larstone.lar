@@ -269,9 +269,9 @@ public int main(String[] args)
     {
         loops = (int)args[1].parse_long(0);
     }
-    double ts = time.time();
+    long ts = time.now().unix_nano();
     Proc0();
-    double tm = time.time() - ts;
+    double tm = (double)(time.now().unix_nano() - ts) / 1e9;
     println("Time used: %v sec"(tm));
     println("This machine benchmarks at %v LarStones/second"((double)loops / tm));
     return 0;
