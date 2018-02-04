@@ -66,7 +66,7 @@ class Client
         {
             send_all("Guess a number, 4 different digits:");
 
-            long recved_size = m_sock.recv(recv_buf, 0);
+            long recved_size = m_sock.recv(recv_buf, 0, recv_buf.size);
             if (recved_size == 0)
             {
                 client_log("client over");
@@ -127,7 +127,7 @@ class Client
 
 public int main(String[] args)
 {
-    net.TcpListener listener = net.listen_tcp(":9999");
+    net.TcpListener listener = new net.TcpListener(":9999");
     log("game start!");
     while (true)
     {

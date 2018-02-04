@@ -735,7 +735,12 @@ class Module:
             #内建模块需要做一些必要的检查
             if "String" not in self.cls_map: #必须有String类
                 larc_common.exit("内建模块缺少String类")
-            str_cls = self.cls_map["String"]
+            if "catch_base" not in self.func_map or "catch" not in self.func_map:
+                larc_common.exit("内建模块缺少catch_base或catch函数")
+            if len(self.func_map["catch_base"].arg_map) != 0 or len(self.func_map["catch"].arg_map) != 0:
+                larc_common.exit("函数catch_base和catch不能有输入参数")
+            if "_go_recovered" not in self.global_var_map:
+                larc_common.exit("内建模块缺少全局变量_go_recovered")
 
     __repr__ = __str__ = lambda self : self.name
 

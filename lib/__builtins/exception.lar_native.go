@@ -18,16 +18,18 @@ func lar_func_10___builtins_5_throw(t lar_intf_10___builtins_9_Throwable) {
     panic(lar_new_obj_lar_gcls_inst_10___builtins_7_Catched_1_lar_intf_10___builtins_9_Throwable(t, tb))
 }
 
-func lar_func_10___builtins_10_catch_base() *lar_gcls_inst_10___builtins_7_Catched_1_lar_intf_10___builtins_9_Throwable {
-    r := recover()
+func lar_func_10___builtins_15_rethrow_catched(c *lar_gcls_inst_10___builtins_7_Catched_1_lar_intf_10___builtins_9_Throwable) {
+    panic(c)
+}
+
+func lar_func_10___builtins_24__go_recovered_to_catched(r interface{}) *lar_gcls_inst_10___builtins_7_Catched_1_lar_intf_10___builtins_9_Throwable {
+    if r == nil {
+        return nil
+    }
     c, ok := r.(*lar_gcls_inst_10___builtins_7_Catched_1_lar_intf_10___builtins_9_Throwable)
     if !ok {
         //不是larva自己的异常
         panic(r)
     }
     return c
-}
-
-func lar_func_10___builtins_7_rethrow(c *lar_gcls_inst_10___builtins_7_Catched_1_lar_intf_10___builtins_9_Throwable) {
-    panic(c)
 }

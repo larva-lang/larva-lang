@@ -17,22 +17,42 @@ public class Catched<T>
         traceback = tb;
     }
 
-    public Catched<Throwable> to_base()
+    public void rethrow()
     {
-        return new Catched<Throwable>(throwed, traceback);
+        rethrow_catched(new Catched<Throwable>(throwed, traceback));
     }
 
     public T throwed;
     public String traceback;
 }
 
+//继续往上抛当前Catched对象，维持对象不变，即和再次throw的区别在于traceback可以保持不变
+native void rethrow_catched(Catched<Throwable> c);
+
+//--------------------------------------------------------------------
+
+/*
+下面的catch相关的代码较为特殊，编译器会在代码生成阶段做一些特殊修改
+主要原因在于：go规定recover必须在defer func中直接执行，即直接defer recover()或在defer func中调用的函数里用recover都无法捕获panic
+因此必须在larva调用下面两个catch函数的时候，同时调用recover并将结果传进来，但语法上让程序员无感知
+编译器的大致处理步骤就是在代码生成部分对这两个catch增加参数（定义和调用都需要调整），为了对代码实现影响最小，用了一个假的全局变量欺骗语法检查
+相关trick代码元素都以下划线开头，以示区别
+*/
+
+Any _go_recovered;
+
+native Catched<Throwable> _go_recovered_to_catched(Any _r);
+
 //捕获base
-public native Catched<Throwable> catch_base();
+public Catched<Throwable> catch_base(/*Any _go_recovered*/)
+{
+    return _go_recovered_to_catched(_go_recovered);
+}
 
 //捕获指定类型的异常
-public Catched<T> catch<T>()
+public Catched<T> catch<T>(/*Any _go_recovered*/)
 {
-    var c = catch_base();
+    var c = _go_recovered_to_catched(_go_recovered);
     if (c == nil)
     {
         //无异常
@@ -42,13 +62,12 @@ public Catched<T> catch<T>()
     if (throwed == nil)
     {
         //不是当前需要的类型，继续往上抛
-        rethrow(c);
+        c.rethrow();
     }
     return new Catched<T>(throwed, c.traceback);
 }
 
-//继续往上抛当前Catched对象，维持对象不变，即和再次throw的区别在于traceback可以保持不变
-public native void rethrow(Catched<Throwable> c);
+//---------------------------------------------------------------------
 
 //一个基本的常用异常的实现：仅包含一个字符串info
 public class Exception

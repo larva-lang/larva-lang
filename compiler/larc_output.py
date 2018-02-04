@@ -322,7 +322,12 @@ def _gen_expr_code_ex(expr):
 
     if expr.op == "call_func":
         func, expr_list = expr.arg
-        return "%s(%s)" % (_gen_func_name(func), _gen_expr_list_code(expr_list))
+        if func.module.name == "__builtins" and func.name in ("catch_base", "catch"):
+            assert not expr_list
+            expr_list_code = "recover()"
+        else:
+            expr_list_code = _gen_expr_list_code(expr_list)
+        return "%s(%s)" % (_gen_func_name(func), expr_list_code)
 
     if expr.op == "this.attr":
         attr = expr.arg
@@ -526,7 +531,12 @@ def _output_module():
                 for tp in func.arg_map.itervalues():
                     _reg_new_arr_func_info(tp, 0)
                 continue
-            with code.new_blk("func %s(%s) %s" % (_gen_func_name(func), _gen_arg_def(func.arg_map), _gen_type_name_code(func.type))):
+            if module.name == "__builtins" and func.name in ("catch_base", "catch"):
+                assert not func.arg_map
+                arg_def = "%s interface{}" % _gen_gv_name(module.global_var_map["_go_recovered"])
+            else:
+                arg_def = _gen_arg_def(func.arg_map)
+            with code.new_blk("func %s(%s) %s" % (_gen_func_name(func), arg_def, _gen_type_name_code(func.type))):
                 _output_stmt_list(code, func.stmt_list, func, 0, _NEST_LOOP_INVALID, need_check_defer = False)
                 code += "return %s" % _gen_default_value_code(func.type)
 
