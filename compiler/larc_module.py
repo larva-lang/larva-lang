@@ -15,6 +15,8 @@ import larc_expr
 builtins_module = None
 module_map = larc_common.OrderedDict()
 
+ginst_being_processed = [None] #用栈记录正在处理的ginst，放一个None在栈底可以简化代码
+
 def _parse_decr_set(token_list):
     decr_set = set()
     while True:
@@ -421,7 +423,7 @@ class _GclsInstAttr:
         self.type.check(self.cls.gcls.module, self.cls.gtp_map)
 
 class _GclsInst(_ClsBase):
-    def __init__(self, gcls, gtp_list):
+    def __init__(self, gcls, gtp_list, creator_token):
         _ClsBase.__init__(self)
 
         self.gcls = gcls
@@ -430,6 +432,9 @@ class _GclsInst(_ClsBase):
         assert len(gcls.gtp_name_list) == len(gtp_list)
         for i in xrange(len(gtp_list)):
             self.gtp_map[gcls.gtp_name_list[i]] = gtp_list[i]
+
+        self.ginst_creator = ginst_being_processed[-1]
+        self.creator_token = creator_token
 
         self.module = gcls.module
         self.decr_set = gcls.decr_set
@@ -565,7 +570,7 @@ class _GintfInstMethod:
             tp.check(self.intf.gintf.module, self.intf.gtp_map)
 
 class _GintfInst(_IntfBase):
-    def __init__(self, gintf, gtp_list):
+    def __init__(self, gintf, gtp_list, creator_token):
         _IntfBase.__init__(self)
 
         self.gintf = gintf
@@ -574,6 +579,9 @@ class _GintfInst(_IntfBase):
         assert len(gintf.gtp_name_list) == len(gtp_list)
         for i in xrange(len(gtp_list)):
             self.gtp_map[gintf.gtp_name_list[i]] = gtp_list[i]
+
+        self.ginst_creator = ginst_being_processed[-1]
+        self.creator_token = creator_token
 
         self.module = gintf.module
         self.decr_set = gintf.decr_set
@@ -634,7 +642,7 @@ class _Func(_FuncBase):
         del self.block_token_list
 
 class _GfuncInst(_FuncBase):
-    def __init__(self, gfunc, gtp_list):
+    def __init__(self, gfunc, gtp_list, creator_token):
         _FuncBase.__init__(self)
 
         self.gfunc = gfunc
@@ -647,6 +655,9 @@ class _GfuncInst(_FuncBase):
         assert len(gfunc.gtp_name_list) == len(gtp_list)
         for i in xrange(len(gtp_list)):
             self.gtp_map[gfunc.gtp_name_list[i]] = gtp_list[i]
+
+        self.ginst_creator = ginst_being_processed[-1]
+        self.creator_token = creator_token
 
         self.type = copy.deepcopy(gfunc.type)
         self.arg_map = copy.deepcopy(gfunc.arg_map)
@@ -927,7 +938,10 @@ class Module:
         for map in self.gcls_inst_map, self.gintf_inst_map, self.gfunc_inst_map:
             #反向遍历，优先处理新ginst
             for i in xrange(len(map) - 1, -1, -1):
-                if map.value_at(i).check_type():
+                ginst_being_processed.append(map.value_at(i))
+                result = ginst_being_processed[-1].check_type()
+                ginst_being_processed.pop()
+                if result:
                     #成功处理了一个新的，立即返回
                     return True
         #全部都无需处理
@@ -970,7 +984,11 @@ class Module:
         for map in self.gcls_inst_map, self.gfunc_inst_map:
             #反向遍历，优先处理新ginst
             for i in xrange(len(map) - 1, -1, -1):
-                if map.value_at(i).compile():
+                assert ginst_being_processed[-1] is None
+                ginst_being_processed.append(map.value_at(i))
+                result = ginst_being_processed[-1].compile()
+                ginst_being_processed.pop()
+                if result:
                     #成功处理了一个新的，立即返回
                     return True
         #全部都无需处理
@@ -1036,7 +1054,7 @@ class Module:
             ginst_class = _GintfInst
         if ginst_key in ginst_map:
             return ginst_map[ginst_key]
-        ginst_map[ginst_key] = ginst = ginst_class(coi, type.gtp_list)
+        ginst_map[ginst_key] = ginst = ginst_class(coi, type.gtp_list, type.token)
 
         s = str(ginst)
         if len(s) > 1000:
@@ -1076,7 +1094,7 @@ class Module:
 
         if gfunc_key in self.gfunc_inst_map:
             return self.gfunc_inst_map[gfunc_key]
-        self.gfunc_inst_map[gfunc_key] = gfunc_inst = _GfuncInst(func, gtp_list)
+        self.gfunc_inst_map[gfunc_key] = gfunc_inst = _GfuncInst(func, gtp_list, t)
 
         s = str(gfunc_inst)
         if len(s) > 1000:

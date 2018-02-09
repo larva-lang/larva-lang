@@ -95,10 +95,13 @@ class _Token:
         return self.copy_on_pos(self)
 
     def syntax_err(self, msg = ""):
-        larc_common.exit("语法错误：文件[%s]行[%d]列[%d]%s" % (self.src_file, self.line_no, self.pos + 1, msg))
+        larc_common.exit("错误：%s %s" % (self.pos_desc(), msg))
 
     def warning(self, msg):
-        larc_common.warning("文件[%s]行[%d]列[%d]%s" % (self.src_file, self.line_no, self.pos + 1, msg))
+        larc_common.warning("警告：%s %s" % (self.pos_desc(), msg))
+
+    def pos_desc(self):
+        return "文件[%s]行[%d]列[%d]" % (self.src_file, self.line_no, self.pos + 1)
 
 class TokenList:
     def __init__(self, src_file):

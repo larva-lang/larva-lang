@@ -413,6 +413,7 @@ def _output_stmt_list(code, stmt_list, fom, long_ret_nest_deep, long_boc_nest_de
                     for (name, tp), expr in zip(stmt.for_var_map.iteritems(), stmt.init_expr_list):
                         code += "var l_%s %s = (%s)" % (name, _gen_type_name_code(tp),
                                                         _gen_default_value_code(tp) if expr is None else _gen_expr_code(expr))
+                        code += "_ = l_%s" % name
                 if stmt.judge_expr is None:
                     judge_expr_code = ""
                 else:
@@ -445,6 +446,7 @@ def _output_stmt_list(code, stmt_list, fom, long_ret_nest_deep, long_boc_nest_de
             else:
                 expr_code = _gen_expr_code(stmt.expr)
             code += "var l_%s %s = (%s)" % (stmt.name, _gen_type_name_code(stmt_list.var_map[stmt.name]), expr_code)
+            code += "_ = l_%s" % stmt.name
             continue
         if stmt.type == "expr":
             code += _gen_expr_code(stmt.expr)

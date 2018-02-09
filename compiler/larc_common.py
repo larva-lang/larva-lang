@@ -6,12 +6,29 @@
 
 import sys
 
+def _output_ginst_create_chain():
+    import larc_module
+    ginst_create_chain = []
+    ginst = larc_module.ginst_being_processed[-1]
+    while ginst is not None:
+        ginst_create_chain.append(ginst)
+        ginst = ginst.ginst_creator
+    if not ginst_create_chain:
+        return
+    print "泛型实例构造链："
+    for ginst in reversed(ginst_create_chain):
+        print ginst.creator_token.pos_desc(), ginst
+
 def exit(msg):
     print >> sys.stderr, "Error:", msg.decode("utf8")
+    _output_ginst_create_chain()
+    print
     sys.exit(1)
 
 def warning(msg):
     print >> sys.stderr, "Warning", msg.decode("utf8")
+    _output_ginst_create_chain()
+    print
 
 class OrderedDict:
     def __init__(self):
