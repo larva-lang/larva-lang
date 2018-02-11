@@ -187,8 +187,11 @@ class Parser:
 
             #表达式
             expr = self._parse_expr_with_se(var_map_stk)
-            stmt_list.append(_Stmt("expr", expr = expr))
-            self.token_list.pop_sym(";")
+            if isinstance(expr, _SeExpr) or expr.op in ("new", "call_method", "call_func", "call_this.method"):
+                stmt_list.append(_Stmt("expr", expr = expr))
+                self.token_list.pop_sym(";")
+            else:
+                t.syntax_err("表达式求值后未使用")
 
         return stmt_list
 

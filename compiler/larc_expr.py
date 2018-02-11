@@ -359,6 +359,7 @@ class Parser:
                                                  allow_typeof = bool(self.gtp_map and var_map_stk))
                 base_type.check(self.curr_module, self.gtp_map, self.used_dep_module_set)
                 larc_module.check_new_ginst_during_compile()
+                new_token = t
                 t = self.token_list.pop()
                 if t.is_sym("("):
                     t = self.token_list.peek()
@@ -378,9 +379,12 @@ class Parser:
                             #构建默认值的语法
                             parse_stk.push_expr(_Expr("default_value", base_type, base_type))
                         elif len(expr_list) == 1:
-                            #类型强制转换的语法
-                            parse_stk.push_op("force_convert", base_type)
-                            parse_stk.push_expr(expr_list[0])
+                            #类型强制转换的语法，由于强转是一个前缀运算，而这里的语法较为特殊，直接push op和expr后会被后面的后缀运算符干扰，
+                            #因此单独弄一个parse stk
+                            new_parse_stk = _ParseStk(new_token, self.curr_module, self.cls)
+                            new_parse_stk.push_op("force_convert", base_type)
+                            new_parse_stk.push_expr(expr_list[0])
+                            parse_stk.push_expr(new_parse_stk.finish())
                         else:
                             t.syntax_err("基础类型或接口的new只能输入0或1个参数")
                 else:
