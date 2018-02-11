@@ -176,6 +176,9 @@ def _output_booter():
 def _gen_str_literal_name(t):
     return "lar_literal_str_%s_%d" % (curr_module.name, id(t))
 
+def _gen_number_literal_name(t):
+    return "lar_literal_number_%s_%d" % (curr_module.name, id(t))
+
 def _gen_str_literal(s):
     code_list = []
     for c in s:
@@ -268,12 +271,10 @@ def _gen_expr_code_ex(expr):
         tp = expr.type
         if literal_type in ("nil", "bool"):
             return t.value
-        if literal_type == "int":
-            assert tp == larc_type.LITERAL_INT_TYPE
-            return "%d" % t.value
+        assert id(t) in _literal_token_id_set
         if literal_type == "str":
             return _gen_str_literal_name(t)
-        return "(%s)(%s)" % (_gen_type_name_code(tp), t.value)
+        return _gen_number_literal_name(t)
 
     if expr.op == "new":
         expr_list = expr.arg
@@ -465,7 +466,7 @@ def _output_stmt_list(code, stmt_list, fom, long_ret_nest_deep, long_boc_nest_de
             continue
         raise Exception("Bug")
 
-_literal_str_token_id_set = set()
+_literal_token_id_set = set()
 
 curr_module = None
 def _output_module():
@@ -475,10 +476,16 @@ def _output_module():
     with _Code(module_file_name) as code:
         code += ""
         for t in module.literal_str_list:
-            assert t.is_literal("str") and id(t) not in _literal_str_token_id_set
-            _literal_str_token_id_set.add(id(t))
+            assert t.is_literal("str") and id(t) not in _literal_token_id_set
+            _literal_token_id_set.add(id(t))
             code += ("var %s %s = lar_util_create_lar_str_from_go_str(%s)" %
                      (_gen_str_literal_name(t), _gen_type_name_code(larc_type.STR_TYPE), _gen_str_literal(t.value)))
+        for t in module.literal_number_list:
+            assert (t.is_literal and t.type[8 :] in ("char", "int", "uint", "long", "ulong", "float", "double") and
+                    id(t) not in _literal_token_id_set)
+            _literal_token_id_set.add(id(t))
+            code += ("var %s %s = (%s)" %
+                     (_gen_number_literal_name(t), _gen_type_name_code(eval("larc_type.%s_TYPE" % t.type[8 :].upper())), t.value))
 
         code += ""
         for gv in module.global_var_map.itervalues():

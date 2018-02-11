@@ -745,6 +745,7 @@ class Module:
         self.gfunc_inst_map = larc_common.OrderedDict()
         self.global_var_map = larc_common.OrderedDict()
         self.literal_str_list = []
+        self.literal_number_list = []
         for file_name in file_name_list:
             self._precompile(file_name)
         if self.name == "__builtins":
@@ -769,6 +770,9 @@ class Module:
         self.file_dep_module_set_map[file_name] = dep_module_set = set()
         import_end = False
         self.literal_str_list += [t for t in token_list if t.type == "literal_str"]
+        self.literal_number_list += [
+            t for t in token_list
+            if t.type.startswith("literal_") and t.type[8 :] in ("char", "int", "uint", "long", "ulong", "float", "double")]
         while token_list:
             #解析import
             t = token_list.peek()
