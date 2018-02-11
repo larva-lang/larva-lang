@@ -1,9 +1,14 @@
 //time模块，时间相关接口
 
-public native class Time
+native class _Time
 {
     public long unix_nano();
     public String format(String layout);
+}
+
+public class Time
+{
+    usemethod _Time t;
 }
 
 public native Time now();

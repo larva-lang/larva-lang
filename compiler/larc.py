@@ -13,7 +13,7 @@ import larc_type
 import larc_output
 
 def _show_usage_and_exit():
-    larc_common.exit("使用方法：%s 主模块.lar" % sys.argv[0])
+    larc_common.exit("使用方法：%s [--run] 主模块.lar" % sys.argv[0])
 
 def _find_module_file(module_dir_list, module_name):
     #按目录查找
@@ -36,7 +36,8 @@ def _find_module_file(module_dir_list, module_name):
 
 def main():
     #解析命令行参数
-    opt_list, args = getopt.getopt(sys.argv[1 :], "", [])
+    opt_list, args = getopt.getopt(sys.argv[1 :], "", ["run"])
+    opt_map = dict(opt_list)
 
     if len(args) != 1:
         _show_usage_and_exit()
@@ -105,7 +106,7 @@ def main():
     larc_output.main_module_name = main_module.name
     larc_output.out_dir = os.path.join(src_dir, main_module.name)
     larc_output.runtime_dir = os.path.join(os.path.dirname(lib_dir), "runtime")
-    larc_output.output()
+    larc_output.output("--run" in opt_map)
 
 if __name__ == "__main__":
     main()

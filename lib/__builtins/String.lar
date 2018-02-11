@@ -1,7 +1,7 @@
 //String类的定义
 
 //String内部实现
-public native class _String
+native class _String
 {
     _String(char[] arr);
 

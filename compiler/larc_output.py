@@ -634,7 +634,15 @@ def _output_makefile():
     else:
         larc_common.exit("不支持在平台'%s'生成make脚本" % platform.system())
 
-def output():
+def _run_prog():
+    if platform.system() == "Windows":
+        os.system(os.path.join(out_dir, "make_and_run.bat"))
+    elif platform.system() in ("Darwin", "Linux"):
+        os.system("make -C %s run" % out_dir)
+    else:
+        raise Exception("Bug")
+
+def output(need_run_prog):
     global runtime_dir, out_prog_dir, prog_module_name, curr_module
 
     out_prog_dir = os.path.join(out_dir, "src", "lar_prog_" + main_module_name)
@@ -650,3 +658,5 @@ def output():
         _output_module()
     _output_util()
     _output_makefile()
+    if need_run_prog:
+        _run_prog()
