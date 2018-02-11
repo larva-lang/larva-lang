@@ -349,7 +349,7 @@ class Parser:
                 else:
                     tp = eval("larc_type.%s_TYPE" % t.type[8 :].upper())
                 e = _Expr("literal", t, tp)
-                if t.type == "literal_str" and self.token_list.peek().is_sym("("):
+                if t.type == "literal_str" and self.token_list.peek().is_sym(".") and self.token_list.peek(1).is_sym("("):
                     #字符串常量的format语法
                     fmt, expr_list = self._parse_str_format(var_map_stk, e)
                     e = _Expr("str_format", (fmt, expr_list), larc_type.STR_TYPE)
@@ -616,6 +616,7 @@ class Parser:
 
     def _parse_str_format(self, var_map_stk, obj):
         assert obj.type is larc_type.STR_TYPE
+        self.token_list.pop_sym(".")
         self.token_list.pop_sym("(")
         expr_list = self._parse_expr_list(var_map_stk)
         fmt = ""

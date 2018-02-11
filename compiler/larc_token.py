@@ -123,10 +123,11 @@ class TokenList:
         c.i = self.i
         return c
 
-    def peek(self):
-        if not self:
+    def peek(self, start_idx = 0):
+        try:
+            return self.l[self.i + start_idx]
+        except IndexError:
             larc_common.exit("语法错误：文件[%s]代码意外结束" % self.src_file)
-        return self.l[self.i]
 
     def peek_name(self):
         t = self.peek()

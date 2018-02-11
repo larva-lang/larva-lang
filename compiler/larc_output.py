@@ -251,8 +251,11 @@ def _gen_expr_code_ex(expr):
 
     if expr.op == "?:":
         ea, eb, ec = expr.arg
+        tp = expr.type
+        if tp == larc_type.LITERAL_INT_TYPE:
+            tp = larc_type.INT_TYPE
         return ("func () %s {if (%s) {return (%s)} else {return (%s)}}()" %
-                (_gen_type_name_code(expr.type), _gen_expr_code(ea), _gen_expr_code(eb), _gen_expr_code(ec)))
+                (_gen_type_name_code(tp), _gen_expr_code(ea), _gen_expr_code(eb), _gen_expr_code(ec)))
 
     if expr.op == "local_var":
         name = expr.arg
