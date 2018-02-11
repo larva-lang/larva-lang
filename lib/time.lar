@@ -2,8 +2,6 @@
 
 public native class Time
 {
-    Time();
-
     public long unix_nano();
     public String format(String layout);
 }

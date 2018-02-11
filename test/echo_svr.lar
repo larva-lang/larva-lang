@@ -42,6 +42,7 @@ public int main(String[] args)
 {
     net.TcpListener listener = new net.TcpListener(":9999");
     defer listener.close();
+    println("server start");
     while (true)
     {
         net.TcpConn new_client = listener.accept();

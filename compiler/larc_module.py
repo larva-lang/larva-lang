@@ -21,7 +21,7 @@ def _parse_decr_set(token_list):
     decr_set = set()
     while True:
         t = token_list.peek()
-        for decr in "public", "native", "final", "usemethod":
+        for decr in "public", "native", "usemethod":
             if t.is_reserved(decr):
                 if decr in decr_set:
                     t.syntax_err("重复的修饰'%s'" % decr)
@@ -285,8 +285,8 @@ class _Cls(_ClsBase):
 
             #解析修饰
             decr_set = _parse_decr_set(token_list)
-            if "final" in decr_set or "native" in decr_set:
-                t.syntax_err("方法或属性不能用final或native修饰")
+            if "native" in decr_set:
+                t.syntax_err("方法或属性不能用native修饰")
 
             t = token_list.peek()
             if t.is_name and t.value == self.name:
@@ -333,7 +333,12 @@ class _Cls(_ClsBase):
                 continue
             t.syntax_err()
         if self.construct_method is None:
-            t.syntax_err("类'%s'缺少构造函数定义" % self)
+            #生成默认构造方法，非public，无参数，无指令
+            if "native" in self.decr_set:
+                block_token_list = None
+            else:
+                block_token_list = larc_token.gen_empty_token_list("}")
+            self.construct_method = _Method(self, set(), larc_type.VOID_TYPE, self.name, larc_common.OrderedDict(), block_token_list)
         self.usemethod_stat = "to_expand"
 
     def _check_redefine(self, t, name):
@@ -809,8 +814,8 @@ class Module:
                 continue
             if sym in (";", "=", ","):
                 #全局变量
-                if decr_set - set(["public", "final"]):
-                    t.syntax_err("全局变量只能用public和final修饰")
+                if decr_set - set(["public"]):
+                    t.syntax_err("全局变量只能用public修饰")
                 if type.name == "void":
                     t.syntax_err("变量类型不可为void")
                 while True:

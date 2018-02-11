@@ -6,10 +6,6 @@ class Record
     int Discr, EnumComp, IntComp;
     String StringComp;
 
-    Record()
-    {
-    }
-
     void assign(Record other)
     {
         PtrComp = other.PtrComp;
@@ -22,11 +18,11 @@ class Record
 
 int loops = 50000000;
 
-final int Ident1 = 1,
-          Ident2 = 2,
-          Ident3 = 3,
-          Ident4 = 4,
-          Ident5 = 5;
+int Ident1 = 1,
+    Ident2 = 2,
+    Ident3 = 3,
+    Ident4 = 4,
+    Ident5 = 5;
 
 int IntGlob = 0;
 bool BoolGlob = false;

@@ -33,7 +33,7 @@ _SYM_SET = set("""~!%^&*()-+|{}[]:;"'<,>.?/""") | set(["!=", "==", "<<", "<=", "
 #保留字集
 _RESERVED_WORD_SET = set(["import", "class", "void", "bool", "schar", "char", "short", "ushort", "int", "uint", "long", "ulong", "float",
                           "double", "ref", "for", "while", "if", "else", "return", "nil", "true", "false", "break", "continue", "this",
-                          "public", "interface", "new", "final", "usemethod", "native", "var", "typeof", "defer"])
+                          "public", "interface", "new", "usemethod", "native", "var", "typeof", "defer"])
 
 class _Token:
     def __init__(self, type, value, src_file, line_no, pos):
@@ -421,3 +421,8 @@ def parse_token_list_until_sym(token_list, end_sym_set):
             if not stk or t.value != {"(" : ")", "[" : "]", "{" : "}"}[stk[-1].value]:
                 t.syntax_err("未匹配的'%s'" % t.value)
             stk.pop()
+
+def gen_empty_token_list(end_sym):
+    token_list = TokenList("EMPTY")
+    token_list.append(_Token("sym", end_sym, "EMPTY", -1, -1))
+    return token_list

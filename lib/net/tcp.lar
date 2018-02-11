@@ -9,8 +9,6 @@ public native class TcpListener
 
 public native class TcpConn
 {
-    TcpConn();
-
     public String get_local_addr();
     public String get_remote_addr();
     public void send(char[] buf, long begin, long len);

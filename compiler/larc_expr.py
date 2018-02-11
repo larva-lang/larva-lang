@@ -368,7 +368,7 @@ class Parser:
                         new_coi = base_type.get_coi()
                         if new_coi.is_cls or new_coi.is_gcls_inst:
                             if new_coi.module is not self.curr_module and "public" not in new_coi.construct_method.decr_set:
-                                base_type.token.syntax_err("无法创建'%s'的实例：对构造函数无访问权限" % new_coi)
+                                base_type.token.syntax_err("无法创建'%s'的实例：对构造方法无访问权限" % new_coi)
                             self._make_expr_list_match_arg_map(t, expr_list, new_coi.construct_method.arg_map)
                             parse_stk.push_expr(_Expr("new", expr_list, base_type))
                             is_new_cls = True
@@ -406,7 +406,7 @@ class Parser:
                     parse_stk.push_expr(_Expr("new_array", (base_type, size_list), base_type.to_array_type(len(size_list))))
             elif t.is_reserved("this"):
                 if self.cls is None:
-                    t.syntax_err("'this'只能用于成员函数中")
+                    t.syntax_err("'this'只能用于方法中")
                 if self.token_list.peek().is_sym("."):
                     self.token_list.pop_sym(".")
                     t, name = self.token_list.pop_name()
@@ -565,8 +565,6 @@ class Parser:
                     t.syntax_err("ref修饰的实参不是左值表达式")
                 if expr.op == "global_var":
                     global_var = expr.arg
-                    if "final" in global_var.decr_set:
-                        t.syntax_err("ref修饰了带final属性的全局变量")
             expr.is_ref = is_ref
             expr_list.append(expr)
             if self.token_list.peek().is_sym(")"):
