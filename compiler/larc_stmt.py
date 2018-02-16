@@ -32,16 +32,17 @@ class _SeExpr(larc_expr.ExprBase):
         self.lvalue = lvalue
         self.op = op
         self.expr = expr
+        self.pos_info = lvalue.pos_info
 
 class Parser:
-    def __init__(self, token_list, module, dep_module_set, cls, gtp_map, ret_type):
+    def __init__(self, token_list, module, dep_module_set, cls, gtp_map, fom):
         self.token_list = token_list
         self.module = module
         self.dep_module_set = dep_module_set
         self.cls = cls
         self.gtp_map = gtp_map
-        self.ret_type = ret_type
-        self.expr_parser = larc_expr.Parser(token_list, module, dep_module_set, cls, gtp_map)
+        self.fom = fom
+        self.expr_parser = larc_expr.Parser(token_list, module, dep_module_set, cls, gtp_map, fom)
 
     def parse(self, var_map_stk, loop_deep, defer_deep):
         assert var_map_stk
@@ -187,13 +188,16 @@ class Parser:
 
             #表达式
             expr = self._parse_expr_with_se(var_map_stk)
-            if isinstance(expr, _SeExpr) or expr.op in ("new", "call_method", "call_func", "call_this.method"):
-                stmt_list.append(_Stmt("expr", expr = expr))
-                self.token_list.pop_sym(";")
-            else:
+            if not self._is_valid_expr_stmt(expr):
                 t.syntax_err("表达式求值后未使用")
+            stmt_list.append(_Stmt("expr", expr = expr))
+            self.token_list.pop_sym(";")
+            continue
 
         return stmt_list
+
+    def _is_valid_expr_stmt(self, expr):
+        return isinstance(expr, _SeExpr) or expr.op in ("new", "call_method", "call_func", "call_this.method")
 
     def _check_var_redefine(self, t, name, var_map_stk):
         if name in self.dep_module_set:
@@ -207,10 +211,10 @@ class Parser:
     def _parse_return(self, var_map_stk):
         if self.token_list.peek().is_sym(";"):
             expr = None
-            if not self.ret_type.is_void:
+            if not self.fom.type.is_void:
                 token_list.peek().syntax_err("需要表达式")
         else:
-            expr = self.expr_parser.parse(var_map_stk, self.ret_type)
+            expr = self.expr_parser.parse(var_map_stk, self.fom.type)
         self.token_list.pop_sym(";")
         return expr
 
@@ -295,8 +299,6 @@ class Parser:
         def check_lvalue(lvalue):
             if not lvalue.is_lvalue:
                 t.syntax_err("需要左值")
-            if lvalue.op == "global_var":
-                global_var = lvalue.arg
 
         def build_inc_dec_expr(op, lvalue, t):
             check_lvalue(lvalue)
@@ -355,7 +357,10 @@ class Parser:
     def _parse_expr_list_with_se(self, var_map_stk):
         expr_list = []
         while True:
+            t = self.token_list.peek()
             expr = self._parse_expr_with_se(var_map_stk)
+            if not self._is_valid_expr_stmt(expr):
+                t.syntax_err("表达式求值后未使用")
             expr_list.append(expr)
             if not self.token_list.peek().is_sym(","):
                 return expr_list

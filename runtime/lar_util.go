@@ -26,3 +26,23 @@ const (
     RBC_BREAK       = 2
     RBC_CONTINUE    = 3
 )
+
+type lar_util_go_tb struct {
+    file string
+    line int
+}
+
+type lar_util_lar_tb struct {
+    file string
+    line int
+    fom_name string
+}
+
+func lar_util_convert_go_tb_to_lar_tb(file string, line int, func_name string) (string, int, string) {
+    lar_tb, ok := lar_util_tb_map[lar_util_go_tb{file: file, line: line}]
+    if !ok {
+        //没找到对应的，原样返回
+        return file, line, func_name
+    }
+    return lar_tb.file, lar_tb.line, lar_tb.fom_name
+}

@@ -1,3 +1,5 @@
+package LARVA_NATIVE
+
 import (
     "net"
     "io"

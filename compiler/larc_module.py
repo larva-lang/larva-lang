@@ -224,7 +224,7 @@ class _Method(_MethodBase):
             self.stmt_list = None
         else:
             self.stmt_list = larc_stmt.Parser(self.block_token_list, self.cls.module, self.cls.module.get_dep_module_set(self.cls.file_name),
-                                              self.cls, None, self.type).parse((self.arg_map.copy(),), 0, 0)
+                                              self.cls, None, self).parse((self.arg_map.copy(),), 0, 0)
             self.block_token_list.pop_sym("}")
             assert not self.block_token_list
         del self.block_token_list
@@ -407,7 +407,7 @@ class _GclsInstMethod(_MethodBase):
 
     def compile(self):
         self.stmt_list = larc_stmt.Parser(self.block_token_list, self.module, self.module.get_dep_module_set(self.cls.gcls.file_name),
-                                          self.cls, self.cls.gtp_map, self.type).parse((self.arg_map.copy(),), 0, 0)
+                                          self.cls, self.cls.gtp_map, self).parse((self.arg_map.copy(),), 0, 0)
         self.block_token_list.pop_sym("}")
         assert not self.block_token_list
         del self.block_token_list
@@ -641,7 +641,7 @@ class _Func(_FuncBase):
             self.stmt_list = None
         else:
             self.stmt_list = larc_stmt.Parser(self.block_token_list, self.module, self.module.get_dep_module_set(self.file_name), None, None,
-                                              self.type).parse((self.arg_map.copy(),), 0, 0)
+                                              self).parse((self.arg_map.copy(),), 0, 0)
             self.block_token_list.pop_sym("}")
             assert not self.block_token_list
         del self.block_token_list
@@ -686,7 +686,7 @@ class _GfuncInst(_FuncBase):
         if self.compiled:
             return False
         self.stmt_list = larc_stmt.Parser(self.block_token_list, self.module, self.module.get_dep_module_set(self.gfunc.file_name), None,
-                                          self.gtp_map, self.type).parse((self.arg_map.copy(),), 0, 0)
+                                          self.gtp_map, self).parse((self.arg_map.copy(),), 0, 0)
         self.block_token_list.pop_sym("}")
         assert not self.block_token_list
         del self.block_token_list
@@ -713,7 +713,7 @@ class _GlobalVar:
             self.expr = None
         else:
             self.expr = larc_expr.Parser(self.expr_token_list, self.module, self.module.get_dep_module_set(self.file_name), None,
-                                         None, self.used_dep_module_set).parse((), self.type)
+                                         None, None, self.used_dep_module_set).parse((), self.type)
             t, sym = self.expr_token_list.pop_sym()
             assert not self.expr_token_list and sym in (";", ",")
         del self.expr_token_list

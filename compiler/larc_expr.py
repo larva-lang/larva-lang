@@ -94,11 +94,13 @@ class _Expr(ExprBase):
         self.type = type
         self.is_lvalue = op in ("this.attr", "global_var", "local_var", "[]", ".")
         self.is_ref = False #仅用于标识函数或方法的参数ref传递的表达式修饰，由外部修改和使用
+        self.pos_info = None #位置信息，只有在解析栈finish时候才会被赋值为解析栈的开始位置，参考相关代码，主要用于output时候的代码位置映射构建
 
 class _ParseStk:
     #解析表达式时使用的栈
-    def __init__(self, start_token, curr_module, cls):
+    def __init__(self, start_token, curr_module, cls, fom):
         self.start_token = start_token
+        self.fom = fom
         self.cls = cls
         self.curr_module = curr_module
         self.stk = []
@@ -269,7 +271,9 @@ class _ParseStk:
             self._pop_top_op()
         if len(self.stk) != 1:
             self.start_token.syntax_err("非法的表达式")
-        return self.stk.pop()
+        e = self.stk.pop()
+        e.pos_info = self.start_token, self.fom
+        return e
 
 def _is_expr_end(t):
     if t.is_sym:
@@ -278,17 +282,18 @@ def _is_expr_end(t):
     return False
 
 class Parser:
-    def __init__(self, token_list, curr_module, dep_module_set, cls, gtp_map, used_dep_module_set = None):
+    def __init__(self, token_list, curr_module, dep_module_set, cls, gtp_map, fom, used_dep_module_set = None):
         self.token_list = token_list
         self.curr_module = curr_module
         self.dep_module_set = dep_module_set
         self.cls = cls
         self.gtp_map = gtp_map
+        self.fom = fom
         self.used_dep_module_set = used_dep_module_set
 
     def parse(self, var_map_stk, need_type):
         start_token = self.token_list.peek()
-        parse_stk = _ParseStk(start_token, self.curr_module, self.cls)
+        parse_stk = _ParseStk(start_token, self.curr_module, self.cls, self.fom)
         while True:
             t = self.token_list.pop()
 
@@ -379,12 +384,9 @@ class Parser:
                             #构建默认值的语法
                             parse_stk.push_expr(_Expr("default_value", base_type, base_type))
                         elif len(expr_list) == 1:
-                            #类型强制转换的语法，由于强转是一个前缀运算，而这里的语法较为特殊，直接push op和expr后会被后面的后缀运算符干扰，
-                            #因此单独弄一个parse stk
-                            new_parse_stk = _ParseStk(new_token, self.curr_module, self.cls)
-                            new_parse_stk.push_op("force_convert", base_type)
-                            new_parse_stk.push_expr(expr_list[0])
-                            parse_stk.push_expr(new_parse_stk.finish())
+                            if not base_type.can_force_convert_from(expr_list[0].type):
+                                new_token.syntax_err("无法从类型'%s'转换到'%s'" % (expr_list[0].type, base_type))
+                            parse_stk.push_expr(_Expr("force_convert", (base_type, expr_list[0]), base_type))
                         else:
                             t.syntax_err("基础类型或接口的new只能输入0或1个参数")
                 else:
@@ -567,8 +569,6 @@ class Parser:
             if is_ref:
                 if not expr.is_lvalue:
                     t.syntax_err("ref修饰的实参不是左值表达式")
-                if expr.op == "global_var":
-                    global_var = expr.arg
             expr.is_ref = is_ref
             expr_list.append(expr)
             if self.token_list.peek().is_sym(")"):

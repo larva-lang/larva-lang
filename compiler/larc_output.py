@@ -22,6 +22,8 @@ runtime_dir = None
 out_prog_dir = None
 prog_module_name = None
 
+_tb_map = {}
+
 class _Code:
     class _CodeBlk:
         def __init__(self, code, end_line):
@@ -77,6 +79,13 @@ class _Code:
             self += "{"
         self.indent += " " * 4
         return self._CodeBlk(self, end_line)
+
+    #记录tb映射的信息，本code当前位置到输入的pos信息
+    def record_tb_info(self, pos_info):
+        t, fom = pos_info
+        if fom is None:
+            fom = "<module>"
+        _tb_map[(self.file_path_name, len(self.line_list) + 1)] = (t.src_file, t.line_no, str(fom))
 
 def _gen_coi_name(coi):
     for i in "cls", "gcls_inst", "intf", "gintf_inst":
@@ -399,10 +408,13 @@ def _output_stmt_list(code, stmt_list, fom, long_ret_nest_deep, long_boc_nest_de
             assert long_ret_nest_deep >= 0 #defer代码块中不会有return stmt，校验下
             if long_ret_nest_deep == 0:
                 #顶层，普通return
+                if stmt.expr is not None:
+                    code.record_tb_info(stmt.expr.pos_info)
                 code += "return %s" % ("" if stmt.expr is None else "(%s)" % _gen_expr_code(stmt.expr))
             else:
                 #内层，设置上一层的ret并return上去
                 if stmt.expr is not None:
+                    code.record_tb_info(stmt.expr.pos_info)
                     code += "ret_%d = (%s)" % (long_ret_nest_deep - 1, _gen_expr_code(stmt.expr))
                 code += "rbc_%d = RBC_RET" % (long_ret_nest_deep - 1)
                 code += "return"
@@ -411,10 +423,13 @@ def _output_stmt_list(code, stmt_list, fom, long_ret_nest_deep, long_boc_nest_de
             with code.new_blk(""):
                 if len(stmt.for_var_map) == 0:
                     for expr in stmt.init_expr_list:
+                        code.record_tb_info(expr.pos_info)
                         code += _gen_expr_code(expr)
                 else:
                     assert len(stmt.for_var_map) == len(stmt.init_expr_list)
                     for (name, tp), expr in zip(stmt.for_var_map.iteritems(), stmt.init_expr_list):
+                        if expr is not None:
+                            code.record_tb_info(expr.pos_info)
                         code += "var l_%s %s = (%s)" % (name, _gen_type_name_code(tp),
                                                         _gen_default_value_code(tp) if expr is None else _gen_expr_code(expr))
                         code += "_ = l_%s" % name
@@ -428,17 +443,24 @@ def _output_stmt_list(code, stmt_list, fom, long_ret_nest_deep, long_boc_nest_de
                     loop_expr_code = _gen_expr_code(stmt.loop_expr_list[0])
                 else:
                     loop_expr_code = "func () {%s}()" % "; ".join([_gen_expr_code(e) for e in stmt.loop_expr_list])
-                with code.new_blk("for ; %s; %s" % (judge_expr_code, loop_expr_code)):
+
+                if stmt.judge_expr is not None:
+                    code.record_tb_info(stmt.judge_expr.pos_info)
+                for e in stmt.loop_expr_list:
+                    code.record_tb_info(e.pos_info)
+                with code.new_blk("for ; %s; %s" % (judge_expr_code, loop_expr_code), start_with_blank_line = False):
                     _output_stmt_list(code, stmt.stmt_list, fom, long_ret_nest_deep, 0)
             continue
         if stmt.type == "while":
-            with code.new_blk("for (%s)" % _gen_expr_code(stmt.expr)):
+            code.record_tb_info(stmt.expr.pos_info)
+            with code.new_blk("for (%s)" % _gen_expr_code(stmt.expr), start_with_blank_line = False):
                 _output_stmt_list(code, stmt.stmt_list, fom, long_ret_nest_deep, 0)
             continue
         if stmt.type == "if":
             assert len(stmt.if_expr_list) == len(stmt.if_stmt_list_list)
             for i, (if_expr, if_stmt_list) in enumerate(zip(stmt.if_expr_list, stmt.if_stmt_list_list)):
-                with code.new_blk("%sif (%s)" % ("" if i == 0 else "else ", _gen_expr_code(if_expr))):
+                code.record_tb_info(if_expr.pos_info)
+                with code.new_blk("%sif (%s)" % ("" if i == 0 else "else ", _gen_expr_code(if_expr)), start_with_blank_line = False):
                     _output_stmt_list(code, if_stmt_list, fom, long_ret_nest_deep, long_boc_nest_deep)
             if stmt.else_stmt_list is not None:
                 with code.new_blk("else"):
@@ -449,10 +471,12 @@ def _output_stmt_list(code, stmt_list, fom, long_ret_nest_deep, long_boc_nest_de
                 expr_code = _gen_default_value_code(stmt_list.var_map[stmt.name])
             else:
                 expr_code = _gen_expr_code(stmt.expr)
+                code.record_tb_info(stmt.expr.pos_info)
             code += "var l_%s %s = (%s)" % (stmt.name, _gen_type_name_code(stmt_list.var_map[stmt.name]), expr_code)
             code += "_ = l_%s" % stmt.name
             continue
         if stmt.type == "expr":
+            code.record_tb_info(stmt.expr.pos_info)
             code += _gen_expr_code(stmt.expr)
             continue
         if stmt.type == "defer_block":
@@ -462,6 +486,7 @@ def _output_stmt_list(code, stmt_list, fom, long_ret_nest_deep, long_boc_nest_de
             code.line_list[-1] += "()"
             continue
         if stmt.type == "defer_expr":
+            code.record_tb_info(stmt.expr.pos_info)
             code += "defer " + _gen_expr_code(stmt.expr)
             continue
         raise Exception("Bug")
@@ -553,6 +578,12 @@ def _output_module():
                 code += "return %s" % _gen_default_value_code(func.type)
 
     if has_native_item:
+        def get_native_content():
+            line_list = open(native_code_file_path_name).readlines()
+            if not line_list or line_list[0].split() != ["package", "LARVA_NATIVE"]:
+                larc_common.exit("native实现[%s]格式错误：第一行必须为'package LAR_NATIVE'")
+            line_list[0] = "package %s" % prog_module_name
+            return "".join(line_list)
         if module.is_pkg:
             for fn in os.listdir(module.dir):
                 if fn.endswith(".lar_native.go"):
@@ -560,20 +591,15 @@ def _output_module():
                     if not os.path.isfile(native_code_file_path_name):
                         larc_common.exit("模块包'%s'的go语言的native部分实现[%s]需要是一个文件" % (module.name, native_code_file_path_name))
                     sub_mod_name = fn[: -14]
-                    f = open(os.path.join(out_prog_dir, "%s.mod.%s.native.%s.go" % (prog_module_name, module.name, sub_mod_name)), "w")
-                    print >> f, "package %s" % prog_module_name
-                    print >> f
-                    f.write(open(native_code_file_path_name).read())
-                    f.close()
+                    native_content = get_native_content()
+                    open(os.path.join(out_prog_dir, "%s.mod.%s.native.%s.go" % (prog_module_name, module.name, sub_mod_name)),
+                         "w").write(native_content)
         else:
             native_code_file_path_name = os.path.join(module.dir, "%s.lar_native.go" % module.name)
             if not os.path.exists(native_code_file_path_name):
                 larc_common.exit("找不到模块'%s'的go语言的native部分实现：[%s]" % (module.name, native_code_file_path_name))
-            f = open(os.path.join(out_prog_dir, "%s.mod.%s.native.go" % (prog_module_name, module.name)), "w")
-            print >> f, "package %s" % prog_module_name
-            print >> f
-            f.write(open(native_code_file_path_name).read())
-            f.close()
+            native_content = get_native_content()
+            open(os.path.join(out_prog_dir, "%s.mod.%s.native.go" % (prog_module_name, module.name)), "w").write(native_content)
 
 def _output_util():
     #拷贝runtime中固定的util代码
@@ -615,6 +641,11 @@ def _output_util():
                     with code.new_blk("for i := int64(0); i < d0_size; i ++"):
                         code += "arr[i] = %s" % elem_code
                     code += "return &arr"
+        with code.new_blk("var lar_util_tb_map = map[lar_util_go_tb]lar_util_lar_tb"):
+            for (go_file_name, go_line_no), (lar_file_name, lar_line_no, lar_fom_name) in _tb_map.iteritems():
+                code += ("lar_util_go_tb{file: %s, line: %d}: lar_util_lar_tb{file: %s, line: %d, fom_name: %s}," %
+                         (_gen_str_literal(go_file_name), go_line_no, _gen_str_literal(lar_file_name), lar_line_no,
+                          _gen_str_literal(lar_fom_name)))
 
 def _output_makefile():
     if platform.system() == "Windows":
