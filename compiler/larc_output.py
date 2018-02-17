@@ -80,12 +80,12 @@ class _Code:
         self.indent += " " * 4
         return self._CodeBlk(self, end_line)
 
-    #记录tb映射的信息，本code当前位置到输入的pos信息
-    def record_tb_info(self, pos_info):
+    #记录tb映射的信息，本code当前位置到输入的pos信息，在输出代码之前使用，adjust为代码行数修正值
+    def record_tb_info(self, pos_info, adjust = 0):
         t, fom = pos_info
         if fom is None:
             fom = "<module>"
-        _tb_map[(self.file_path_name, len(self.line_list) + 1)] = (t.src_file, t.line_no, str(fom))
+        _tb_map[(self.file_path_name, len(self.line_list) + 1 + adjust)] = (t.src_file, t.line_no, str(fom))
 
 def _gen_coi_name(coi):
     for i in "cls", "gcls_inst", "intf", "gintf_inst":
@@ -445,22 +445,22 @@ def _output_stmt_list(code, stmt_list, fom, long_ret_nest_deep, long_boc_nest_de
                     loop_expr_code = "func () {%s}()" % "; ".join([_gen_expr_code(e) for e in stmt.loop_expr_list])
 
                 if stmt.judge_expr is not None:
-                    code.record_tb_info(stmt.judge_expr.pos_info)
+                    code.record_tb_info(stmt.judge_expr.pos_info, adjust = 1)
                 for e in stmt.loop_expr_list:
-                    code.record_tb_info(e.pos_info)
-                with code.new_blk("for ; %s; %s" % (judge_expr_code, loop_expr_code), start_with_blank_line = False):
+                    code.record_tb_info(e.pos_info, adjust = 1)
+                with code.new_blk("for ; %s; %s" % (judge_expr_code, loop_expr_code)):
                     _output_stmt_list(code, stmt.stmt_list, fom, long_ret_nest_deep, 0)
             continue
         if stmt.type == "while":
-            code.record_tb_info(stmt.expr.pos_info)
-            with code.new_blk("for (%s)" % _gen_expr_code(stmt.expr), start_with_blank_line = False):
+            code.record_tb_info(stmt.expr.pos_info, adjust = 1)
+            with code.new_blk("for (%s)" % _gen_expr_code(stmt.expr)):
                 _output_stmt_list(code, stmt.stmt_list, fom, long_ret_nest_deep, 0)
             continue
         if stmt.type == "if":
             assert len(stmt.if_expr_list) == len(stmt.if_stmt_list_list)
             for i, (if_expr, if_stmt_list) in enumerate(zip(stmt.if_expr_list, stmt.if_stmt_list_list)):
-                code.record_tb_info(if_expr.pos_info)
-                with code.new_blk("%sif (%s)" % ("" if i == 0 else "else ", _gen_expr_code(if_expr)), start_with_blank_line = False):
+                code.record_tb_info(if_expr.pos_info, adjust = 1 if i == 0 else -1)
+                with code.new_blk("%sif (%s)" % ("" if i == 0 else "else ", _gen_expr_code(if_expr))):
                     _output_stmt_list(code, if_stmt_list, fom, long_ret_nest_deep, long_boc_nest_deep)
             if stmt.else_stmt_list is not None:
                 with code.new_blk("else"):

@@ -445,8 +445,9 @@ class Parser:
                             t.syntax_err("数组没有'%s'属性" % name)
                         parse_stk.stk[-1] = _Expr("array.size", parse_stk.stk[-1], larc_type.LONG_TYPE)
                     else:
-                        assert not obj.type.is_void
                         t, name = self.token_list.pop_name()
+                        if obj.type.is_void:
+                            t.syntax_err("不能对void类型取属性或调用方法")
                         if obj.type.token.is_reserved:
                             if self.token_list.peek().is_sym("("):
                                 parse_stk.stk[-1] = self._parse_ptm(var_map_stk, obj, t)
@@ -486,6 +487,7 @@ class Parser:
                 t.syntax_err("需要二元或三元运算符")
 
         expr = parse_stk.finish()
+        expr_pos_info = expr.pos_info #保存一下pos info
         if need_type is not None:
             if isinstance(need_type, (tuple, list)):
                 need_type_list = list(need_type)
@@ -508,6 +510,7 @@ class Parser:
                     start_token.syntax_err("表达式（类型'%s'）无法隐式转换为类型'%s'" % (expr.type, need_type_list[0]))
                 else:
                     start_token.syntax_err("表达式（类型'%s'）无法隐式转换为类型%s其中任意一个" % (expr.type, str(need_type_list)))
+        expr.pos_info = expr_pos_info #expr可能根据need_tyep修改了，恢复一下pos info
         return expr
 
     def _parse_func_or_global_var(self, module, (t, name), var_map_stk):
@@ -596,6 +599,8 @@ class Parser:
 
     def _parse_ptm(self, var_map_stk, obj, t):
         assert obj.type.is_bool_type or obj.type.is_number_type
+        if obj.type.is_literal_int:
+            obj.type = larc_type.INT_TYPE
         name = t.value
         self.token_list.pop_sym("(")
         ptm_name = "__ptm_%s_%s" % (obj.type, name)
