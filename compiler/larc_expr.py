@@ -246,13 +246,24 @@ class _ParseStk:
             if not ea.type.is_bool_type:
                 self.start_token.syntax_err("非法的表达式：'?:'运算的第一运算分量类型不能是'%s'" % ea.type)
             if eb.type == ec.type:
-                #完全一样，则使用此类型
+                #完全一样，则使用此类型，但不允许都是nil
+                if eb.type.is_nil:
+                    assert ec.type.is_nil
+                    self.start_token.syntax_err("非法的表达式：'?:'运算的第二、三运算分量都是nil字面量")
                 tp = eb.type
             else:
-                #类型不相同，只对number类型归一化，其他情况要求强转
+                #类型不相同，对number类型归一化，对存在nil字面量的情况，根据另一分量确定nil的类型，其他情况要求代码显式强转
                 try:
                     if eb.type.is_number_type and ec.type.is_number_type:
                         eb, ec = _make_number_type_same(eb, ec)
+                    elif eb.type.is_obj_type and ec.type.is_obj_type:
+                        if eb.type.is_nil:
+                            assert not ec.type.is_nil
+                            eb = _Expr("force_convert", (ec.type, eb), ec.type)
+                        elif ec.type.is_nil:
+                            ec = _Expr("force_convert", (eb.type, ec), eb.type)
+                        else:
+                            raise _CantMakeNumberTypeSame()
                     else:
                         raise _CantMakeNumberTypeSame()
                 except _CantMakeNumberTypeSame:

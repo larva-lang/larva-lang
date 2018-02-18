@@ -38,11 +38,14 @@ type lar_util_lar_tb struct {
     fom_name string
 }
 
-func lar_util_convert_go_tb_to_lar_tb(file string, line int, func_name string) (string, int, string) {
+func lar_util_convert_go_tb_to_lar_tb(file string, line int, func_name string) (string, int, string, bool) {
     lar_tb, ok := lar_util_tb_map[lar_util_go_tb{file: file, line: line}]
     if !ok {
         //没找到对应的，原样返回
-        return file, line, func_name
+        return file, line, func_name, true
     }
-    return lar_tb.file, lar_tb.line, lar_tb.fom_name
+    if lar_tb == nil {
+        return "", 0, "", false
+    }
+    return lar_tb.file, lar_tb.line, lar_tb.fom_name, true
 }

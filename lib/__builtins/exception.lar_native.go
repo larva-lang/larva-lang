@@ -28,8 +28,13 @@ func lar_func_10___builtins_5_throw(t lar_intf_10___builtins_9_Throwable) {
         if strings.HasSuffix(func_name, ".Lar_booter_start_prog") {
             break
         }
-        file, line, func_name = lar_util_convert_go_tb_to_lar_tb(file, line, func_name)
-        tb_line_list = append(tb_line_list, fmt.Sprintf("  File '%s', line %d, in %s", file, line, func_name))
+        file, line, func_name, ok = lar_util_convert_go_tb_to_lar_tb(file, line, func_name)
+        if ok {
+            tb_line := fmt.Sprintf("  File '%s', line %d, in %s", file, line, func_name)
+            if tb_line_list[len(tb_line_list) - 1] != tb_line {
+                tb_line_list = append(tb_line_list, tb_line)
+            }
+        }
     }
     tb_line_list = append(tb_line_list, "Traceback:")
     //上面是反着写info的，reverse一下

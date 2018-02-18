@@ -15,6 +15,8 @@ import larc_token
 import larc_expr
 import larc_type
 
+_POS_INFO_IGNORE = object()
+
 main_module_name = None
 out_dir = None
 runtime_dir = None
@@ -82,10 +84,14 @@ class _Code:
 
     #记录tb映射的信息，本code当前位置到输入的pos信息，在输出代码之前使用，adjust为代码行数修正值
     def record_tb_info(self, pos_info, adjust = 0):
-        t, fom = pos_info
-        if fom is None:
-            fom = "<module>"
-        _tb_map[(self.file_path_name, len(self.line_list) + 1 + adjust)] = (t.src_file, t.line_no, str(fom))
+        if pos_info is _POS_INFO_IGNORE:
+            tb_info = None
+        else:
+            t, fom = pos_info
+            if fom is None:
+                fom = "<module>"
+            tb_info = t.src_file, t.line_no, str(fom)
+        _tb_map[(self.file_path_name, len(self.line_list) + 1 + adjust)] = tb_info
 
 def _gen_coi_name(coi):
     for i in "cls", "gcls_inst", "intf", "gintf_inst":
@@ -641,11 +647,15 @@ def _output_util():
                     with code.new_blk("for i := int64(0); i < d0_size; i ++"):
                         code += "arr[i] = %s" % elem_code
                     code += "return &arr"
-        with code.new_blk("var lar_util_tb_map = map[lar_util_go_tb]lar_util_lar_tb"):
-            for (go_file_name, go_line_no), (lar_file_name, lar_line_no, lar_fom_name) in _tb_map.iteritems():
-                code += ("lar_util_go_tb{file: %s, line: %d}: lar_util_lar_tb{file: %s, line: %d, fom_name: %s}," %
-                         (_gen_str_literal(go_file_name), go_line_no, _gen_str_literal(lar_file_name), lar_line_no,
-                          _gen_str_literal(lar_fom_name)))
+        with code.new_blk("var lar_util_tb_map = map[lar_util_go_tb]*lar_util_lar_tb"):
+            for (go_file_name, go_line_no), tb_info in _tb_map.iteritems():
+                if tb_info is None:
+                    code += "lar_util_go_tb{file: %s, line: %d}: nil," % (_gen_str_literal(go_file_name), go_line_no)
+                else:
+                    lar_file_name, lar_line_no, lar_fom_name = tb_info
+                    code += ("lar_util_go_tb{file: %s, line: %d}: &lar_util_lar_tb{file: %s, line: %d, fom_name: %s}," %
+                             (_gen_str_literal(go_file_name), go_line_no, _gen_str_literal(lar_file_name), lar_line_no,
+                              _gen_str_literal(lar_fom_name)))
 
 def _output_makefile():
     if platform.system() == "Windows":
