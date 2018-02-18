@@ -376,6 +376,7 @@ def _output_stmt_list(code, stmt_list, fom, long_ret_nest_deep, long_boc_nest_de
                 _output_stmt_list(code, stmt_list, fom, long_ret_nest_deep + 1, long_boc_nest_deep + 1, need_check_defer = False)
             assert code.line_list[-1].strip() == "}"
             code.line_list[-1] += "()"
+            code.record_tb_info(_POS_INFO_IGNORE, adjust = -1)
 
             if long_ret_nest_deep == 0:
                 with code.new_blk("if rbc_%d == RBC_RET" % long_ret_nest_deep):
