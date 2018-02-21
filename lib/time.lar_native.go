@@ -23,3 +23,7 @@ func lar_func_4_time_3_now() *lar_cls_4_time_4_Time {
         },
     }
 }
+
+func lar_func_4_time_10_sleep_nano(nano_sec int64) {
+    time.Sleep(time.Duration(nano_sec))
+}

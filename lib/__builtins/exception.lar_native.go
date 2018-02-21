@@ -25,7 +25,7 @@ func lar_func_10___builtins_5_throw(t lar_intf_10___builtins_9_Throwable) {
             break
         }
         func_name := runtime.FuncForPC(pc).Name()
-        if strings.HasSuffix(func_name, ".Lar_booter_start_prog") {
+        if strings.HasSuffix(func_name, ".Lar_booter_start_prog") || strings.HasSuffix(func_name, ".lar_booter_start_co") {
             break
         }
         file, line, func_name, ok = lar_util_convert_go_tb_to_lar_tb(file, line, func_name)

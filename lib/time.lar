@@ -12,3 +12,21 @@ public class Time
 }
 
 public native Time now();
+
+public native void sleep_nano(long nano_sec);
+public void sleep_us(long us)
+{
+    sleep_nano(us * 1000);
+}
+public void sleep_ms(long ms)
+{
+    sleep_nano(ms * 1000000);
+}
+public void sleep(long sec)
+{
+    sleep_nano(sec * 1000000000);
+}
+public void sleep_float(double sec)
+{
+    sleep_nano((long)(sec * 1e9));
+}
