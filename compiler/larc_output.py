@@ -441,21 +441,26 @@ def _output_stmt_list(code, stmt_list, fom, long_ret_nest_deep, long_boc_nest_de
                                                         _gen_default_value_code(tp) if expr is None else _gen_expr_code(expr))
                         code += "_ = l_%s" % name
                 if stmt.judge_expr is None:
-                    judge_expr_code = ""
+                    code += "for ; ;"
                 else:
-                    judge_expr_code = _gen_expr_code(stmt.judge_expr)
+                    code.record_tb_info(stmt.judge_expr.pos_info)
+                    code += "for ; %s;" % _gen_expr_code(stmt.judge_expr)
                 if len(stmt.loop_expr_list) == 0:
-                    loop_expr_code = ""
+                    blk_title = ""
                 elif len(stmt.loop_expr_list) == 1:
-                    loop_expr_code = _gen_expr_code(stmt.loop_expr_list[0])
+                    code.record_tb_info(stmt.loop_expr_list[0].pos_info)
+                    blk_title = _gen_expr_code(stmt.loop_expr_list[0])
                 else:
-                    loop_expr_code = "func () {%s}()" % "; ".join([_gen_expr_code(e) for e in stmt.loop_expr_list])
+                    with code.new_blk("func ()"):
+                        for e in stmt.loop_expr_list:
+                            code.record_tb_info(e.pos_info)
+                            code += _gen_expr_code(e)
+                    assert code.line_list[-1].strip() == "}"
+                    del code.line_list[-1]
+                    blk_title = "}()"
+                    code.record_tb_info(_POS_INFO_IGNORE)
 
-                if stmt.judge_expr is not None:
-                    code.record_tb_info(stmt.judge_expr.pos_info, adjust = 1)
-                for e in stmt.loop_expr_list:
-                    code.record_tb_info(e.pos_info, adjust = 1)
-                with code.new_blk("for ; %s; %s" % (judge_expr_code, loop_expr_code)):
+                with code.new_blk(blk_title, start_with_blank_line = False):
                     _output_stmt_list(code, stmt.stmt_list, fom, long_ret_nest_deep, 0)
             continue
         if stmt.type == "while":
