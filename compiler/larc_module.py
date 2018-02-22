@@ -97,10 +97,12 @@ class _CoiBase:
                 #没有对应方法
                 return False
             other_method = other.method_map[name]
-            if self.module is not other.module and "public" not in other_method.decr_set:
-                #接口所在模块对other的方法无权限
+            if (list(method.decr_set) + list(other_method.decr_set)).count("public") not in (0, 2):
+                #权限签名不同
                 return False
-            #注：允许方法的权限修饰不同，例如类A有个public方法，接口B的同签名方法是非public，B=A是可以赋值的，反之也可以
+            if "public" not in method.decr_set and self.module is not other.module:
+                #权限私有且两个coi不在同一模块，这个接口无权访问
+                return False
             #检查返回类型和参数类型是否一致，参数类型比较必须考虑ref
             if method.type != other_method.type:
                 return False
