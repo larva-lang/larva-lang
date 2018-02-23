@@ -177,6 +177,15 @@ def _output_main_pkg():
             code += "os.Exit(%s.Lar_booter_start_prog())" % prog_module_name
 
 def _output_booter():
+    booter_fix_file_path_name = os.path.join(runtime_dir, "lar_booter.go")
+    if not os.path.exists(booter_fix_file_path_name):
+        larc_common.exit("runtime文件缺失，请检查编译器环境：[%s]" % booter_fix_file_path_name)
+    f = open(os.path.join(out_prog_dir, "%s.booter_fix.go" % prog_module_name), "w")
+    print >> f, "package %s" % prog_module_name
+    print >> f
+    f.write(open(booter_fix_file_path_name).read())
+    f.close()
+
     with _Code(os.path.join(out_prog_dir, "%s.booter.go" % prog_module_name)) as code:
         with code.new_blk("import"):
             code += '"os"'
@@ -184,9 +193,8 @@ def _output_booter():
             code += "argv := %s(int64(len(os.Args)))" % (_gen_new_arr_func_name(larc_type.STR_TYPE, 1, 1))
             with code.new_blk("for i := 0; i < len(os.Args); i ++"):
                 code += "(*argv)[i] = lar_util_create_lar_str_from_go_str(os.Args[i])"
-            code += "lar_env_init_mod___builtins()"
-            code += "lar_env_init_mod_%s()" % main_module_name
-            code += "return int(%s(argv))" % _gen_func_name(larc_module.module_map[main_module_name].get_main_func())
+            code += ("return lar_booter_start_prog(lar_env_init_mod_%s, %s, argv)" %
+                     (main_module_name, _gen_func_name(larc_module.module_map[main_module_name].get_main_func())))
 
 def _gen_str_literal_name(t):
     return "lar_literal_str_%s_%d" % (curr_module.name, id(t))
@@ -538,6 +546,7 @@ def _output_module():
                     code += "lar_env_init_mod_%s()" % dep_module_name
                 for gv in module.global_var_map.itervalues():
                     if gv.expr is not None:
+                        code.record_tb_info(gv.expr.pos_info)
                         code += "%s = %s" % (_gen_gv_name(gv), _gen_expr_code(gv.expr))
 
         for cls in [i for i in module.cls_map.itervalues() if not i.gtp_name_list] + list(module.gcls_inst_map.itervalues()):

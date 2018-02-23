@@ -25,11 +25,23 @@ func lar_func_10___builtins_5_throw(t lar_intf_10___builtins_9_Throwable) {
             break
         }
         func_name := runtime.FuncForPC(pc).Name()
-        if strings.HasSuffix(func_name, ".Lar_booter_start_prog") || strings.HasSuffix(func_name, ".lar_booter_start_co") {
-            break
+        in_init_mod_func := false
+        func_name_parts := strings.Split(func_name, ".")
+        if len(func_name_parts) == 2 {
+            fn := func_name_parts[1]
+            if fn == "lar_booter_start_prog" || fn == "lar_booter_start_co" {
+                break
+            }
+            if strings.HasPrefix(fn, "lar_env_init_mod_") {
+                in_init_mod_func = true
+            }
         }
         file, line, func_name, ok = lar_util_convert_go_tb_to_lar_tb(file, line, func_name)
         if ok {
+            if in_init_mod_func && func_name != "<module>" {
+                //追溯到了模块初始化代码，且不是larva层面的代码行，则停止
+                break
+            }
             tb_line := fmt.Sprintf("  File '%s', line %d, in %s", file, line, func_name)
             if tb_line_list[len(tb_line_list) - 1] != tb_line {
                 tb_line_list = append(tb_line_list, tb_line)
