@@ -20,13 +20,13 @@ def _output_ginst_create_chain():
         print ginst.creator_token.pos_desc(), ginst
 
 def exit(msg):
-    print >> sys.stderr, "Error:", msg.decode("utf8")
+    print >> sys.stderr, "错误：", msg.decode("utf8")
     _output_ginst_create_chain()
     print
     sys.exit(1)
 
 def warning(msg):
-    print >> sys.stderr, "Warning", msg.decode("utf8")
+    print >> sys.stderr, "警告：", msg.decode("utf8")
     _output_ginst_create_chain()
     print
 

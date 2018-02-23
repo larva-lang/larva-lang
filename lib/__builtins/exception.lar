@@ -22,8 +22,18 @@ public class Catched<T>
         rethrow_catched(new Catched<Throwable>(throwed, traceback));
     }
 
-    public T throwed;
-    public String traceback;
+    public T get_throwed()
+    {
+        return throwed;
+    }
+
+    public String get_traceback()
+    {
+        return traceback;
+    }
+
+    T throwed;
+    String traceback;
 }
 
 //继续往上抛当前Catched对象，维持对象不变，即和再次throw的区别在于traceback可以保持不变
@@ -58,13 +68,13 @@ public Catched<T> catch<T>(/*Any _go_recovered*/)
         //无异常
         return nil;
     }
-    T throwed = (T)c.throwed;
+    T throwed = (T)c.get_throwed();
     if (throwed == nil)
     {
         //不是当前需要的类型，继续往上抛
         c.rethrow();
     }
-    return new Catched<T>(throwed, c.traceback);
+    return new Catched<T>(throwed, c.get_traceback());
 }
 
 //---------------------------------------------------------------------

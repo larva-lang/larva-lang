@@ -121,7 +121,7 @@ class Client
             var c = catch_base();
             if (c != nil)
             {
-                client_log("client ends with exception [%v], traceback[%v]".(c.throwed.to_str(), c.traceback));
+                client_log("client ends with exception [%v], traceback[%v]".(c.get_throwed().to_str(), c.get_traceback()));
             }
         }
         defer m_sock.close();
@@ -143,7 +143,7 @@ public int main(String[] args)
             var c = catch_base();
             if (c != nil)
             {
-                log("accept new client failed [%v][%v]".(c.throwed.to_str(), c.traceback));
+                log("accept new client failed [%v][%v]".(c.get_throwed().to_str(), c.get_traceback()));
             }
         }
 

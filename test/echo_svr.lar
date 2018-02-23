@@ -16,7 +16,7 @@ class Client
             var c = catch_base();
             if (c != nil)
             {
-                println("client ends with exception [%v], traceback[%v]".(c.throwed.to_str(), c.traceback));
+                println("client ends with exception [%v], traceback[%v]".(c.get_throwed().to_str(), c.get_traceback()));
             }
             else
             {
