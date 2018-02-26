@@ -574,6 +574,7 @@ def _output_module():
                         code += "return %s" % _gen_default_value_code(method.type)
                     else:
                         assert method.is_usemethod
+                        code.record_tb_info((method.attr.type.token, "<usemethod>"))
                         code += ("%sthis.m_%s.method_%s(%s)" %
                                  ("" if method.type.is_void else "return ", method.attr.name, method.name,
                                   ", ".join(["l_%s" % name for name in method.arg_map])))

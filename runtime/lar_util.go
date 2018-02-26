@@ -1,15 +1,10 @@
 import (
-    "unsafe"
+    "reflect"
     "math"
 )
 
-type lar_util_intf_stru struct {
-    tab unsafe.Pointer
-    data unsafe.Pointer
-}
-
 func lar_util_is_same_intf(a, b interface{}) bool {
-    return ((*lar_util_intf_stru)(unsafe.Pointer(&a))).data == ((*lar_util_intf_stru)(unsafe.Pointer(&b))).data
+    return reflect.ValueOf(&a).Elem().InterfaceData()[1] == reflect.ValueOf(&b).Elem().InterfaceData()[1]
 }
 
 func lar_util_fmod_float(a, b float32) float32 {

@@ -95,7 +95,7 @@ public class Exception
     String info;
 }
 
-//这里是通用的一些异常类型
+//这里是通用的一些内建异常类型
 
 public class ValueError
 {
