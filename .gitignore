@@ -1,6 +1,5 @@
 .DS_Store
 *.pyc
-/test/*
-!/test/*.lar
-test/test.lar
+/test/*.lar_out
+/test/test
 .vscode

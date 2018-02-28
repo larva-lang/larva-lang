@@ -606,22 +606,15 @@ def _output_module():
                 larc_common.exit("native实现[%s]格式错误：第一行必须为'package LAR_NATIVE'")
             line_list[0] = "package %s" % prog_module_name
             return "".join(line_list)
-        if module.is_pkg:
-            for fn in os.listdir(module.dir):
-                if fn.endswith(".lar_native.go"):
-                    native_code_file_path_name = os.path.join(module.dir, fn)
-                    if not os.path.isfile(native_code_file_path_name):
-                        larc_common.exit("模块包'%s'的go语言的native部分实现[%s]需要是一个文件" % (module.name, native_code_file_path_name))
-                    sub_mod_name = fn[: -14]
-                    native_content = get_native_content()
-                    open(os.path.join(out_prog_dir, "%s.mod.%s.native.%s.go" % (prog_module_name, module.name, sub_mod_name)),
-                         "w").write(native_content)
-        else:
-            native_code_file_path_name = os.path.join(module.dir, "%s.lar_native.go" % module.name)
-            if not os.path.exists(native_code_file_path_name):
-                larc_common.exit("找不到模块'%s'的go语言的native部分实现：[%s]" % (module.name, native_code_file_path_name))
-            native_content = get_native_content()
-            open(os.path.join(out_prog_dir, "%s.mod.%s.native.go" % (prog_module_name, module.name)), "w").write(native_content)
+        for fn in os.listdir(module.dir):
+            if fn.endswith(".lar_native.go"):
+                native_code_file_path_name = os.path.join(module.dir, fn)
+                if not os.path.isfile(native_code_file_path_name):
+                    larc_common.exit("模块包'%s'的go语言的native部分实现[%s]需要是一个文件" % (module.name, native_code_file_path_name))
+                sub_mod_name = fn[: -14]
+                native_content = get_native_content()
+                open(os.path.join(out_prog_dir, "%s.mod.%s.native.%s.go" % (prog_module_name, module.name, sub_mod_name)),
+                     "w").write(native_content)
 
 def _output_util():
     #拷贝runtime中固定的util代码

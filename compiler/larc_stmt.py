@@ -212,7 +212,7 @@ class Parser:
         if self.token_list.peek().is_sym(";"):
             expr = None
             if not self.fom.type.is_void:
-                token_list.peek().syntax_err("需要表达式")
+                self.token_list.peek().syntax_err("需要表达式")
         else:
             expr = self.expr_parser.parse(var_map_stk, self.fom.type)
         self.token_list.pop_sym(";")

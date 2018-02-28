@@ -95,10 +95,10 @@ class _Token:
         return self.copy_on_pos(self)
 
     def syntax_err(self, msg = ""):
-        larc_common.exit("错误：%s %s" % (self.pos_desc(), msg))
+        larc_common.exit("%s %s" % (self.pos_desc(), msg))
 
     def warning(self, msg):
-        larc_common.warning("警告：%s %s" % (self.pos_desc(), msg))
+        larc_common.warning("%s %s" % (self.pos_desc(), msg))
 
     def pos_desc(self):
         return "文件[%s]行[%d]列[%d]" % (self.src_file, self.line_no, self.pos + 1)
@@ -427,3 +427,6 @@ def gen_empty_token_list(end_sym):
     token_list = TokenList("EMPTY")
     token_list.append(_Token("sym", end_sym, "EMPTY", -1, -1))
     return token_list
+
+def is_valid_name(name):
+    return re.match("^[a-zA-Z_]\w*$", name) is not None and name not in ("nil", "true", "false")

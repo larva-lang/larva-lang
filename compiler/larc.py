@@ -8,29 +8,19 @@ import sys
 import getopt
 import os
 import larc_common
+import larc_token
 import larc_module
 import larc_type
 import larc_output
 
 def _show_usage_and_exit():
-    larc_common.exit("使用方法：%s [--run] 主模块.lar" % sys.argv[0])
+    larc_common.exit("使用方法：%s [--run] 主模块名" % sys.argv[0])
 
 def _find_module_file(module_dir_list, module_name):
-    #按目录查找
+    #按模块查找路径逐个目录找
     for module_dir in module_dir_list:
-        module_file_path_name = os.path.join(module_dir, module_name) + ".lar"
-        has_module_file = os.path.isfile(module_file_path_name)
-        if os.path.isdir(module_file_path_name):
-            larc_common.exit("模块实现[%s]必须是一个文件" % module_file_path_name)
         module_pkg_path = os.path.join(module_dir, module_name)
-        has_module_pkg = os.path.isdir(module_pkg_path)
-        if os.path.isfile(module_pkg_path):
-            larc_common.exit("模块实现[%s]缺少.lar后缀名，若实现为包则必须是一个目录" % module_pkg_path)
-        if has_module_file and has_module_pkg:
-            larc_common.exit("模块'%s'在目录[%s]下同时存在文件和包的实现" % (module_name, module_dir))
-        if has_module_file:
-            return module_file_path_name
-        if has_module_pkg:
+        if os.path.isdir(module_pkg_path):
             return module_pkg_path
     larc_common.exit("找不到模块：%s" % module_name)
 
@@ -53,15 +43,19 @@ def main():
 
     #先预处理主模块
     main_file_path_name = os.path.abspath(args[0])
-    if not main_file_path_name.endswith(".lar"):
-        larc_common.exit("非法的主模块文件名[%s]" % main_file_path_name)
+    main_module_name = os.path.basename(main_file_path_name)
+    if not (larc_token.is_valid_name(main_module_name) and main_module_name != "__builtins"):
+        larc_common.exit("非法的主模块名[%s]" % main_module_name)
     if not os.path.exists(main_file_path_name):
-        larc_common.exit("找不到主模块文件[%s]" % main_file_path_name)
+        larc_common.exit("找不到主模块目录[%s]" % main_file_path_name)
+    if not os.path.isdir(main_file_path_name):
+        larc_common.exit("主模块[%s]不是一个目录" % main_file_path_name)
     main_module = larc_module.Module(main_file_path_name)
     larc_module.module_map[main_module.name] = main_module
 
-    #模块查找的目录列表
+    #模块查找路径的目录列表
     src_dir = os.path.dirname(main_file_path_name)
+    #路径顺序规则为：主模块所在目录->参数指定路径（多个则按顺序）->larva的lib目录
     module_dir_list = [src_dir, lib_dir]
 
     #预处理所有涉及到的模块
@@ -104,7 +98,7 @@ def main():
 
     #输出目标代码
     larc_output.main_module_name = main_module.name
-    larc_output.out_dir = os.path.join(src_dir, main_module.name)
+    larc_output.out_dir = os.path.join(src_dir, main_module.name) + ".lar_out"
     larc_output.runtime_dir = os.path.join(os.path.dirname(lib_dir), "runtime")
     larc_output.output("--run" in opt_map)
 

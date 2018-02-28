@@ -727,17 +727,11 @@ class _GlobalVar:
 
 class Module:
     def __init__(self, file_path_name):
-        if file_path_name.endswith(".lar"):
-            self.dir, file_name = os.path.split(file_path_name)
-            self.name = file_name[: -4]
-            file_name_list = [file_name]
-            self.is_pkg = False
-        else:
-            assert os.path.isdir(file_path_name)
-            self.dir = file_path_name
-            self.name = os.path.basename(file_path_name)
-            file_name_list = [fn for fn in os.listdir(self.dir) if fn.endswith(".lar")]
-            self.is_pkg = True
+        assert os.path.isdir(file_path_name)
+        self.dir = file_path_name
+        self.name = os.path.basename(file_path_name)
+        file_name_list = [fn for fn in os.listdir(self.dir) if fn.endswith(".lar")]
+
         self.file_dep_module_set_map = {}
         self.cls_map = larc_common.OrderedDict()
         self.gcls_inst_map = larc_common.OrderedDict()
