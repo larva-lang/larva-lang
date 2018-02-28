@@ -197,10 +197,10 @@ def _output_booter():
                      (main_module_name, _gen_func_name(larc_module.module_map[main_module_name].get_main_func())))
 
 def _gen_str_literal_name(t):
-    return "lar_literal_str_%s_%d" % (curr_module.name, id(t))
+    return "lar_literal_str_%s_%d" % (curr_module.name, t.id)
 
 def _gen_number_literal_name(t):
-    return "lar_literal_number_%s_%d" % (curr_module.name, id(t))
+    return "lar_literal_number_%s_%d" % (curr_module.name, t.id)
 
 def _gen_str_literal(s):
     code_list = []
@@ -294,7 +294,7 @@ def _gen_expr_code_ex(expr):
         tp = expr.type
         if literal_type in ("nil", "bool"):
             return t.value
-        assert id(t) in _literal_token_id_set
+        assert t.id in _literal_token_id_set
         if literal_type == "str":
             return _gen_str_literal_name(t)
         return _gen_number_literal_name(t)
@@ -521,14 +521,14 @@ def _output_module():
     with _Code(module_file_name) as code:
         code += ""
         for t in module.literal_str_list:
-            assert t.is_literal("str") and id(t) not in _literal_token_id_set
-            _literal_token_id_set.add(id(t))
+            assert t.is_literal("str") and t.id not in _literal_token_id_set
+            _literal_token_id_set.add(t.id)
             code += ("var %s %s = lar_util_create_lar_str_from_go_str(%s)" %
                      (_gen_str_literal_name(t), _gen_type_name_code(larc_type.STR_TYPE), _gen_str_literal(t.value)))
         for t in module.literal_number_list:
             assert (t.is_literal and t.type[8 :] in ("char", "int", "uint", "long", "ulong", "float", "double") and
-                    id(t) not in _literal_token_id_set)
-            _literal_token_id_set.add(id(t))
+                    t.id not in _literal_token_id_set)
+            _literal_token_id_set.add(t.id)
             code += ("var %s %s = (%s)" %
                      (_gen_number_literal_name(t), _gen_type_name_code(eval("larc_type.%s_TYPE" % t.type[8 :].upper())), t.value))
 

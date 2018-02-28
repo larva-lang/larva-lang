@@ -98,3 +98,9 @@ class OrderedSet:
         os = OrderedSet()
         os.d = self.d.copy()
         return os
+
+_id = 0
+def new_id():
+    global _id
+    _id += 1
+    return _id

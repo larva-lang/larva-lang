@@ -80,6 +80,7 @@ def _parse_arg_map(token_list, dep_module_set, gtp_name_list):
 #下面_ClsBase和_IntfBase的基类，用于定义一些接口和类共有的通用属性和方法
 class _CoiBase:
     def __init__(self):
+        self.id = larc_common.new_id()
         self.is_cls = isinstance(self, _Cls)
         self.is_gcls_inst = isinstance(self, _GclsInst)
         self.is_intf = isinstance(self, _Intf)
@@ -613,6 +614,7 @@ class _GintfInst(_IntfBase):
 
 class _FuncBase:
     def __init__(self):
+        self.id = larc_common.new_id()
         self.is_func = isinstance(self, _Func)
         self.is_gfunc_inst = isinstance(self, _GfuncInst)
         assert [self.is_func, self.is_gfunc_inst].count(True) == 1
@@ -1040,7 +1042,7 @@ class Module:
             return coi
 
         #泛型类或接口，生成gXXX实例后再返回，ginst_key是这个泛型实例的唯一key标识
-        ginst_key = id(coi),
+        ginst_key = coi.id,
         for tp in type.gtp_list:
             array_dim_count = tp.array_dim_count
             while tp.is_array:
@@ -1048,7 +1050,7 @@ class Module:
             if tp.token.is_reserved:
                 ginst_key += tp.name, array_dim_count
             else:
-                ginst_key += id(tp.get_coi()), array_dim_count
+                ginst_key += tp.get_coi().id, array_dim_count
 
         if is_cls:
             ginst_map = self.gcls_inst_map
@@ -1087,7 +1089,7 @@ class Module:
             return func
 
         #泛型函数，生成gfunc实例后再返回，gfunc_key是这个泛型实例的唯一key标识
-        gfunc_key = id(func),
+        gfunc_key = func.id,
         for tp in gtp_list:
             array_dim_count = tp.array_dim_count
             while tp.is_array:
@@ -1095,7 +1097,7 @@ class Module:
             if tp.token.is_reserved:
                 gfunc_key += tp.name, array_dim_count
             else:
-                gfunc_key += id(tp.get_coi()), array_dim_count
+                gfunc_key += tp.get_coi().id, array_dim_count
 
         if gfunc_key in self.gfunc_inst_map:
             return self.gfunc_inst_map[gfunc_key]

@@ -37,6 +37,8 @@ _RESERVED_WORD_SET = set(["import", "class", "void", "bool", "schar", "char", "s
 
 class _Token:
     def __init__(self, type, value, src_file, line_no, pos):
+        self.id = larc_common.new_id()
+
         self.type = type
         self.value = value
         self.src_file = src_file
