@@ -16,7 +16,7 @@ func lar_booter_start_prog(main_mod_init_func func (), main_func func (*[]*lar_c
             lar_booter_exit_with_catched(c)
         }
     }()
-    lar_env_init_mod___builtins()
+    lar_env_init_mod_10___builtins()
     main_mod_init_func()
     return int(main_func(argv))
 }

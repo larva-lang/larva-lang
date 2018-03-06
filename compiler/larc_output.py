@@ -93,6 +93,12 @@ class _Code:
             tb_info = t.src_file, t.line_no, str(fom)
         _tb_map[(self.file_path_name, len(self.line_list) + 1 + adjust)] = tb_info
 
+def _gen_module_name_code(module):
+    if "/" not in module.name:
+        return "%d_%s" % (len(module.name), module.name)
+    pl = module.name.split("/")
+    return "%d_%s" % (len(pl), "_".join(["%d_%s" % (len(p), p) for p in pl]))
+
 def _gen_coi_name(coi):
     for i in "cls", "gcls_inst", "intf", "gintf_inst":
         if eval("coi.is_" + i):
@@ -100,7 +106,7 @@ def _gen_coi_name(coi):
             break
     else:
         raise Exception("Bug")
-    coi_name += "_%d_%s_%d_%s" % (len(coi.module.name), coi.module.name, len(coi.name), coi.name)
+    coi_name += "_%s_%d_%s" % (_gen_module_name_code(coi.module), len(coi.name), coi.name)
     if coi.is_gcls_inst or coi.is_gintf_inst:
         #泛型实例还需增加泛型参数信息
         coi_name += "_%d" % len(coi.gtp_map)
@@ -160,7 +166,7 @@ def _gen_func_name(func):
             break
     else:
         raise Exception("Bug")
-    func_name += "_%d_%s_%d_%s" % (len(func.module.name), func.module.name, len(func.name), func.name)
+    func_name += "_%s_%d_%s" % (_gen_module_name_code(func.module), len(func.name), func.name)
     if func.is_gfunc_inst:
         #泛型实例还需增加泛型参数信息
         func_name += "_%d" % len(func.gtp_map)
@@ -169,7 +175,7 @@ def _gen_func_name(func):
     return func_name
 
 def _output_main_pkg():
-    with _Code(os.path.join(out_dir, "src", "lar_prog.%s.go" % main_module_name), "main") as code:
+    with _Code(os.path.join(out_dir, "src", "lar_prog.%s.P.go" % main_module_name), "main") as code:
         with code.new_blk("import"):
             code += '"os"'
             code += '"%s"' % prog_module_name
@@ -194,13 +200,14 @@ def _output_booter():
             with code.new_blk("for i := 0; i < len(os.Args); i ++"):
                 code += "(*argv)[i] = lar_util_create_lar_str_from_go_str(os.Args[i])"
             code += ("return lar_booter_start_prog(lar_env_init_mod_%s, %s, argv)" %
-                     (main_module_name, _gen_func_name(larc_module.module_map[main_module_name].get_main_func())))
+                     (_gen_module_name_code(larc_module.module_map[main_module_name]),
+                      _gen_func_name(larc_module.module_map[main_module_name].get_main_func())))
 
 def _gen_str_literal_name(t):
-    return "lar_literal_str_%s_%d" % (curr_module.name, t.id)
+    return "lar_literal_str_%s_%d" % (_gen_module_name_code(curr_module), t.id)
 
 def _gen_number_literal_name(t):
-    return "lar_literal_number_%s_%d" % (curr_module.name, t.id)
+    return "lar_literal_number_%s_%d" % (_gen_module_name_code(curr_module), t.id)
 
 def _gen_str_literal(s):
     code_list = []
@@ -214,7 +221,7 @@ def _gen_str_literal(s):
     return '"%s"' % "".join(code_list)
 
 def _gen_gv_name(gv):
-    return "lar_gv_%d_%s_%d_%s" % (len(gv.module.name), gv.module.name, len(gv.name), gv.name)
+    return "lar_gv_%s_%d_%s" % (_gen_module_name_code(gv.module), len(gv.name), gv.name)
 
 def _gen_default_value_code(tp):
     if tp.is_void:
@@ -517,7 +524,7 @@ curr_module = None
 def _output_module():
     module = curr_module
     has_native_item = module.has_native_item()
-    module_file_name = os.path.join(out_prog_dir, "%s.mod.%s.go" % (prog_module_name, module.name))
+    module_file_name = os.path.join(out_prog_dir, "%s.mod.%s.mod.go" % (prog_module_name, _gen_module_name_code(module)))
     with _Code(module_file_name) as code:
         code += ""
         for t in module.literal_str_list:
@@ -537,13 +544,13 @@ def _output_module():
             code += "var %s %s = %s" % (_gen_gv_name(gv), _gen_type_name_code(gv.type), _gen_default_value_code(gv.type))
 
         code += ""
-        mod_inited_flag_name = "lar_env_inited_flag_of_mod_%s" % module.name
+        mod_inited_flag_name = "lar_env_inited_flag_of_mod_%s" % _gen_module_name_code(module)
         code += "var %s bool = false" % mod_inited_flag_name
-        with code.new_blk("func lar_env_init_mod_%s()" % module.name, False):
+        with code.new_blk("func lar_env_init_mod_%s()" % _gen_module_name_code(module), False):
             with code.new_blk("if !%s" % mod_inited_flag_name):
                 code += "%s = true" % mod_inited_flag_name
                 for dep_module_name in module.get_dep_module_set():
-                    code += "lar_env_init_mod_%s()" % dep_module_name
+                    code += "lar_env_init_mod_%s()" % _gen_module_name_code(larc_module.module_map[dep_module_name])
                 for gv in module.global_var_map.itervalues():
                     if gv.expr is not None:
                         code.record_tb_info(gv.expr.pos_info)
@@ -604,7 +611,7 @@ def _output_module():
             line_list = open(native_code_file_path_name).readlines()
             if not line_list or line_list[0].split() != ["package", "LARVA_NATIVE"]:
                 larc_common.exit("native实现[%s]格式错误：第一行必须为'package LAR_NATIVE'")
-            line_list[0] = "package %s" % prog_module_name
+            line_list[0] = "package %s\n" % prog_module_name
             return "".join(line_list)
         for fn in os.listdir(module.dir):
             if fn.endswith(".lar_native.go"):
@@ -613,7 +620,7 @@ def _output_module():
                     larc_common.exit("模块包'%s'的go语言的native部分实现[%s]需要是一个文件" % (module.name, native_code_file_path_name))
                 sub_mod_name = fn[: -14]
                 native_content = get_native_content()
-                open(os.path.join(out_prog_dir, "%s.mod.%s.native.%s.go" % (prog_module_name, module.name, sub_mod_name)),
+                open(os.path.join(out_prog_dir, "%s.mod.%s.native.%s.N.go" % (prog_module_name, _gen_module_name_code(module), sub_mod_name)),
                      "w").write(native_content)
 
 def _output_util():
@@ -670,13 +677,13 @@ def _output_makefile():
     if platform.system() == "Windows":
         f = open(os.path.join(out_dir, "make.bat"), "w")
         print >> f, "@set GOPATH=%s" % out_dir
-        print >> f, "go build -o %s.exe src/lar_prog.%s.go" % (main_module_name, main_module_name)
+        print >> f, "go build -o %s.exe src/lar_prog.%s.P.go" % (main_module_name, main_module_name)
         print >> f, "@if %ERRORLEVEL% == 0 goto success"
         print >> f, "@pause"
         print >> f, ":success"
         f = open(os.path.join(out_dir, "make_and_run.bat"), "w")
         print >> f, "@set GOPATH=%s" % out_dir
-        print >> f, "go build -o %s.exe src/lar_prog.%s.go" % (main_module_name, main_module_name)
+        print >> f, "go build -o %s.exe src/lar_prog.%s.P.go" % (main_module_name, main_module_name)
         print >> f, "@if %ERRORLEVEL% == 0 goto success"
         print >> f, "@pause"
         print >> f, "@exit"
@@ -687,7 +694,7 @@ def _output_makefile():
     elif platform.system() in ("Darwin", "Linux"):
         f = open(os.path.join(out_dir, "Makefile"), "w")
         print >> f, "all:"
-        print >> f, "\t@export GOPATH=%s; go build -o %s src/lar_prog.%s.go" % (out_dir, main_module_name, main_module_name)
+        print >> f, "\t@export GOPATH=%s; go build -o %s src/lar_prog.%s.P.go" % (out_dir, main_module_name, main_module_name)
         print >> f, ""
         print >> f, "run: all"
         print >> f, "\t@./%s" % main_module_name

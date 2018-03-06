@@ -293,10 +293,10 @@ def _is_expr_end(t):
     return False
 
 class Parser:
-    def __init__(self, token_list, curr_module, dep_module_set, cls, gtp_map, fom, used_dep_module_set = None):
+    def __init__(self, token_list, curr_module, dep_module_map, cls, gtp_map, fom, used_dep_module_set = None):
         self.token_list = token_list
         self.curr_module = curr_module
-        self.dep_module_set = dep_module_set
+        self.dep_module_map = dep_module_map
         self.cls = cls
         self.gtp_map = gtp_map
         self.fom = fom
@@ -320,7 +320,7 @@ class Parser:
                 continue
 
             if t.is_sym("("):
-                tp = larc_type.try_parse_type(self.token_list, self.curr_module, self.dep_module_set, self.gtp_map,
+                tp = larc_type.try_parse_type(self.token_list, self.curr_module, self.dep_module_map, self.gtp_map,
                                               used_dep_module_set = self.used_dep_module_set, allow_typeof = bool(self.gtp_map and var_map_stk))
                 if tp is not None:
                     #类型强转
@@ -331,8 +331,8 @@ class Parser:
                 parse_stk.push_expr(self.parse(var_map_stk, None))
                 self.token_list.pop_sym(")")
             elif t.is_name:
-                if t.value in self.dep_module_set:
-                    m = larc_module.module_map[t.value]
+                if t.value in self.dep_module_map:
+                    m = larc_module.module_map[self.dep_module_map[t.value]]
                     self.token_list.pop_sym(".")
                     t, name = self.token_list.pop_name()
                     expr = self._parse_func_or_global_var(m, (t, name), var_map_stk)
@@ -371,7 +371,7 @@ class Parser:
                     e = _Expr("str_format", (fmt, expr_list), larc_type.STR_TYPE)
                 parse_stk.push_expr(e)
             elif t.is_reserved("new"):
-                base_type = larc_type.parse_type(self.token_list, self.dep_module_set, non_array = True,
+                base_type = larc_type.parse_type(self.token_list, self.dep_module_map, non_array = True,
                                                  allow_typeof = bool(self.gtp_map and var_map_stk))
                 base_type.check(self.curr_module, self.gtp_map, self.used_dep_module_set)
                 larc_module.check_new_ginst_during_compile()
@@ -538,7 +538,7 @@ class Parser:
 
         if self.token_list.peek().is_sym("<"):
             self.token_list.pop_sym("<")
-            gtp_list = larc_type.parse_gtp_list(self.token_list, self.dep_module_set, allow_typeof = bool(self.gtp_map and var_map_stk))
+            gtp_list = larc_type.parse_gtp_list(self.token_list, self.dep_module_map, allow_typeof = bool(self.gtp_map and var_map_stk))
             for tp in gtp_list:
                 tp.check(self.curr_module, self.gtp_map, self.used_dep_module_set)
         else:

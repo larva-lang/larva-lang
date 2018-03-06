@@ -35,14 +35,14 @@ class _SeExpr(larc_expr.ExprBase):
         self.pos_info = lvalue.pos_info
 
 class Parser:
-    def __init__(self, token_list, module, dep_module_set, cls, gtp_map, fom):
+    def __init__(self, token_list, module, dep_module_map, cls, gtp_map, fom):
         self.token_list = token_list
         self.module = module
-        self.dep_module_set = dep_module_set
+        self.dep_module_map = dep_module_map
         self.cls = cls
         self.gtp_map = gtp_map
         self.fom = fom
-        self.expr_parser = larc_expr.Parser(token_list, module, dep_module_set, cls, gtp_map, fom)
+        self.expr_parser = larc_expr.Parser(token_list, module, dep_module_map, cls, gtp_map, fom)
 
     def parse(self, var_map_stk, loop_deep, defer_deep):
         assert var_map_stk
@@ -158,7 +158,7 @@ class Parser:
 
             self.token_list.revert()
             t = self.token_list.peek()
-            tp = larc_type.try_parse_type(self.token_list, self.module, self.dep_module_set, self.gtp_map,
+            tp = larc_type.try_parse_type(self.token_list, self.module, self.dep_module_map, self.gtp_map,
                                           allow_typeof = bool(self.gtp_map and var_map_stk))
             if tp is not None:
                 #变量定义
@@ -200,7 +200,7 @@ class Parser:
         return isinstance(expr, _SeExpr) or expr.op in ("new", "call_method", "call_func", "call_this.method")
 
     def _check_var_redefine(self, t, name, var_map_stk):
-        if name in self.dep_module_set:
+        if name in self.dep_module_map:
             t.syntax_err("变量名和导入模块重名")
         if name in var_map_stk[-1]:
             t.syntax_err("变量名重定义")
@@ -249,7 +249,7 @@ class Parser:
                     break
                 self.token_list.pop_sym(",")
         else:
-            tp = larc_type.try_parse_type(self.token_list, self.module, self.dep_module_set, self.gtp_map,
+            tp = larc_type.try_parse_type(self.token_list, self.module, self.dep_module_map, self.gtp_map,
                                           allow_typeof = bool(self.gtp_map and var_map_stk))
             if tp is None:
                 #第一部分为表达式列表

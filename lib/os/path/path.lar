@@ -1,0 +1,2 @@
+public native String base_name(String path);
+public native String dir_name(String path);

@@ -10,7 +10,7 @@ import larc_module
 _BASE_TYPE_LIST = ("void", "bool", "schar", "char", "short", "ushort", "int", "uint", "long", "ulong", "float", "double")
 
 class _Type:
-    def __init__(self, (name_token, name), token_list, dep_module_set, module_name = None, non_array = False, is_ref = False,
+    def __init__(self, (name_token, name), token_list, dep_module_map, module_name = None, non_array = False, is_ref = False,
                  allow_typeof = False):
         self.token = name_token
         self.name = name
@@ -54,7 +54,7 @@ class _Type:
         if not self.token.is_reserved and token_list and token_list.peek().is_sym("<"):
             #解析泛型参数
             token_list.pop_sym("<")
-            self.gtp_list = parse_gtp_list(token_list, dep_module_set, allow_typeof = allow_typeof)
+            self.gtp_list = parse_gtp_list(token_list, dep_module_map, allow_typeof = allow_typeof)
         if not non_array:
             while token_list and token_list.peek().is_sym("["):
                 if self.name == "void":
@@ -315,64 +315,64 @@ for _tp in "short", "int", "long":
 PTM_TYPE_LIST = [_tp for _tp in _BASE_TYPE_LIST if _tp != "void"]
 del _tp
 
-def parse_type(token_list, dep_module_set, is_ref = False, non_array = False, allow_typeof = False):
+def parse_type(token_list, dep_module_map, is_ref = False, non_array = False, allow_typeof = False):
     if is_ref:
         assert not non_array and not allow_typeof
     t = token_list.pop()
     if t.is_reserved and (t.value in _BASE_TYPE_LIST or t.value == "typeof"):
-        return _Type((t, t.value), token_list, dep_module_set, is_ref = is_ref, non_array = non_array, allow_typeof = allow_typeof)
+        return _Type((t, t.value), token_list, dep_module_map, is_ref = is_ref, non_array = non_array, allow_typeof = allow_typeof)
     if t.is_name:
-        if t.value in dep_module_set:
+        if t.value in dep_module_map:
             token_list.pop_sym(".")
-            return _Type(token_list.pop_name(), token_list, dep_module_set, module_name = t.value, is_ref = is_ref, non_array = non_array,
-                         allow_typeof = allow_typeof)
-        return _Type((t, t.value), token_list, dep_module_set, is_ref = is_ref, non_array = non_array, allow_typeof = allow_typeof)
+            return _Type(token_list.pop_name(), token_list, dep_module_map, module_name = dep_module_map[t.value], is_ref = is_ref,
+                         non_array = non_array, allow_typeof = allow_typeof)
+        return _Type((t, t.value), token_list, dep_module_map, is_ref = is_ref, non_array = non_array, allow_typeof = allow_typeof)
     t.syntax_err()
 
-def _try_parse_type(token_list, curr_module, dep_module_set, gtp_map, used_dep_module_set, allow_typeof):
+def _try_parse_type(token_list, curr_module, dep_module_map, gtp_map, used_dep_module_set, allow_typeof):
     t = token_list.pop()
     if t.is_reserved and (t.value in _BASE_TYPE_LIST or t.value == "typeof"):
-        tp = _Type((t, t.value), token_list, dep_module_set, allow_typeof = allow_typeof)
+        tp = _Type((t, t.value), token_list, dep_module_map, allow_typeof = allow_typeof)
         tp.check(curr_module, gtp_map, used_dep_module_set)
         larc_module.check_new_ginst_during_compile()
         return tp
     if t.is_name:
         name = t.value
-        if name in dep_module_set:
-            module = larc_module.module_map[name]
+        if name in dep_module_map:
+            module = larc_module.module_map[dep_module_map[name]]
             token_list.pop_sym(".")
             t, name = token_list.pop_name()
             if module.has_type(name):
-                tp = _Type((t, name), token_list, dep_module_set, module_name = module.name, allow_typeof = allow_typeof)
+                tp = _Type((t, name), token_list, dep_module_map, module_name = module.name, allow_typeof = allow_typeof)
                 tp.check(curr_module, gtp_map, used_dep_module_set)
                 larc_module.check_new_ginst_during_compile()
                 return tp
         else:
             if gtp_map is not None and name in gtp_map:
-                tp = _Type((t, name), token_list, dep_module_set, allow_typeof = allow_typeof)
+                tp = _Type((t, name), token_list, dep_module_map, allow_typeof = allow_typeof)
                 tp.check(curr_module, gtp_map, used_dep_module_set)
                 larc_module.check_new_ginst_during_compile()
                 return tp
             for module in curr_module, larc_module.builtins_module:
                 if module.has_type(name):
-                    tp = _Type((t, name), token_list, dep_module_set, module_name = module.name, allow_typeof = allow_typeof)
+                    tp = _Type((t, name), token_list, dep_module_map, module_name = module.name, allow_typeof = allow_typeof)
                     tp.check(curr_module, gtp_map, used_dep_module_set)
                     larc_module.check_new_ginst_during_compile()
                     return tp
     return None
 
 #若解析类型成功，则统一做check_new_ginst_during_compile，即这个函数只用于编译过程
-def try_parse_type(token_list, curr_module, dep_module_set, gtp_map, used_dep_module_set = None, allow_typeof = False):
+def try_parse_type(token_list, curr_module, dep_module_map, gtp_map, used_dep_module_set = None, allow_typeof = False):
     revert_idx = token_list.i #用于解析失败时候回滚
-    ret = _try_parse_type(token_list, curr_module, dep_module_set, gtp_map, used_dep_module_set, allow_typeof)
+    ret = _try_parse_type(token_list, curr_module, dep_module_map, gtp_map, used_dep_module_set, allow_typeof)
     if ret is None:
         token_list.revert(revert_idx)
     return ret
 
-def parse_gtp_list(token_list, dep_module_set, allow_typeof = False):
+def parse_gtp_list(token_list, dep_module_map, allow_typeof = False):
     gtp_list = []
     while True:
-        tp = parse_type(token_list, dep_module_set, allow_typeof = allow_typeof)
+        tp = parse_type(token_list, dep_module_map, allow_typeof = allow_typeof)
         if tp.is_void or tp.is_array:
             tp.token.syntax_err("void或数组不可作为泛型参数传入")
         gtp_list.append(tp)

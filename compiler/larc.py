@@ -19,9 +19,9 @@ def _show_usage_and_exit():
 def _find_module_file(module_dir_list, module_name):
     #按模块查找路径逐个目录找
     for module_dir in module_dir_list:
-        module_pkg_path = os.path.join(module_dir, module_name)
-        if os.path.isdir(module_pkg_path):
-            return module_pkg_path
+        module_path = os.path.join(module_dir, *module_name.split("/"))
+        if os.path.isdir(module_path):
+            return module_path
     larc_common.exit("找不到模块：%s" % module_name)
 
 def main():
@@ -38,7 +38,7 @@ def main():
 
     #预处理builtins等模块
     for name in "__builtins",:
-        larc_module.module_map[name] = larc_module.Module(_find_module_file([lib_dir], name))
+        larc_module.module_map[name] = larc_module.Module(_find_module_file([lib_dir], name), name)
     larc_module.builtins_module = larc_module.module_map["__builtins"]
 
     #先预处理主模块
@@ -50,7 +50,7 @@ def main():
         larc_common.exit("找不到主模块目录[%s]" % main_file_path_name)
     if not os.path.isdir(main_file_path_name):
         larc_common.exit("主模块[%s]不是一个目录" % main_file_path_name)
-    main_module = larc_module.Module(main_file_path_name)
+    main_module = larc_module.Module(main_file_path_name, main_module_name)
     larc_module.module_map[main_module.name] = main_module
 
     #模块查找路径的目录列表
@@ -67,7 +67,7 @@ def main():
                 #已预处理过
                 continue
             module_file_path_name = _find_module_file(module_dir_list, module_name)
-            larc_module.module_map[module_name] = m = larc_module.Module(module_file_path_name)
+            larc_module.module_map[module_name] = m = larc_module.Module(module_file_path_name, module_name)
             new_compiling_set |= m.get_dep_module_set()
         compiling_set = new_compiling_set
     assert larc_module.module_map.value_at(0) is larc_module.builtins_module
