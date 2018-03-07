@@ -8,6 +8,7 @@ import os
 import shutil
 import sys
 import platform
+import subprocess
 
 import larc_common
 import larc_module
@@ -23,6 +24,8 @@ runtime_dir = None
 
 out_prog_dir = None
 prog_module_name = None
+
+prog_name = None
 
 _tb_map = {}
 
@@ -175,7 +178,7 @@ def _gen_func_name(func):
     return func_name
 
 def _output_main_pkg():
-    with _Code(os.path.join(out_dir, "src", "lar_prog.%s.P.go" % main_module_name), "main") as code:
+    with _Code(os.path.join(out_dir, "src", "lar_prog.%s.P.go" % prog_name), "main") as code:
         with code.new_blk("import"):
             code += '"os"'
             code += '"%s"' % prog_module_name
@@ -677,47 +680,40 @@ def _output_makefile():
     if platform.system() == "Windows":
         f = open(os.path.join(out_dir, "make.bat"), "w")
         print >> f, "@set GOPATH=%s" % out_dir
-        print >> f, "go build -o %s.exe src/lar_prog.%s.P.go" % (main_module_name, main_module_name)
+        print >> f, "go build -o %s.exe src/lar_prog.%s.P.go" % (prog_name, prog_name)
         print >> f, "@if %ERRORLEVEL% == 0 goto success"
         print >> f, "@pause"
         print >> f, ":success"
-        f = open(os.path.join(out_dir, "make_and_run.bat"), "w")
-        print >> f, "@set GOPATH=%s" % out_dir
-        print >> f, "go build -o %s.exe src/lar_prog.%s.P.go" % (main_module_name, main_module_name)
-        print >> f, "@if %ERRORLEVEL% == 0 goto success"
-        print >> f, "@pause"
-        print >> f, "@exit"
-        print >> f, ":success"
-        print >> f, "%s.exe" % main_module_name
-        print >> f, "@pause"
-        print >> f, "@exit"
     elif platform.system() in ("Darwin", "Linux"):
         f = open(os.path.join(out_dir, "Makefile"), "w")
         print >> f, "all:"
-        print >> f, "\t@export GOPATH=%s; go build -o %s src/lar_prog.%s.P.go" % (out_dir, main_module_name, main_module_name)
-        print >> f, ""
-        print >> f, "run: all"
-        print >> f, "\t@./%s" % main_module_name
+        print >> f, "\t@export GOPATH=%s; go build -o %s src/lar_prog.%s.P.go" % (out_dir, prog_name, prog_name)
     else:
         larc_common.exit("不支持在平台'%s'生成make脚本" % platform.system())
 
-def _run_prog():
+def _run_prog(args_for_run):
     if platform.system() == "Windows":
-        os.system(os.path.join(out_dir, "make_and_run.bat"))
+        os.system(os.path.join(out_dir, "make.bat"))
+        exe_file = os.path.join(out_dir, "%s.exe" % prog_name)
     elif platform.system() in ("Darwin", "Linux"):
-        os.system("make -C %s run" % out_dir)
+        os.system("make -C %s" % out_dir)
+        exe_file = os.path.join(out_dir, "%s" % prog_name)
     else:
         raise Exception("Bug")
+    if os.path.exists(exe_file):
+        subprocess.call([exe_file] + args_for_run)
 
-def output(need_run_prog):
-    global runtime_dir, out_prog_dir, prog_module_name, curr_module
+def output(need_run_prog, args_for_run):
+    global runtime_dir, out_prog_dir, prog_module_name, prog_name, curr_module
 
-    out_prog_dir = os.path.join(out_dir, "src", "lar_prog_" + main_module_name)
+    out_prog_dir = os.path.join(out_dir, "src", "lar_prog_" + _gen_module_name_code(larc_module.module_map[main_module_name]))
 
     shutil.rmtree(out_dir, True)
     os.makedirs(out_prog_dir)
 
-    prog_module_name = "lar_prog_" + main_module_name
+    prog_module_name = "lar_prog_" + _gen_module_name_code(larc_module.module_map[main_module_name])
+
+    prog_name = main_module_name.split("/")[-1]
 
     _output_main_pkg()
     _output_booter()
@@ -726,4 +722,4 @@ def output(need_run_prog):
     _output_util()
     _output_makefile()
     if need_run_prog:
-        _run_prog()
+        _run_prog(args_for_run)

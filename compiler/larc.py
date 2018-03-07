@@ -14,11 +14,13 @@ import larc_type
 import larc_output
 
 def _show_usage_and_exit():
-    larc_common.exit("使用方法：%s [--run] 主模块名" % sys.argv[0])
+    larc_common.exit("使用方法：\n"
+                     "\t%s --module_path=MODULE_PATH_LIST MAIN_MODULE\n"
+                     "\t%s --module_path=MODULE_PATH_LIST --run MAIN_MODULE ARGS" % (sys.argv[0], sys.argv[0]))
 
-def _find_module_file(module_dir_list, module_name):
+def _find_module_file(module_path_list, module_name):
     #按模块查找路径逐个目录找
-    for module_dir in module_dir_list:
+    for module_dir in module_path_list:
         module_path = os.path.join(module_dir, *module_name.split("/"))
         if os.path.isdir(module_path):
             return module_path
@@ -26,47 +28,47 @@ def _find_module_file(module_dir_list, module_name):
 
 def main():
     #解析命令行参数
-    opt_list, args = getopt.getopt(sys.argv[1 :], "", ["run"])
+    try:
+        opt_list, args = getopt.getopt(sys.argv[1 :], "", ["module_path=", "run"])
+    except getopt.GetoptError:
+        _show_usage_and_exit()
     opt_map = dict(opt_list)
+    if "--module_path" not in opt_map:
+        _show_usage_and_exit()
+    module_path_list = [os.path.abspath(p) for p in opt_map["--module_path"].split(";") if p]
+    need_run = "--run" in opt_map
 
-    if len(args) != 1:
+    if len(args) < 1:
+        _show_usage_and_exit()
+    main_module_name = args[0]
+    args_for_run = args[1 :]
+    if not need_run and args_for_run:
         _show_usage_and_exit()
 
     #通用目录
     compiler_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
     lib_dir = os.path.join(os.path.dirname(compiler_dir), "lib")
+    module_path_list.append(lib_dir)
 
-    #预处理builtins等模块
-    for name in "__builtins",:
-        larc_module.module_map[name] = larc_module.Module(_find_module_file([lib_dir], name), name)
-    larc_module.builtins_module = larc_module.module_map["__builtins"]
+    #预处理builtins模块
+    larc_module.builtins_module = larc_module.module_map["__builtins"] = (
+        larc_module.Module(_find_module_file([lib_dir], "__builtins"), "__builtins"))
 
-    #先预处理主模块
-    main_file_path_name = os.path.abspath(args[0])
-    main_module_name = os.path.basename(main_file_path_name)
-    if not (larc_token.is_valid_name(main_module_name) and main_module_name != "__builtins"):
+    #预处理主模块
+    if not (all([larc_token.is_valid_name(p) for p in main_module_name.split("/")]) and main_module_name != "__builtins"):
         larc_common.exit("非法的主模块名[%s]" % main_module_name)
-    if not os.path.exists(main_file_path_name):
-        larc_common.exit("找不到主模块目录[%s]" % main_file_path_name)
-    if not os.path.isdir(main_file_path_name):
-        larc_common.exit("主模块[%s]不是一个目录" % main_file_path_name)
-    main_module = larc_module.Module(main_file_path_name, main_module_name)
-    larc_module.module_map[main_module.name] = main_module
-
-    #模块查找路径的目录列表
-    src_dir = os.path.dirname(main_file_path_name)
-    #路径顺序规则为：主模块所在目录->参数指定路径（多个则按顺序）->larva的lib目录
-    module_dir_list = [src_dir, lib_dir]
+    larc_module.module_map[main_module_name] = main_module = (
+        larc_module.Module(_find_module_file(module_path_list, main_module_name), main_module_name))
 
     #预处理所有涉及到的模块
-    compiling_set = main_module.get_dep_module_set() #需要预处理的模块名集合
+    compiling_set = larc_module.builtins_module.get_dep_module_set() | main_module.get_dep_module_set() #需要预处理的模块名集合
     while compiling_set:
         new_compiling_set = set()
         for module_name in compiling_set:
             if module_name in larc_module.module_map:
                 #已预处理过
                 continue
-            module_file_path_name = _find_module_file(module_dir_list, module_name)
+            module_file_path_name = _find_module_file(module_path_list, module_name)
             larc_module.module_map[module_name] = m = larc_module.Module(module_file_path_name, module_name)
             new_compiling_set |= m.get_dep_module_set()
         compiling_set = new_compiling_set
@@ -98,9 +100,9 @@ def main():
 
     #输出目标代码
     larc_output.main_module_name = main_module.name
-    larc_output.out_dir = os.path.join(src_dir, main_module.name) + ".lar_out"
+    larc_output.out_dir = main_module.dir + ".lar_out"
     larc_output.runtime_dir = os.path.join(os.path.dirname(lib_dir), "runtime")
-    larc_output.output("--run" in opt_map)
+    larc_output.output(need_run, args_for_run)
 
 if __name__ == "__main__":
     main()
