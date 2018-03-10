@@ -12,6 +12,8 @@ import larc_type
 import larc_stmt
 import larc_expr
 
+find_module_file = None
+
 builtins_module = None
 module_map = larc_common.OrderedDict()
 
@@ -727,8 +729,10 @@ class _GlobalVar:
         for used_dep_module in self.used_dep_module_set:
             module_map[used_dep_module].check_cycle_import_for_gv_init(self, [used_dep_module])
 
+dep_module_token_map = {}
 class Module:
-    def __init__(self, file_path_name, name):
+    def __init__(self, name):
+        file_path_name = find_module_file(name)
         assert os.path.isdir(file_path_name)
         assert file_path_name.endswith(os.path.join(*name.split("/")))
         self.dir = file_path_name
@@ -851,6 +855,18 @@ class Module:
         assert t.is_reserved("import")
         while True:
             #获取module_name全名
+            module_name_token = token_list.peek()
+            relative_deep = None
+            if token_list.peek().is_sym("."):
+                relative_deep = 0
+                token_list.pop_sym(".")
+                token_list.pop_sym("/")
+            elif token_list.peek().is_sym(".."):
+                relative_deep = 0
+                while token_list.peek().is_sym(".."):
+                    token_list.pop_sym("..")
+                    token_list.pop_sym("/")
+                    relative_deep += 1
             module_name = ""
             while True:
                 t, name = token_list.pop_name()
@@ -859,6 +875,24 @@ class Module:
                     break
                 token_list.pop_sym("/")
                 module_name += "/"
+
+            #若为相对路径导入，则修正为普通module_name并做路径一致性检查
+            if relative_deep is not None:
+                pl = self.name.split("/")
+                if relative_deep > len(pl):
+                    #相对路径超过了当前模块层级
+                    module_name_token.syntax_err("非法的相对路径模块[%s/%s%s]" % (self.name, "../" * relative_deep, module_name))
+                expect_module_dir = (
+                    os.path.abspath(
+                        os.path.join(self.dir, *([".."] * relative_deep + module_name.split("/"))))) #期望目录是相对当前模块路径的位置
+                module_name = "/".join(pl[: len(pl) - relative_deep] + [module_name]) #修正module_name
+                module_dir = find_module_file(module_name) #试着找一下模块目录
+                if module_dir != expect_module_dir:
+                    #找到了但是和期望不符，也报错
+                    module_name_token.syntax_err("模块[%s]存在于其他module_path[%s]" % (module_name, module_dir))
+
+            dep_module_token_map[module_name] = module_name_token
+
             #检查是否设置别名，没设置则采用module name最后一个域作为名字
             if token_list.peek().is_reserved("as"):
                 token_list.pop()

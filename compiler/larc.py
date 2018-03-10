@@ -20,11 +20,16 @@ def _show_usage_and_exit():
 
 def _find_module_file(module_path_list, module_name):
     #按模块查找路径逐个目录找
-    for module_dir in module_path_list:
+    assert module_path_list
+    if module_name == "__builtins":
+        mpl = [module_path_list[-1]] #__builtins比较特殊，只从lib_dir找
+    else:
+        mpl = module_path_list
+    for module_dir in mpl:
         module_path = os.path.join(module_dir, *module_name.split("/"))
         if os.path.isdir(module_path):
             return module_path
-    larc_common.exit("找不到模块：%s" % module_name)
+    larc_module.dep_module_token_map[module_name].syntax_err("找不到模块：%s" % module_name)
 
 def main():
     #解析命令行参数
@@ -35,7 +40,7 @@ def main():
     opt_map = dict(opt_list)
     if "--module_path" not in opt_map:
         _show_usage_and_exit()
-    module_path_list = [os.path.abspath(p) for p in opt_map["--module_path"].split(";") if p]
+    module_path_list = [os.path.abspath(p) for p in opt_map["--module_path"].split(":") if p]
     need_run = "--run" in opt_map
 
     if len(args) < 1:
@@ -49,16 +54,15 @@ def main():
     compiler_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
     lib_dir = os.path.join(os.path.dirname(compiler_dir), "lib")
     module_path_list.append(lib_dir)
+    larc_module.find_module_file = find_module_file = lambda mn: _find_module_file(module_path_list, mn)
 
     #预处理builtins模块
-    larc_module.builtins_module = larc_module.module_map["__builtins"] = (
-        larc_module.Module(_find_module_file([lib_dir], "__builtins"), "__builtins"))
+    larc_module.builtins_module = larc_module.module_map["__builtins"] = larc_module.Module("__builtins")
 
     #预处理主模块
     if not (all([larc_token.is_valid_name(p) for p in main_module_name.split("/")]) and main_module_name != "__builtins"):
         larc_common.exit("非法的主模块名[%s]" % main_module_name)
-    larc_module.module_map[main_module_name] = main_module = (
-        larc_module.Module(_find_module_file(module_path_list, main_module_name), main_module_name))
+    larc_module.module_map[main_module_name] = main_module = larc_module.Module(main_module_name)
 
     #预处理所有涉及到的模块
     compiling_set = larc_module.builtins_module.get_dep_module_set() | main_module.get_dep_module_set() #需要预处理的模块名集合
@@ -68,8 +72,7 @@ def main():
             if module_name in larc_module.module_map:
                 #已预处理过
                 continue
-            module_file_path_name = _find_module_file(module_path_list, module_name)
-            larc_module.module_map[module_name] = m = larc_module.Module(module_file_path_name, module_name)
+            larc_module.module_map[module_name] = m = larc_module.Module(module_name)
             new_compiling_set |= m.get_dep_module_set()
         compiling_set = new_compiling_set
     assert larc_module.module_map.value_at(0) is larc_module.builtins_module
