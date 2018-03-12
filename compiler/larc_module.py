@@ -729,6 +729,77 @@ class _GlobalVar:
         for used_dep_module in self.used_dep_module_set:
             module_map[used_dep_module].check_cycle_import_for_gv_init(self, [used_dep_module])
 
+class _NativeFile:
+    def __init__(self, module, sub_module_name, file_path_name):
+        assert os.path.isfile(file_path_name) and file_path_name.endswith(sub_module_name + ".lar_native")
+        self.module = module
+        self.sub_module_name = sub_module_name
+        self.file_path_name = file_path_name
+        self.line_list = [line.rstrip() for line in open(file_path_name)]
+        self.dep_module_set = set()
+        self._parse()
+
+    def _parse(self):
+        #先检查文件头
+        if not self.line_list or self.line_list[0].split() != ["package", "LARVA_NATIVE"]:
+            larc_common.exit("native实现[%s]格式错误：第一行必须为'package LARVA_NATIVE'" % self.file_path_name)
+
+        #逐行扫描，分析标识符的宏替换
+        for i, line in enumerate(self.line_list):
+            self.line_list[i] = self._analyze_name_macro(i + 1, line)
+
+    def _analyze_name_macro(self, line_no, line):
+        #native文件的token类，只用于报告错误
+        class NativeFileToken:
+            def __init__(token_self, pos):
+                token_self.pos_desc = "文件[%s]行[%d]列[%d]" % (self.file_path_name, line_no, pos + 1)
+            def syntax_err(self, msg):
+                larc_common.exit("%s %s" % (self.pos_desc, msg))
+
+        #line转换为一个列表，列表元素为字符串或元组，字符串为单行的子串，元组为解析后的标识符宏(module_name, name)
+        result = []
+        idx = 0
+        while True:
+            pos = line.find("@<<", idx)
+            if pos < 0:
+                result.append(line[idx :])
+                return result
+            result.append(line[idx : pos])
+            token = NativeFileToken(pos)
+            end_pos = line.find(">>", pos + 3)
+            if end_pos < 0:
+                token.syntax_err("非法的标识符宏：找不到结束标记'>>'")
+            macro = line[pos + 3 : end_pos]
+            idx = end_pos + 2
+            #开始分析macro
+            if "." in macro:
+                #带模块的macro
+                relative_deep = None
+                if macro.startswith("./"):
+                    relative_deep = 0
+                    macro = macro[2 :]
+                elif macro.startswith("../"):
+                    relative_deep = 0
+                    while macro.startswith("../"):
+                        macro = macro[3 :]
+                        relative_deep += 1
+                try:
+                    module_name, name = macro.split(".")
+                except ValueError:
+                    token.syntax_err("非法的标识符宏")
+                if not all([larc_token.is_valid_name(p) for p in module_name.split("/")]):
+                    token.syntax_err("非法的标识符宏")
+                #module_name相当于匿名导入了一个模块，按import流程处理：修正module_name后加入dep_module_set
+                module_name = self.module.fix_module_name(relative_deep, token, module_name)
+                self.dep_module_set.add(module_name)
+            else:
+                #单个name
+                module_name = self.module.name
+                name = macro
+            if not larc_token.is_valid_name(name):
+                token.syntax_err("非法的标识符宏")
+            result.append((module_name, name))
+
 dep_module_token_map = {}
 class Module:
     def __init__(self, name):
@@ -738,6 +809,7 @@ class Module:
         self.dir = file_path_name
         self.name = name
         file_name_list = [fn for fn in os.listdir(self.dir) if fn.endswith(".lar")]
+        native_file_name_list = [fn for fn in os.listdir(self.dir) if fn.endswith(".lar_native")]
 
         self.file_dep_module_map_map = {}
         self.cls_map = larc_common.OrderedDict()
@@ -749,8 +821,11 @@ class Module:
         self.global_var_map = larc_common.OrderedDict()
         self.literal_str_list = []
         self.literal_number_list = []
+        self.native_file_map = {}
         for file_name in file_name_list:
             self._precompile(file_name)
+        for file_name in native_file_name_list:
+            self._parse_native_file(file_name)
         if self.name == "__builtins":
             #内建模块需要做一些必要的检查
             if "String" not in self.cls_map: #必须有String类
@@ -764,9 +839,20 @@ class Module:
 
     __repr__ = __str__ = lambda self : self.name
 
+    def _parse_native_file(self, file_name):
+        assert file_name.endswith(".lar_native")
+        sub_module_name = file_name[: -11]
+        file_path_name = os.path.join(self.dir, file_name)
+        if not os.path.isfile(file_path_name):
+            larc_common.exit("[%s]需要是一个文件" % file_path_name)
+        self.native_file_map[sub_module_name] = _NativeFile(self, sub_module_name, file_path_name)
+
     def _precompile(self, file_name):
         #解析token列表，解析正文
-        token_list = larc_token.parse_token_list(os.path.join(self.dir, file_name))
+        file_path_name = os.path.join(self.dir, file_name)
+        if not os.path.isfile(file_path_name):
+            larc_common.exit("[%s]需要是一个文件" % file_path_name)
+        token_list = larc_token.parse_token_list(file_path_name)
         self._parse_text(file_name, token_list)
 
     def _parse_text(self, file_name, token_list):
@@ -850,6 +936,25 @@ class Module:
             if name in i:
                 t.syntax_err("名字重定义")
 
+    def fix_module_name(self, relative_deep, module_name_token, module_name):
+        #若为相对路径导入，则修正为普通module_name并做路径一致性检查
+        if relative_deep is not None:
+            pl = self.name.split("/")
+            if relative_deep > len(pl):
+                #相对路径超过了当前模块层级
+                module_name_token.syntax_err("非法的相对路径模块[%s/%s%s]" % (self.name, "../" * relative_deep, module_name))
+            expect_module_dir = (
+                os.path.abspath(os.path.join(self.dir, *([".."] * relative_deep + module_name.split("/"))))) #期望目录是相对当前模块路径的位置
+            module_name = "/".join(pl[: len(pl) - relative_deep] + [module_name]) #修正module_name
+            dep_module_token_map[module_name] = module_name_token #修正后立即记录token，下面find时候马上可能用到
+            module_dir = find_module_file(module_name) #试着找一下模块目录
+            if module_dir != expect_module_dir:
+                #找到了但是和期望不符，也报错
+                module_name_token.syntax_err("模块[%s]存在于其他module_path[%s]" % (module_name, module_dir))
+        else:
+            dep_module_token_map[module_name] = module_name_token
+        return module_name
+
     def _parse_import(self, token_list, dep_module_map):
         t = token_list.pop()
         assert t.is_reserved("import")
@@ -876,22 +981,7 @@ class Module:
                 token_list.pop_sym("/")
                 module_name += "/"
 
-            #若为相对路径导入，则修正为普通module_name并做路径一致性检查
-            if relative_deep is not None:
-                pl = self.name.split("/")
-                if relative_deep > len(pl):
-                    #相对路径超过了当前模块层级
-                    module_name_token.syntax_err("非法的相对路径模块[%s/%s%s]" % (self.name, "../" * relative_deep, module_name))
-                expect_module_dir = (
-                    os.path.abspath(
-                        os.path.join(self.dir, *([".."] * relative_deep + module_name.split("/"))))) #期望目录是相对当前模块路径的位置
-                module_name = "/".join(pl[: len(pl) - relative_deep] + [module_name]) #修正module_name
-                module_dir = find_module_file(module_name) #试着找一下模块目录
-                if module_dir != expect_module_dir:
-                    #找到了但是和期望不符，也报错
-                    module_name_token.syntax_err("模块[%s]存在于其他module_path[%s]" % (module_name, module_dir))
-
-            dep_module_token_map[module_name] = module_name_token
+            module_name = self.fix_module_name(relative_deep, module_name_token, module_name)
 
             #检查是否设置别名，没设置则采用module name最后一个域作为名字
             if token_list.peek().is_reserved("as"):
@@ -1187,6 +1277,8 @@ class Module:
         dep_module_set = set()
         for m in self.file_dep_module_map_map.itervalues():
             dep_module_set |= set(m.itervalues())
+        for nf in self.native_file_map.itervalues():
+            dep_module_set |= nf.dep_module_set
         return dep_module_set
 
     def get_dep_module_map(self, file_name):

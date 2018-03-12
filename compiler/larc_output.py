@@ -526,7 +526,6 @@ _literal_token_id_set = set()
 curr_module = None
 def _output_module():
     module = curr_module
-    has_native_item = module.has_native_item()
     module_file_name = os.path.join(out_prog_dir, "%s.mod.%s.mod.go" % (prog_module_name, _gen_module_name_code(module)))
     with _Code(module_file_name) as code:
         code += ""
@@ -609,22 +608,21 @@ def _output_module():
                 _output_stmt_list(code, func.stmt_list, func, 0, _NEST_LOOP_INVALID, need_check_defer = False)
                 code += "return %s" % _gen_default_value_code(func.type)
 
-    if has_native_item:
-        def get_native_content():
-            line_list = open(native_code_file_path_name).readlines()
-            if not line_list or line_list[0].split() != ["package", "LARVA_NATIVE"]:
-                larc_common.exit("native实现[%s]格式错误：第一行必须为'package LAR_NATIVE'")
-            line_list[0] = "package %s\n" % prog_module_name
-            return "".join(line_list)
-        for fn in os.listdir(module.dir):
-            if fn.endswith(".lar_native.go"):
-                native_code_file_path_name = os.path.join(module.dir, fn)
-                if not os.path.isfile(native_code_file_path_name):
-                    larc_common.exit("模块包'%s'的go语言的native部分实现[%s]需要是一个文件" % (module.name, native_code_file_path_name))
-                sub_mod_name = fn[: -14]
-                native_content = get_native_content()
-                open(os.path.join(out_prog_dir, "%s.mod.%s.native.%s.N.go" % (prog_module_name, _gen_module_name_code(module), sub_mod_name)),
-                     "w").write(native_content)
+    #输出native实现
+    for sub_mod_name, nf in module.native_file_map.iteritems():
+        nf.line_list[0] = ["package %s" % prog_module_name]
+        f = open(os.path.join(out_prog_dir, "%s.mod.%s.native.%s.N.go" % (prog_module_name, _gen_module_name_code(module), sub_mod_name)), "w")
+        for line in nf.line_list:
+            s = ""
+            for i in line:
+                if isinstance(i, str):
+                    s += i
+                else:
+                    assert isinstance(i, tuple)
+                    module_name, name = i
+                    s += "%s_%d_%s" % (_gen_module_name_code(larc_module.module_map[module_name]), len(name), name)
+            print >> f, s.rstrip()
+        f.close()
 
 def _output_util():
     #拷贝runtime中固定的util代码
@@ -701,7 +699,7 @@ def _run_prog(args_for_run):
     else:
         raise Exception("Bug")
     if os.path.exists(exe_file):
-        subprocess.call([exe_file] + args_for_run)
+        os.execv(exe_file, [exe_file] + args_for_run)
 
 def output(need_run_prog, args_for_run):
     global runtime_dir, out_prog_dir, prog_module_name, prog_name, curr_module

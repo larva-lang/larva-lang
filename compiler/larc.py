@@ -29,7 +29,11 @@ def _find_module_file(module_path_list, module_name):
         module_path = os.path.join(module_dir, *module_name.split("/"))
         if os.path.isdir(module_path):
             return module_path
-    larc_module.dep_module_token_map[module_name].syntax_err("找不到模块：%s" % module_name)
+    t = larc_module.dep_module_token_map.get(module_name)
+    if t is None:
+        larc_common.exit("找不到模块：%s" % module_name)
+    else:
+        t.syntax_err("找不到模块：%s" % module_name)
 
 def main():
     #解析命令行参数

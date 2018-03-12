@@ -16,7 +16,7 @@ Throwed: 抛出的异常的字符串描述
 
 其中堆栈信息的方向是从栈底开始显示，即每行信息是下一行的调用者
 */
-func lar_func_10___builtins_5_throw(t lar_intf_10___builtins_9_Throwable) {
+func lar_func_@<<throw>>(t lar_intf_@<<Throwable>>) {
     var tb_line_list []string
     tb_line_list = append(tb_line_list, "Throwed: " + lar_util_convert_lar_str_to_go_str(t.method_to_str()))
     for i := 1; true; i ++ {
@@ -56,18 +56,18 @@ func lar_func_10___builtins_5_throw(t lar_intf_10___builtins_9_Throwable) {
     }
 
     tb := lar_util_create_lar_str_from_go_str(strings.Join(tb_line_list, "\n"))
-    panic(lar_new_obj_lar_gcls_inst_10___builtins_7_Catched_1_lar_intf_10___builtins_9_Throwable(t, tb))
+    panic(lar_new_obj_lar_gcls_inst_@<<Catched>>_1_lar_intf_@<<Throwable>>(t, tb))
 }
 
-func lar_func_10___builtins_15_rethrow_catched(c *lar_gcls_inst_10___builtins_7_Catched_1_lar_intf_10___builtins_9_Throwable) {
+func lar_func_@<<rethrow_catched>>(c *lar_gcls_inst_@<<Catched>>_1_lar_intf_@<<Throwable>>) {
     panic(c)
 }
 
-func lar_func_10___builtins_24__go_recovered_to_catched(r interface{}) *lar_gcls_inst_10___builtins_7_Catched_1_lar_intf_10___builtins_9_Throwable {
+func lar_func_@<<_go_recovered_to_catched>>(r interface{}) *lar_gcls_inst_@<<Catched>>_1_lar_intf_@<<Throwable>> {
     if r == nil {
         return nil
     }
-    c, ok := r.(*lar_gcls_inst_10___builtins_7_Catched_1_lar_intf_10___builtins_9_Throwable)
+    c, ok := r.(*lar_gcls_inst_@<<Catched>>_1_lar_intf_@<<Throwable>>)
     if !ok {
         //不是larva自己的异常
         panic(r)

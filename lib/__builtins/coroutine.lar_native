@@ -1,0 +1,5 @@
+package LARVA_NATIVE
+
+func lar_func_@<<start_coroutine>>(co lar_intf_@<<Coroutine>>) {
+    go lar_booter_start_co(co)
+}
