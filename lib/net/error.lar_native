@@ -1,0 +1,47 @@
+package LARVA_NATIVE
+
+import (
+    "net"
+    "os"
+    "syscall"
+)
+
+type lar_cls_@<<Error>> struct {
+    s            *lar_cls_@<<:String>>
+    is_timeout   bool
+    is_temporary bool
+    errno        int32
+}
+
+func lar_new_obj_lar_cls_@<<Error>>(e error) *lar_cls_@<<Error>> {
+    lne := &lar_cls_@<<Error>>{}
+    lne.s = lar_util_create_lar_str_from_go_str(e.Error())
+    if ne, ok := e.(net.Error); ok {
+        lne.is_timeout = ne.Timeout()
+        lne.is_temporary = ne.Temporary()
+    }
+    if op_err, ok := e.(*net.OpError); ok {
+		if syscall_err, ok := op_err.Err.(*os.SyscallError); ok {
+			if errno_err, ok := syscall_err.Err.(syscall.Errno); ok {
+				lne.errno = int32(errno_err)
+			}
+		}
+    }
+    return lne
+}
+
+func (this *lar_cls_@<<Error>>) method_to_str() *lar_cls_@<<:String>> {
+    return this.s
+}
+
+func (this *lar_cls_@<<Error>>) method_is_timeout() bool {
+    return this.is_timeout
+}
+
+func (this *lar_cls_@<<Error>>) method_is_temporary() bool {
+    return this.is_temporary
+}
+
+func (this *lar_cls_@<<Error>>) method_get_errno() int32 {
+    return this.errno
+}

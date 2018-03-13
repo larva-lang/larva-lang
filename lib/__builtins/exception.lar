@@ -39,6 +39,15 @@ public class Catched<T>
 //继续往上抛当前Catched对象，维持对象不变，即和再次throw的区别在于traceback可以保持不变
 native void rethrow_catched(Catched<Throwable> c);
 
+//assert函数
+public void assert(bool b, String s)
+{
+    if (!b)
+    {
+        throw(new AssertError(s));
+    }
+}
+
 //--------------------------------------------------------------------
 
 /*
@@ -97,11 +106,70 @@ public class Exception
 
 //这里是通用的一些内建异常类型
 
+//Assert错误，只用于assert
+public class AssertError
+{
+    public AssertError(String s)
+    {
+        e = new Exception(s);
+    }
+
+    usemethod Exception e;
+}
+
+//索引（下标）错误，用于数组、Slice、Vector等可用下标定位元素的相关代码中
+public class IndexError
+{
+    public IndexError(long i)
+    {
+        idx = i;
+    }
+
+    public String to_str()
+    {
+        return "%v".(idx);
+    }
+
+    long idx;
+}
+
+//下标范围错误，用于Slice、sub_str之类的取范围相关代码
+public class RangeError
+{
+    public RangeError(long l, long b, long e)
+    {
+        len = l;
+        begin = b;
+        end = e;
+    }
+
+    public String to_str()
+    {
+        return "[%v][%v:%v]".(len, begin, end);
+    }
+
+    long len;
+    long begin;
+    long end;
+}
+
+//键错误，用于各种映射、集合等用到Key的地方，k为错误的键的字符串描述
+public class KeyError
+{
+    public KeyError(String k)
+    {
+        e = new Exception(k);
+    }
+
+    usemethod Exception e;
+}
+
+//值错误，用于根据值解析、查找等操作的地方，v为错误的值的字符串描述
 public class ValueError
 {
-    public ValueError(String s)
+    public ValueError(String v)
     {
-        e = new Exception("ValueError: ".concat(s));
+        e = new Exception(v);
     }
 
     usemethod Exception e;

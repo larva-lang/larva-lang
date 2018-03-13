@@ -131,6 +131,10 @@ class _CoiBase:
 
 #下面_Cls和_GclsInst的基类，只用于定义一些通用属性和方法
 class _ClsBase(_CoiBase):
+    def __init__(self):
+        _CoiBase.__init__(self)
+        self.is_construct_method_auto_gened = False
+
     def expand_usemethod(self, expand_chain):
         if self.is_cls:
             assert not self.gtp_name_list
@@ -344,6 +348,7 @@ class _Cls(_ClsBase):
             else:
                 block_token_list = larc_token.gen_empty_token_list("}")
             self.construct_method = _Method(self, set(), larc_type.VOID_TYPE, self.name, larc_common.OrderedDict(), block_token_list)
+            self.is_construct_method_auto_gened = True
         self.usemethod_stat = "to_expand"
 
     def _check_redefine(self, t, name):

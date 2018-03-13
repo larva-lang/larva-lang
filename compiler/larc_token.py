@@ -129,7 +129,7 @@ class TokenList:
         try:
             return self.l[self.i + start_idx]
         except IndexError:
-            larc_common.exit("语法错误：文件[%s]代码意外结束" % self.src_file)
+            larc_common.exit("文件[%s]代码意外结束" % self.src_file)
 
     def peek_name(self):
         t = self.peek()
@@ -200,7 +200,7 @@ class TokenList:
         self.l.insert(self.i, _Token("sym", ">", t.src_file, t.line_no, t.pos + 1))
 
 def _syntax_err(src_file, line_no, pos, msg):
-    larc_common.exit("语法错误：文件[%s]行[%d]列[%d]%s" % (src_file, line_no, pos + 1, msg))
+    larc_common.exit("文件[%s]行[%d]列[%d] %s" % (src_file, line_no, pos + 1, msg))
 
 def _get_escape_char(s, src_file, line_no, pos):
     if s[0] in "abfnrtv":

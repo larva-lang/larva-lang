@@ -12,11 +12,11 @@ type lar_cls_@<<_TcpListener>> struct {
 func lar_new_obj_lar_cls_@<<_TcpListener>>(addr *lar_cls_@<<:String>>) *lar_cls_@<<_TcpListener>> {
     tcp_addr, err := net.ResolveTCPAddr("tcp", lar_util_convert_lar_str_to_go_str(addr))
     if err != nil {
-        lar_func_@<<:throw>>(lar_new_obj_lar_cls_@<<ListenError>>(lar_util_create_lar_str_from_go_str(err.Error())))
+        lar_func_@<<:throw>>(lar_new_obj_lar_cls_@<<Error>>(err))
     }
     ntl, err := net.ListenTCP("tcp", tcp_addr)
     if err != nil {
-        lar_func_@<<:throw>>(lar_new_obj_lar_cls_@<<ListenError>>(lar_util_create_lar_str_from_go_str(err.Error())))
+        lar_func_@<<:throw>>(lar_new_obj_lar_cls_@<<Error>>(err))
     }
     return &lar_cls_@<<_TcpListener>>{ntl: ntl}
 }
@@ -28,7 +28,7 @@ func (this *lar_cls_@<<_TcpListener>>) method_get_addr() *lar_cls_@<<:String>> {
 func (this *lar_cls_@<<_TcpListener>>) method_accept() *lar_cls_@<<TcpConn>> {
     ntc, err := this.ntl.AcceptTCP()
     if err != nil {
-        lar_func_@<<:throw>>(lar_new_obj_lar_cls_@<<AcceptError>>(lar_util_create_lar_str_from_go_str(err.Error())))
+        lar_func_@<<:throw>>(lar_new_obj_lar_cls_@<<Error>>(err))
     }
     return &lar_cls_@<<TcpConn>>{
         m_tc: &lar_cls_@<<_TcpConn>>{
@@ -57,13 +57,13 @@ func (this *lar_cls_@<<_TcpConn>>) method_send(buf *[]uint8, begin, length int64
     buf_len := int64(len(*buf))
     end := begin + length
     if begin < 0 || begin > buf_len || end < 0 || end > buf_len || end < begin {
-        lar_func_@<<:throw>>(lar_new_obj_lar_cls_@<<SendError>>(lar_util_create_lar_str_from_go_str("无效的输入数据")))
+        lar_func_@<<:throw>>(lar_new_obj_lar_cls_@<<:RangeError>>(buf_len, begin, end))
     }
     send_buf := (*buf)[begin : end]
 
     _, err := this.ntc.Write(send_buf)
     if err != nil {
-        lar_func_@<<:throw>>(lar_new_obj_lar_cls_@<<SendError>>(lar_util_create_lar_str_from_go_str(err.Error())))
+        lar_func_@<<:throw>>(lar_new_obj_lar_cls_@<<Error>>(err))
     }
 }
 
@@ -71,7 +71,7 @@ func (this *lar_cls_@<<_TcpConn>>) method_recv(buf *[]uint8, begin, length int64
     buf_len := int64(len(*buf))
     end := begin + length
     if begin < 0 || begin > buf_len || end < 0 || end > buf_len || end < begin {
-        lar_func_@<<:throw>>(lar_new_obj_lar_cls_@<<RecvError>>(lar_util_create_lar_str_from_go_str("无效的输入数据")))
+        lar_func_@<<:throw>>(lar_new_obj_lar_cls_@<<:RangeError>>(buf_len, begin, end))
     }
     recv_buf := (*buf)[begin : end]
 
@@ -80,7 +80,7 @@ func (this *lar_cls_@<<_TcpConn>>) method_recv(buf *[]uint8, begin, length int64
         if err == io.EOF {
             return 0
         }
-        lar_func_@<<:throw>>(lar_new_obj_lar_cls_@<<RecvError>>(lar_util_create_lar_str_from_go_str(err.Error())))
+        lar_func_@<<:throw>>(lar_new_obj_lar_cls_@<<Error>>(err))
     }
     return int64(recved_len)
 }

@@ -573,6 +573,7 @@ def _output_module():
                     code += "m_%s %s" % (attr.name, _gen_type_name_code(attr.type))
             with code.new_blk("func lar_new_obj_%s(%s) *%s" % (lar_cls_name, _gen_arg_def(cls.construct_method.arg_map), lar_cls_name)):
                 code += "o := new(%s)" % lar_cls_name
+                code.record_tb_info(_POS_INFO_IGNORE)
                 code += "o.method_%s(%s)" % (cls.name, ", ".join(["l_%s" % name for name in cls.construct_method.arg_map]))
                 code += "return o"
             for method in [cls.construct_method] + list(cls.method_map.itervalues()):

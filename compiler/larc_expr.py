@@ -384,6 +384,9 @@ class Parser:
                     if not base_type.token.is_reserved:
                         new_coi = base_type.get_coi()
                         if new_coi.is_cls or new_coi.is_gcls_inst:
+                            if "native" in new_coi.decr_set and new_coi.is_construct_method_auto_gened:
+                                assert new_coi.is_cls and "public" not in new_coi.construct_method.decr_set
+                                base_type.token.syntax_err("无法创建'%s'的实例：native类未显式定义构造方法" % new_coi)
                             if new_coi.module is not self.curr_module and "public" not in new_coi.construct_method.decr_set:
                                 base_type.token.syntax_err("无法创建'%s'的实例：对构造方法无访问权限" % new_coi)
                             self._make_expr_list_match_arg_map(t, expr_list, new_coi.construct_method.arg_map)

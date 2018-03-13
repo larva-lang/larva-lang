@@ -1,39 +1,7 @@
-public class ListenError
+public native class Error
 {
-    public ListenError(String s)
-    {
-        e = new Exception("ListenError: ".concat(s));
-    }
-
-    usemethod Exception e;
-}
-
-public class AcceptError
-{
-    public AcceptError(String s)
-    {
-        e = new Exception("AcceptError: ".concat(s));
-    }
-
-    usemethod Exception e;
-}
-
-public class SendError
-{
-    public SendError(String s)
-    {
-        e = new Exception("SendError: ".concat(s));
-    }
-
-    usemethod Exception e;
-}
-
-public class RecvError
-{
-    public RecvError(String s)
-    {
-        e = new Exception("RecvError: ".concat(s));
-    }
-
-    usemethod Exception e;
+    public String to_str();
+    public bool is_timeout();
+    public bool is_temporary();
+    public int get_errno();
 }
