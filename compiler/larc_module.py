@@ -792,6 +792,10 @@ class _NativeFile:
                 #module_name相当于匿名导入了一个模块，按import流程处理：修正module_name后加入dep_module_set
                 module_name = self.module.fix_module_name(relative_deep, token, module_name)
                 self.dep_module_set.add(module_name)
+            elif macro.startswith(":"):
+                #__builtin模块name简写形式
+                module_name = "__builtins"
+                name = macro[1 :]
             else:
                 #单个name
                 module_name = self.module.name

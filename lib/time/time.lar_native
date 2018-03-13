@@ -12,7 +12,7 @@ func (this *lar_cls_@<<_Time>>) method_unix_nano() int64 {
     return this.ntm.UnixNano()
 }
 
-func (this *lar_cls_@<<_Time>>) method_format(layout *lar_cls_@<<__builtins.String>>) *lar_cls_@<<__builtins.String>> {
+func (this *lar_cls_@<<_Time>>) method_format(layout *lar_cls_@<<:String>>) *lar_cls_@<<:String>> {
     return lar_util_create_lar_str_from_go_str(this.ntm.Format(lar_util_convert_lar_str_to_go_str(layout)))
 }
 
