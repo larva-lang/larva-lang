@@ -121,12 +121,16 @@ class _CoiBase:
         return True
 
     def get_method_type_info(self, t, curr_module):
-        assert t.is_name
-        if t.value not in self.method_map:
-            t.syntax_err("'%s'没有方法'%s'" % (self, t.value))
-        method = self.method_map[t.value]
+        if t.is_reserved("new"):
+            assert self.is_cls or self.is_gcls_inst
+            method = self.construct_method
+        else:
+            assert t.is_name
+            if t.value not in self.method_map:
+                t.syntax_err("'%s'没有方法'%s'" % (self, t.value))
+            method = self.method_map[t.value]
         if self.module is not curr_module and "public" not in method.decr_set:
-            t.syntax_err("无法访问'%s'的方法'%s'：没有权限" % (self, t.value))
+            t.syntax_err("无法访问'%s'的%s：没有权限" % (self, "方法'%s'" % t.value if t.is_name else "构造方法"))
         return method.type, list(method.arg_map.itervalues())
 
 #下面_Cls和_GclsInst的基类，只用于定义一些通用属性和方法

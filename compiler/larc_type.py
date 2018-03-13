@@ -21,7 +21,7 @@ class _Type:
             if not allow_typeof:
                 self.token.syntax_err("typeof只能用于泛型类的方法或泛型函数的实现代码中")
             token_list.pop_sym("(")
-            t, gtp_name = token_list.pop_name()
+            t, _ = token_list.pop_name()
             self.typeof_info = [t]
             while True:
                 t = token_list.pop()
@@ -29,7 +29,13 @@ class _Type:
                     t.syntax_err("需要')'或'.'")
                 if t.value == ")":
                     break
-                typeof_attr_name_token, typeof_attr_name = token_list.pop_name()
+                if token_list.peek().is_reserved("new"):
+                    typeof_attr_name_token = token_list.pop()
+                    t = token_list.peek()
+                    if not t.is_sym("<"):
+                        t.syntax_err("需要'<'")
+                else:
+                    typeof_attr_name_token, _ = token_list.pop_name()
                 if token_list.peek().is_sym("("):
                     t, sym = token_list.pop_sym()
                     token_list.pop_sym(")")
@@ -145,10 +151,33 @@ class _Type:
             for attr_name_t, t, arr_dim_count in self.typeof_info[1 :]:
                 if t is None:
                     #取属性的类型
-                    if tp.token.is_reserved:
+                    if tp.is_array:
+                        if attr_name_t.value == "size":
+                            tp = LONG_TYPE
+                        else:
+                            attr_name_t.syntax_err("不能对数组类型'%s'取属性" % tp)
+                    elif tp.token.is_reserved:
                         attr_name_t.syntax_err("不能对基础类型'%s'取属性" % tp)
-                    tp = tp.get_coi().get_attr_type_info(attr_name_t, curr_module)
+                    else:
+                        tp = tp.get_coi().get_attr_type_info(attr_name_t, curr_module)
+                elif attr_name_t.is_reserved("new"):
+                    assert t.is_literal("int") and t.value > 0
+                    coi = None
+                    assert not tp.is_nil
+                    if tp.is_obj_type and not tp.is_array:
+                        coi = tp.get_coi()
+                        if not (coi.is_cls or coi.is_gcls_inst):
+                            coi = None
+                    if coi is None:
+                        attr_name_t.syntax_err("类型'%s'无构造方法，不能通过new取参数类型" % tp)
+                    ret_type, arg_type_list = coi.get_method_type_info(attr_name_t, curr_module)
+                    assert ret_type == VOID_TYPE
+                    if t.value > len(arg_type_list):
+                        attr_name_t.syntax_err("无法推导类'%s'的构造方法的第%d个参数：只有%d个参数" % (tp, t.value, len(arg_type_list)))
+                    tp = arg_type_list[t.value - 1]
                 else:
+                    if tp.is_array:
+                        attr_name_t.syntax_err("不能对数组类型'%s'取方法" % tp)
                     #先找到对应的方法，基础类型则取ptm
                     if tp.token.is_reserved:
                         assert tp.is_bool_type or tp.is_number_type
@@ -161,7 +190,7 @@ class _Type:
                                 ptm = m.get_func(ptm_name_t, [])
                                 break
                         else:
-                            t.syntax_err("未定义基础类型方法'%s'" % ptm_name)
+                            attr_name_t.syntax_err("未定义基础类型方法'%s'" % ptm_name)
                         ret_type = ptm.type
                         arg_type_list = list(ptm.arg_map.itervalues())
                         assert arg_type_list[0] == tp
