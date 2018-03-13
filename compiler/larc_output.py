@@ -217,7 +217,7 @@ def _gen_str_literal(s):
     for c in s:
         asc = ord(c)
         assert 0 <= asc <= 0xFF
-        if asc < 32 or asc > 126 or asc in ('"', "\\"):
+        if asc < 32 or asc > 126 or c in ('"', "\\"):
             code_list.append("\\%03o" % asc)
         else:
             code_list.append(c)
@@ -679,10 +679,7 @@ def _output_makefile():
     if platform.system() == "Windows":
         f = open(os.path.join(out_dir, "make.bat"), "w")
         print >> f, "@set GOPATH=%s" % out_dir
-        print >> f, "go build -o %s.exe src/lar_prog.%s.P.go" % (prog_name, prog_name)
-        print >> f, "@if %ERRORLEVEL% == 0 goto success"
-        print >> f, "@pause"
-        print >> f, ":success"
+        print >> f, "go build -o %s.exe src\\lar_prog.%s.P.go" % (prog_name, prog_name)
     elif platform.system() in ("Darwin", "Linux"):
         f = open(os.path.join(out_dir, "Makefile"), "w")
         print >> f, "all:"
@@ -692,8 +689,7 @@ def _output_makefile():
 
 def _run_prog(args_for_run):
     if platform.system() == "Windows":
-        os.system(os.path.join(out_dir, "make.bat"))
-        exe_file = os.path.join(out_dir, "%s.exe" % prog_name)
+        larc_common.exit("Windows下不支持--run，请手动执行make.bat和编译出的exe")
     elif platform.system() in ("Darwin", "Linux"):
         os.system("make -C %s" % out_dir)
         exe_file = os.path.join(out_dir, "%s" % prog_name)

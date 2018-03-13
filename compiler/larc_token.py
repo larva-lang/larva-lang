@@ -432,3 +432,13 @@ def gen_empty_token_list(end_sym):
 
 def is_valid_name(name):
     return re.match("^[a-zA-Z_]\w*$", name) is not None and name not in ("nil", "true", "false")
+
+def make_fake_token_reserved(w):
+    t = _Token("word", w, "<nil>", 0, -1)
+    t.is_reserved = lambda r: r == w
+    return t
+
+def make_fake_token_name(w):
+    assert w not in _RESERVED_WORD_SET
+    t = _Token("word", w, "<nil>", 0, -1)
+    return t

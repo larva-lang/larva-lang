@@ -6,6 +6,7 @@
 
 import larc_common
 import larc_module
+import larc_token
 
 _BASE_TYPE_LIST = ("void", "bool", "schar", "char", "short", "ushort", "int", "uint", "long", "ulong", "float", "double")
 
@@ -313,30 +314,9 @@ class _Type:
 
         return False
 
-class _FakeReservedToken:
-    def __init__(self, tp):
-        self._tp = tp
-    def is_reserved(self, tp):
-        return self._tp == tp
-    is_name = False
-
-class _FakeNonReservedToken:
-    def __init__(self, tp):
-        self._tp = tp
-
-        class IsReserved:
-            def __nonzero__(self):
-                return False
-            def __call__(self, word):
-                return False
-
-        self.is_reserved = IsReserved()
-
-    is_name = True
-
 for _tp in _BASE_TYPE_LIST + ("literal_int", "nil"):
-    exec '%s_TYPE = _Type((_FakeReservedToken("%s"), "%s"), None, None)' % (_tp.upper(), _tp, _tp)
-STR_TYPE = _Type((_FakeNonReservedToken("String"), "String"), None, None, module_name = "__builtins")
+    exec '%s_TYPE = _Type((larc_token.make_fake_token_reserved("%s"), "%s"), None, None)' % (_tp.upper(), _tp, _tp)
+STR_TYPE = _Type((larc_token.make_fake_token_name("String"), "String"), None, None, module_name = "__builtins")
 VALID_ARRAY_IDX_TYPES = [SCHAR_TYPE, CHAR_TYPE]
 for _tp in "short", "int", "long":
     VALID_ARRAY_IDX_TYPES.append(eval("%s_TYPE" % _tp.upper()))
@@ -417,7 +397,7 @@ def parse_gtp_list(token_list, dep_module_map, allow_typeof = False):
     return gtp_list
 
 def gen_type_from_cls(cls):
-    tp = _Type((_FakeNonReservedToken(cls.name), cls.name), None, None, module_name = cls.module.name)
+    tp = _Type((larc_token.make_fake_token_name(cls.name), cls.name), None, None, module_name = cls.module.name)
     if cls.is_gcls_inst:
         tp.gtp_list = list(cls.gtp_map.itervalues())
     #这个类型没必要check了，校验一下get_coi正常就直接返回
