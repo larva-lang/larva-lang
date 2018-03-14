@@ -523,6 +523,8 @@ def _output_stmt_list(code, stmt_list, fom, long_ret_nest_deep, long_boc_nest_de
 
 _literal_token_id_set = set()
 
+_native_file_name_map = {}
+
 curr_module = None
 def _output_module():
     module = curr_module
@@ -612,7 +614,8 @@ def _output_module():
     #输出native实现
     for sub_mod_name, nf in module.native_file_map.iteritems():
         nf.line_list[0] = ["package %s" % prog_module_name]
-        f = open(os.path.join(out_prog_dir, "%s.mod.%s.native.%s.N.go" % (prog_module_name, _gen_module_name_code(module), sub_mod_name)), "w")
+        nfn = os.path.join(out_prog_dir, "%s.mod.%s.native.%s.N.go" % (prog_module_name, _gen_module_name_code(module), sub_mod_name))
+        f = open(nfn, "w")
         for line in nf.line_list:
             s = ""
             for i in line:
@@ -624,6 +627,7 @@ def _output_module():
                     s += "%s_%d_%s" % (_gen_module_name_code(larc_module.module_map[module_name]), len(name), name)
             print >> f, s.rstrip()
         f.close()
+        _native_file_name_map[nfn] = nf.file_path_name
 
 def _output_util():
     #拷贝runtime中固定的util代码
@@ -674,16 +678,19 @@ def _output_util():
                     code += ("lar_util_go_tb{file: %s, line: %d}: &lar_util_lar_tb{file: %s, line: %d, fom_name: %s}," %
                              (_gen_str_literal(go_file_name), go_line_no, _gen_str_literal(lar_file_name), lar_line_no,
                               _gen_str_literal(lar_fom_name)))
+        with code.new_blk("var lar_util_native_file_name_map = map[string]string"):
+            for out_nfn, in_nfn in _native_file_name_map.iteritems():
+                code += "%s: %s," % (_gen_str_literal(out_nfn), _gen_str_literal(in_nfn))
 
 def _output_makefile():
     if platform.system() == "Windows":
         f = open(os.path.join(out_dir, "make.bat"), "w")
         print >> f, "@set GOPATH=%s" % out_dir
-        print >> f, "go build -o %s.exe src\\lar_prog.%s.P.go" % (prog_name, prog_name)
+        print >> f, 'go build -o %s.exe src\\lar_prog.%s.P.go' % (prog_name, prog_name)
     elif platform.system() in ("Darwin", "Linux"):
         f = open(os.path.join(out_dir, "Makefile"), "w")
         print >> f, "all:"
-        print >> f, "\t@export GOPATH=%s; go build -o %s src/lar_prog.%s.P.go" % (out_dir, prog_name, prog_name)
+        print >> f, '\t@export GOPATH=%s; go build -o %s src/lar_prog.%s.P.go' % (out_dir, prog_name, prog_name)
     else:
         larc_common.exit("不支持在平台'%s'生成make脚本" % platform.system())
 
