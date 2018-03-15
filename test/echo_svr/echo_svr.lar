@@ -16,7 +16,7 @@ class Client
             var c = catch_base();
             if (c != nil)
             {
-                println("client ends with exception [%v], traceback[%v]".(c.get_throwed().to_str(), c.get_traceback()));
+                println("client ends with exception [%s], traceback[%s]".(c.get_throwed().to_str(), c.get_traceback()));
             }
             else
             {
@@ -45,6 +45,15 @@ public int main(String[] args)
     println("server start");
     while (true)
     {
+        defer
+        {
+            var c = catch_base();
+            if (c != nil)
+            {
+                log("accept new client failed [%s][%s]".(c.get_throwed().to_str(), c.get_traceback()));
+            }
+        }
+
         net.TcpConn new_client = listener.accept();
         start_coroutine(new Client(new_client));
     }

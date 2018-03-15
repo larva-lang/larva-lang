@@ -110,8 +110,8 @@ func lar_util_create_lar_str_from_go_str(s string) *lar_cls_@<<String>> {
     }
 }
 
-func lar_util_convert_lar_str_to_go_str(s *lar_cls_@<<String>>) string {
-    return s.m_s.s
+func lar_util_convert_lar_str_to_go_str(ls *lar_cls_@<<String>>) string {
+    return ls.m_s.s
 }
 
 func lar_str_fmt(format string, a ...interface{}) *lar_cls_@<<String>> {
@@ -122,4 +122,34 @@ func lar_str_fmt(format string, a ...interface{}) *lar_cls_@<<String>> {
         }
     }
     return lar_util_create_lar_str_from_go_str(fmt.Sprintf(format, a...))
+}
+
+const hex_digits = "0123456789ABCDEF"
+var escape_char_table = map[byte]byte {
+    '\a': 'a',
+    '\b': 'b',
+    '\n': 'n',
+    '\r': 'r',
+    '\t': 't',
+    '\v': 'v',
+}
+func lar_str_repr(ls *lar_cls_@<<String>>) *lar_cls_@<<String>> {
+    s := lar_util_convert_lar_str_to_go_str(ls)
+    s_len := len(s)
+    b := make([]byte, 0, s_len)
+    b = append(b, '"')
+    for i := 0; i < s_len; i ++ {
+        c := s[i]
+        if ec, ok := escape_char_table[c]; ok {
+            b = append(b, '\\', ec)
+        } else if c < 32 || c > 126 {
+            b = append(b, '\\', 'x', hex_digits[c / 16], hex_digits[c % 16])
+        } else if c == '\\' || c == '"' {
+            b = append(b, '\\', c)
+        } else {
+            b = append(b, c)
+        }
+    }
+    b = append(b, '"')
+    return lar_util_create_lar_str_from_go_str(string(b))
 }

@@ -135,7 +135,7 @@ public class IndexError
 
     public String to_str()
     {
-        return "%v".(idx);
+        return "%d".(idx);
     }
 
     long idx;
@@ -153,7 +153,7 @@ public class RangeError
 
     public String to_str()
     {
-        return "[%v][%v:%v]".(len, begin, end);
+        return "[%d][%d:%d]".(len, begin, end);
     }
 
     long len;

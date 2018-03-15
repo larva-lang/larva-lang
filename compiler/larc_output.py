@@ -345,6 +345,10 @@ def _gen_expr_code_ex(expr):
         fmt, expr_list = expr.arg
         return "lar_str_fmt(%s%s%s)" % (_gen_str_literal(fmt), ", " if expr_list else "", _gen_expr_list_code(expr_list))
 
+    if expr.op == "str_repr":
+        e = expr.arg
+        return "lar_str_repr(%s)" % _gen_expr_code(e)
+
     if expr.op == "call_method":
         e, method, expr_list = expr.arg
         return "(%s).method_%s(%s)" % (_gen_expr_code(e), method.name, _gen_expr_list_code(expr_list))

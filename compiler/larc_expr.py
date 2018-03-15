@@ -4,6 +4,8 @@
 编译larva表达式
 """
 
+import re
+
 import larc_common
 import larc_token
 import larc_module
@@ -367,7 +369,7 @@ class Parser:
                 e = _Expr("literal", t, tp)
                 if t.type == "literal_str" and self.token_list.peek().is_sym(".") and self.token_list.peek(1).is_sym("("):
                     #字符串常量的format语法
-                    fmt, expr_list = self._parse_str_format(var_map_stk, e)
+                    fmt, expr_list = self._parse_str_format(var_map_stk, t)
                     e = _Expr("str_format", (fmt, expr_list), larc_type.STR_TYPE)
                 parse_stk.push_expr(e)
             elif t.is_reserved("new"):
@@ -633,38 +635,78 @@ class Parser:
         self._make_expr_list_match_arg_map(arg_start_t, expr_list, ptm.arg_map)
         return _Expr("call_func", (ptm, expr_list), ptm.type)
 
-    def _parse_str_format(self, var_map_stk, obj):
-        assert obj.type is larc_type.STR_TYPE
+    def _parse_str_format(self, var_map_stk, t):
+        assert t.type == "literal_str"
         self.token_list.pop_sym(".")
         self.token_list.pop_sym("(")
         expr_list = self._parse_expr_list(var_map_stk)
         fmt = ""
         pos = 0
         expr_idx = 0
-        while pos < len(obj.arg.value):
-            if obj.arg.value[pos] != "%":
-                fmt += obj.arg.value[pos]
+        while pos < len(t.value):
+            if t.value[pos] != "%":
+                fmt += t.value[pos]
                 pos += 1
                 continue
+            class ExprTypeError:
+                def __init__(self, need_type_desc):
+                    self.need_type_desc = need_type_desc
             try:
-                pos += 2
-                conv_spec = obj.arg.value[pos - 1]
-                if conv_spec == "%":
+                pos += 1
+                if t.value[pos] == "%":
                     fmt += "%%"
+                    pos += 1
                     continue
                 if expr_idx >= len(expr_list):
-                    obj.arg.syntax_err("format格式化参数不足")
+                    t.syntax_err("format格式化参数不足")
                 expr = expr_list[expr_idx]
                 if expr.is_ref:
-                    obj.arg.syntax_err("format格式化参数不能有ref修饰")
+                    t.syntax_err("format格式化参数不能有ref修饰")
                 expr_idx += 1
-                if conv_spec == "v":
-                    #自动匹配各种情况的默认格式，先只支持这个，后续再补充其他的
-                    fmt += "%v"
-                    continue
-                raise IndexError()
+                #先解析前缀
+                conv_spec = "%"
+                while t.value[pos] in "+-#0\x20":
+                    d = t.value[pos]
+                    pos += 1
+                    if d in conv_spec:
+                        t.syntax_err("format格式存在重复的前缀修饰：'%s...'" % `t.value[: pos]`[1 : -1])
+                    conv_spec += d
+                #解析宽度和精度字段
+                wp, = re.match(r"""^(\d*\.?\d*)""", t.value[pos :]).groups()
+                pos += len(wp)
+                conv_spec += wp #wp暂时不需要做校验，所有格式都用统一的wp形式
+                #解析格式字符
+                verb = t.value[pos]
+                pos += 1
+                if verb == "t":
+                    if not expr.type.is_bool_type:
+                        raise ExprTypeError("'bool'")
+                elif verb == "b":
+                    if not expr.type.is_integer_type and not expr.type.is_float_type:
+                        raise ExprTypeError("整数或浮点数")
+                elif verb in "cdo":
+                    if not expr.type.is_integer_type:
+                        raise ExprTypeError("整数")
+                elif verb in "xX":
+                    if not expr.type.is_integer_type and expr.type != larc_type.STR_TYPE:
+                        raise ExprTypeError("整数或字符串")
+                elif verb in "eEfFgG":
+                    if not expr.type.is_float_type:
+                        raise ExprTypeError("浮点数")
+                elif verb in "sr":
+                    if expr.type != larc_type.STR_TYPE:
+                        raise ExprTypeError("字符串")
+                    if verb == "r":
+                        expr_list[expr_idx - 1] = _Expr("str_repr", expr, larc_type.STR_TYPE)
+                        verb = "s"
+                else:
+                    t.syntax_err("非法的格式符：'%s...'" % `t.value[: pos]`[1 : -1])
+                conv_spec += verb
+                fmt += conv_spec
             except IndexError:
-                obj.arg.syntax_err("format格式串错误")
+                t.syntax_err("format格式串非正常结束")
+            except ExprTypeError, exc:
+                t.syntax_err("format格式化参数#%d类型错误：格式符'%s'需要%s" % (expr_idx, verb, exc.need_type_desc))
         if expr_idx < len(expr_list):
-            obj.arg.syntax_err("format格式化参数过多")
+            t.syntax_err("format格式化参数过多")
         return fmt, expr_list
