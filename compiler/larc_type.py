@@ -259,9 +259,9 @@ class _Type:
     def can_convert_from(self, type):
         for tp in self, type:
             if tp.module_name is None:
-                assert tp.token.is_reserved
+                assert tp.token.is_reserved and not tp.token.is_name
             else:
-                assert tp.token.is_name
+                assert tp.token.is_name and not tp.token.is_reserved
         #nil和literal_int类型仅作为字面量的类型，转换的目标类型不可能是nil
         assert not self.is_nil
         if self.is_integer_type:
@@ -273,12 +273,16 @@ class _Type:
         if self.is_obj_type and type.is_nil:
             #允许nil直接赋值给任何对象
             return True
-        if self.is_obj_type and not self.is_array and type.is_obj_type and not type.is_array:
+        if self.is_obj_type and not self.is_array:
             coi = self.get_coi()
-            from_coi = type.get_coi()
-            #若self是接口，则检查其他对象或接口到接口的转换
-            if coi.can_convert_from(from_coi):
+            if coi.is_intf_any():
+                #任何类型都能赋值给Any接口
                 return True
+            if type.is_obj_type and not type.is_array:
+                from_coi = type.get_coi()
+                #若self是接口，则检查其他对象或接口到接口的转换
+                if coi.can_convert_from(from_coi):
+                    return True
 
         return False
 
@@ -286,6 +290,11 @@ class _Type:
         if self.can_convert_from(type):
             #能隐式转换，则也能强制转换
             return True
+
+        if type.is_obj_type and not type.is_array and type.get_coi().is_intf_any():
+            return True #Any接口可以强转任何类型，包括数组
+
+        #已排除有Any的情况
 
         #存在数组的情形
         if self.array_dim_count != type.array_dim_count:

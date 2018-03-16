@@ -89,6 +89,9 @@ class _CoiBase:
         self.is_gintf_inst = isinstance(self, _GintfInst)
         assert [self.is_cls, self.is_gcls_inst, self.is_intf, self.is_gintf_inst].count(True) == 1
 
+    def is_intf_any(self):
+        return (self.is_intf or self.is_gintf_inst) and not self.method_map
+
     def can_convert_from(self, other):
         assert isinstance(other, _CoiBase) and self is not other
         if self.is_cls or self.is_gcls_inst:
@@ -847,10 +850,6 @@ class Module:
                 larc_common.exit("内建模块缺少catch_base或catch函数")
             if len(self.func_map["catch_base"].arg_map) != 0 or len(self.func_map["catch"].arg_map) != 0:
                 larc_common.exit("函数catch_base和catch不能有输入参数")
-            if "throw" not in self.func_map:
-                larc_common.exit("内建模块缺少throw函数")
-            if "ArrayIndexError" not in self.cls_map: #必须有ArrayIndexError类
-                larc_common.exit("内建模块缺少ArrayIndexError类")
 
     __repr__ = __str__ = lambda self : self.name
 

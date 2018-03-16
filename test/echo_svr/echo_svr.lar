@@ -50,7 +50,7 @@ public int main(String[] args)
             var c = catch_base();
             if (c != nil)
             {
-                log("accept new client failed [%s][%s]".(c.get_throwed().to_str(), c.get_traceback()));
+                println("accept new client failed [%s][%s]".(c.get_throwed().to_str(), c.get_traceback()));
             }
         }
 

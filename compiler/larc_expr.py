@@ -190,6 +190,10 @@ class _ParseStk:
                                 ea = _Expr("force_convert", (eb.type, ea), eb.type)
                             else:
                                 raise _InvalidBinocularOp()
+                    elif ea.type.is_obj_type and ea.type.can_convert_from(eb.type):
+                        eb = _Expr("force_convert", (ea.type, eb), ea.type)
+                    elif eb.type.is_obj_type and eb.type.can_convert_from(ea.type):
+                        ea = _Expr("force_convert", (eb.type, ea), eb.type)
                     elif ea.type.is_bool_type and eb.type.is_bool_type:
                         pass #bool类型也可直接比较
                     elif ea.type.is_number_type and eb.type.is_number_type:

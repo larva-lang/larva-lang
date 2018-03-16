@@ -259,12 +259,14 @@ def _gen_expr_code_ex(expr):
         tp, e = expr.arg
         tp_name_code = _gen_type_name_code(tp)
         e_code = _gen_expr_code(e)
+        if e.type.is_obj_type and not (e.type.is_array or e.type.is_nil) and e.type.get_coi().is_intf_any():
+            return "(%s).(%s)" % (e_code, tp_name_code)
         if tp.can_convert_from(e.type) or not tp.is_obj_type:
             return "(%s)(%s)" % (tp_name_code, e_code)
         assert e.type.is_obj_type and not (e.type.is_array or e.type.is_nil)
         e_coi = e.type.get_coi()
         assert e_coi.is_intf or e_coi.is_gintf_inst
-        return "func () %s {r, ok := (%s).(%s); if ok {return r} else {return nil}}()" % (tp_name_code, e_code, tp_name_code)
+        return "(%s).(%s)" % (e_code, tp_name_code)
 
     if expr.op in ("~", "!", "neg", "pos"):
         e = expr.arg
@@ -274,12 +276,6 @@ def _gen_expr_code_ex(expr):
         ea, eb = expr.arg
         ea_code = _gen_expr_code(ea)
         eb_code = _gen_expr_code(eb)
-        if expr.op in ("==", "!=") and ea.type.is_obj_type and eb.type.is_obj_type:
-            ea_coi = ea.type.get_coi()
-            eb_coi = eb.type.get_coi()
-            if ea_coi.is_intf or ea_coi.is_gintf_inst:
-                assert eb_coi.is_intf or eb_coi.is_gintf_inst
-                return "%slar_util_is_same_intf((%s), (%s))" % ("!" if expr.op == "!=" else "", ea_code, eb_code)
         if expr.op == "%" and ea.type.is_float_type:
             assert eb.type.is_float_type
             return "lar_util_fmod_%s((%s), (%s))" % (ea.type.name, ea_code, eb_code)

@@ -98,7 +98,13 @@ func lar_util_create_catched_throwable(t lar_intf_@<<Throwable>>, skip int) *lar
     return lar_new_obj_lar_gcls_inst_@<<Catched>>_1_lar_intf_@<<Throwable>>(t, tb)
 }
 
+//转换go的内置panic对象为larva的异常
 func lar_util_convert_go_recovered_to_lar_throwed(r interface{}) *lar_gcls_inst_@<<Catched>>_1_lar_intf_@<<Throwable>> {
+    //对于可以拿到具体类型的，直接转
+    if _, ok := r.(*runtime.TypeAssertionError); ok {
+        return lar_util_create_catched_throwable(lar_new_obj_lar_cls_@<<CastError>>(), 5)
+    }
+
     //go没有暴露一些常见panic的数据类型，用反射检查，但注意这个检查可能随着go的版本升级而无效
     tp := reflect.TypeOf(r)
     if tp.PkgPath() == "runtime" && tp.Name() == "errorString" {

@@ -117,6 +117,15 @@ public class AssertError
     usemethod Exception e;
 }
 
+//运行时类型转换（从接口到类型或其他接口）失败的错误
+public class CastError
+{
+    public String to_str()
+    {
+        return "";
+    }
+}
+
 //索引（下标）错误，用于数组、Slice、Vector等可用下标定位元素的相关代码中
 //数组的索引错误比较特殊，是根据go的panic转换的，没有idx信息
 public class ArrayIndexError

@@ -6,10 +6,6 @@ import (
     "strings"
 )
 
-func lar_util_is_same_intf(a, b interface{}) bool {
-    return reflect.ValueOf(&a).Elem().InterfaceData()[1] == reflect.ValueOf(&b).Elem().InterfaceData()[1]
-}
-
 func lar_util_fmod_float(a, b float32) float32 {
     return float32(math.Mod(float64(a), float64(b)))
 }

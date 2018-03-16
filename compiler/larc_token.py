@@ -436,6 +436,7 @@ def is_valid_name(name):
 def make_fake_token_reserved(w):
     t = _Token("word", w, "<nil>", 0, -1)
     t.is_reserved = lambda r: r == w
+    t.is_name = False
     return t
 
 def make_fake_token_name(w):
