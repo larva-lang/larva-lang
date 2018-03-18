@@ -4,7 +4,7 @@ import (
 )
 
 func lar_booter_exit_with_catched(c *lar_gcls_inst_10___builtins_7_Catched_1_lar_intf_10___builtins_9_Throwable) {
-    fmt.Fprintln(os.Stderr, lar_util_convert_lar_str_to_go_str(c.m_tb))
+    fmt.Fprintln(os.Stderr, lar_str_to_go_str(c.m_tb))
     os.Exit(2)
 }
 

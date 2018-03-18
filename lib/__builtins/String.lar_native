@@ -30,7 +30,7 @@ func (this *lar_cls_@<<_String>>) method_index(other *lar_cls_@<<String>>) int64
     return int64(strings.Index(this.s, other.m_s.s))
 }
 
-func (this *lar_cls_@<<_String>>) method_char_array() *[]uint8 {
+func (this *lar_cls_@<<_String>>) method_to_char_array() *[]uint8 {
     arr := []uint8(this.s)
     return &arr
 }
@@ -102,7 +102,7 @@ func (this *lar_cls_@<<_String>>) method_parse_double() float64 {
     return r
 }
 
-func lar_util_create_lar_str_from_go_str(s string) *lar_cls_@<<String>> {
+func lar_str_from_go_str(s string) *lar_cls_@<<String>> {
 	return &lar_cls_@<<String>>{
         m_s: &lar_cls_@<<_String>>{
             s: s,
@@ -110,7 +110,7 @@ func lar_util_create_lar_str_from_go_str(s string) *lar_cls_@<<String>> {
     }
 }
 
-func lar_util_convert_lar_str_to_go_str(ls *lar_cls_@<<String>>) string {
+func lar_str_to_go_str(ls *lar_cls_@<<String>>) string {
     return ls.m_s.s
 }
 
@@ -121,7 +121,7 @@ func lar_str_fmt(format string, a ...interface{}) *lar_cls_@<<String>> {
             a[i] = s.m_s.s
         }
     }
-    return lar_util_create_lar_str_from_go_str(fmt.Sprintf(format, a...))
+    return lar_str_from_go_str(fmt.Sprintf(format, a...))
 }
 
 const hex_digits = "0123456789ABCDEF"
@@ -134,7 +134,7 @@ var escape_char_table = map[byte]byte {
     '\v': 'v',
 }
 func lar_str_repr(ls *lar_cls_@<<String>>) *lar_cls_@<<String>> {
-    s := lar_util_convert_lar_str_to_go_str(ls)
+    s := lar_str_to_go_str(ls)
     s_len := len(s)
     b := make([]byte, 0, s_len)
     b = append(b, '"')
@@ -151,5 +151,5 @@ func lar_str_repr(ls *lar_cls_@<<String>>) *lar_cls_@<<String>> {
         }
     }
     b = append(b, '"')
-    return lar_util_create_lar_str_from_go_str(string(b))
+    return lar_str_from_go_str(string(b))
 }

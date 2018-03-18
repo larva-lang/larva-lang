@@ -10,7 +10,7 @@ type lar_cls_@<<_TcpListener>> struct {
 }
 
 func lar_new_obj_lar_cls_@<<_TcpListener>>(addr *lar_cls_@<<:String>>) *lar_cls_@<<_TcpListener>> {
-    tcp_addr, err := net.ResolveTCPAddr("tcp", lar_util_convert_lar_str_to_go_str(addr))
+    tcp_addr, err := net.ResolveTCPAddr("tcp", lar_str_to_go_str(addr))
     if err != nil {
         lar_func_@<<:throw>>(&lar_cls_@<<Error>>{
             m_e: lar_new_obj_lar_cls_@<<_Error>>(err),
@@ -26,7 +26,7 @@ func lar_new_obj_lar_cls_@<<_TcpListener>>(addr *lar_cls_@<<:String>>) *lar_cls_
 }
 
 func (this *lar_cls_@<<_TcpListener>>) method_addr() *lar_cls_@<<:String>> {
-    return lar_util_create_lar_str_from_go_str(this.ntl.Addr().String())
+    return lar_str_from_go_str(this.ntl.Addr().String())
 }
 
 func (this *lar_cls_@<<_TcpListener>>) method_accept() *lar_cls_@<<TcpConn>> {
@@ -52,11 +52,11 @@ type lar_cls_@<<_TcpConn>> struct {
 }
 
 func (this *lar_cls_@<<_TcpConn>>) method_local_addr() *lar_cls_@<<:String>> {
-    return lar_util_create_lar_str_from_go_str(this.ntc.LocalAddr().String())
+    return lar_str_from_go_str(this.ntc.LocalAddr().String())
 }
 
 func (this *lar_cls_@<<_TcpConn>>) method_remote_addr() *lar_cls_@<<:String>> {
-    return lar_util_create_lar_str_from_go_str(this.ntc.RemoteAddr().String())
+    return lar_str_from_go_str(this.ntc.RemoteAddr().String())
 }
 
 func (this *lar_cls_@<<_TcpConn>>) method_send(buf *[]uint8, begin, length int64) {

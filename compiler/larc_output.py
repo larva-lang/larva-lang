@@ -201,7 +201,7 @@ def _output_booter():
         with code.new_blk("func Lar_booter_start_prog() int"):
             code += "argv := %s(int64(len(os.Args)))" % (_gen_new_arr_func_name(larc_type.STR_TYPE, 1, 1))
             with code.new_blk("for i := 0; i < len(os.Args); i ++"):
-                code += "(*argv)[i] = lar_util_create_lar_str_from_go_str(os.Args[i])"
+                code += "(*argv)[i] = lar_str_from_go_str(os.Args[i])"
             code += ("return lar_booter_start_prog(lar_env_init_mod_%s, %s, argv)" %
                      (_gen_module_name_code(larc_module.module_map[main_module_name]),
                       _gen_func_name(larc_module.module_map[main_module_name].get_main_func())))
@@ -534,7 +534,7 @@ def _output_module():
         for t in module.literal_str_list:
             assert t.is_literal("str") and t.id not in _literal_token_id_set
             _literal_token_id_set.add(t.id)
-            code += ("var %s %s = lar_util_create_lar_str_from_go_str(%s)" %
+            code += ("var %s %s = lar_str_from_go_str(%s)" %
                      (_gen_str_literal_name(t), _gen_type_name_code(larc_type.STR_TYPE), _gen_str_literal(t.value)))
         for t in module.literal_number_list:
             assert (t.is_literal and t.type[8 :] in ("char", "int", "uint", "long", "ulong", "float", "double") and

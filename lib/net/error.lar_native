@@ -15,7 +15,7 @@ type lar_cls_@<<_Error>> struct {
 
 func lar_new_obj_lar_cls_@<<_Error>>(e error) *lar_cls_@<<_Error>> {
     lne := &lar_cls_@<<_Error>>{}
-    lne.s = lar_util_create_lar_str_from_go_str(e.Error())
+    lne.s = lar_str_from_go_str(e.Error())
     if ne, ok := e.(net.Error); ok {
         lne.is_timeout = ne.Timeout()
         lne.is_temporary = ne.Temporary()

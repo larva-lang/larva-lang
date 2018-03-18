@@ -8,7 +8,7 @@ import (
 )
 
 func lar_func_@<<throw>>(t lar_intf_@<<Throwable>>) {
-    panic(lar_util_create_catched_throwable(t, 2))
+    panic(lar_exc_create_catched_throwable(t, 2))
 }
 
 func lar_func_@<<rethrow_catched>>(c *lar_gcls_inst_@<<Catched>>_1_lar_intf_@<<Throwable>>) {
@@ -24,7 +24,7 @@ func lar_func_@<<_go_recovered_to_catched>>(r interface{}) *lar_gcls_inst_@<<Cat
         return c
     }
     //不是larva自己的异常，检查下是否需要转换
-    c = lar_util_convert_go_recovered_to_lar_throwed(r)
+    c = lar_exc_convert_go_recovered_to_lar_throwed(r)
     if c == nil {
         //转换失败
         panic(r)
@@ -47,9 +47,9 @@ Throwed: 抛出的异常的字符串描述
 不够准确，而如果使用-gcflags "-l"关闭内联又会有较大性能损耗
 */
 
-func lar_util_create_catched_throwable(t lar_intf_@<<Throwable>>, skip int) *lar_gcls_inst_@<<Catched>>_1_lar_intf_@<<Throwable>> {
+func lar_exc_create_catched_throwable(t lar_intf_@<<Throwable>>, skip int) *lar_gcls_inst_@<<Catched>>_1_lar_intf_@<<Throwable>> {
     var tb_line_list []string
-    tb_line_list = append(tb_line_list, "Throwed: " + lar_util_convert_lar_str_to_go_str(t.method_str()))
+    tb_line_list = append(tb_line_list, "Throwed: " + lar_str_to_go_str(t.method_str()))
     for i := skip; true; i ++ {
         pc, file, line, ok := runtime.Caller(i)
         if !ok {
@@ -94,22 +94,22 @@ func lar_util_create_catched_throwable(t lar_intf_@<<Throwable>>, skip int) *lar
         tb_line_list[i], tb_line_list[tb_line_count - 1 - i] = tb_line_list[tb_line_count - 1 - i], tb_line_list[i]
     }
 
-    tb := lar_util_create_lar_str_from_go_str(strings.Join(tb_line_list, "\n"))
+    tb := lar_str_from_go_str(strings.Join(tb_line_list, "\n"))
     return lar_new_obj_lar_gcls_inst_@<<Catched>>_1_lar_intf_@<<Throwable>>(t, tb)
 }
 
 //转换go的内置panic对象为larva的异常
-func lar_util_convert_go_recovered_to_lar_throwed(r interface{}) *lar_gcls_inst_@<<Catched>>_1_lar_intf_@<<Throwable>> {
+func lar_exc_convert_go_recovered_to_lar_throwed(r interface{}) *lar_gcls_inst_@<<Catched>>_1_lar_intf_@<<Throwable>> {
     //对于可以拿到具体类型的，直接转
     if _, ok := r.(*runtime.TypeAssertionError); ok {
-        return lar_util_create_catched_throwable(lar_new_obj_lar_cls_@<<CastError>>(), 5)
+        return lar_exc_create_catched_throwable(lar_new_obj_lar_cls_@<<CastError>>(), 5)
     }
 
     //go没有暴露一些常见panic的数据类型，用反射检查，但注意这个检查可能随着go的版本升级而无效
     tp := reflect.TypeOf(r)
     if tp.PkgPath() == "runtime" && tp.Name() == "errorString" {
         if e, ok := r.(error); ok && e.Error() == "runtime error: index out of range" {
-            return lar_util_create_catched_throwable(lar_new_obj_lar_cls_@<<ArrayIndexError>>(), 5)
+            return lar_exc_create_catched_throwable(lar_new_obj_lar_cls_@<<ArrayIndexError>>(), 5)
         }
     }
 
