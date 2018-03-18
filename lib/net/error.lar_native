@@ -30,7 +30,7 @@ func lar_new_obj_lar_cls_@<<_Error>>(e error) *lar_cls_@<<_Error>> {
     return lne
 }
 
-func (this *lar_cls_@<<_Error>>) method_to_str() *lar_cls_@<<:String>> {
+func (this *lar_cls_@<<_Error>>) method_str() *lar_cls_@<<:String>> {
     return this.s
 }
 
@@ -42,6 +42,6 @@ func (this *lar_cls_@<<_Error>>) method_is_temporary() bool {
     return this.is_temporary
 }
 
-func (this *lar_cls_@<<_Error>>) method_get_errno() int32 {
+func (this *lar_cls_@<<_Error>>) method_errno() int32 {
     return this.errno
 }

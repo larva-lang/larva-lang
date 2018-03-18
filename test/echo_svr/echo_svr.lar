@@ -16,7 +16,7 @@ class Client
             var c = catch_base();
             if (c != nil)
             {
-                println("client ends with exception [%s], traceback[%s]".(c.get_throwed().to_str(), c.get_traceback()));
+                println("client ends with exception [%s], traceback[%s]".(c.throwed().str(), c.traceback()));
             }
             else
             {
@@ -50,7 +50,7 @@ public int main(String[] args)
             var c = catch_base();
             if (c != nil)
             {
-                println("accept new client failed [%s][%s]".(c.get_throwed().to_str(), c.get_traceback()));
+                println("accept new client failed [%s][%s]".(c.throwed().str(), c.traceback()));
             }
         }
 

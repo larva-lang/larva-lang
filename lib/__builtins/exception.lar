@@ -1,7 +1,7 @@
 //可以用throw函数抛出的对象类型
 public interface Throwable
 {
-    public String to_str();
+    public String str();
 }
 
 //抛出异常
@@ -13,27 +13,27 @@ public class Catched<T>
 {
     Catched(T t, String tb)
     {
-        throwed = t;
-        traceback = tb;
+        this.t = t;
+        this.tb = tb;
     }
 
     public void rethrow()
     {
-        rethrow_catched(new Catched<Throwable>(throwed, traceback));
+        rethrow_catched(new Catched<Throwable>(t, tb));
     }
 
-    public T get_throwed()
+    public T throwed()
     {
-        return throwed;
+        return t;
     }
 
-    public String get_traceback()
+    public String traceback()
     {
-        return traceback;
+        return tb;
     }
 
-    T throwed;
-    String traceback;
+    T t;
+    String tb;
 }
 
 //继续往上抛当前Catched对象，维持对象不变，即和再次throw的区别在于traceback可以保持不变
@@ -78,13 +78,13 @@ public Catched<T> catch<T>(/*Any _go_recovered*/)
         return nil;
     }
     T throwed;
-    var ok = try_cast<T>(c.get_throwed(), ref throwed);
+    var ok = try_cast<T>(c.throwed(), ref throwed);
     if (!ok)
     {
         //不是当前需要的类型，继续往上抛
         c.rethrow();
     }
-    return new Catched<T>(throwed, c.get_traceback());
+    return new Catched<T>(throwed, c.traceback());
 }
 
 //---------------------------------------------------------------------
@@ -97,7 +97,7 @@ public class Exception
         info = s;
     }
 
-    public String to_str()
+    public String str()
     {
         return info;
     }
@@ -121,7 +121,7 @@ public class AssertError
 //运行时类型转换（从接口到类型或其他接口）失败的错误
 public class CastError
 {
-    public String to_str()
+    public String str()
     {
         return "";
     }
@@ -131,7 +131,7 @@ public class CastError
 //数组的索引错误比较特殊，是根据go的panic转换的，没有idx信息
 public class ArrayIndexError
 {
-    public String to_str()
+    public String str()
     {
         return "";
     }
@@ -143,7 +143,7 @@ public class IndexError
         idx = i;
     }
 
-    public String to_str()
+    public String str()
     {
         return "%d".(idx);
     }
@@ -161,7 +161,7 @@ public class RangeError
         end = e;
     }
 
-    public String to_str()
+    public String str()
     {
         return "[%d][%d:%d]".(len, begin, end);
     }

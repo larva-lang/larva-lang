@@ -31,7 +31,7 @@ class Client
 
     void client_log(String s)
     {
-        log("client [%s]: %s".(m_sock.get_remote_addr(), s));
+        log("client [%s]: %s".(m_sock.remote_addr(), s));
     }
 
     bool is_valid_input(char[] s, long sz)
@@ -55,7 +55,7 @@ class Client
 
     void send_str(String s)
     {
-        m_sock.send(s.to_char_array(), 0, s.len());
+        m_sock.send(s.char_array(), 0, s.len());
     }
     void send_line(String s)
     {
@@ -121,7 +121,7 @@ class Client
             var c = catch_base();
             if (c != nil)
             {
-                client_log("client ends with exception [%s], traceback[%s]".(c.get_throwed().to_str(), c.get_traceback()));
+                client_log("client ends with exception [%s], traceback[%s]".(c.throwed().str(), c.traceback()));
             }
         }
         defer m_sock.close();
@@ -143,12 +143,12 @@ public int main(String[] args)
             var c = catch_base();
             if (c != nil)
             {
-                log("accept new client failed [%s][%s]".(c.get_throwed().to_str(), c.get_traceback()));
+                log("accept new client failed [%s][%s]".(c.throwed().str(), c.traceback()));
             }
         }
 
         net.TcpConn new_client = listener.accept();
-        log("accept success, new client [%s]".(new_client.get_remote_addr()));
+        log("accept success, new client [%s]".(new_client.remote_addr()));
 
         start_coroutine(new Client(new_client));
     }

@@ -7,7 +7,7 @@ native class _String
 
     public long len();
     public char char_at(long idx);
-    public char[] to_char_array();
+    public char[] char_array();
     ulong hash();
 
     public int cmp(String other);
@@ -29,7 +29,7 @@ public class String
         h = 0;
     }
 
-    public String to_str()
+    public String str()
     {
         return this;
     }

@@ -2,7 +2,7 @@ native class _TcpListener
 {
     _TcpListener(String addr);
 
-    public String get_addr();
+    public String addr();
     public TcpConn accept();
     public void close();
 }
@@ -19,8 +19,8 @@ public class TcpListener
 
 native class _TcpConn
 {
-    public String get_local_addr();
-    public String get_remote_addr();
+    public String local_addr();
+    public String remote_addr();
     public void send(char[] buf, long begin, long len);
     public long recv(char[] buf, long begin, long len);
     public void close();

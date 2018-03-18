@@ -30,7 +30,7 @@ func (this *lar_cls_@<<_String>>) method_index(other *lar_cls_@<<String>>) int64
     return int64(strings.Index(this.s, other.m_s.s))
 }
 
-func (this *lar_cls_@<<_String>>) method_to_char_array() *[]uint8 {
+func (this *lar_cls_@<<_String>>) method_char_array() *[]uint8 {
     arr := []uint8(this.s)
     return &arr
 }
