@@ -77,8 +77,9 @@ public Catched<T> catch<T>(/*Any _go_recovered*/)
         //无异常
         return nil;
     }
-    T throwed = (T)c.get_throwed();
-    if (throwed == nil)
+    T throwed;
+    var ok = try_cast<T>(c.get_throwed(), ref throwed);
+    if (!ok)
     {
         //不是当前需要的类型，继续往上抛
         c.rethrow();

@@ -12,11 +12,15 @@ type lar_cls_@<<_TcpListener>> struct {
 func lar_new_obj_lar_cls_@<<_TcpListener>>(addr *lar_cls_@<<:String>>) *lar_cls_@<<_TcpListener>> {
     tcp_addr, err := net.ResolveTCPAddr("tcp", lar_util_convert_lar_str_to_go_str(addr))
     if err != nil {
-        lar_func_@<<:throw>>(lar_new_obj_lar_cls_@<<Error>>(err))
+        lar_func_@<<:throw>>(&lar_cls_@<<Error>>{
+            m_e: lar_new_obj_lar_cls_@<<_Error>>(err),
+        })
     }
     ntl, err := net.ListenTCP("tcp", tcp_addr)
     if err != nil {
-        lar_func_@<<:throw>>(lar_new_obj_lar_cls_@<<Error>>(err))
+        lar_func_@<<:throw>>(&lar_cls_@<<Error>>{
+            m_e: lar_new_obj_lar_cls_@<<_Error>>(err),
+        })
     }
     return &lar_cls_@<<_TcpListener>>{ntl: ntl}
 }
@@ -28,7 +32,9 @@ func (this *lar_cls_@<<_TcpListener>>) method_get_addr() *lar_cls_@<<:String>> {
 func (this *lar_cls_@<<_TcpListener>>) method_accept() *lar_cls_@<<TcpConn>> {
     ntc, err := this.ntl.AcceptTCP()
     if err != nil {
-        lar_func_@<<:throw>>(lar_new_obj_lar_cls_@<<Error>>(err))
+        lar_func_@<<:throw>>(&lar_cls_@<<Error>>{
+            m_e: lar_new_obj_lar_cls_@<<_Error>>(err),
+        })
     }
     return &lar_cls_@<<TcpConn>>{
         m_tc: &lar_cls_@<<_TcpConn>>{
@@ -63,7 +69,9 @@ func (this *lar_cls_@<<_TcpConn>>) method_send(buf *[]uint8, begin, length int64
 
     _, err := this.ntc.Write(send_buf)
     if err != nil {
-        lar_func_@<<:throw>>(lar_new_obj_lar_cls_@<<Error>>(err))
+        lar_func_@<<:throw>>(&lar_cls_@<<Error>>{
+            m_e: lar_new_obj_lar_cls_@<<_Error>>(err),
+        })
     }
 }
 
@@ -80,7 +88,9 @@ func (this *lar_cls_@<<_TcpConn>>) method_recv(buf *[]uint8, begin, length int64
         if err == io.EOF {
             return 0
         }
-        lar_func_@<<:throw>>(lar_new_obj_lar_cls_@<<Error>>(err))
+        lar_func_@<<:throw>>(&lar_cls_@<<Error>>{
+            m_e: lar_new_obj_lar_cls_@<<_Error>>(err),
+        })
     }
     return int64(recved_len)
 }

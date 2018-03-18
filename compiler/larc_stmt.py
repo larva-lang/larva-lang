@@ -209,12 +209,13 @@ class Parser:
                 t.syntax_err("与上层的变量名冲突")
 
     def _parse_return(self, var_map_stk):
-        if self.token_list.peek().is_sym(";"):
-            expr = None
-            if not self.fom.type.is_void:
-                self.token_list.peek().syntax_err("需要表达式")
-        else:
-            expr = self.expr_parser.parse(var_map_stk, self.fom.type)
+        if self.fom.type.is_void:
+            self.token_list.pop_sym(";")
+            return None
+        t = self.token_list.peek()
+        if t.is_sym(";"):
+            t.syntax_err("需要表达式")
+        expr = self.expr_parser.parse(var_map_stk, self.fom.type)
         self.token_list.pop_sym(";")
         return expr
 

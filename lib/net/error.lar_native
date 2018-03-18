@@ -6,15 +6,15 @@ import (
     "syscall"
 )
 
-type lar_cls_@<<Error>> struct {
+type lar_cls_@<<_Error>> struct {
     s            *lar_cls_@<<:String>>
     is_timeout   bool
     is_temporary bool
     errno        int32
 }
 
-func lar_new_obj_lar_cls_@<<Error>>(e error) *lar_cls_@<<Error>> {
-    lne := &lar_cls_@<<Error>>{}
+func lar_new_obj_lar_cls_@<<_Error>>(e error) *lar_cls_@<<_Error>> {
+    lne := &lar_cls_@<<_Error>>{}
     lne.s = lar_util_create_lar_str_from_go_str(e.Error())
     if ne, ok := e.(net.Error); ok {
         lne.is_timeout = ne.Timeout()
@@ -30,18 +30,18 @@ func lar_new_obj_lar_cls_@<<Error>>(e error) *lar_cls_@<<Error>> {
     return lne
 }
 
-func (this *lar_cls_@<<Error>>) method_to_str() *lar_cls_@<<:String>> {
+func (this *lar_cls_@<<_Error>>) method_to_str() *lar_cls_@<<:String>> {
     return this.s
 }
 
-func (this *lar_cls_@<<Error>>) method_is_timeout() bool {
+func (this *lar_cls_@<<_Error>>) method_is_timeout() bool {
     return this.is_timeout
 }
 
-func (this *lar_cls_@<<Error>>) method_is_temporary() bool {
+func (this *lar_cls_@<<_Error>>) method_is_temporary() bool {
     return this.is_temporary
 }
 
-func (this *lar_cls_@<<Error>>) method_get_errno() int32 {
+func (this *lar_cls_@<<_Error>>) method_get_errno() int32 {
     return this.errno
 }

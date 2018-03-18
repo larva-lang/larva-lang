@@ -8,3 +8,26 @@ public void println(String s)
     print(s);
     print("\n");
 }
+
+public native bool is_same_type(Any a1, Any a2);
+
+public T zero_value<T>()
+{
+    T t;
+    return t;
+}
+
+public bool is_instance_of<T>(Any a)
+{
+    return is_same_type(a, zero_value<T>());
+}
+
+public bool try_cast<T>(Any a, ref T t)
+{
+    if (is_same_type(a, t))
+    {
+        t = (T)a;
+        return true;
+    }
+    return false;
+}

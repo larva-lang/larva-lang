@@ -1,7 +1,12 @@
-public native class Error
+native class _Error
 {
     public String to_str();
     public bool is_timeout();
     public bool is_temporary();
     public int get_errno();
+}
+
+public class Error
+{
+    usemethod _Error e;
 }

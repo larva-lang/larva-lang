@@ -330,6 +330,8 @@ class Parser:
                                               used_dep_module_set = self.used_dep_module_set, allow_typeof = bool(self.gtp_map and var_map_stk))
                 if tp is not None:
                     #类型强转
+                    if tp == larc_type.VOID_TYPE:
+                        t.syntax_err("无效的类型强转：不能转为void类型")
                     self.token_list.pop_sym(")")
                     parse_stk.push_op("force_convert", tp)
                     continue
@@ -400,6 +402,8 @@ class Parser:
                             is_new_cls = True
                     if not is_new_cls:
                         #对基础类型或接口使用new语法
+                        if base_type.is_void:
+                            t.syntax_err("不能创建void实例")
                         if len(expr_list) == 0:
                             #构建默认值的语法
                             parse_stk.push_expr(_Expr("default_value", base_type, base_type))

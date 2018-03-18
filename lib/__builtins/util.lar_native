@@ -1,5 +1,13 @@
 package LARVA_NATIVE
 
+import (
+    "reflect"
+)
+
 func lar_func_@<<print>>(s *lar_cls_@<<String>>) {
     print(lar_util_convert_lar_str_to_go_str(s))
+}
+
+func lar_func_@<<is_same_type>>(a1, a2 lar_intf_@<<Any>>) bool {
+    return reflect.TypeOf(a1) == reflect.TypeOf(a2)
 }
