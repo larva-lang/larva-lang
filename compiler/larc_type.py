@@ -11,57 +11,16 @@ import larc_token
 _BASE_TYPE_LIST = ("void", "bool", "schar", "char", "short", "ushort", "int", "uint", "long", "ulong", "float", "double")
 
 class _Type:
-    def __init__(self, (name_token, name), token_list, dep_module_map, module_name = None, non_array = False, is_ref = False,
-                 allow_typeof = False):
+    def __init__(self, (name_token, name), token_list, dep_module_map, module_name = None, non_array = False, is_ref = False):
         self.token = name_token
         self.name = name
         self.module_name = module_name
-        if self.token.is_reserved("typeof"):
-            #解析typeof信息
-            assert self.name == "typeof" and self.module_name is None
-            if not allow_typeof:
-                self.token.syntax_err("typeof只能用于泛型类的方法或泛型函数的实现代码中")
-            token_list.pop_sym("(")
-            t, _ = token_list.pop_name()
-            self.typeof_info = [t]
-            while True:
-                t = token_list.pop()
-                if not t.is_sym or t.value not in (")", "."):
-                    t.syntax_err("需要')'或'.'")
-                if t.value == ")":
-                    break
-                if token_list.peek().is_reserved("new"):
-                    typeof_attr_name_token = token_list.pop()
-                    t = token_list.peek()
-                    if not t.is_sym("<"):
-                        t.syntax_err("需要'<'")
-                else:
-                    typeof_attr_name_token, _ = token_list.pop_name()
-                if token_list.peek().is_sym("("):
-                    t, sym = token_list.pop_sym()
-                    token_list.pop_sym(")")
-                elif token_list.peek().is_sym("<"):
-                    token_list.pop_sym("<")
-                    t = token_list.pop()
-                    if not t.is_literal("int"):
-                        t.syntax_err("需要一个整数字面量")
-                    if t.value <= 0:
-                        t.syntax_err("参数序号需要是一个正整数")
-                    token_list.pop_sym(">")
-                else:
-                    t = None
-                typeof_arr_dim_count = 0
-                while token_list.peek().is_sym("["):
-                    token_list.pop_sym("[")
-                    token_list.pop_sym("]")
-                    typeof_arr_dim_count += 1
-                self.typeof_info.append((typeof_attr_name_token, t, typeof_arr_dim_count))
         self.array_dim_count = 0
         self.gtp_list = []
         if not self.token.is_reserved and token_list and token_list.peek().is_sym("<"):
             #解析泛型参数
             token_list.pop_sym("<")
-            self.gtp_list = parse_gtp_list(token_list, dep_module_map, allow_typeof = allow_typeof)
+            self.gtp_list = parse_gtp_list(token_list, dep_module_map)
         if not non_array:
             while token_list and token_list.peek().is_sym("["):
                 if self.name == "void":
@@ -130,99 +89,14 @@ class _Type:
         return coi
 
     def check(self, curr_module, gtp_map = None, used_dep_module_set = None):
-        if self.token.is_reserved and not self.token.is_reserved("typeof"):
-            #忽略基础类型
+        if self.token.is_reserved:
+            #忽略基础类型（及其数组类型）
             assert not self.gtp_list
             return
-        assert self.token.is_name or self.token.is_reserved("typeof")
-        if self.token.is_reserved("typeof"):
-            assert self.name == "typeof" and not self.gtp_list
+        assert self.token.is_name
         #先check泛型参数
         for tp in self.gtp_list:
             tp.check(curr_module, gtp_map, used_dep_module_set)
-        if self.token.is_reserved("typeof"):
-            #typeof推导类型，替换内容为推导出的结果
-            assert gtp_map is not None and self.typeof_info and not self.gtp_list and used_dep_module_set is None
-            t = self.typeof_info[0]
-            assert t.is_name
-            if t.value not in gtp_map:
-                t.syntax_err("typeof只能从泛型参数开始推导")
-            tp = gtp_map[t.value]
-            assert not tp.token.is_reserved("typeof") and not tp.is_void
-            for attr_name_t, t, arr_dim_count in self.typeof_info[1 :]:
-                if t is None:
-                    #取属性的类型
-                    if tp.is_array:
-                        if attr_name_t.value == "size":
-                            tp = LONG_TYPE
-                        else:
-                            attr_name_t.syntax_err("不能对数组类型'%s'取属性" % tp)
-                    elif tp.token.is_reserved:
-                        attr_name_t.syntax_err("不能对基础类型'%s'取属性" % tp)
-                    else:
-                        tp = tp.get_coi().get_attr_type_info(attr_name_t, curr_module)
-                elif attr_name_t.is_reserved("new"):
-                    assert t.is_literal("int") and t.value > 0
-                    coi = None
-                    assert not tp.is_nil
-                    if tp.is_obj_type and not tp.is_array:
-                        coi = tp.get_coi()
-                        if not (coi.is_cls or coi.is_gcls_inst):
-                            coi = None
-                    if coi is None:
-                        attr_name_t.syntax_err("类型'%s'无构造方法，不能通过new取参数类型" % tp)
-                    ret_type, arg_type_list = coi.get_method_type_info(attr_name_t, curr_module)
-                    assert ret_type == VOID_TYPE
-                    if t.value > len(arg_type_list):
-                        attr_name_t.syntax_err("无法推导类'%s'的构造方法的第%d个参数：只有%d个参数" % (tp, t.value, len(arg_type_list)))
-                    tp = arg_type_list[t.value - 1]
-                else:
-                    if tp.is_array:
-                        attr_name_t.syntax_err("不能对数组类型'%s'取方法" % tp)
-                    #先找到对应的方法，基础类型则取ptm
-                    if tp.token.is_reserved:
-                        assert tp.is_bool_type or tp.is_number_type
-                        ptm_name = "__ptm_%s_%s" % (tp, attr_name_t.value)
-                        for m in curr_module, larc_module.builtins_module:
-                            if m.has_func(ptm_name):
-                                #造个假的token
-                                ptm_name_t = attr_name_t.copy()
-                                ptm_name_t.value = ptm_name
-                                ptm = m.get_func(ptm_name_t, [])
-                                break
-                        else:
-                            attr_name_t.syntax_err("未定义基础类型方法'%s'" % ptm_name)
-                        ret_type = ptm.type
-                        arg_type_list = list(ptm.arg_map.itervalues())
-                        assert arg_type_list[0] == tp
-                        arg_type_list = arg_type_list[1 :]
-                    else:
-                        ret_type, arg_type_list = tp.get_coi().get_method_type_info(attr_name_t, curr_module)
-                    if t.is_sym("("):
-                        #取方法返回值的类型
-                        if ret_type.is_void:
-                            attr_name_t.syntax_err("方法'%s.%s'返回void，不可typeof推导" % (tp, attr_name_t.value))
-                        tp = ret_type
-                    else:
-                        #取参数类型
-                        assert t.is_literal("int") and t.value > 0
-                        if t.value > len(arg_type_list):
-                            attr_name_t.syntax_err("无法推导方法'%s.%s'的第%d个参数：只有%d个参数" %
-                                                   (tp, attr_name_t.value, t.value, len(arg_type_list)))
-                        tp = arg_type_list[t.value - 1]
-                #解析出数组元素类型
-                if tp.array_dim_count < arr_dim_count:
-                    attr_name_t.syntax_err("类型'%s'不能做%d重取元素操作" % (tp, arr_dim_count))
-                for _ in xrange(arr_dim_count):
-                    tp = tp.to_elem_type()
-                assert not tp.token.is_reserved("typeof") and not tp.is_void
-            self.token = tp.token.copy_on_pos(self.token) #在当前位置创建一个一样的假token
-            self.name = tp.name
-            self.module_name = tp.module_name
-            self.gtp_list = tp.gtp_list
-            self.array_dim_count += tp.array_dim_count #数组维度是累加的
-            self._set_is_XXX()
-            return
         #构建find_path并查找类型，coi = cls_or_intf
         if self.module_name is None:
             if gtp_map is not None and self.name in gtp_map:
@@ -333,24 +207,24 @@ for _tp in "short", "int", "long":
 PTM_TYPE_LIST = [_tp for _tp in _BASE_TYPE_LIST if _tp != "void"]
 del _tp
 
-def parse_type(token_list, dep_module_map, is_ref = False, non_array = False, allow_typeof = False):
+def parse_type(token_list, dep_module_map, is_ref = False, non_array = False):
     if is_ref:
-        assert not non_array and not allow_typeof
+        assert not non_array
     t = token_list.pop()
-    if t.is_reserved and (t.value in _BASE_TYPE_LIST or t.value == "typeof"):
-        return _Type((t, t.value), token_list, dep_module_map, is_ref = is_ref, non_array = non_array, allow_typeof = allow_typeof)
+    if t.is_reserved and t.value in _BASE_TYPE_LIST:
+        return _Type((t, t.value), token_list, dep_module_map, is_ref = is_ref, non_array = non_array)
     if t.is_name:
         if t.value in dep_module_map:
             token_list.pop_sym(".")
             return _Type(token_list.pop_name(), token_list, dep_module_map, module_name = dep_module_map[t.value], is_ref = is_ref,
-                         non_array = non_array, allow_typeof = allow_typeof)
-        return _Type((t, t.value), token_list, dep_module_map, is_ref = is_ref, non_array = non_array, allow_typeof = allow_typeof)
+                         non_array = non_array)
+        return _Type((t, t.value), token_list, dep_module_map, is_ref = is_ref, non_array = non_array)
     t.syntax_err()
 
-def _try_parse_type(token_list, curr_module, dep_module_map, gtp_map, used_dep_module_set, allow_typeof):
+def _try_parse_type(token_list, curr_module, dep_module_map, gtp_map, used_dep_module_set):
     t = token_list.pop()
-    if t.is_reserved and (t.value in _BASE_TYPE_LIST or t.value == "typeof"):
-        tp = _Type((t, t.value), token_list, dep_module_map, allow_typeof = allow_typeof)
+    if t.is_reserved and t.value in _BASE_TYPE_LIST:
+        tp = _Type((t, t.value), token_list, dep_module_map)
         tp.check(curr_module, gtp_map, used_dep_module_set)
         larc_module.check_new_ginst_during_compile()
         return tp
@@ -361,36 +235,36 @@ def _try_parse_type(token_list, curr_module, dep_module_map, gtp_map, used_dep_m
             token_list.pop_sym(".")
             t, name = token_list.pop_name()
             if module.has_type(name):
-                tp = _Type((t, name), token_list, dep_module_map, module_name = module.name, allow_typeof = allow_typeof)
+                tp = _Type((t, name), token_list, dep_module_map, module_name = module.name)
                 tp.check(curr_module, gtp_map, used_dep_module_set)
                 larc_module.check_new_ginst_during_compile()
                 return tp
         else:
             if gtp_map is not None and name in gtp_map:
-                tp = _Type((t, name), token_list, dep_module_map, allow_typeof = allow_typeof)
+                tp = _Type((t, name), token_list, dep_module_map)
                 tp.check(curr_module, gtp_map, used_dep_module_set)
                 larc_module.check_new_ginst_during_compile()
                 return tp
             for module in curr_module, larc_module.builtins_module:
                 if module.has_type(name):
-                    tp = _Type((t, name), token_list, dep_module_map, module_name = module.name, allow_typeof = allow_typeof)
+                    tp = _Type((t, name), token_list, dep_module_map, module_name = module.name)
                     tp.check(curr_module, gtp_map, used_dep_module_set)
                     larc_module.check_new_ginst_during_compile()
                     return tp
     return None
 
 #若解析类型成功，则统一做check_new_ginst_during_compile，即这个函数只用于编译过程
-def try_parse_type(token_list, curr_module, dep_module_map, gtp_map, used_dep_module_set = None, allow_typeof = False):
+def try_parse_type(token_list, curr_module, dep_module_map, gtp_map, used_dep_module_set = None):
     revert_idx = token_list.i #用于解析失败时候回滚
-    ret = _try_parse_type(token_list, curr_module, dep_module_map, gtp_map, used_dep_module_set, allow_typeof)
+    ret = _try_parse_type(token_list, curr_module, dep_module_map, gtp_map, used_dep_module_set)
     if ret is None:
         token_list.revert(revert_idx)
     return ret
 
-def parse_gtp_list(token_list, dep_module_map, allow_typeof = False):
+def parse_gtp_list(token_list, dep_module_map):
     gtp_list = []
     while True:
-        tp = parse_type(token_list, dep_module_map, allow_typeof = allow_typeof)
+        tp = parse_type(token_list, dep_module_map)
         if tp.is_void or tp.is_array:
             tp.token.syntax_err("void或数组不可作为泛型参数传入")
         gtp_list.append(tp)
