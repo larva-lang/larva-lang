@@ -9,6 +9,7 @@ import shutil
 import sys
 import platform
 import subprocess
+import re
 
 import larc_common
 import larc_module
@@ -114,7 +115,7 @@ def _gen_coi_name(coi):
         #泛型实例还需增加泛型参数信息
         coi_name += "_%d" % len(coi.gtp_map)
         for tp in coi.gtp_map.itervalues():
-            coi_name += "_%s" % _gen_non_array_type_name(tp)
+            coi_name += "_%s" % _gen_type_name_code_with_out_star(tp)
     return coi_name
 
 def _gen_non_array_type_name(tp):
@@ -137,9 +138,18 @@ def _gen_type_name_code(tp):
         tp = tp.to_elem_type()
     _reg_new_arr_func_info(tp, array_dim_count)
     type_name_code = _gen_non_array_type_name(tp)
+    if array_dim_count > 0:
+        return "*lar_arr_%s_%d" % (type_name_code, array_dim_count)
     if type_name_code.startswith("lar_cls") or type_name_code.startswith("lar_gcls"):
         type_name_code = "*" + type_name_code
-    return "*[]" * array_dim_count + type_name_code
+    return type_name_code
+
+def _gen_type_name_code_with_out_star(tp):
+    c = _gen_type_name_code(tp)
+    if c[0] == "*":
+        c = c[1 :]
+    assert c and re.match("^\w*$", c) is not None
+    return c
 
 def _gen_new_arr_func_name_by_tp_name(tp_name, dim_count, new_dim_count):
     assert dim_count >= new_dim_count > 0
@@ -174,7 +184,7 @@ def _gen_func_name(func):
         #泛型实例还需增加泛型参数信息
         func_name += "_%d" % len(func.gtp_map)
         for tp in func.gtp_map.itervalues():
-            func_name += "_%s" % _gen_non_array_type_name(tp)
+            func_name += "_%s" % _gen_type_name_code_with_out_star(tp)
     return func_name
 
 def _output_main_pkg():
@@ -201,7 +211,7 @@ def _output_booter():
         with code.new_blk("func Lar_booter_start_prog() int"):
             code += "argv := %s(int64(len(os.Args)))" % (_gen_new_arr_func_name(larc_type.STR_TYPE, 1, 1))
             with code.new_blk("for i := 0; i < len(os.Args); i ++"):
-                code += "(*argv)[i] = lar_str_from_go_str(os.Args[i])"
+                code += "argv.arr[i] = lar_str_from_go_str(os.Args[i])"
             code += ("return lar_booter_start_prog(lar_env_init_mod_%s, %s, argv)" %
                      (_gen_module_name_code(larc_module.module_map[main_module_name]),
                       _gen_func_name(larc_module.module_map[main_module_name].get_main_func())))
@@ -331,11 +341,12 @@ def _gen_expr_code_ex(expr):
 
     if expr.op == "[]":
         arr_e, e = expr.arg
-        return "(*(%s))[%s]" % (_gen_expr_code(arr_e), _gen_expr_code(e))
+        return "(%s).arr[%s]" % (_gen_expr_code(arr_e), _gen_expr_code(e))
 
-    if expr.op == "array.size":
-        arr_e = expr.arg
-        return "int64(len(*(%s)))" % _gen_expr_code(arr_e)
+    if expr.op == "call_array.method":
+        e, method, expr_list = expr.arg
+        assert e.type.is_array
+        return "(%s).method_%s(%s)" % (_gen_expr_code(e), method.name, _gen_expr_list_code(expr_list))
 
     if expr.op == "str_format":
         fmt, expr_list = expr.arg
@@ -642,21 +653,35 @@ def _output_util():
 
     #生成util代码
     with _Code(os.path.join(out_prog_dir, "%s.util.go" % prog_module_name)) as code:
+        #生成数组相关代码
         for tp_name, dim_count in _new_arr_func_info_set:
             assert dim_count > 0
-            tp_name_code = tp_name
-            if tp_name.startswith("lar_cls") or tp_name.startswith("lar_gcls"):
-                tp_name_code = "*" + tp_name_code
+            #数组结构体名和元素类型的code
+            arr_tp_name = "lar_arr_%s_%d" % (tp_name, dim_count)
+            if dim_count == 1:
+                elem_tp_name_code = tp_name
+                if tp_name.startswith("lar_cls") or tp_name.startswith("lar_gcls"):
+                    elem_tp_name_code = "*" + elem_tp_name_code
+            else:
+                elem_tp_name_code = "*lar_arr_%s_%d" % (tp_name, dim_count - 1)
+            #数组结构体定义：元素的slice
+            with code.new_blk("type %s struct" % arr_tp_name):
+                code += "arr []%s" % elem_tp_name_code
+            #数组的方法
+            with code.new_blk("func (la *%s) method_size() int64" % arr_tp_name):
+                code += "return int64(len(la.arr))"
+            with code.new_blk("func (la *%s) method_get(idx int64) %s" % (arr_tp_name, elem_tp_name_code)):
+                code += "return la.arr[idx]"
+            with code.new_blk("func (la *%s) method_set(idx int64, elem %s)" % (arr_tp_name, elem_tp_name_code)):
+                code += "la.arr[idx] = elem"
+            #new数组的函数
             for new_dim_count in xrange(1, dim_count + 1):
                 new_arr_func_name = _gen_new_arr_func_name_by_tp_name(tp_name, dim_count, new_dim_count)
                 arg_code = ", ".join(["d%d_size" % i for i in xrange(new_dim_count)]) + " int64"
-                arr_tp_name_code = "*[]" * dim_count + tp_name_code
                 if new_dim_count == 1:
-                    elem_type_name_code = arr_tp_name_code[3 :]
-                    if (elem_type_name_code[0] == "*" or elem_type_name_code.startswith("lar_intf") or
-                        elem_type_name_code.startswith("lar_gintf")):
+                    if elem_tp_name_code[0] == "*" or elem_tp_name_code.startswith("lar_intf") or elem_tp_name_code.startswith("lar_gintf"):
                         elem_code = "nil"
-                    elif elem_type_name_code.startswith("bool"):
+                    elif elem_tp_name_code == "bool":
                         elem_code = "false"
                     else:
                         elem_code = "0"
@@ -664,11 +689,13 @@ def _output_util():
                     assert new_dim_count > 1
                     elem_code = "%s(%s)" % (_gen_new_arr_func_name_by_tp_name(tp_name, dim_count - 1, new_dim_count - 1), 
                                             ", ".join(["d%d_size" % i for i in xrange(1, new_dim_count)]))
-                with code.new_blk("func %s(%s) %s" % (new_arr_func_name, arg_code, arr_tp_name_code)):
-                    code += "arr := make(%s, d0_size)" % arr_tp_name_code[1 :]
+                with code.new_blk("func %s(%s) *%s" % (new_arr_func_name, arg_code, arr_tp_name)):
+                    code += "la := &%s{arr: make([]%s, d0_size)}" % (arr_tp_name, elem_tp_name_code)
                     with code.new_blk("for i := int64(0); i < d0_size; i ++"):
-                        code += "arr[i] = %s" % elem_code
-                    code += "return &arr"
+                        code += "la.arr[i] = %s" % elem_code
+                    code += "return la"
+
+        #traceback信息
         with code.new_blk("var lar_util_tb_map = map[lar_util_go_tb]*lar_util_lar_tb"):
             for (go_file_name, go_line_no), tb_info in _tb_map.iteritems():
                 if tb_info is None:
@@ -678,6 +705,8 @@ def _output_util():
                     code += ("lar_util_go_tb{file: %s, line: %d}: &lar_util_lar_tb{file: %s, line: %d, fom_name: %s}," %
                              (_gen_str_literal(go_file_name), go_line_no, _gen_str_literal(lar_file_name), lar_line_no,
                               _gen_str_literal(lar_fom_name)))
+
+        #native文件名映射信息
         with code.new_blk("var lar_util_native_file_name_map = map[string]string"):
             for out_nfn, in_nfn in _native_file_name_map.iteritems():
                 code += "%s: %s," % (_gen_str_literal(out_nfn), _gen_str_literal(in_nfn))

@@ -10,8 +10,8 @@ type lar_cls_@<<_String>> struct {
     s string
 }
 
-func lar_new_obj_lar_cls_@<<_String>>(arr *[]uint8) *lar_cls_@<<_String>> {
-    return &lar_cls_@<<_String>>{s: string(*arr)}
+func lar_new_obj_lar_cls_@<<_String>>(arr *lar_arr_uint8_1) *lar_cls_@<<_String>> {
+    return &lar_cls_@<<_String>>{s: string(arr.arr)}
 }
 
 func (this *lar_cls_@<<_String>>) method_len() int64 {
@@ -30,9 +30,8 @@ func (this *lar_cls_@<<_String>>) method_index(other *lar_cls_@<<String>>) int64
     return int64(strings.Index(this.s, other.m_s.s))
 }
 
-func (this *lar_cls_@<<_String>>) method_to_char_array() *[]uint8 {
-    arr := []uint8(this.s)
-    return &arr
+func (this *lar_cls_@<<_String>>) method_to_char_array() *lar_arr_uint8_1 {
+    return &lar_arr_uint8_1{arr: []uint8(this.s)}
 }
 
 func (this *lar_cls_@<<_String>>) method_hash() uint64 {

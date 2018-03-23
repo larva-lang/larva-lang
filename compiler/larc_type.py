@@ -34,17 +34,20 @@ class _Type:
         self._set_is_XXX()
 
     def _set_is_XXX(self):
-        self.is_array = self.array_dim_count > 0
+        assert self.array_dim_count >= 0
+        self.is_array = self.array_dim_count != 0
         self.is_nil = self.token.is_reserved("nil")
         self.is_obj_type = self.is_nil or self.is_array or self.token.is_name
         self.is_void = self.token.is_reserved("void")
-        self.is_bool_type = self.token.is_reserved("bool") and self.array_dim_count == 0
+        if self.is_void:
+            assert not self.is_array
+        self.is_bool_type = self.token.is_reserved("bool") and not self.is_array
         self.is_integer_type = (self.token.is_reserved and
                                 self.name in ("schar", "char", "short", "ushort", "int", "uint", "long", "ulong", "literal_int") and
-                                self.array_dim_count == 0)
+                                not self.is_array)
         self.is_unsigned_integer_type = self.is_integer_type and self.name in ("char", "ushort", "uint", "ulong", "literal_int")
         self.is_literal_int = self.is_integer_type and self.name == "literal_int"
-        self.is_float_type = self.token.is_reserved and self.name in ("float", "double") and self.array_dim_count == 0
+        self.is_float_type = self.token.is_reserved and self.name in ("float", "double") and not self.is_array
         self.is_number_type = self.is_integer_type or self.is_float_type
         self.can_inc_dec = self.is_integer_type
 
@@ -66,10 +69,9 @@ class _Type:
         return not self == other
 
     def to_array_type(self, array_dim_count):
-        assert self.array_dim_count == 0
         tp = _Type((self.token, self.name), None, None, module_name = self.module_name)
         tp.gtp_list = self.gtp_list
-        tp.array_dim_count = array_dim_count
+        tp.array_dim_count = self.array_dim_count + array_dim_count
         tp._set_is_XXX()
         return tp
 
@@ -116,6 +118,7 @@ class _Type:
             find_path = curr_module, larc_module.builtins_module
         else:
             find_path = larc_module.module_map[self.module_name],
+        #check并标准化coi类型，不影响是否为数组
         for m in find_path:
             coi = m.get_coi(self)
             if coi is not None:
@@ -131,6 +134,7 @@ class _Type:
             used_dep_module_set.add(self.module_name)
 
     def can_convert_from(self, type):
+        #确保已经check过了
         for tp in self, type:
             if tp.module_name is None:
                 assert tp.token.is_reserved and not tp.token.is_name
@@ -148,11 +152,15 @@ class _Type:
             #允许nil直接赋值给任何对象
             return True
         if self.is_obj_type and not self.is_array:
+            #目标类型为接口或类，非数组，分几种情况检查
             coi = self.get_coi()
             if coi.is_intf_any():
                 #任何类型都能赋值给Any接口
                 return True
-            if type.is_obj_type and not type.is_array:
+            if type.is_array:
+                #数组可以复制给实现了数组内建方法的接口
+                return coi.can_convert_from_array(type)
+            if type.is_obj_type:
                 from_coi = type.get_coi()
                 #若self是接口，则检查其他对象或接口到接口的转换
                 if coi.can_convert_from(from_coi):
@@ -165,35 +173,17 @@ class _Type:
             #能隐式转换，则也能强制转换
             return True
 
-        if type.is_obj_type and not type.is_array and type.get_coi().is_intf_any():
-            return True #Any接口可以强转任何类型，包括数组
-
-        #已排除有Any的情况
-
-        #存在数组的情形
-        if self.array_dim_count != type.array_dim_count:
-            #不同维度的数组肯定不能转换
+        if type.is_nil:
+            #无法隐式转nil，则肯定不能强转
             return False
-        if self.array_dim_count > 0:
-            #不同类型的数组也不能互相转
-            return False
-        assert not (self.is_array or type.is_array) #已排除数组
 
-        #存在基础类型的情形
-        if self.module_name is None:
-            if type.module_name is not None:
-                return False #基础类型和对象无法互相转换
-            #两个基础类型，只要都是number就可以
-            return self.is_number_type and type.is_number_type
-        if type.module_name is None:
-            return False #基础类型和对象无法互相转换
+        if not type.is_literal_int and type.can_convert_from(self):
+            #能反向隐式转换，则可以强转
+            return True
 
-        if self.is_obj_type and type.is_obj_type:
-            coi = self.get_coi()
-            from_coi = type.get_coi()
-            #若type是接口，则检查它到其他对象或接口的反向转换（正向的上面隐式转换判断了）
-            if from_coi.can_convert_from(coi):
-                return True
+        #接下来就是正反向都无法转换的情形，这时候还能强转的就只能是number类型之间的了
+        if self.is_number_type and type.is_number_type:
+            return True
 
         return False
 
@@ -265,8 +255,8 @@ def parse_gtp_list(token_list, dep_module_map):
     gtp_list = []
     while True:
         tp = parse_type(token_list, dep_module_map)
-        if tp.is_void or tp.is_array:
-            tp.token.syntax_err("void或数组不可作为泛型参数传入")
+        if tp.is_void:
+            tp.token.syntax_err("void类型不可作为泛型参数传入")
         gtp_list.append(tp)
         t = token_list.pop()
         if t.is_sym(","):
@@ -286,3 +276,49 @@ def gen_type_from_cls(cls):
     #这个类型没必要check了，校验一下get_coi正常就直接返回
     assert tp.get_coi() is cls
     return tp
+
+_ARRAY_ELEM_TYPE = object()
+_ARRAY_METHOD_MAP = {"size": (LONG_TYPE, []),
+                     "get":  (_ARRAY_ELEM_TYPE, [("idx", LONG_TYPE)]),
+                     "set":  (VOID_TYPE, [("idx", LONG_TYPE), ("elem", _ARRAY_ELEM_TYPE)])}
+def array_has_method(tp, method):
+    assert tp.is_array
+    elem_tp = tp.to_elem_type()
+    #查找方法
+    try:
+        ret_type, arg_list = _ARRAY_METHOD_MAP[method.name]
+    except KeyError:
+        return False
+    #检查参数个数
+    if len(arg_list) != len(method.arg_map):
+        return False
+    #检查类型匹配情况
+    for tp_want, tp_given in zip([ret_type] + [arg_type for arg_name, arg_type in arg_list], [method.type] + list(method.arg_map.itervalues())):
+        if tp_want is _ARRAY_ELEM_TYPE:
+            #替换为实际的元素类型进行比较
+            tp_want = elem_tp
+        #需要考虑ref修饰
+        if tp_want != tp_given or tp_want.is_ref != tp_given.is_ref:
+            return False
+    return True
+
+class _ArrayMethod:
+    def __init__(self, array_type, name):
+        assert array_type.is_array
+        elem_type = array_type.to_elem_type()
+        ret_type, arg_list = _ARRAY_METHOD_MAP[name]
+
+        self.decr_set = set(["public"])
+        self.name = name
+        self.type = elem_type if ret_type is _ARRAY_ELEM_TYPE else ret_type
+        self.arg_map = larc_common.OrderedDict()
+        for arg_name, arg_type in arg_list:
+            assert arg_name not in self.arg_map
+            self.arg_map[arg_name] = elem_type if arg_type is _ARRAY_ELEM_TYPE else arg_type
+
+def iter_array_method_list(tp):
+    for name in _ARRAY_METHOD_MAP:
+        yield _ArrayMethod(tp, name)
+
+def get_array_method(tp, name):
+    return _ArrayMethod(tp, name) if name in _ARRAY_METHOD_MAP else None

@@ -385,6 +385,7 @@ class Parser:
                 new_token = t
                 t = self.token_list.pop()
                 if t.is_sym("("):
+                    #todo new array(size)
                     t = self.token_list.peek()
                     expr_list = self._parse_expr_list(var_map_stk)
                     is_new_cls = False
@@ -402,7 +403,7 @@ class Parser:
                     if not is_new_cls:
                         #对基础类型或接口使用new语法
                         if base_type.is_void:
-                            t.syntax_err("不能创建void实例")
+                            new_token.syntax_err("不能创建void实例")
                         if len(expr_list) == 0:
                             #构建默认值的语法
                             parse_stk.push_expr(_Expr("default_value", base_type, base_type))
@@ -413,6 +414,7 @@ class Parser:
                         else:
                             t.syntax_err("基础类型或接口的new只能输入0或1个参数")
                 else:
+                    #todo new array[xx][]
                     if not t.is_sym("["):
                         t.syntax_err("需要'('或'['")
                     if base_type.is_void:
@@ -464,9 +466,14 @@ class Parser:
                     if obj.type.is_array:
                         #数组
                         t, name = self.token_list.pop_name()
-                        if name not in ("size",):
-                            t.syntax_err("数组没有'%s'属性" % name)
-                        parse_stk.stk[-1] = _Expr("array.size", parse_stk.stk[-1], larc_type.LONG_TYPE)
+                        method = larc_type.get_array_method(obj.type, name)
+                        if method is None:
+                            t.syntax_err("数组没有方法'%s'" % name)
+                        self.token_list.pop_sym("(")
+                        t = self.token_list.peek()
+                        expr_list = self._parse_expr_list(var_map_stk)
+                        self._make_expr_list_match_arg_map(t, expr_list, method.arg_map)
+                        parse_stk.stk[-1] = _Expr("call_array.method", (parse_stk.stk[-1], method, expr_list), method.type)
                     else:
                         t, name = self.token_list.pop_name()
                         if obj.type.is_void:

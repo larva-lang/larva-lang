@@ -92,6 +92,17 @@ class _CoiBase:
     def is_intf_any(self):
         return (self.is_intf or self.is_gintf_inst) and not self.method_map
 
+    def can_convert_from_array(self, tp):
+        if self.is_cls or self.is_gcls_inst:
+            #只能是到接口的转换
+            return False
+        #检查self接口的每个方法是否都符合此数组的内建方法格式
+        #和下面can_convert_from流程的区别在于这里不校验权限签名
+        for method in self.method_map.itervalues():
+            if not larc_type.array_has_method(tp, method):
+                return False
+        return True
+
     def can_convert_from(self, other):
         assert isinstance(other, _CoiBase) and self is not other
         if self.is_cls or self.is_gcls_inst:
@@ -123,19 +134,6 @@ class _CoiBase:
                     return False
         return True
 
-    def get_method_type_info(self, t, curr_module):
-        if t.is_reserved("new"):
-            assert self.is_cls or self.is_gcls_inst
-            method = self.construct_method
-        else:
-            assert t.is_name
-            if t.value not in self.method_map:
-                t.syntax_err("'%s'没有方法'%s'" % (self, t.value))
-            method = self.method_map[t.value]
-        if self.module is not curr_module and "public" not in method.decr_set:
-            t.syntax_err("无法访问'%s'的%s：没有权限" % (self, "方法'%s'" % t.value if t.is_name else "构造方法"))
-        return method.type, list(method.arg_map.itervalues())
-
 #下面_Cls和_GclsInst的基类，只用于定义一些通用属性和方法
 class _ClsBase(_CoiBase):
     def __init__(self):
@@ -158,16 +156,37 @@ class _ClsBase(_CoiBase):
         self.usemethod_stat = "expanding"
 
         #统计usemethod属性的类型并确保其中的类都扩展完毕
+        usemethod_array_list = []
         usemethod_coi_list = []
         for attr in self.attr_map.itervalues():
             if "usemethod" in attr.decr_set:
-                coi = attr.type.get_coi()
-                if isinstance(coi, (_Cls, _GclsInst)):
-                    coi.expand_usemethod(expand_chain + "." + attr.name)
-                usemethod_coi_list.append((attr, coi))
+                if attr.type.is_array:
+                    usemethod_array_list.append(attr)
+                else:
+                    coi = attr.type.get_coi()
+                    if isinstance(coi, (_Cls, _GclsInst)):
+                        coi.expand_usemethod(expand_chain + "." + attr.name)
+                    usemethod_coi_list.append((attr, coi))
 
         #列表中的类或接口的可见方法都use过来
         usemethod_map = larc_common.OrderedDict()
+        def check_usemethod_name(name):
+            if name in usemethod_map:
+                larc_common.exit("类'%s'对方法'%s'存在多个可能的usemethod来源" % (self, name))
+            if name in self.attr_map:
+                larc_common.exit("类'%s'中的属性'%s'和通过usemethod引入的方法同名" % (self, name))
+            if name in self.module.get_dep_module_map(self.file_name):
+                larc_common.exit("类'%s'通过usemethod引入的方法'%s'与导入模块同名" % (self, name))
+            if self.is_gcls_inst and name in self.gcls.gtp_name_list:
+                larc_common.exit("类'%s'通过usemethod引入的方法'%s'与泛型参数同名" % (self, name))
+        for attr in usemethod_array_list:
+            assert attr.type.is_array
+            for method in larc_type.iter_array_method_list(attr.type):
+                if method.name in self.method_map:
+                    #在本类已经重新实现的忽略
+                    continue
+                check_usemethod_name(method.name)
+                usemethod_map[method.name] = _UseMethod(self, attr, method)
         for attr, coi in usemethod_coi_list:
             for method in coi.method_map.itervalues():
                 if coi.module is not self.module and "public" not in method.decr_set:
@@ -176,14 +195,7 @@ class _ClsBase(_CoiBase):
                 if method.name in self.method_map:
                     #在本类已经重新实现的忽略
                     continue
-                if method.name in usemethod_map:
-                    larc_common.exit("类'%s'对方法'%s'存在多个可能的usemethod来源" % (self, method.name))
-                if method.name in self.attr_map:
-                    larc_common.exit("类'%s'中的属性'%s'和通过usemethod引入的方法同名" % (self, method.name))
-                if method.name in self.module.get_dep_module_map(self.file_name):
-                    larc_common.exit("类'%s'通过usemethod引入的方法'%s'与导入模块同名" % (self, method.name))
-                if self.is_gcls_inst and method.name in self.gcls.gtp_name_list:
-                    larc_common.exit("类'%s'通过usemethod引入的方法'%s'与泛型参数同名" % (self, method.name))
+                check_usemethod_name(method.name)
                 usemethod_map[method.name] = _UseMethod(self, attr, method)
         for method in usemethod_map.itervalues():
             assert method.name not in self.method_map
@@ -200,15 +212,6 @@ class _ClsBase(_CoiBase):
         if name in self.attr_map:
             return None, self.attr_map[name]
         token.syntax_err("类'%s'没有方法或属性'%s'" % (self, name))
-
-    def get_attr_type_info(self, t, curr_module):
-        assert t.is_name
-        if t.value not in self.attr_map:
-            t.syntax_err("类'%s'没有属性'%s'" % (self, t.value))
-        attr = self.attr_map[t.value]
-        if self.module is not curr_module and "public" not in attr.decr_set:
-            t.syntax_err("无法访问类'%s'的属性'%s'：没有权限" % (self, t.value))
-        return attr.type
 
 class _MethodBase:
     def __init__(self):
@@ -263,7 +266,7 @@ class _UseMethod(_MethodBase):
         _MethodBase.__init__(self)
 
         self.attr = attr
-        self.method = method
+        self.used_method = method
 
         self.cls = cls
         self.module = cls.module
@@ -272,7 +275,7 @@ class _UseMethod(_MethodBase):
         self.name = method.name
         self.arg_map = method.arg_map
 
-    __repr__ = __str__ = lambda self : "%s.usemethod[%s.%s]" % (self.cls, self.attr.name, self.method)
+    __repr__ = __str__ = lambda self : "%s.usemethod[%s.%s]" % (self.cls, self.attr.name, self.used_method)
 
 class _Cls(_ClsBase):
     def __init__(self, module, file_name, decr_set, name, gtp_name_list):
@@ -334,7 +337,7 @@ class _Cls(_ClsBase):
                 if type.name == "void":
                     t.syntax_err("属性类型不可为void")
                 while True:
-                    if "usemethod" in decr_set and (type.is_nil or type.is_array or not type.is_obj_type):
+                    if "usemethod" in decr_set and (type.is_nil or not type.is_obj_type):
                         t.syntax_err("usemethod不可用于类型'%s'" % type)
                     self.attr_map[name] = _Attr(self, decr_set, type, name)
                     if sym == ";":
@@ -504,10 +507,6 @@ class _IntfBase(_CoiBase):
         if name in self.method_map:
             return self.method_map[name], None
         token.syntax_err("接口'%s'没有方法'%s'" % (self, name))
-
-    def get_attr_type_info(self, t):
-        assert t.is_name
-        t.syntax_err("不能对接口'%s'进行取属性操作" % self)
 
 class _IntfMethod:
     def __init__(self, intf, decr_set, type, name, arg_map):
@@ -850,6 +849,8 @@ class Module:
                 larc_common.exit("内建模块缺少catch_base或catch函数")
             if len(self.func_map["catch_base"].arg_map) != 0 or len(self.func_map["catch"].arg_map) != 0:
                 larc_common.exit("函数catch_base和catch不能有输入参数")
+            if "_go_recovered" not in self.global_var_map:
+                larc_common.exit("内建模块缺少全局变量_go_recovered")
 
     __repr__ = __str__ = lambda self : self.name
 

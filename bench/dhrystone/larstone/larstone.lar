@@ -261,7 +261,7 @@ void Proc0()
 
 public int main(String[] args)
 {
-    if (args.size > 1)
+    if (args.size() > 1)
     {
         loops = (int)args[1].parse_long(0);
     }

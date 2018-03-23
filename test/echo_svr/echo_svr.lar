@@ -28,7 +28,7 @@ class Client
         var buf = new char[10000];
         while (true)
         {
-            long recved_size = m_sock.recv(buf, 0, buf.size);
+            long recved_size = m_sock.recv(buf, 0, buf.size());
             if (recved_size == 0)
             {
                 return;
