@@ -17,17 +17,24 @@ public T zero_value<T>()
     return t;
 }
 
-public bool is_instance_of<T>(Any a)
-{
-    return is_same_type(a, zero_value<T>());
-}
-
 public bool try_cast<T>(Any a, ref T t)
 {
-    if (is_same_type(a, t))
+    //由于T有可能是个接口，因此不能用is_same_type来判断
+    bool ok = false;
+
     {
+        defer
+        {
+            var c = catch<CastError>();
+            if (c != nil)
+            {
+                ok = false;
+            }
+        }
+
         t = (T)a;
-        return true;
+        ok = true;
     }
-    return false;
+
+    return ok;
 }
