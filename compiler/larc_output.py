@@ -711,19 +711,22 @@ def _output_util():
             for out_nfn, in_nfn in _native_file_name_map.iteritems():
                 code += "%s: %s," % (_gen_str_literal(out_nfn), _gen_str_literal(in_nfn))
 
-def _output_makefile():
-    if platform.system() in ("Darwin", "Linux"):
-        f = open(os.path.join(out_dir, "Makefile"), "w")
-        print >> f, "all:"
-        print >> f, '\t@export GOPATH=%s; go build -o %s src/lar_prog.%s.P.go' % (out_dir, prog_name, prog_name)
-    else:
-        larc_common.exit("不支持在平台'%s'生成make脚本" % platform.system())
-
 def _make_prog():
     if platform.system() in ("Darwin", "Linux"):
-        os.system("make -C %s" % out_dir)
+        try:
+            p = subprocess.Popen(["go", "env", "GOPATH"], stdout = subprocess.PIPE)
+        except OSError:
+            larc_common("无法执行go命令")
+        rc = p.wait()
+        if rc != 0:
+            larc_common("通过go env获取GOPATH失败")
+        go_path = p.stdout.read().strip()
+        os.environ["GOPATH"] = out_dir + ":" + go_path
+        rc = os.system("go build -o %s/%s %s/src/lar_prog.%s.P.go" % (out_dir, prog_name, out_dir, prog_name))
+        if rc != 0:
+            larc_common("go build失败")
     else:
-        raise Exception("Bug")
+        larc_common.exit("不支持在平台'%s'生成可执行程序" % platform.system())
 
 def _run_prog(args_for_run):
     if platform.system() in ("Darwin", "Linux"):
@@ -750,7 +753,6 @@ def output(need_run_prog, args_for_run):
     for curr_module in larc_module.module_map.itervalues():
         _output_module()
     _output_util()
-    _output_makefile()
     _make_prog()
     if need_run_prog:
         _run_prog(args_for_run)
