@@ -322,3 +322,8 @@ def iter_array_method_list(tp):
 
 def get_array_method(tp, name):
     return _ArrayMethod(tp, name) if name in _ARRAY_METHOD_MAP else None
+
+def get_array_construct_arg_map():
+    arg_map = larc_common.OrderedDict()
+    arg_map["size"] = LONG_TYPE
+    return arg_map

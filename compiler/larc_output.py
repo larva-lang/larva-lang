@@ -712,22 +712,21 @@ def _output_util():
                 code += "%s: %s," % (_gen_str_literal(out_nfn), _gen_str_literal(in_nfn))
 
 def _output_makefile():
-    if platform.system() == "Windows":
-        f = open(os.path.join(out_dir, "make.bat"), "w")
-        print >> f, "@set GOPATH=%s" % out_dir
-        print >> f, 'go build -o %s.exe src\\lar_prog.%s.P.go' % (prog_name, prog_name)
-    elif platform.system() in ("Darwin", "Linux"):
+    if platform.system() in ("Darwin", "Linux"):
         f = open(os.path.join(out_dir, "Makefile"), "w")
         print >> f, "all:"
         print >> f, '\t@export GOPATH=%s; go build -o %s src/lar_prog.%s.P.go' % (out_dir, prog_name, prog_name)
     else:
         larc_common.exit("不支持在平台'%s'生成make脚本" % platform.system())
 
-def _run_prog(args_for_run):
-    if platform.system() == "Windows":
-        larc_common.exit("Windows下不支持--run，请手动执行make.bat和编译出的exe")
-    elif platform.system() in ("Darwin", "Linux"):
+def _make_prog():
+    if platform.system() in ("Darwin", "Linux"):
         os.system("make -C %s" % out_dir)
+    else:
+        raise Exception("Bug")
+
+def _run_prog(args_for_run):
+    if platform.system() in ("Darwin", "Linux"):
         exe_file = os.path.join(out_dir, "%s" % prog_name)
     else:
         raise Exception("Bug")
@@ -752,5 +751,6 @@ def output(need_run_prog, args_for_run):
         _output_module()
     _output_util()
     _output_makefile()
+    _make_prog()
     if need_run_prog:
         _run_prog(args_for_run)

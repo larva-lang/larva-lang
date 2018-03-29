@@ -385,36 +385,44 @@ class Parser:
                 new_token = t
                 t = self.token_list.pop()
                 if t.is_sym("("):
-                    #todo new array(size)
                     t = self.token_list.peek()
                     expr_list = self._parse_expr_list(var_map_stk)
-                    is_new_cls = False
-                    if not base_type.token.is_reserved:
-                        new_coi = base_type.get_coi()
-                        if new_coi.is_cls or new_coi.is_gcls_inst:
-                            if "native" in new_coi.decr_set and new_coi.is_construct_method_auto_gened:
-                                assert new_coi.is_cls and "public" not in new_coi.construct_method.decr_set
-                                base_type.token.syntax_err("无法创建'%s'的实例：native类未显式定义构造方法" % new_coi)
-                            if new_coi.module is not self.curr_module and "public" not in new_coi.construct_method.decr_set:
-                                base_type.token.syntax_err("无法创建'%s'的实例：对构造方法无访问权限" % new_coi)
-                            self._make_expr_list_match_arg_map(t, expr_list, new_coi.construct_method.arg_map)
-                            parse_stk.push_expr(_Expr("new", expr_list, base_type))
-                            is_new_cls = True
-                    if not is_new_cls:
-                        #对基础类型或接口使用new语法
-                        if base_type.is_void:
-                            new_token.syntax_err("不能创建void实例")
-                        if len(expr_list) == 0:
-                            #构建默认值的语法
-                            parse_stk.push_expr(_Expr("default_value", base_type, base_type))
-                        elif len(expr_list) == 1:
-                            if not base_type.can_force_convert_from(expr_list[0].type):
-                                new_token.syntax_err("无法从类型'%s'转换到'%s'" % (expr_list[0].type, base_type))
-                            parse_stk.push_expr(_Expr("force_convert", (base_type, expr_list[0]), base_type))
-                        else:
-                            t.syntax_err("基础类型或接口的new只能输入0或1个参数")
+                    if base_type.is_array:
+                        arg_map = larc_type.get_array_construct_arg_map()
+                        self._make_expr_list_match_arg_map(t, expr_list, arg_map)
+                        size_list = [expr_list[0]]
+                        array_base_type = base_type.to_elem_type()
+                        while array_base_type.is_array:
+                            size_list.append(None)
+                            array_base_type = array_base_type.to_elem_type()
+                        parse_stk.push_expr(_Expr("new_array", (array_base_type, size_list), base_type))
+                    else:
+                        is_new_cls = False
+                        if not base_type.token.is_reserved:
+                            new_coi = base_type.get_coi()
+                            if new_coi.is_cls or new_coi.is_gcls_inst:
+                                if "native" in new_coi.decr_set and new_coi.is_construct_method_auto_gened:
+                                    assert new_coi.is_cls and "public" not in new_coi.construct_method.decr_set
+                                    base_type.token.syntax_err("无法创建'%s'的实例：native类未显式定义构造方法" % new_coi)
+                                if new_coi.module is not self.curr_module and "public" not in new_coi.construct_method.decr_set:
+                                    base_type.token.syntax_err("无法创建'%s'的实例：对构造方法无访问权限" % new_coi)
+                                self._make_expr_list_match_arg_map(t, expr_list, new_coi.construct_method.arg_map)
+                                parse_stk.push_expr(_Expr("new", expr_list, base_type))
+                                is_new_cls = True
+                        if not is_new_cls:
+                            #对基础类型或接口使用new语法
+                            if base_type.is_void:
+                                new_token.syntax_err("不能创建void实例")
+                            if len(expr_list) == 0:
+                                #构建默认值的语法
+                                parse_stk.push_expr(_Expr("default_value", base_type, base_type))
+                            elif len(expr_list) == 1:
+                                if not base_type.can_force_convert_from(expr_list[0].type):
+                                    new_token.syntax_err("无法从类型'%s'转换到'%s'" % (expr_list[0].type, base_type))
+                                parse_stk.push_expr(_Expr("force_convert", (base_type, expr_list[0]), base_type))
+                            else:
+                                t.syntax_err("基础类型或接口的new只能输入0或1个参数")
                 else:
-                    #todo new array[xx][]
                     if not t.is_sym("["):
                         t.syntax_err("需要'('或'['")
                     if base_type.is_void:
@@ -434,7 +442,11 @@ class Parser:
                         size_list.append(self.parse(var_map_stk, larc_type.VALID_ARRAY_IDX_TYPES))
                         init_dim_count += 1
                         self.token_list.pop_sym("]")
-                    parse_stk.push_expr(_Expr("new_array", (base_type, size_list), base_type.to_array_type(len(size_list))))
+                    array_base_type = base_type
+                    while array_base_type.is_array:
+                        array_base_type = array_base_type.to_elem_type()
+                        size_list.append(None)
+                    parse_stk.push_expr(_Expr("new_array", (array_base_type, size_list), array_base_type.to_array_type(len(size_list))))
             elif t.is_reserved("this"):
                 if self.cls is None:
                     t.syntax_err("'this'只能用于方法中")
