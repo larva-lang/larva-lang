@@ -21,11 +21,11 @@ func lar_new_obj_lar_cls_@<<_Error>>(e error) *lar_cls_@<<_Error>> {
         lne.is_temporary = ne.Temporary()
     }
     if op_err, ok := e.(*net.OpError); ok {
-		if syscall_err, ok := op_err.Err.(*os.SyscallError); ok {
-			if errno_err, ok := syscall_err.Err.(syscall.Errno); ok {
-				lne.errno = int32(errno_err)
-			}
-		}
+        if syscall_err, ok := op_err.Err.(*os.SyscallError); ok {
+            if errno_err, ok := syscall_err.Err.(syscall.Errno); ok {
+                lne.errno = int32(errno_err)
+            }
+        }
     }
     return lne
 }

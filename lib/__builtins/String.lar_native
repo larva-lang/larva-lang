@@ -102,7 +102,7 @@ func (this *lar_cls_@<<_String>>) method_parse_double() float64 {
 }
 
 func lar_str_from_go_str(s string) *lar_cls_@<<String>> {
-	return &lar_cls_@<<String>>{
+    return &lar_cls_@<<String>>{
         m_s: &lar_cls_@<<_String>>{
             s: s,
         },

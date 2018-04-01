@@ -1,7 +1,7 @@
 class Record
 
-	attr_reader :PtrComp, :Discr, :EnumComp, :IntComp, :StringComp
-	attr_writer :PtrComp, :Discr, :EnumComp, :IntComp, :StringComp
+    attr_reader :PtrComp, :Discr, :EnumComp, :IntComp, :StringComp
+    attr_writer :PtrComp, :Discr, :EnumComp, :IntComp, :StringComp
 
     def initialize()
         @PtrComp = nil
@@ -9,7 +9,7 @@ class Record
         @EnumComp = 0
         @IntComp = 0
         @StringComp = nil
-	end
+    end
 
     def assign(other)
         @PtrComp = other.PtrComp
@@ -17,7 +17,7 @@ class Record
         @EnumComp = other.EnumComp
         @IntComp = other.IntComp
         @StringComp = other.StringComp
-	end
+    end
 
 end
 
@@ -36,7 +36,7 @@ $Char2Glob = 0
 $Array1Glob = [0] * 51
 $Array2Glob = []
 for i in Range.new(1, 51)
-	$Array2Glob << [0] * 51
+    $Array2Glob << [0] * 51
 end
 
 $PtrGlb = nil
@@ -45,8 +45,8 @@ $PtrGlbNext = nil
 def func3(enumParIn)
     enumLoc = enumParIn
     if enumLoc == Ident3
-		return TRUE
-	end
+        return TRUE
+    end
     return FALSE
 end
 
@@ -56,11 +56,11 @@ def func2(strParI1, strParI2)
         if func1(strParI1[intLoc].bytes[0], strParI2[intLoc + 1].bytes[0]) == Ident1
             charLoc = 65
             intLoc += 1
-		end
-	end
+        end
+    end
     if charLoc >= 87 && charLoc <= 90
         intLoc = 7
-	end
+    end
     if charLoc == 88
         return TRUE
     else
@@ -69,8 +69,8 @@ def func2(strParI1, strParI2)
             return TRUE
         else
             return FALSE
-		end
-	end
+        end
+    end
 end
 
 def func1(charPar1, charPar2)
@@ -80,7 +80,7 @@ def func1(charPar1, charPar2)
         return Ident1
     else
         return Ident2
-	end
+    end
 end
 
 def proc8(array1Par, array2Par, intParI1, intParI2)
@@ -90,7 +90,7 @@ def proc8(array1Par, array2Par, intParI1, intParI2)
     array1Par[intLoc + 30] = intLoc
     for intIndex in [intLoc, intLoc + 1]
         array2Par[intLoc][intIndex] = intLoc
-	end
+    end
     array2Par[intLoc][intLoc - 1] += 1
     array2Par[intLoc + 20][intLoc] = array1Par[intLoc]
     $IntGlob = 5
@@ -106,7 +106,7 @@ def proc6(enumParIn)
     enumParOut = enumParIn
     if !func3(enumParIn)
         enumParOut = Ident4
-	end
+    end
     if enumParIn == Ident1
         enumParOut = Ident1
     elsif enumParIn == Ident2
@@ -114,13 +114,13 @@ def proc6(enumParIn)
             enumParOut = Ident1
         else
             enumParOut = Ident4
-		end
+        end
     elsif enumParIn == Ident3
         enumParOut = Ident2
     elsif enumParIn == Ident4
     elsif enumParIn == Ident5
         enumParOut = Ident3
-	end
+    end
     return enumParOut
 end
 
@@ -140,7 +140,7 @@ def proc3(ptrParOut)
         ptrParOut = $PtrGlb.PtrComp
     else
         $IntGlob = 100
-	end
+    end
     $PtrGlb.IntComp = proc7(10, $IntGlob)
     return ptrParOut
 end
@@ -152,17 +152,17 @@ def proc2(intParIO)
             intLoc = intLoc - 1
             intParIO = intLoc - $IntGlob
             enumLoc = Ident1
-		end
+        end
         if enumLoc == Ident1
             break
-		end
-	end
+        end
+    end
     return intParIO
 end
 
 def proc1(ptrParIn)
     nextRecord = ptrParIn.PtrComp
-	nextRecord.assign($PtrGlb)
+    nextRecord.assign($PtrGlb)
     ptrParIn.IntComp = 5
     nextRecord.IntComp = ptrParIn.IntComp
     nextRecord.PtrComp = ptrParIn.PtrComp
@@ -174,7 +174,7 @@ def proc1(ptrParIn)
         nextRecord.IntComp = proc7(nextRecord.IntComp, 10)
     else
         ptrParIn.assign(nextRecord)
-	end
+    end
     return ptrParIn
 end
 
@@ -202,21 +202,21 @@ def Proc0()
             intLoc3 = 5 * intLoc1 - intLoc2
             intLoc3 = proc7(intLoc1, intLoc2)
             intLoc1 = intLoc1 + 1
-		end
+        end
         proc8($Array1Glob, $Array2Glob, intLoc1, intLoc3)
         $PtrGlb = proc1($PtrGlb)
         charIndex = 65
         while charIndex <= $Char2Glob
             if enumLoc == func1(charIndex, 67)
                 enumLoc = proc6(Ident1)
-			end
+            end
             charIndex += 1
-		end
+        end
         intLoc3 = intLoc2 * intLoc1
         intLoc2 = intLoc3 / intLoc1
         intLoc2 = 7 * (intLoc3 - intLoc2) - intLoc1
         intLoc1 = proc2(intLoc1)
-	end
+    end
 end
 
 def main()
