@@ -49,7 +49,12 @@ Throwed: 抛出的异常的字符串描述
 
 func lar_exc_create_catched_throwable(t lar_intf_@<<Throwable>>, skip int) *lar_gcls_inst_@<<Catched>>_1_lar_intf_@<<Throwable>> {
     var tb_line_list []string
-    tb_line_list = append(tb_line_list, "Throwed: " + lar_str_to_go_str(t.method_str()))
+    t_type_name := "Throwed"
+    lri, ok := t.(lar_reflect_intf)
+    if ok {
+        t_type_name = lar_str_to_go_str(lri.lar_reflect_type_name())
+    }
+    tb_line_list = append(tb_line_list, t_type_name + ": " + lar_str_to_go_str(t.lar_method_str()))
     for i := skip; true; i ++ {
         pc, file, line, ok := runtime.Caller(i)
         if !ok {

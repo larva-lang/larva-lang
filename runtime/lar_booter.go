@@ -28,5 +28,5 @@ func lar_booter_start_co(co lar_intf_10___builtins_9_Coroutine) {
             lar_booter_exit_with_catched(c)
         }
     }()
-    co.method_run()
+    co.lar_method_run()
 }

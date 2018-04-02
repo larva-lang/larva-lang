@@ -1,0 +1,10 @@
+//无效larva对象
+public class NotLarvaObjectError
+{
+    public String str()
+    {
+        return "用于反射的对象不是合法的larva对象";
+    }
+}
+
+public native String type_name(Any a);

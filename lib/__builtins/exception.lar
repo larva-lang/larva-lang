@@ -126,7 +126,7 @@ public class CastError
 {
     public String str()
     {
-        return "";
+        return "类型转换失败";
     }
 }
 
@@ -136,7 +136,7 @@ public class ArrayIndexError
 {
     public String str()
     {
-        return "";
+        return "数组下标越界";
     }
 }
 public class IndexError

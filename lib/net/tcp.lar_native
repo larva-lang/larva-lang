@@ -25,11 +25,11 @@ func lar_new_obj_lar_cls_@<<_TcpListener>>(addr *lar_cls_@<<:String>>) *lar_cls_
     return &lar_cls_@<<_TcpListener>>{ntl: ntl}
 }
 
-func (this *lar_cls_@<<_TcpListener>>) method_addr() *lar_cls_@<<:String>> {
+func (this *lar_cls_@<<_TcpListener>>) lar_method_addr() *lar_cls_@<<:String>> {
     return lar_str_from_go_str(this.ntl.Addr().String())
 }
 
-func (this *lar_cls_@<<_TcpListener>>) method_accept() *lar_cls_@<<TcpConn>> {
+func (this *lar_cls_@<<_TcpListener>>) lar_method_accept() *lar_cls_@<<TcpConn>> {
     ntc, err := this.ntl.AcceptTCP()
     if err != nil {
         lar_func_@<<:throw>>(&lar_cls_@<<Error>>{
@@ -43,7 +43,7 @@ func (this *lar_cls_@<<_TcpListener>>) method_accept() *lar_cls_@<<TcpConn>> {
     }
 }
 
-func (this *lar_cls_@<<_TcpListener>>) method_close() {
+func (this *lar_cls_@<<_TcpListener>>) lar_method_close() {
     this.ntl.Close()
 }
 
@@ -51,16 +51,16 @@ type lar_cls_@<<_TcpConn>> struct {
     ntc *net.TCPConn
 }
 
-func (this *lar_cls_@<<_TcpConn>>) method_local_addr() *lar_cls_@<<:String>> {
+func (this *lar_cls_@<<_TcpConn>>) lar_method_local_addr() *lar_cls_@<<:String>> {
     return lar_str_from_go_str(this.ntc.LocalAddr().String())
 }
 
-func (this *lar_cls_@<<_TcpConn>>) method_remote_addr() *lar_cls_@<<:String>> {
+func (this *lar_cls_@<<_TcpConn>>) lar_method_remote_addr() *lar_cls_@<<:String>> {
     return lar_str_from_go_str(this.ntc.RemoteAddr().String())
 }
 
-func (this *lar_cls_@<<_TcpConn>>) method_send(buf *lar_arr_uint8_1, begin, length int64) {
-    buf_len := buf.method_size()
+func (this *lar_cls_@<<_TcpConn>>) lar_method_send(buf *lar_arr_uint8_1, begin, length int64) {
+    buf_len := buf.lar_method_size()
     end := begin + length
     if begin < 0 || begin > buf_len || end < 0 || end > buf_len || end < begin {
         lar_func_@<<:throw>>(lar_new_obj_lar_cls_@<<:RangeError>>(buf_len, begin, end))
@@ -75,8 +75,8 @@ func (this *lar_cls_@<<_TcpConn>>) method_send(buf *lar_arr_uint8_1, begin, leng
     }
 }
 
-func (this *lar_cls_@<<_TcpConn>>) method_recv(buf *lar_arr_uint8_1, begin, length int64) int64 {
-    buf_len := buf.method_size()
+func (this *lar_cls_@<<_TcpConn>>) lar_method_recv(buf *lar_arr_uint8_1, begin, length int64) int64 {
+    buf_len := buf.lar_method_size()
     end := begin + length
     if begin < 0 || begin > buf_len || end < 0 || end > buf_len || end < begin {
         lar_func_@<<:throw>>(lar_new_obj_lar_cls_@<<:RangeError>>(buf_len, begin, end))
@@ -95,6 +95,6 @@ func (this *lar_cls_@<<_TcpConn>>) method_recv(buf *lar_arr_uint8_1, begin, leng
     return int64(recved_len)
 }
 
-func (this *lar_cls_@<<_TcpConn>>) method_close() {
+func (this *lar_cls_@<<_TcpConn>>) lar_method_close() {
     this.ntc.Close()
 }

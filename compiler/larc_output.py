@@ -161,6 +161,7 @@ def _gen_new_arr_func_name(tp, dim_count, new_dim_count):
     return _gen_new_arr_func_name_by_tp_name(_gen_non_array_type_name(tp), dim_count, new_dim_count)
 
 _new_arr_func_info_set = set()
+_new_arr_func_info_tp_name_2_tp = {}
 def _reg_new_arr_func_info(tp, dim_count):
     if tp.is_void:
         return
@@ -168,6 +169,10 @@ def _reg_new_arr_func_info(tp, dim_count):
         dim_count += 1
         tp = tp.to_elem_type()
     tp_name = _gen_non_array_type_name(tp)
+    if tp_name in _new_arr_func_info_tp_name_2_tp:
+        assert _new_arr_func_info_tp_name_2_tp[tp_name] == tp
+    else:
+        _new_arr_func_info_tp_name_2_tp[tp_name] = tp
     while dim_count > 0:
         _new_arr_func_info_set.add((tp_name, dim_count))
         dim_count -= 1
@@ -346,7 +351,7 @@ def _gen_expr_code_ex(expr):
     if expr.op == "call_array.method":
         e, method, expr_list = expr.arg
         assert e.type.is_array
-        return "(%s).method_%s(%s)" % (_gen_expr_code(e), method.name, _gen_expr_list_code(expr_list))
+        return "(%s).lar_method_%s(%s)" % (_gen_expr_code(e), method.name, _gen_expr_list_code(expr_list))
 
     if expr.op == "str_format":
         fmt, expr_list = expr.arg
@@ -358,7 +363,7 @@ def _gen_expr_code_ex(expr):
 
     if expr.op == "call_method":
         e, method, expr_list = expr.arg
-        return "(%s).method_%s(%s)" % (_gen_expr_code(e), method.name, _gen_expr_list_code(expr_list))
+        return "(%s).lar_method_%s(%s)" % (_gen_expr_code(e), method.name, _gen_expr_list_code(expr_list))
 
     if expr.op == ".":
         e, attr = expr.arg
@@ -383,7 +388,7 @@ def _gen_expr_code_ex(expr):
 
     if expr.op == "call_this.method":
         method, expr_list = expr.arg
-        return "this.method_%s(%s)" % (method.name, _gen_expr_list_code(expr_list))
+        return "this.lar_method_%s(%s)" % (method.name, _gen_expr_list_code(expr_list))
 
     raise Exception("Bug")
 
@@ -571,7 +576,12 @@ def _output_module():
                         code.record_tb_info(gv.expr.pos_info)
                         code += "%s = %s" % (_gen_gv_name(gv), _gen_expr_code(gv.expr))
 
+        def output_reflect_method(code):
+            code += "var lar_reflect_type_name_%s = lar_str_from_go_str(%s)" % (lar_cls_name, _gen_str_literal(str(cls)))
+            with code.new_blk("func (this *%s) lar_reflect_type_name() %s" % (lar_cls_name, _gen_type_name_code(larc_type.STR_TYPE))):
+                code += "return lar_reflect_type_name_%s" % lar_cls_name
         for cls in [i for i in module.cls_map.itervalues() if not i.gtp_name_list] + list(module.gcls_inst_map.itervalues()):
+            lar_cls_name = _gen_coi_name(cls)
             if "native" in cls.decr_set:
                 for attr in cls.attr_map.itervalues():
                     _reg_new_arr_func_info(attr.type, 0)
@@ -579,18 +589,18 @@ def _output_module():
                     _reg_new_arr_func_info(method.type, 0)
                     for tp in method.arg_map.itervalues():
                         _reg_new_arr_func_info(tp, 0)
+                output_reflect_method(code)
                 continue
-            lar_cls_name = _gen_coi_name(cls)
             with code.new_blk("type %s struct" % (lar_cls_name)):
                 for attr in cls.attr_map.itervalues():
                     code += "m_%s %s" % (attr.name, _gen_type_name_code(attr.type))
             with code.new_blk("func lar_new_obj_%s(%s) *%s" % (lar_cls_name, _gen_arg_def(cls.construct_method.arg_map), lar_cls_name)):
                 code += "o := new(%s)" % lar_cls_name
                 code.record_tb_info(_POS_INFO_IGNORE)
-                code += "o.method_%s(%s)" % (cls.name, ", ".join(["l_%s" % name for name in cls.construct_method.arg_map]))
+                code += "o.lar_method_%s(%s)" % (cls.name, ", ".join(["l_%s" % name for name in cls.construct_method.arg_map]))
                 code += "return o"
             for method in [cls.construct_method] + list(cls.method_map.itervalues()):
-                with code.new_blk("func (this *%s) method_%s(%s) %s" %
+                with code.new_blk("func (this *%s) lar_method_%s(%s) %s" %
                                   (lar_cls_name, method.name, _gen_arg_def(method.arg_map), _gen_type_name_code(method.type))):
                     if method.is_method:
                         _output_stmt_list(code, method.stmt_list, method, 0, _NEST_LOOP_INVALID, need_check_defer = False)
@@ -598,14 +608,15 @@ def _output_module():
                     else:
                         assert method.is_usemethod
                         code.record_tb_info((method.attr.type.token, "<usemethod>"))
-                        code += ("%sthis.m_%s.method_%s(%s)" %
+                        code += ("%sthis.m_%s.lar_method_%s(%s)" %
                                  ("" if method.type.is_void else "return ", method.attr.name, method.name,
                                   ", ".join(["l_%s" % name for name in method.arg_map])))
+            output_reflect_method(code)
 
         for intf in [i for i in module.intf_map.itervalues() if not i.gtp_name_list] + list(module.gintf_inst_map.itervalues()):
             with code.new_blk("type %s interface" % (_gen_coi_name(intf))):
                 for method in intf.method_map.itervalues():
-                    code += "method_%s(%s) %s" % (method.name, _gen_arg_def(method.arg_map), _gen_type_name_code(method.type))
+                    code += "lar_method_%s(%s) %s" % (method.name, _gen_arg_def(method.arg_map), _gen_type_name_code(method.type))
 
         for func in [i for i in module.func_map.itervalues() if not i.gtp_name_list] + list(module.gfunc_inst_map.itervalues()):
             if "native" in func.decr_set:
@@ -668,12 +679,16 @@ def _output_util():
             with code.new_blk("type %s struct" % arr_tp_name):
                 code += "arr []%s" % elem_tp_name_code
             #数组的方法
-            with code.new_blk("func (la *%s) method_size() int64" % arr_tp_name):
+            with code.new_blk("func (la *%s) lar_method_size() int64" % arr_tp_name):
                 code += "return int64(len(la.arr))"
-            with code.new_blk("func (la *%s) method_get(idx int64) %s" % (arr_tp_name, elem_tp_name_code)):
+            with code.new_blk("func (la *%s) lar_method_get(idx int64) %s" % (arr_tp_name, elem_tp_name_code)):
                 code += "return la.arr[idx]"
-            with code.new_blk("func (la *%s) method_set(idx int64, elem %s)" % (arr_tp_name, elem_tp_name_code)):
+            with code.new_blk("func (la *%s) lar_method_set(idx int64, elem %s)" % (arr_tp_name, elem_tp_name_code)):
                 code += "la.arr[idx] = elem"
+            #输出数组的反射接口
+            code += "var lar_reflect_type_name_%s = lar_str_from_go_str(%s)" % (arr_tp_name, _gen_str_literal(tp_name + "[]" * dim_count))
+            with code.new_blk("func (la *%s) lar_reflect_type_name() %s" % (arr_tp_name, _gen_type_name_code(larc_type.STR_TYPE))):
+                code += "return lar_reflect_type_name_%s" % arr_tp_name
             #new数组的函数
             for new_dim_count in xrange(1, dim_count + 1):
                 new_arr_func_name = _gen_new_arr_func_name_by_tp_name(tp_name, dim_count, new_dim_count)
@@ -716,15 +731,15 @@ def _make_prog():
         try:
             p = subprocess.Popen(["go", "env", "GOPATH"], stdout = subprocess.PIPE)
         except OSError:
-            larc_common("无法执行go命令")
+            larc_common.exit("无法执行go命令")
         rc = p.wait()
         if rc != 0:
-            larc_common("通过go env获取GOPATH失败")
+            larc_common.exit("通过go env获取GOPATH失败")
         go_path = p.stdout.read().strip()
         os.environ["GOPATH"] = out_dir + ":" + go_path
         rc = os.system("go build -o %s/%s %s/src/lar_prog.%s.P.go" % (out_dir, prog_name, out_dir, prog_name))
         if rc != 0:
-            larc_common("go build失败")
+            larc_common.exit("go build失败")
     else:
         larc_common.exit("不支持在平台'%s'生成可执行程序" % platform.system())
 

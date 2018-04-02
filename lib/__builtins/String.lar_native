@@ -14,27 +14,27 @@ func lar_new_obj_lar_cls_@<<_String>>(arr *lar_arr_uint8_1) *lar_cls_@<<_String>
     return &lar_cls_@<<_String>>{s: string(arr.arr)}
 }
 
-func (this *lar_cls_@<<_String>>) method_len() int64 {
+func (this *lar_cls_@<<_String>>) lar_method_len() int64 {
     return int64(len(this.s))
 }
 
-func (this *lar_cls_@<<_String>>) method_char_at(idx int64) uint8 {
+func (this *lar_cls_@<<_String>>) lar_method_char_at(idx int64) uint8 {
     return this.s[idx]
 }
 
-func (this *lar_cls_@<<_String>>) method_cmp(other *lar_cls_@<<String>>) int32 {
+func (this *lar_cls_@<<_String>>) lar_method_cmp(other *lar_cls_@<<String>>) int32 {
     return int32(strings.Compare(this.s, other.m_s.s))
 }
 
-func (this *lar_cls_@<<_String>>) method_index(other *lar_cls_@<<String>>) int64 {
+func (this *lar_cls_@<<_String>>) lar_method_index(other *lar_cls_@<<String>>) int64 {
     return int64(strings.Index(this.s, other.m_s.s))
 }
 
-func (this *lar_cls_@<<_String>>) method_to_char_array() *lar_arr_uint8_1 {
+func (this *lar_cls_@<<_String>>) lar_method_to_char_array() *lar_arr_uint8_1 {
     return &lar_arr_uint8_1{arr: []uint8(this.s)}
 }
 
-func (this *lar_cls_@<<_String>>) method_hash() uint64 {
+func (this *lar_cls_@<<_String>>) lar_method_hash() uint64 {
     var h uint64
     s := this.s
     sl := len(s)
@@ -44,7 +44,7 @@ func (this *lar_cls_@<<_String>>) method_hash() uint64 {
     return h
 }
 
-func (this *lar_cls_@<<_String>>) method_concat(other *lar_cls_@<<String>>) *lar_cls_@<<String>> {
+func (this *lar_cls_@<<_String>>) lar_method_concat(other *lar_cls_@<<String>>) *lar_cls_@<<String>> {
     return &lar_cls_@<<String>>{
         m_s: &lar_cls_@<<_String>>{
             s: this.s + other.m_s.s,
@@ -52,7 +52,7 @@ func (this *lar_cls_@<<_String>>) method_concat(other *lar_cls_@<<String>>) *lar
     }
 }
 
-func (this *lar_cls_@<<_String>>) method_parse_bool() bool {
+func (this *lar_cls_@<<_String>>) lar_method_parse_bool() bool {
     s := this.s
     r, err := strconv.ParseBool(s)
     if err != nil {
@@ -61,7 +61,7 @@ func (this *lar_cls_@<<_String>>) method_parse_bool() bool {
     return r
 }
 
-func (this *lar_cls_@<<_String>>) method_parse_long(base int32) int64 {
+func (this *lar_cls_@<<_String>>) lar_method_parse_long(base int32) int64 {
     s := this.s
     r, err := strconv.ParseInt(s, int(base), 64)
     if err != nil {
@@ -76,7 +76,7 @@ func (this *lar_cls_@<<_String>>) method_parse_long(base int32) int64 {
     return r
 }
 
-func (this *lar_cls_@<<_String>>) method_parse_ulong(base int32) uint64 {
+func (this *lar_cls_@<<_String>>) lar_method_parse_ulong(base int32) uint64 {
     s := this.s
     r, err := strconv.ParseUint(s, int(base), 64)
     if err != nil {
@@ -91,7 +91,7 @@ func (this *lar_cls_@<<_String>>) method_parse_ulong(base int32) uint64 {
     return r
 }
 
-func (this *lar_cls_@<<_String>>) method_parse_double() float64 {
+func (this *lar_cls_@<<_String>>) lar_method_parse_double() float64 {
     s := this.s
     r, err := strconv.ParseFloat(s, 64)
     if err != nil {
