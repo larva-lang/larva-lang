@@ -9,5 +9,14 @@ func lar_func_@<<print>>(s *lar_cls_@<<String>>) {
 }
 
 func lar_func_@<<is_same_type>>(a1, a2 lar_intf_@<<Any>>) bool {
+    //用go自身的反射判断
+    //这里不能用larva自己的反射，因为当a1或a2不是larva对象的时候会抛异常，而此函数又可能在异常处理被递归调用
     return reflect.TypeOf(a1) == reflect.TypeOf(a2)
+}
+
+//larva反射接口，所有被编译的larva class都要实现这个接口，由编译器保证
+//native class的对应方法的代码也由编译器生成，lar_native代码中不需要自己实现
+//reflect模块中传入的Any对象若不是larva基础类型或对象，则视为非法输入，会抛出NotLarvaObjectError
+type lar_reflect_intf interface {
+    lar_reflect_type_name() *lar_cls_@<<String>>
 }

@@ -845,6 +845,10 @@ class Module:
             #内建模块需要做一些必要的检查
             if "String" not in self.cls_map: #必须有String类
                 larc_common.exit("内建模块缺少String类")
+            if "ArrayIter" not in self.cls_map or len(self.cls_map["ArrayIter"].gtp_name_list) != 1: #必须有ArrayIter<E>
+                larc_common.exit("内建模块缺少泛型类ArrayIter<E>")
+            if "Iter" not in self.intf_map or len(self.intf_map["Iter"].gtp_name_list) != 1: #必须有Iter<E>
+                larc_common.exit("内建模块缺少泛型接口Iter<E>")
             if "catch_base" not in self.func_map or "catch" not in self.func_map:
                 larc_common.exit("内建模块缺少catch_base或catch函数")
             if len(self.func_map["catch_base"].arg_map) != 0 or len(self.func_map["catch"].arg_map) != 0:

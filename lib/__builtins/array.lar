@@ -1,0 +1,61 @@
+/*
+数组在作为对象使用时的泛型等价代码，供参考：
+
+public class Array<E>
+{
+    public Array(long size)
+    {
+        arr = new E[size];
+        arr_size = size;
+    }
+
+    public long size()
+    {
+        return arr_size;
+    }
+
+    public E get(long idx)
+    {
+        return arr[idx];
+    }
+
+    public void set(long idx, E elem)
+    {
+        arr[idx] = elem;
+    }
+
+    E[] arr;
+    long arr_size;
+}
+
+*/
+
+//数组的迭代器
+public class ArrayIter<E>
+{
+    public ArrayIter(E[] a)
+    {
+        arr = a;
+        idx = 0;
+    }
+
+    public Iter<E> iter()
+    {
+        return this;
+    }
+
+    public bool has_next()
+    {
+        return idx < arr.size();
+    }
+
+    public E next()
+    {
+        E e = arr[idx];
+        ++ idx;
+        return e;
+    }
+
+    E[] arr;
+    long idx;
+}

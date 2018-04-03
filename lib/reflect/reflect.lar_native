@@ -1,11 +1,7 @@
 package LARVA_NATIVE
 
-//larva反射接口，所有被编译的larva class都要实现这个接口，由编译器保证
-//native class的对应方法的代码也由编译器生成，lar_native代码中不需要自己实现
-//reflect模块中传入的Any对象若不是larva基础类型或对象，则视为非法输入，会抛出NotLarvaObjectError
-type lar_reflect_intf interface {
-    lar_reflect_type_name() *lar_cls_@<<:String>>
-}
+//type lar_reflect_intf interface
+//lar_reflect_intf的定义放在__builtin的util.lar_native中，因为比较基础，runtime和__builtins可能需要
 
 var (
     lar_reflect_type_name_nil_intf = lar_str_from_go_str("<nil interface>")

@@ -32,6 +32,8 @@ class _Type:
                 self.array_dim_count += 1
         self.is_ref = is_ref
         self._set_is_XXX()
+        self.is_checked = False
+        self.is_freezed = False
 
     def _set_is_XXX(self):
         assert self.array_dim_count >= 0
@@ -61,6 +63,16 @@ class _Type:
         return s
     __str__ = __repr__
 
+    def __setattr__(self, name, value):
+        if self.__dict__.get("is_freezed", False):
+            raise Exception("Bug")
+        self.__dict__[name] = value
+
+    def __delattr__(self, name):
+        if self.__dict__.get("is_freezed", False):
+            raise Exception("Bug")
+        del self.__dict__[name]
+
     def __eq__(self, other):
         return (self.name == other.name and self.module_name == other.module_name and self.gtp_list == other.gtp_list and
                 self.array_dim_count == other.array_dim_count)
@@ -68,11 +80,15 @@ class _Type:
     def __ne__(self, other):
         return not self == other
 
+    def __hash__(self):
+        return hash(str(self))
+
     def to_array_type(self, array_dim_count):
         tp = _Type((self.token, self.name), None, None, module_name = self.module_name)
         tp.gtp_list = self.gtp_list
         tp.array_dim_count = self.array_dim_count + array_dim_count
         tp._set_is_XXX()
+        tp.set_is_checked()
         return tp
 
     def to_elem_type(self):
@@ -81,6 +97,7 @@ class _Type:
         tp.gtp_list = self.gtp_list
         tp.array_dim_count = self.array_dim_count - 1
         tp._set_is_XXX()
+        tp.set_is_checked()
         return tp
 
     def get_coi(self):
@@ -90,7 +107,19 @@ class _Type:
         assert coi is not None
         return coi
 
+    #check完成或无需check的时候
+    def set_is_checked(self):
+        self.is_checked = True
+        self.is_freezed = True #锁住type，禁止更改
+        if self.is_array:
+            _reg_array(self) #注册数组信息
+
     def check(self, curr_module, gtp_map = None, used_dep_module_set = None):
+        if not self.is_checked:
+            self._check(curr_module, gtp_map, used_dep_module_set)
+            self.set_is_checked()
+
+    def _check(self, curr_module, gtp_map, used_dep_module_set):
         if self.token.is_reserved:
             #忽略基础类型（及其数组类型）
             assert not self.gtp_list
@@ -189,7 +218,9 @@ class _Type:
 
 for _tp in _BASE_TYPE_LIST + ("literal_int", "nil"):
     exec '%s_TYPE = _Type((larc_token.make_fake_token_reserved("%s"), "%s"), None, None)' % (_tp.upper(), _tp, _tp)
+    exec "%s_TYPE.set_is_checked()" % _tp.upper()
 STR_TYPE = _Type((larc_token.make_fake_token_name("String"), "String"), None, None, module_name = "__builtins")
+STR_TYPE.set_is_checked()
 VALID_ARRAY_IDX_TYPES = [SCHAR_TYPE, CHAR_TYPE]
 for _tp in "short", "int", "long":
     VALID_ARRAY_IDX_TYPES.append(eval("%s_TYPE" % _tp.upper()))
@@ -274,13 +305,25 @@ def gen_type_from_cls(cls):
     if cls.is_gcls_inst:
         tp.gtp_list = list(cls.gtp_map.itervalues())
     #这个类型没必要check了，校验一下get_coi正常就直接返回
+    tp.set_is_checked()
     assert tp.get_coi() is cls
     return tp
 
 _ARRAY_ELEM_TYPE = object()
+_ARRAY_ITER_TYPE = object()
 _ARRAY_METHOD_MAP = {"size": (LONG_TYPE, []),
                      "get":  (_ARRAY_ELEM_TYPE, [("idx", LONG_TYPE)]),
-                     "set":  (VOID_TYPE, [("idx", LONG_TYPE), ("elem", _ARRAY_ELEM_TYPE)])}
+                     "set":  (VOID_TYPE, [("idx", LONG_TYPE), ("elem", _ARRAY_ELEM_TYPE)]),
+                     "iter": (_ARRAY_ITER_TYPE, [])}
+
+def _gen_array_iter_type(elem_tp):
+    t = larc_token.make_fake_token_name("Iter").copy_on_pos(elem_tp.token) #在当前位置弄个假token
+    iter_tp = _Type((t, t.value), None, None, module_name = "__builtins")
+    iter_tp.gtp_list = [elem_tp] #设置elem_tp为泛型参数
+    iter_tp.get_coi() #触发一下，这里也是check里面做的流程
+    iter_tp.set_is_checked() #锁住
+    return iter_tp
+
 def array_has_method(tp, method):
     assert tp.is_array
     elem_tp = tp.to_elem_type()
@@ -297,6 +340,9 @@ def array_has_method(tp, method):
         if tp_want is _ARRAY_ELEM_TYPE:
             #替换为实际的元素类型进行比较
             tp_want = elem_tp
+        if tp_want is _ARRAY_ITER_TYPE:
+            #替换为迭代器接口类型
+            tp_want = _gen_array_iter_type(elem_tp)
         #需要考虑ref修饰
         if tp_want != tp_given or tp_want.is_ref != tp_given.is_ref:
             return False
@@ -307,14 +353,22 @@ class _ArrayMethod:
         assert array_type.is_array
         elem_type = array_type.to_elem_type()
         ret_type, arg_list = _ARRAY_METHOD_MAP[name]
+        if ret_type is _ARRAY_ELEM_TYPE:
+            ret_type = elem_type
+        if ret_type is _ARRAY_ITER_TYPE:
+            ret_type = _gen_array_iter_type(elem_type)
 
         self.decr_set = set(["public"])
         self.name = name
-        self.type = elem_type if ret_type is _ARRAY_ELEM_TYPE else ret_type
+        self.type = ret_type
         self.arg_map = larc_common.OrderedDict()
         for arg_name, arg_type in arg_list:
             assert arg_name not in self.arg_map
-            self.arg_map[arg_name] = elem_type if arg_type is _ARRAY_ELEM_TYPE else arg_type
+            if arg_type is _ARRAY_ELEM_TYPE:
+                arg_type = elem_type
+            if arg_type is _ARRAY_ITER_TYPE:
+                arg_type = _gen_array_iter_type(elem_type)
+            self.arg_map[arg_name] = arg_type
 
 def iter_array_method_list(tp):
     for name in _ARRAY_METHOD_MAP:
@@ -327,3 +381,16 @@ def get_array_construct_arg_map():
     arg_map = larc_common.OrderedDict()
     arg_map["size"] = LONG_TYPE
     return arg_map
+
+array_type_set = set()
+def _reg_array(tp):
+    assert tp.is_array
+    while tp.is_array and tp not in array_type_set:
+        array_type_set.add(tp)
+        tp = tp.to_elem_type()
+        #注册了一个新的数组，且tp是其元素，用tp构建一个ArrayIter的instance
+        t = larc_token.make_fake_token_name("ArrayIter").copy_on_pos(tp.token) #在当前位置弄个假token
+        array_iter_tp = _Type((t, t.value), None, None, module_name = "__builtins")
+        array_iter_tp.gtp_list = [tp] #设置tp为泛型参数
+        array_iter_tp.get_coi() #通过get_coi触发构建ArrayIter instance，由于ArrayIter<E>的实现中存在Iter<E>，后者也会被自动创建
+        array_iter_tp.set_is_checked() #锁住

@@ -1,0 +1,13 @@
+//迭代器接口
+public interface Iter<E>
+{
+    public Iter<E> iter(); //迭代器本身也是可迭代的
+    public bool has_next(); //判断是否还有元素
+    public E next(); //获取下一个元素，并且Iter向前进一步
+}
+
+//可迭代类型的接口
+public interface Iterable<E>
+{
+    public Iter<E> iter();
+}

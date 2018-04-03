@@ -136,7 +136,6 @@ def _gen_type_name_code(tp):
     array_dim_count = tp.array_dim_count
     while tp.is_array:
         tp = tp.to_elem_type()
-    _reg_new_arr_func_info(tp, array_dim_count)
     type_name_code = _gen_non_array_type_name(tp)
     if array_dim_count > 0:
         return "*lar_arr_%s_%d" % (type_name_code, array_dim_count)
@@ -157,25 +156,7 @@ def _gen_new_arr_func_name_by_tp_name(tp_name, dim_count, new_dim_count):
 
 def _gen_new_arr_func_name(tp, dim_count, new_dim_count):
     assert not tp.is_array and dim_count >= new_dim_count > 0
-    _reg_new_arr_func_info(tp, dim_count)
     return _gen_new_arr_func_name_by_tp_name(_gen_non_array_type_name(tp), dim_count, new_dim_count)
-
-_new_arr_func_info_set = set()
-_new_arr_func_info_tp_name_2_tp = {}
-def _reg_new_arr_func_info(tp, dim_count):
-    if tp.is_void:
-        return
-    while tp.is_array:
-        dim_count += 1
-        tp = tp.to_elem_type()
-    tp_name = _gen_non_array_type_name(tp)
-    if tp_name in _new_arr_func_info_tp_name_2_tp:
-        assert _new_arr_func_info_tp_name_2_tp[tp_name] == tp
-    else:
-        _new_arr_func_info_tp_name_2_tp[tp_name] = tp
-    while dim_count > 0:
-        _new_arr_func_info_set.add((tp_name, dim_count))
-        dim_count -= 1
 
 def _gen_func_name(func):
     for i in "func", "gfunc_inst":
@@ -332,7 +313,6 @@ def _gen_expr_code_ex(expr):
 
     if expr.op == "new_array":
         tp, size_list = expr.arg
-        _reg_new_arr_func_info(tp, len(size_list))
         try:
             new_dim_count = size_list.index(None)
         except ValueError:
@@ -583,12 +563,6 @@ def _output_module():
         for cls in [i for i in module.cls_map.itervalues() if not i.gtp_name_list] + list(module.gcls_inst_map.itervalues()):
             lar_cls_name = _gen_coi_name(cls)
             if "native" in cls.decr_set:
-                for attr in cls.attr_map.itervalues():
-                    _reg_new_arr_func_info(attr.type, 0)
-                for method in [cls.construct_method] + list(cls.method_map.itervalues()):
-                    _reg_new_arr_func_info(method.type, 0)
-                    for tp in method.arg_map.itervalues():
-                        _reg_new_arr_func_info(tp, 0)
                 output_reflect_method(code)
                 continue
             with code.new_blk("type %s struct" % (lar_cls_name)):
@@ -620,9 +594,6 @@ def _output_module():
 
         for func in [i for i in module.func_map.itervalues() if not i.gtp_name_list] + list(module.gfunc_inst_map.itervalues()):
             if "native" in func.decr_set:
-                _reg_new_arr_func_info(func.type, 0)
-                for tp in func.arg_map.itervalues():
-                    _reg_new_arr_func_info(tp, 0)
                 continue
             if module.name == "__builtins" and func.name in ("catch_base", "catch"):
                 assert not func.arg_map
@@ -665,8 +636,12 @@ def _output_util():
     #生成util代码
     with _Code(os.path.join(out_prog_dir, "%s.util.go" % prog_module_name)) as code:
         #生成数组相关代码
-        for tp_name, dim_count in _new_arr_func_info_set:
-            assert dim_count > 0
+        for tp in larc_type.array_type_set:
+            assert tp.is_array
+            dim_count = tp.array_dim_count
+            while tp.is_array:
+                tp = tp.to_elem_type()
+            tp_name = _gen_non_array_type_name(tp)
             #数组结构体名和元素类型的code
             arr_tp_name = "lar_arr_%s_%d" % (tp_name, dim_count)
             if dim_count == 1:
@@ -685,6 +660,9 @@ def _output_util():
                 code += "return la.arr[idx]"
             with code.new_blk("func (la *%s) lar_method_set(idx int64, elem %s)" % (arr_tp_name, elem_tp_name_code)):
                 code += "la.arr[idx] = elem"
+            with code.new_blk("func (la *%s) lar_method_iter() lar_gintf_inst_10___builtins_4_Iter_1_%s" %
+                              (arr_tp_name, elem_tp_name_code.lstrip("*"))):
+                code += "return lar_new_obj_lar_gcls_inst_10___builtins_9_ArrayIter_1_%s(la)" % elem_tp_name_code.lstrip("*")
             #输出数组的反射接口
             code += "var lar_reflect_type_name_%s = lar_str_from_go_str(%s)" % (arr_tp_name, _gen_str_literal(tp_name + "[]" * dim_count))
             with code.new_blk("func (la *%s) lar_reflect_type_name() %s" % (arr_tp_name, _gen_type_name_code(larc_type.STR_TYPE))):
