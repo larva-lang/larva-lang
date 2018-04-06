@@ -225,7 +225,6 @@ VALID_ARRAY_IDX_TYPES = [SCHAR_TYPE, CHAR_TYPE]
 for _tp in "short", "int", "long":
     VALID_ARRAY_IDX_TYPES.append(eval("%s_TYPE" % _tp.upper()))
     VALID_ARRAY_IDX_TYPES.append(eval("U%s_TYPE" % _tp.upper()))
-PTM_TYPE_LIST = [_tp for _tp in _BASE_TYPE_LIST if _tp != "void"]
 del _tp
 
 def parse_type(token_list, dep_module_map, is_ref = False, non_array = False):

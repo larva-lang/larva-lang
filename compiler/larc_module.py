@@ -1082,15 +1082,6 @@ class Module:
             assert sym == "}"
 
         self.func_map[name] = _Func(self, file_name, decr_set, type, name, gtp_name_list, arg_map, block_token_list)
-        if name.startswith("__ptm_"):
-            l = name[6 :].split("_")
-            if len(l) < 2 or l[0] not in larc_type.PTM_TYPE_LIST:
-                name_t.syntax_err("非法的基础类型方法名")
-            ptm_tp = l[0]
-            if gtp_name_list:
-                name_t.syntax_err("基础类型方法不能实现为泛型函数")
-            if len(arg_map) == 0 or arg_map.value_at(0) != eval("larc_type.%s_TYPE" % ptm_tp.upper()):
-                name_t.syntax_err("基础类型方法的第一个参数类型必须和方法所属类型一致：需要[%s]" % ptm_tp)
 
     def check_type_for_non_ginst(self):
         for map in self.cls_map, self.intf_map, self.func_map:
