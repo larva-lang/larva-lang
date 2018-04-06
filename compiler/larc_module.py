@@ -426,8 +426,8 @@ class _GclsInstMethod(_MethodBase):
             tp.check(self.cls.gcls.module, self.cls.gtp_map)
 
     def compile(self):
-        self.stmt_list = larc_stmt.Parser(self.block_token_list, self.module, self.module.get_dep_module_map(self.cls.gcls.file_name),
-                                          self.cls, self.cls.gtp_map, self).parse((self.arg_map.copy(),), 0, 0)
+        self.stmt_list = larc_stmt.Parser(self.block_token_list, self.module, self.module.get_dep_module_map(self.cls.file_name), self.cls,
+                                          self.cls.gtp_map, self).parse((self.arg_map.copy(),), 0, 0)
         self.block_token_list.pop_sym("}")
         assert not self.block_token_list
         del self.block_token_list
@@ -464,6 +464,7 @@ class _GclsInst(_ClsBase):
         self.module = gcls.module
         self.decr_set = gcls.decr_set
         self.name = gcls.name
+        self.file_name = gcls.file_name
         self._init_attr_and_method()
         self.type_checked = False
         self.usemethod_stat = "to_expand"
@@ -497,6 +498,8 @@ class _GclsInst(_ClsBase):
             return False
         self.construct_method.compile()
         for method in self.method_map.itervalues():
+            if isinstance(method, _UseMethod):
+                continue
             method.compile()
         self.compiled = True
         return True

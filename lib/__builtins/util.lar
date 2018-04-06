@@ -3,11 +3,7 @@ public interface Any
 }
 
 public native void print(String s);
-public void println(String s)
-{
-    print(s);
-    print("\n");
-}
+public native void println(String s);
 
 public native bool is_same_type(Any a1, Any a2);
 

@@ -195,3 +195,16 @@ public class ValueError
 
     usemethod Exception e;
 }
+
+//超时错误，用于操作超时时抛出
+public class TimeoutError
+{
+    public TimeoutError()
+    {
+    }
+
+    public String str()
+    {
+        return "超时";
+    }
+}

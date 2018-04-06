@@ -1,0 +1,36 @@
+//Channel通讯类，简单通过go的chan interface{}来实现，性能稍差，但如果要实现Chan<T>和chan T的对应则必须修改或新增语法，后面再考虑改进
+
+native class _ChanAny
+{
+    _ChanAny(long buf_size);
+
+    public long size();
+    public long buf_size();
+
+    void send(Any data);
+    Any recv();
+}
+
+public class Chan<T>
+{
+    public Chan(long buf_size)
+    {
+        if (buf_size < 0)
+        {
+            throw(new ValueError("%d".(buf_size)));
+        }
+        ch = new _ChanAny(buf_size);
+    }
+
+    public void send(T data)
+    {
+        ch.send(data);
+    }
+
+    public T recv()
+    {
+        return (T)ch.recv();
+    }
+
+    usemethod _ChanAny ch;
+}

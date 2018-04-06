@@ -1,0 +1,25 @@
+package LARVA_NATIVE
+
+type lar_cls_@<<_ChanAny>> struct {
+    ch chan lar_intf_@<<:Any>>
+}
+
+func lar_new_obj_lar_cls_@<<_ChanAny>>(buf_size int64) *lar_cls_@<<_ChanAny>> {
+    return &lar_cls_@<<_ChanAny>>{ch: make(chan lar_intf_@<<:Any>>, buf_size)}
+}
+
+func (this *lar_cls_@<<_ChanAny>>) lar_method_size() int64 {
+    return int64(len(this.ch))
+}
+
+func (this *lar_cls_@<<_ChanAny>>) lar_method_buf_size() int64 {
+    return int64(cap(this.ch))
+}
+
+func (this *lar_cls_@<<_ChanAny>>) lar_method_send(data lar_intf_@<<:Any>>) {
+    this.ch <- data
+}
+
+func (this *lar_cls_@<<_ChanAny>>) lar_method_recv() lar_intf_@<<:Any>> {
+    return <- this.ch
+}

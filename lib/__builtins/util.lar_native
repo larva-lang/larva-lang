@@ -1,11 +1,16 @@
 package LARVA_NATIVE
 
 import (
+    "fmt"
     "reflect"
 )
 
 func lar_func_@<<print>>(s *lar_cls_@<<String>>) {
-    print(lar_str_to_go_str(s))
+    fmt.Print(lar_str_to_go_str(s))
+}
+
+func lar_func_@<<println>>(s *lar_cls_@<<String>>) {
+    fmt.Println(lar_str_to_go_str(s))
 }
 
 func lar_func_@<<is_same_type>>(a1, a2 lar_intf_@<<Any>>) bool {
