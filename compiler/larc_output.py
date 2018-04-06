@@ -662,7 +662,7 @@ def _output_util():
                 code += "la.arr[idx] = elem"
             with code.new_blk("func (la *%s) lar_method_iter() lar_gintf_inst_10___builtins_4_Iter_1_%s" %
                               (arr_tp_name, elem_tp_name_code.lstrip("*"))):
-                code += "return lar_new_obj_lar_gcls_inst_10___builtins_9_ArrayIter_1_%s(la)" % elem_tp_name_code.lstrip("*")
+                code += "return lar_new_obj_lar_gcls_inst_10___builtins_9_ArrayIter_1_%s(la, 0)" % elem_tp_name_code.lstrip("*")
             #输出数组的反射接口
             code += "var lar_reflect_type_name_%s = lar_str_from_go_str(%s)" % (arr_tp_name, _gen_str_literal(tp_name + "[]" * dim_count))
             with code.new_blk("func (la *%s) lar_reflect_type_name() %s" % (arr_tp_name, _gen_type_name_code(larc_type.STR_TYPE))):

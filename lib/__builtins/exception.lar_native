@@ -39,7 +39,7 @@ Traceback:
   File '文件', line 行号, in 函数或方法名或<module> //larva代码的tb信息
   File '文件', line 行号                            //非larva代码的tb信息
   ......
-Throwed: 抛出的异常的字符串描述
+异常类型名: 抛出的异常的字符串描述
 
 其中堆栈信息的方向是从栈底开始显示，即每行信息是下一行的调用者
 

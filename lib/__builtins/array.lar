@@ -33,10 +33,10 @@ public class Array<E>
 //数组的迭代器
 public class ArrayIter<E>
 {
-    public ArrayIter(E[] a)
+    public ArrayIter(E[] a, long i)
     {
         arr = a;
-        idx = 0;
+        idx = i;
     }
 
     public Iter<E> iter()
@@ -44,16 +44,57 @@ public class ArrayIter<E>
         return this;
     }
 
-    public bool has_next()
+    public Iter<E> copy()
     {
-        return idx < arr.size();
+        return new ArrayIter<E>(arr, idx);
     }
 
-    public E next()
+    public bool before_begin()
     {
-        E e = arr[idx];
+        return idx < 0;
+    }
+
+    public bool after_end()
+    {
+        return idx >= arr.size();
+    }
+
+    public E get()
+    {
+        return arr[idx];
+    }
+
+    public void set(E e)
+    {
+        arr[idx] = e;
+    }
+
+    public void inc()
+    {
+        if (before_begin())
+        {
+            idx = 0;
+            return;
+        }
+        if (after_end())
+        {
+            throw(new ArrayIndexError());
+        }
         ++ idx;
-        return e;
+    }
+
+    public void dec()
+    {
+        if (before_begin())
+        {
+            throw(new ArrayIndexError());
+        }
+        if (after_end())
+        {
+            idx = arr.size() - 1;
+            return;
+        }
+        -- idx;
     }
 
     E[] arr;
