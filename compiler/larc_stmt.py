@@ -4,6 +4,9 @@
 编译larva语句
 """
 
+import os
+import sys
+
 import larc_common
 import larc_token
 import larc_expr
@@ -43,15 +46,76 @@ class Parser:
         self.gtp_map = gtp_map
         self.fom = fom
         self.expr_parser = larc_expr.Parser(token_list, module, dep_module_map, cls, gtp_map, fom)
+        self.ccc_use_deep = 0
 
     def parse(self, var_map_stk, loop_deep, defer_deep):
         assert var_map_stk
         stmt_list = _StmtList(var_map_stk[-1])
+        top_ccc_use_deep = self.ccc_use_deep
         while True:
             if self.token_list.peek().is_sym("}"):
+                assert self.ccc_use_deep == top_ccc_use_deep
                 break
 
             t = self.token_list.pop()
+
+            if t.is_ccc("use"):
+                self.ccc_use_deep += 1
+                while True:
+                    fd_r, fd_w = os.pipe()
+                    pid = os.fork()
+                    if pid == 0:
+                        #子进程，注册管道fd后继续尝试编译
+                        os.close(fd_r)
+                        larc_common.reg_err_report_fd(fd_w)
+                        work_ccc_use_deep = self.ccc_use_deep #记录子进程工作的deep
+                        break
+                    #父进程，等待子进程的编译结果，若失败则继续下一个use block
+                    os.close(fd_w)
+                    compile_result = os.read(fd_r, 1)
+                    assert compile_result in ("0", "1")
+                    if compile_result == "1":
+                        #成功，父进程在这个point继续编译
+                        break
+                    #失败了，跳过这个use block继续尝试下一个
+                    revert_idx = self.token_list.i #用于最后一个use block的回滚
+                    nested_ccc_use_deep = 0
+                    while True:
+                        t = self.token_list.pop()
+                        if t.is_ccc("use"):
+                            nested_ccc_use_deep += 1
+                        elif t.is_ccc("oruse"):
+                            if nested_ccc_use_deep == 0:
+                                break
+                        elif t.is_ccc("enduse"):
+                            if nested_ccc_use_deep == 0:
+                                self.token_list.revert(revert_idx)
+                                break
+                            nested_ccc_use_deep -= 1
+                    if self.token_list.i == revert_idx:
+                        #已经是最后一个了，以这个为准
+                        break
+                continue
+            if t.is_ccc and t.value in ("oruse", "enduse"):
+                assert self.ccc_use_deep > top_ccc_use_deep
+                fd = larc_common.get_err_report_fd()
+                if fd >= 0 and self.ccc_use_deep == work_ccc_use_deep:
+                    #子进程尝试成功，汇报给父进程
+                    os.write(fd, "1")
+                    sys.exit(0)
+                #当前进程为一个父进程，成功选择了一个use block，跳到enduse继续编译
+                nested_ccc_use_deep = 0
+                while True:
+                    if t.is_ccc("use"):
+                        nested_ccc_use_deep += 1
+                    if t.is_ccc("enduse"):
+                        if nested_ccc_use_deep == 0:
+                            break
+                        nested_ccc_use_deep -= 1
+                    t = self.token_list.pop()
+                self.ccc_use_deep -= 1
+                continue
+
             if t.is_sym(";"):
                 continue
             if t.is_sym("{"):

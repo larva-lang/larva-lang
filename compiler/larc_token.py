@@ -35,6 +35,9 @@ _RESERVED_WORD_SET = set(["import", "class", "void", "bool", "schar", "char", "s
                           "double", "ref", "for", "while", "if", "else", "return", "nil", "true", "false", "break", "continue", "this",
                           "public", "interface", "new", "usemethod", "native", "var", "defer", "as"])
 
+#编译控制命令集
+_COMPILING_CTRL_CMD_SET = set(["use", "oruse", "enduse"])
+
 class _Token:
     def __init__(self, type, value, src_file, line_no, pos):
         self.id = larc_common.new_id()
@@ -82,6 +85,16 @@ class _Token:
                 return self and self.token.value == word
         self.is_reserved = IsReserved(self)
         self.is_name = self.type == "word" and self.value not in _RESERVED_WORD_SET
+
+        class IsCcc:
+            def __init__(self, token):
+                self.token = token
+            def __nonzero__(self):
+                return self.token.type == "ccc"
+            def __call__(self, ccc):
+                assert ccc in _COMPILING_CTRL_CMD_SET, str(ccc)
+                return self and self.token.value == ccc
+        self.is_ccc = IsCcc(self)
 
     def __str__(self):
         return """<token %r, %d, %d, %r>""" % (self.src_file, self.line_no, self.pos + 1, self.value)
@@ -373,6 +386,15 @@ def parse_token_list(src_file):
             in_comment = False
         else:
             pos = 0
+            if line.lstrip("\t\x20").startswith("#"):
+                #编译控制命令
+                pos = line.find("#")
+                assert pos >= 0
+                ccc = line[pos + 1 :].strip("\t\x20")
+                if ccc not in _COMPILING_CTRL_CMD_SET:
+                    _syntax_err(src_file, line_no, pos, "非法的编译控制命令'%s'" % ccc)
+                token_list.append(_Token("ccc", ccc, src_file, line_no, pos))
+                continue
 
         #解析当前行token
         while pos < len(line):
@@ -421,8 +443,17 @@ def parse_token_list_until_sym(token_list, end_sym_set):
         if t.is_sym and t.value in ("(", "[", "{"):
             stk.append(t)
         if t.is_sym and t.value in (")", "]", "}"):
-            if not stk or t.value != {"(" : ")", "[" : "]", "{" : "}"}[stk[-1].value]:
+            if not (stk and stk[-1].is_sym and t.value == {"(" : ")", "[" : "]", "{" : "}"}[stk[-1].value]):
                 t.syntax_err("未匹配的'%s'" % t.value)
+            stk.pop()
+        if t.is_ccc("use"):
+            stk.append(t)
+        if t.is_ccc("oruse"):
+            if not (stk and stk[-1].is_ccc("use")):
+                t.syntax_err("未匹配的'#oruse'")
+        if t.is_ccc("enduse"):
+            if not (stk and stk[-1].is_ccc("use")):
+                t.syntax_err("未匹配的'#enduse'")
             stk.pop()
 
 def gen_empty_token_list(end_sym):

@@ -4,7 +4,18 @@
 编译器公共定义
 """
 
+import os
 import sys
+
+_err_report_fd = -1
+
+def reg_err_report_fd(fd):
+    global _err_report_fd
+    assert fd >= 0
+    _err_report_fd = fd
+
+def get_err_report_fd():
+    return _err_report_fd
 
 def _output_ginst_create_chain():
     import larc_module
@@ -20,9 +31,12 @@ def _output_ginst_create_chain():
         print ginst.creator_token.pos_desc(), ginst
 
 def exit(msg):
-    print >> sys.stderr, u"错误：" + msg.decode("utf8")
-    _output_ginst_create_chain()
-    print
+    if _err_report_fd >= 0:
+        os.write(_err_report_fd, "0")
+    else:
+        print >> sys.stderr, u"错误：" + msg.decode("utf8")
+        _output_ginst_create_chain()
+        print
     sys.exit(1)
 
 def warning(msg):
