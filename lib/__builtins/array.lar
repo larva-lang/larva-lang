@@ -1,31 +1,13 @@
 /*
-数组在作为对象使用时的泛型等价代码，供参考：
+数组也可作为对象使用，接口说明：
 
 public class Array<E>
 {
-    public Array(long size)
-    {
-        arr = new E[size];
-        arr_size = size;
-    }
-
-    public long size()
-    {
-        return arr_size;
-    }
-
-    public E get(long idx)
-    {
-        return arr[idx];
-    }
-
-    public void set(long idx, E elem)
-    {
-        arr[idx] = elem;
-    }
-
-    E[] arr;
-    long arr_size;
+    public Array(long size);            //this = new E[size]
+    public long size();                 //返回数组大小
+    public E get(long idx);             //this[idx]
+    public void set(long idx, E elem);  //this[idx] = elem
+    public Iter<E> iter();              //返回一个数组迭代器ArrayIter<E>
 }
 
 */

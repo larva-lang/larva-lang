@@ -22,7 +22,7 @@ def _find_module_file(module_path_list, module_name):
     #按模块查找路径逐个目录找
     assert module_path_list
     if module_name == "__builtins":
-        mpl = [module_path_list[-1]] #__builtins比较特殊，只从lib_dir找
+        mpl = [module_path_list[0]] #__builtins比较特殊，只从lib_dir找
     else:
         mpl = module_path_list
     for module_dir in mpl:
@@ -57,7 +57,7 @@ def main():
     #通用目录
     compiler_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
     lib_dir = os.path.join(os.path.dirname(compiler_dir), "lib")
-    module_path_list.append(lib_dir)
+    module_path_list = [lib_dir] + module_path_list
     larc_module.find_module_file = find_module_file = lambda mn: _find_module_file(module_path_list, mn)
 
     #预处理builtins模块

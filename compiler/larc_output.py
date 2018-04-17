@@ -601,8 +601,16 @@ def _output_module():
             else:
                 arg_def = _gen_arg_def(func.arg_map)
             with code.new_blk("func %s(%s) %s" % (_gen_func_name(func), arg_def, _gen_type_name_code(func.type))):
-                _output_stmt_list(code, func.stmt_list, func, 0, _NEST_LOOP_INVALID, need_check_defer = False)
-                code += "return %s" % _gen_default_value_code(func.type)
+                if module.name == "__builtins" and func.name == "try_cast":
+                    var_name = func.arg_map.key_at(0)
+                    cast_ref_name = func.arg_map.key_at(1)
+                    cast_tp = func.arg_map.value_at(1)
+                    code += "var ok bool"
+                    code += "*l_%s, ok = l_%s.(%s)" % (cast_ref_name, var_name, _gen_type_name_code(cast_tp))
+                    code += "return ok"
+                else:
+                    _output_stmt_list(code, func.stmt_list, func, 0, _NEST_LOOP_INVALID, need_check_defer = False)
+                    code += "return %s" % _gen_default_value_code(func.type)
 
     #输出native实现
     for sub_mod_name, nf in module.native_file_map.iteritems():
