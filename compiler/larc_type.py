@@ -325,6 +325,9 @@ def _gen_array_iter_type(elem_tp):
 
 def array_has_method(tp, method):
     assert tp.is_array
+    #必须是public方法
+    if "public" not in method.decr_set:
+        return False
     elem_tp = tp.to_elem_type()
     #查找方法
     try:

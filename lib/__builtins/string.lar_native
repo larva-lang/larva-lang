@@ -34,7 +34,7 @@ func (this *lar_cls_@<<_String>>) lar_method_to_char_array() *lar_arr_uint8_1 {
     return &lar_arr_uint8_1{arr: []uint8(this.s)}
 }
 
-func (this *lar_cls_@<<_String>>) lar_method_hash() uint64 {
+func (this *lar_cls_@<<_String>>) lar_method_@<<hash>>() uint64 {
     var h uint64
     s := this.s
     sl := len(s)

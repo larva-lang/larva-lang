@@ -97,7 +97,6 @@ class _CoiBase:
             #只能是到接口的转换
             return False
         #检查self接口的每个方法是否都符合此数组的内建方法格式
-        #和下面can_convert_from流程的区别在于这里不校验权限签名
         for method in self.method_map.itervalues():
             if not larc_type.array_has_method(tp, method):
                 return False

@@ -232,6 +232,11 @@ def _gen_default_value_code(tp):
     assert tp.is_obj_type
     return "nil"
 
+def _gen_method_name_code(method):
+    if "public" in method.decr_set:
+        return "lar_method_" + method.name
+    return "lar_method_%s_%d_%s" % (_gen_module_name_code(method.module), len(method.name), method.name)
+
 def _gen_se_expr_code(expr):
     if expr.expr is None:
         assert expr.op in ("++", "--")
@@ -331,7 +336,7 @@ def _gen_expr_code_ex(expr):
     if expr.op == "call_array.method":
         e, method, expr_list = expr.arg
         assert e.type.is_array
-        return "(%s).lar_method_%s(%s)" % (_gen_expr_code(e), method.name, _gen_expr_list_code(expr_list))
+        return "(%s).%s(%s)" % (_gen_expr_code(e), _gen_method_name_code(method), _gen_expr_list_code(expr_list))
 
     if expr.op == "str_format":
         fmt, expr_list = expr.arg
@@ -343,7 +348,7 @@ def _gen_expr_code_ex(expr):
 
     if expr.op == "call_method":
         e, method, expr_list = expr.arg
-        return "(%s).lar_method_%s(%s)" % (_gen_expr_code(e), method.name, _gen_expr_list_code(expr_list))
+        return "(%s).%s(%s)" % (_gen_expr_code(e), _gen_method_name_code(method), _gen_expr_list_code(expr_list))
 
     if expr.op == ".":
         e, attr = expr.arg
@@ -368,7 +373,7 @@ def _gen_expr_code_ex(expr):
 
     if expr.op == "call_this.method":
         method, expr_list = expr.arg
-        return "this.lar_method_%s(%s)" % (method.name, _gen_expr_list_code(expr_list))
+        return "this.%s(%s)" % (_gen_method_name_code(method), _gen_expr_list_code(expr_list))
 
     raise Exception("Bug")
 
@@ -571,26 +576,31 @@ def _output_module():
             with code.new_blk("func lar_new_obj_%s(%s) *%s" % (lar_cls_name, _gen_arg_def(cls.construct_method.arg_map), lar_cls_name)):
                 code += "o := new(%s)" % lar_cls_name
                 code.record_tb_info(_POS_INFO_IGNORE)
-                code += "o.lar_method_%s(%s)" % (cls.name, ", ".join(["l_%s" % name for name in cls.construct_method.arg_map]))
+                code += "o.lar_construct_method_%s(%s)" % (cls.name, ", ".join(["l_%s" % name for name in cls.construct_method.arg_map]))
                 code += "return o"
             for method in [cls.construct_method] + list(cls.method_map.itervalues()):
-                with code.new_blk("func (this *%s) lar_method_%s(%s) %s" %
-                                  (lar_cls_name, method.name, _gen_arg_def(method.arg_map), _gen_type_name_code(method.type))):
+                if method is cls.construct_method:
+                    assert method.name == cls.name
+                    method_name = "lar_construct_method_" + method.name
+                else:
+                    method_name = _gen_method_name_code(method)
+                with code.new_blk("func (this *%s) %s(%s) %s" %
+                                  (lar_cls_name, method_name, _gen_arg_def(method.arg_map), _gen_type_name_code(method.type))):
                     if method.is_method:
                         _output_stmt_list(code, method.stmt_list, method, 0, _NEST_LOOP_INVALID, need_check_defer = False)
                         code += "return %s" % _gen_default_value_code(method.type)
                     else:
                         assert method.is_usemethod
                         code.record_tb_info((method.attr.type.token, "<usemethod>"))
-                        code += ("%sthis.m_%s.lar_method_%s(%s)" %
-                                 ("" if method.type.is_void else "return ", method.attr.name, method.name,
+                        code += ("%sthis.m_%s.%s(%s)" %
+                                 ("" if method.type.is_void else "return ", method.attr.name, method_name,
                                   ", ".join(["l_%s" % name for name in method.arg_map])))
             output_reflect_method(code)
 
         for intf in [i for i in module.intf_map.itervalues() if not i.gtp_name_list] + list(module.gintf_inst_map.itervalues()):
             with code.new_blk("type %s interface" % (_gen_coi_name(intf))):
                 for method in intf.method_map.itervalues():
-                    code += "lar_method_%s(%s) %s" % (method.name, _gen_arg_def(method.arg_map), _gen_type_name_code(method.type))
+                    code += "%s(%s) %s" % (_gen_method_name_code(method), _gen_arg_def(method.arg_map), _gen_type_name_code(method.type))
 
         for func in [i for i in module.func_map.itervalues() if not i.gtp_name_list] + list(module.gfunc_inst_map.itervalues()):
             if "native" in func.decr_set:

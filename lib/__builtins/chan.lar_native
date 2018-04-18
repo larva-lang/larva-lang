@@ -16,10 +16,10 @@ func (this *lar_cls_@<<_ChanAny>>) lar_method_buf_size() int64 {
     return int64(cap(this.ch))
 }
 
-func (this *lar_cls_@<<_ChanAny>>) lar_method_send(data lar_intf_@<<:Any>>) {
+func (this *lar_cls_@<<_ChanAny>>) lar_method_@<<send>>(data lar_intf_@<<:Any>>) {
     this.ch <- data
 }
 
-func (this *lar_cls_@<<_ChanAny>>) lar_method_recv() lar_intf_@<<:Any>> {
+func (this *lar_cls_@<<_ChanAny>>) lar_method_@<<recv>>() lar_intf_@<<:Any>> {
     return <- this.ch
 }
