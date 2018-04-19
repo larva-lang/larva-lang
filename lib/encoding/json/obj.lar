@@ -1,0 +1,33 @@
+//json obj对象
+
+native class _JsonObj
+{
+    _JsonObj();
+
+    public String marshal();
+    public long size();
+    public Json get(String key);
+    public void set(String key, Any value);
+}
+
+public class JsonObj
+{
+    public JsonObj()
+    {
+        base = new JsonBase(this);
+        obj = new _JsonObj();
+    }
+
+    public String type()
+    {
+        return "obj";
+    }
+
+    public JsonObj as_obj()
+    {
+        return this;
+    }
+
+    usemethod JsonBase base;
+    usemethod _JsonObj obj;
+}

@@ -1,0 +1,27 @@
+//json null对象
+public class JsonNull
+{
+    JsonNull()
+    {
+        base = new JsonBase(this);
+    }
+
+    public String type()
+    {
+        return "null";
+    }
+
+    public String marshal()
+    {
+        return "null";
+    }
+
+    public bool is_null()
+    {
+        return true;
+    }
+
+    usemethod JsonBase base;
+}
+
+public final JsonNull NULL = new JsonNull();

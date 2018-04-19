@@ -1,0 +1,37 @@
+//json arr对象
+
+native class _JsonArr
+{
+    _JsonArr(long size);
+
+    public String marshal();
+    public long size();
+    public Json get(long idx);
+    public void set(long idx, Any value);
+}
+
+public class JsonArr
+{
+    public JsonArr(long size)
+    {
+        if (size < 0)
+        {
+            throw(new ValueError("%d".(size)));
+        }
+        base = new JsonBase(this);
+        arr = new _JsonArr(size);
+    }
+
+    public String type()
+    {
+        return "arr";
+    }
+
+    public JsonArr as_arr()
+    {
+        return this;
+    }
+
+    usemethod JsonBase base;
+    usemethod _JsonArr arr;
+}

@@ -1,0 +1,27 @@
+//json num对象
+public class JsonNum
+{
+    public JsonNum(double v)
+    {
+        base = new JsonBase(this);
+        this.v = v;
+    }
+
+    public String type()
+    {
+        return "num";
+    }
+
+    public String marshal()
+    {
+        return go_marshal(v);
+    }
+
+    public double as_num()
+    {
+        return v;
+    }
+
+    usemethod JsonBase base;
+    double v;
+}

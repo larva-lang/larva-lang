@@ -1,0 +1,59 @@
+public class TypeError
+{
+    TypeError(Json json)
+    {
+        this.type = json.type();
+    }
+
+    public String str()
+    {
+        return type;
+    }
+
+    String type;
+}
+
+public class MarshalError
+{
+    MarshalError(String e)
+    {
+        this.e = e;
+    }
+
+    public String str()
+    {
+        return e;
+    }
+
+    String e;
+}
+
+public class UnmarshalError
+{
+    UnmarshalError(String e)
+    {
+        this.e = e;
+    }
+
+    public String str()
+    {
+        return e;
+    }
+
+    String e;
+}
+
+public class UnsupportedJsonType
+{
+    UnsupportedJsonType(String type)
+    {
+        this.type = type;
+    }
+
+    public String str()
+    {
+        return type;
+    }
+
+    String type;
+}

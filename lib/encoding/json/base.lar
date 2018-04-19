@@ -1,0 +1,44 @@
+//json方法的一些默认定义
+class JsonBase
+{
+    JsonBase(Json me)
+    {
+        this.me = me;
+    }
+
+    void _()
+    {
+    }
+
+    public bool is_null()
+    {
+        return false;
+    }
+
+    public bool as_bool()
+    {
+        throw(new TypeError(me));
+    }
+
+    public double as_num()
+    {
+        throw(new TypeError(me));
+    }
+
+    public String as_str()
+    {
+        throw(new TypeError(me));
+    }
+
+    public JsonArr as_arr()
+    {
+        throw(new TypeError(me));
+    }
+
+    public JsonObj as_obj()
+    {
+        throw(new TypeError(me));
+    }
+
+    Json me;
+}

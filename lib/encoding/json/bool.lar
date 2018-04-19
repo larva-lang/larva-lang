@@ -1,0 +1,32 @@
+//json bool对象
+public class JsonBool
+{
+    JsonBool(bool v)
+    {
+        base = new JsonBase(this);
+        this.v = v;
+        marshal_result = v ? "true" : "false";
+    }
+
+    public String type()
+    {
+        return "bool";
+    }
+
+    public String marshal()
+    {
+        return marshal_result;
+    }
+
+    public bool as_bool()
+    {
+        return v;
+    }
+
+    usemethod JsonBase base;
+    bool v;
+    String marshal_result;
+}
+
+public final JsonBool TRUE = new JsonBool(true),
+                      FALSE = new JsonBool(false);
