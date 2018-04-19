@@ -609,6 +609,10 @@ class Parser:
             if is_ref:
                 if not expr.is_lvalue:
                     t.syntax_err("ref修饰的实参不是左值表达式")
+                if expr.op == "global_var":
+                    global_var = expr.arg
+                    if "final" in global_var.decr_set:
+                        t.syntax_err("ref修饰了带final属性的全局变量")
             expr.is_ref = is_ref
             expr_list.append(expr)
             if self.token_list.peek().is_sym(")"):

@@ -362,6 +362,10 @@ class Parser:
         def check_lvalue(lvalue):
             if not lvalue.is_lvalue:
                 t.syntax_err("需要左值")
+            if lvalue.op == "global_var":
+                global_var = lvalue.arg
+                if "final" in global_var.decr_set:
+                    t.syntax_err("final修饰的全局变量'%s'不可修改" % global_var)
 
         def build_inc_dec_expr(op, lvalue, t):
             check_lvalue(lvalue)

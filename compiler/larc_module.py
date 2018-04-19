@@ -23,7 +23,7 @@ def _parse_decr_set(token_list):
     decr_set = set()
     while True:
         t = token_list.peek()
-        for decr in "public", "native", "usemethod":
+        for decr in "public", "native", "usemethod", "final":
             if t.is_reserved(decr):
                 if decr in decr_set:
                     t.syntax_err("重复的修饰'%s'" % decr)
@@ -303,8 +303,8 @@ class _Cls(_ClsBase):
 
             #解析修饰
             decr_set = _parse_decr_set(token_list)
-            if "native" in decr_set:
-                t.syntax_err("方法或属性不能用native修饰")
+            if set(["native", "final"]) & decr_set:
+                t.syntax_err("方法或属性不能用native或final修饰")
 
             t = token_list.peek()
             if t.is_name and t.value == self.name:
@@ -928,8 +928,8 @@ class Module:
                 continue
             if sym in (";", "=", ","):
                 #全局变量
-                if decr_set - set(["public"]):
-                    t.syntax_err("全局变量只能用public修饰")
+                if decr_set - set(["public", "final"]):
+                    t.syntax_err("全局变量只能用public和final修饰")
                 if type.name == "void":
                     t.syntax_err("变量类型不可为void")
                 while True:
