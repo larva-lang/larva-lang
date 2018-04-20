@@ -1,32 +1,10 @@
 //time模块，时间相关接口
 
-native class _Time
-{
-    public long unix_nano();
-    public String format(String layout);
-}
+//获取当前unix时间戳，单位秒
+public native double time();
 
-public class Time
-{
-    usemethod _Time t;
-}
+//睡眠指定时间
+public native void sleep(double sec);
 
-public native Time now();
-
-public native void sleep_nano(long nano_sec);
-public void sleep_us(long us)
-{
-    sleep_nano(us * 1000);
-}
-public void sleep_ms(long ms)
-{
-    sleep_nano(ms * 1000000);
-}
-public void sleep(long sec)
-{
-    sleep_nano(sec * 1000000000);
-}
-public void sleep_float(double sec)
-{
-    sleep_nano((long)(sec * 1e9));
-}
+//根据layout指定的格式格式化时间
+public native String format_time(String layout, double tm);

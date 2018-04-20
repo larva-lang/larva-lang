@@ -4,26 +4,15 @@ import (
     "time"
 )
 
-type lar_cls_@<<_Time>> struct {
-    ntm time.Time
+func lar_func_@<<time>>() float64 {
+    return float64(time.Now().UnixNano()) / 1e9
 }
 
-func (this *lar_cls_@<<_Time>>) lar_method_unix_nano() int64 {
-    return this.ntm.UnixNano()
+func lar_func_@<<sleep>>(sec float64) {
+    time.Sleep(time.Duration(sec * 1e9))
 }
 
-func (this *lar_cls_@<<_Time>>) lar_method_format(layout *lar_cls_@<<:String>>) *lar_cls_@<<:String>> {
-    return lar_str_from_go_str(this.ntm.Format(lar_str_to_go_str(layout)))
-}
-
-func lar_func_@<<now>>() *lar_cls_@<<Time>> {
-    return &lar_cls_@<<Time>>{
-        m_t: &lar_cls_@<<_Time>>{
-            ntm: time.Now(),
-        },
-    }
-}
-
-func lar_func_@<<sleep_nano>>(nano_sec int64) {
-    time.Sleep(time.Duration(nano_sec))
+func lar_func_@<<format_time>>(layout *lar_cls_@<<:String>>, tm float64) *lar_cls_@<<:String>> {
+    nano_sec := int64(tm * 1e9)
+    return lar_str_from_go_str(time.Unix(nano_sec / int64(1e9), nano_sec % int64(1e9)).Format(lar_str_to_go_str(layout)))
 }

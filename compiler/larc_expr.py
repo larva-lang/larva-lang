@@ -33,9 +33,9 @@ for _i in xrange(len(_OP_PRIORITY_LIST)):
 del _i
 del _op
 
-#将literal_int expr转换成对应type，type一定是一个integer
+#将literal_int expr转换成对应type，type一定是一个number
 def _convert_literal_int_expr(e, tp):
-    assert e.op in ("literal", "?:") and e.type == larc_type.LITERAL_INT_TYPE and tp.is_integer_type and not tp.is_literal_int
+    assert e.op in ("literal", "?:") and e.type == larc_type.LITERAL_INT_TYPE and tp.is_number_type and not tp.is_literal_int
     if e.op == "?:":
         #若两个结果分量都可转为tp，则可转换
         ea, eb, ec = e.arg
@@ -62,17 +62,16 @@ class _CantMakeNumberTypeSame(Exception):
 def _make_number_type_same(ea, eb):
     assert ea.type != eb.type and ea.type.is_number_type and eb.type.is_number_type
 
-    if ea.type.is_integer_type and eb.type.is_integer_type:
-        if ea.type.is_literal_int:
-            ea = _convert_literal_int_expr(ea, eb.type)
-            if ea is None:
-                raise _CantMakeNumberTypeSame()
-            return ea, eb
-        if eb.type.is_literal_int:
-            eb = _convert_literal_int_expr(eb, ea.type)
-            if eb is None:
-                raise _CantMakeNumberTypeSame()
-            return ea, eb
+    if ea.type.is_literal_int:
+        ea = _convert_literal_int_expr(ea, eb.type)
+        if ea is None:
+            raise _CantMakeNumberTypeSame()
+        return ea, eb
+    if eb.type.is_literal_int:
+        eb = _convert_literal_int_expr(eb, ea.type)
+        if eb is None:
+            raise _CantMakeNumberTypeSame()
+        return ea, eb
 
     raise _CantMakeNumberTypeSame()
 
@@ -533,7 +532,7 @@ class Parser:
             for need_type in need_type_list:
                 if need_type == expr.type:
                     break
-                if expr.op in ("literal", "?:") and expr.type == larc_type.LITERAL_INT_TYPE and need_type.is_integer_type:
+                if expr.op in ("literal", "?:") and expr.type == larc_type.LITERAL_INT_TYPE and need_type.is_number_type:
                     e = _convert_literal_int_expr(expr, need_type)
                     if e is None:
                         continue
@@ -632,7 +631,7 @@ class Parser:
                 t.syntax_err("参数#%d：形参不是ref，无效的实参ref修饰" % (i + 1))
             if not e.is_ref and tp.is_ref:
                 t.syntax_err("参数#%d：形参是ref，实参缺少ref修饰" % (i + 1))
-            if e.op in ("literal", "?:") and e.type == larc_type.LITERAL_INT_TYPE and tp.is_integer_type:
+            if e.op in ("literal", "?:") and e.type == larc_type.LITERAL_INT_TYPE and tp.is_number_type:
                 e = _convert_literal_int_expr(e, tp)
             if e is None or not tp.can_convert_from(e.type):
                 t.syntax_err("参数#%d：无法从类型'%s'转为'%s'" % (i + 1, e_type, tp))
