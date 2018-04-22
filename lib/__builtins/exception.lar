@@ -126,39 +126,41 @@ public class CastError
 {
     public String str()
     {
-        return "类型转换失败";
+        return "";
     }
 }
 
 //索引（下标）错误，用于数组、Slice、Vector等可用下标定位元素的相关代码中
-//数组的索引错误比较特殊，是根据go的panic转换的，没有idx信息
-public class ArrayIndexError
-{
-    public String str()
-    {
-        return "数组下标越界";
-    }
-}
 public class IndexError
 {
     public IndexError(long i)
     {
+        has_idx = true;
         idx = i;
     }
 
     public String str()
     {
-        return "%d".(idx);
+        if (has_idx)
+        {
+            return "%d".(idx);
+        }
+        else
+        {
+            return "<none>";
+        }
     }
 
+    bool has_idx;
     long idx;
 }
 
-//下标范围错误，用于Slice、sub_str之类的取范围相关代码
+//下标范围错误，用于slice、sub_str之类的取范围相关代码
 public class RangeError
 {
     public RangeError(long l, long b, long e)
     {
+        has_range_info = true;
         len = l;
         begin = b;
         end = e;
@@ -166,12 +168,29 @@ public class RangeError
 
     public String str()
     {
-        return "[%d][%d:%d]".(len, begin, end);
+        if (has_range_info)
+        {
+            return "[%d][%d:%d]".(len, begin, end);
+        }
+        else
+        {
+            return "<none>";
+        }
     }
 
+    bool has_range_info;
     long len;
     long begin;
     long end;
+}
+
+//通用的下标检查，检查不通过则抛出RangeError
+public void check_range(long l, long b, long e)
+{
+    if (l < 0 || b < 0 || b > l || e < b || e > l)
+    {
+        throw(new RangeError(l, b, e));
+    }
 }
 
 //键错误，用于各种映射、集合等用到Key的地方，k为错误的键的字符串描述
@@ -205,6 +224,6 @@ public class TimeoutError
 
     public String str()
     {
-        return "超时";
+        return "";
     }
 }

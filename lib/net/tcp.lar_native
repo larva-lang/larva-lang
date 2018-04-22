@@ -59,15 +59,8 @@ func (this *lar_cls_@<<_TcpConn>>) lar_method_remote_addr() *lar_cls_@<<:String>
     return lar_str_from_go_str(this.ntc.RemoteAddr().String())
 }
 
-func (this *lar_cls_@<<_TcpConn>>) lar_method_send(buf *lar_arr_uint8_1, begin, length int64) {
-    buf_len := buf.lar_method_size()
-    end := begin + length
-    if begin < 0 || begin > buf_len || end < 0 || end > buf_len || end < begin {
-        lar_func_@<<:throw>>(lar_new_obj_lar_cls_@<<:RangeError>>(buf_len, begin, end))
-    }
-    send_buf := (buf.arr)[begin : end]
-
-    _, err := this.ntc.Write(send_buf)
+func (this *lar_cls_@<<_TcpConn>>) lar_method_send(buf *lar_arr_uint8_1) {
+    _, err := this.ntc.Write(buf.arr)
     if err != nil {
         lar_func_@<<:throw>>(&lar_cls_@<<Error>>{
             m_e: lar_new_obj_lar_cls_@<<_Error>>(err),
@@ -75,15 +68,8 @@ func (this *lar_cls_@<<_TcpConn>>) lar_method_send(buf *lar_arr_uint8_1, begin, 
     }
 }
 
-func (this *lar_cls_@<<_TcpConn>>) lar_method_recv(buf *lar_arr_uint8_1, begin, length int64) int64 {
-    buf_len := buf.lar_method_size()
-    end := begin + length
-    if begin < 0 || begin > buf_len || end < 0 || end > buf_len || end < begin {
-        lar_func_@<<:throw>>(lar_new_obj_lar_cls_@<<:RangeError>>(buf_len, begin, end))
-    }
-    recv_buf := (buf.arr)[begin : end]
-
-    recved_len, err := this.ntc.Read(recv_buf)
+func (this *lar_cls_@<<_TcpConn>>) lar_method_recv(buf *lar_arr_uint8_1) int64 {
+    recved_len, err := this.ntc.Read(buf.arr)
     if err != nil {
         if err == io.EOF {
             return 0

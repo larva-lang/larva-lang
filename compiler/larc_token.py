@@ -28,7 +28,7 @@ INC_DEC_SYM_SET = set(["++", "--"])
 BINOCULAR_OP_SYM_SET = set(["%", "^", "&", "*", "-", "+", "|", "<", ">", "/", "!=", "==", "<<", "<=", ">>", ">=", "&&", "||"])
 
 #合法的符号集
-_SYM_SET = set("""~!%^&*()-+|{}[]:;"'<,>.?/""") | set(["!=", "==", "<<", "<=", ">>", ">=", "&&", "||", ".."]) | ASSIGN_SYM_SET | INC_DEC_SYM_SET
+_SYM_SET = set("""~!%^&*()-+|{}[]:;"'<,>./""") | set(["!=", "==", "<<", "<=", ">>", ">=", "&&", "||", ".."]) | ASSIGN_SYM_SET | INC_DEC_SYM_SET
 
 #保留字集
 _RESERVED_WORD_SET = set(["import", "class", "void", "bool", "schar", "char", "short", "ushort", "int", "uint", "long", "ulong", "float",

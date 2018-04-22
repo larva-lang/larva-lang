@@ -311,6 +311,7 @@ def gen_type_from_cls(cls):
 _ARRAY_ELEM_TYPE = object()
 _ARRAY_ITER_TYPE = object()
 _ARRAY_METHOD_MAP = {"size": (LONG_TYPE, []),
+                     "cap":  (LONG_TYPE, []),
                      "get":  (_ARRAY_ELEM_TYPE, [("idx", LONG_TYPE)]),
                      "set":  (VOID_TYPE, [("idx", LONG_TYPE), ("elem", _ARRAY_ELEM_TYPE)]),
                      "iter": (_ARRAY_ITER_TYPE, [])}

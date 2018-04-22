@@ -260,7 +260,7 @@ class Parser:
         return stmt_list
 
     def _is_valid_expr_stmt(self, expr):
-        return isinstance(expr, _SeExpr) or expr.op in ("new", "call_method", "call_func", "call_this.method")
+        return isinstance(expr, _SeExpr) or expr.op in ("new", "call_array.method", "call_method", "call_func", "call_this.method")
 
     def _check_var_redefine(self, t, name, var_map_stk):
         if name in self.dep_module_map:

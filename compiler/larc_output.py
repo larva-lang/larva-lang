@@ -282,14 +282,6 @@ def _gen_expr_code_ex(expr):
             return "lar_util_fmod_%s((%s), (%s))" % (ea.type.name, ea_code, eb_code)
         return "(%s) %s (%s)" % (ea_code, expr.op, eb_code)
 
-    if expr.op == "?:":
-        ea, eb, ec = expr.arg
-        tp = expr.type
-        if tp == larc_type.LITERAL_INT_TYPE:
-            tp = larc_type.INT_TYPE
-        return ("func () %s {if (%s) {return (%s)} else {return (%s)}}()" %
-                (_gen_type_name_code(tp), _gen_expr_code(ea), _gen_expr_code(eb), _gen_expr_code(ec)))
-
     if expr.op == "local_var":
         name = expr.arg
         return "%sl_%s" % ("*" if expr.type.is_ref else "", name)
@@ -332,6 +324,14 @@ def _gen_expr_code_ex(expr):
     if expr.op == "[]":
         arr_e, e = expr.arg
         return "(%s).arr[%s]" % (_gen_expr_code(arr_e), _gen_expr_code(e))
+
+    if expr.op == "[:]":
+        arr_e, ea, eb = expr.arg
+        arr_tp_name_code = _gen_type_name_code(arr_e.type)
+        assert arr_tp_name_code.startswith("*lar_arr_")
+        return ("&%s{arr: (%s).arr[%s:%s]}" %
+                (arr_tp_name_code[1 :], _gen_expr_code(arr_e), "" if ea is None else _gen_expr_code(ea),
+                 "" if eb is None else _gen_expr_code(eb)))
 
     if expr.op == "call_array.method":
         e, method, expr_list = expr.arg
@@ -674,6 +674,8 @@ def _output_util():
             #数组的方法
             with code.new_blk("func (la *%s) lar_method_size() int64" % arr_tp_name):
                 code += "return int64(len(la.arr))"
+            with code.new_blk("func (la *%s) lar_method_cap() int64" % arr_tp_name):
+                code += "return int64(cap(la.arr))"
             with code.new_blk("func (la *%s) lar_method_get(idx int64) %s" % (arr_tp_name, elem_tp_name_code)):
                 code += "return la.arr[idx]"
             with code.new_blk("func (la *%s) lar_method_set(idx int64, elem %s)" % (arr_tp_name, elem_tp_name_code)):

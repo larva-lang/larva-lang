@@ -60,7 +60,7 @@ public class ArrayIter<E>
         }
         if (after_end())
         {
-            throw(new ArrayIndexError());
+            throw(new IndexError(idx));
         }
         ++ idx;
     }
@@ -69,7 +69,7 @@ public class ArrayIter<E>
     {
         if (before_begin())
         {
-            throw(new ArrayIndexError());
+            throw(new IndexError(idx));
         }
         if (after_end())
         {

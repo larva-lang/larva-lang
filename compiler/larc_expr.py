@@ -14,8 +14,7 @@ import larc_type
 
 _UNARY_OP_SET = set(["~", "!", "neg", "pos", "force_convert"])
 _BINOCULAR_OP_SET = larc_token.BINOCULAR_OP_SYM_SET
-_OP_PRIORITY_LIST = [["?", ":", "?:"],
-                     ["||"],
+_OP_PRIORITY_LIST = [["||"],
                      ["&&"],
                      ["|"],
                      ["^"],
@@ -35,25 +34,14 @@ del _op
 
 #将literal_int expr转换成对应type，type一定是一个number
 def _convert_literal_int_expr(e, tp):
-    assert e.op in ("literal", "?:") and e.type == larc_type.LITERAL_INT_TYPE and tp.is_number_type and not tp.is_literal_int
-    if e.op == "?:":
-        #若两个结果分量都可转为tp，则可转换
-        ea, eb, ec = e.arg
-        eb = _convert_literal_int_expr(eb, tp)
-        ec = _convert_literal_int_expr(ec, tp)
-        if eb is None or ec is None:
-            return None
-        assert eb.type == tp and ec.type == tp
-        return _Expr("?:", (ea, eb, ec), tp)
-    else:
-        #literal int
-        v = e.arg.value
-        bit_num_table = {"schar" : 7, "char" : 8, "short" : 15, "ushort" : 16}
-        if tp.name in bit_num_table and v >= 2 ** bit_num_table[tp.name]:
-            #e的字面量值大于tp支持的范围了
-            return None
-        #将e字面量转为tp类型
-        return _Expr("force_convert", (tp, e), tp)
+    assert e.op == "literal" and e.type == larc_type.LITERAL_INT_TYPE and tp.is_number_type and not tp.is_literal_int
+    v = e.arg.value
+    bit_num_table = {"schar" : 7, "char" : 8, "short" : 15, "ushort" : 16}
+    if tp.name in bit_num_table and v >= 2 ** bit_num_table[tp.name]:
+        #e的字面量值大于tp支持的范围了
+        return None
+    #将e字面量转为tp类型
+    return _Expr("force_convert", (tp, e), tp)
 
 class _CantMakeNumberTypeSame(Exception):
     pass
@@ -84,9 +72,9 @@ class _Expr(ExprBase):
     def __init__(self, op, arg, type):
         ExprBase.__init__(self, "expr")
 
-        if op not in ("literal", "?:") and type.is_literal_int:
+        if op != "literal" and type.is_literal_int:
             type = larc_type.INT_TYPE
-        if op not in ("literal", "?:"):
+        if op != "literal":
             assert not type.name.startswith("literal_")
         else:
             assert type.is_literal_int or not type.name.startswith("literal_")
@@ -120,7 +108,7 @@ class _ParseStk:
                 break
             else:
                 #同优先级看结合性
-                if op in _UNARY_OP_SET or op in ("?", ":"):
+                if op in _UNARY_OP_SET:
                     #单目、三目运算符右结合
                     break
                 self._pop_top_op()
@@ -128,11 +116,6 @@ class _ParseStk:
             #类型强转额外压入一个类型对象
             self.op_stk.append(force_convert_type)
             self.op_stk.append(op)
-            return
-        if op == ":":
-            if not self.op_stk or self.op_stk[-1] != "?":
-                self.start_token.syntax_err("非法的表达式，存在未匹配'?'的':'")
-            self.op_stk[-1] = "?:"
             return
         self.op_stk.append(op)
 
@@ -238,44 +221,6 @@ class _ParseStk:
             except _InvalidBinocularOp:
                 self.start_token.syntax_err("非法的表达式：类型'%s'和'%s'无法做'%s'运算" % (ea.type, eb.type, op))
 
-        elif op == "?":
-            self.start_token.syntax_err("非法的表达式，存在未匹配':'的'?'")
-
-        elif op == "?:":
-            #三目运算符
-            if len(self.stk) < 3:
-                self.start_token.syntax_err("非法的表达式")
-            ec = self.stk.pop()
-            eb = self.stk.pop()
-            ea = self.stk.pop()
-            if not ea.type.is_bool_type:
-                self.start_token.syntax_err("非法的表达式：'?:'运算的第一运算分量类型不能是'%s'" % ea.type)
-            if eb.type == ec.type:
-                #完全一样，则使用此类型，但不允许都是nil
-                if eb.type.is_nil:
-                    assert ec.type.is_nil
-                    self.start_token.syntax_err("非法的表达式：'?:'运算的第二、三运算分量都是nil字面量")
-                tp = eb.type
-            else:
-                #类型不相同，对number类型归一化，对存在nil字面量的情况，根据另一分量确定nil的类型，其他情况要求代码显式强转
-                try:
-                    if eb.type.is_number_type and ec.type.is_number_type:
-                        eb, ec = _make_number_type_same(eb, ec)
-                    elif eb.type.is_obj_type and ec.type.is_obj_type:
-                        if eb.type.is_nil:
-                            assert not ec.type.is_nil
-                            eb = _Expr("force_convert", (ec.type, eb), ec.type)
-                        elif ec.type.is_nil:
-                            ec = _Expr("force_convert", (eb.type, ec), eb.type)
-                        else:
-                            raise _CantMakeNumberTypeSame()
-                    else:
-                        raise _CantMakeNumberTypeSame()
-                except _CantMakeNumberTypeSame:
-                    self.start_token.syntax_err("非法的表达式：'?:'运算的第二、三运算分量类型'%s'和'%s'不同" % (eb.type, ec.type))
-                tp = eb.type
-            self.stk.append(_Expr(op, (ea, eb, ec), tp))
-
         else:
             raise Exception("Bug")
 
@@ -293,7 +238,7 @@ class _ParseStk:
 
 def _is_expr_end(t):
     if t.is_sym:
-        if t.value in (set([")", "]", ",", ";"]) | larc_token.ASSIGN_SYM_SET | larc_token.INC_DEC_SYM_SET):
+        if t.value in (set([")", "]", ",", ";", ":"]) | larc_token.ASSIGN_SYM_SET | larc_token.INC_DEC_SYM_SET):
             return True
     return False
 
@@ -466,12 +411,27 @@ class Parser:
             while self.token_list:
                 t = self.token_list.pop()
                 if t.is_sym("["):
-                    expr = self.parse(var_map_stk, larc_type.VALID_ARRAY_IDX_TYPES)
+                    is_slice = False
+                    if self.token_list.peek().is_sym(":"):
+                        expr = None
+                        is_slice = True
+                    else:
+                        expr = self.parse(var_map_stk, larc_type.VALID_ARRAY_IDX_TYPES)
+                    if self.token_list.peek().is_sym(":"):
+                        self.token_list.pop_sym(":")
+                        if self.token_list.peek().is_sym("]"):
+                            slice_end_expr = None
+                        else:
+                            slice_end_expr = self.parse(var_map_stk, larc_type.VALID_ARRAY_IDX_TYPES)
+                        is_slice = True
                     self.token_list.pop_sym("]")
                     array_expr = parse_stk.stk[-1]
                     if not array_expr.type.is_array:
-                        t.syntax_err("'%s'非数组，不能进行下标运算" % array_expr.type)
-                    parse_stk.stk[-1] = _Expr("[]", [array_expr, expr], array_expr.type.to_elem_type())
+                        t.syntax_err("'%s'非数组，不能进行下标或分片运算" % array_expr.type)
+                    if is_slice:
+                        parse_stk.stk[-1] = _Expr("[:]", [array_expr, expr, slice_end_expr], array_expr.type)
+                    else:
+                        parse_stk.stk[-1] = _Expr("[]", [array_expr, expr], array_expr.type.to_elem_type())
                 elif t.is_sym("."):
                     obj = parse_stk.stk[-1]
                     if obj.type.is_array:
@@ -514,13 +474,13 @@ class Parser:
                 #表达式结束
                 break
 
-            #状态：解析普通二元/三元运算符
+            #状态：解析普通二元运算符
             t = self.token_list.pop()
-            if t.is_sym and (t.value in _BINOCULAR_OP_SET or t.value in ("?", ":")):
+            if t.is_sym and t.value in _BINOCULAR_OP_SET:
                 #二元运算
                 parse_stk.push_op(t.value)
             else:
-                t.syntax_err("需要二元或三元运算符")
+                t.syntax_err("需要二元运算符")
 
         expr = parse_stk.finish()
         expr_pos_info = expr.pos_info #保存一下pos info
@@ -532,7 +492,7 @@ class Parser:
             for need_type in need_type_list:
                 if need_type == expr.type:
                     break
-                if expr.op in ("literal", "?:") and expr.type == larc_type.LITERAL_INT_TYPE and need_type.is_number_type:
+                if expr.op == "literal" and expr.type == larc_type.LITERAL_INT_TYPE and need_type.is_number_type:
                     e = _convert_literal_int_expr(expr, need_type)
                     if e is None:
                         continue
@@ -631,7 +591,7 @@ class Parser:
                 t.syntax_err("参数#%d：形参不是ref，无效的实参ref修饰" % (i + 1))
             if not e.is_ref and tp.is_ref:
                 t.syntax_err("参数#%d：形参是ref，实参缺少ref修饰" % (i + 1))
-            if e.op in ("literal", "?:") and e.type == larc_type.LITERAL_INT_TYPE and tp.is_number_type:
+            if e.op == "literal" and e.type == larc_type.LITERAL_INT_TYPE and tp.is_number_type:
                 e = _convert_literal_int_expr(e, tp)
             if e is None or not tp.can_convert_from(e.type):
                 t.syntax_err("参数#%d：无法从类型'%s'转为'%s'" % (i + 1, e_type, tp))
