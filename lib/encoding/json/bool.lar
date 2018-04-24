@@ -12,13 +12,13 @@ public class JsonBool
         return "bool";
     }
 
-    public String marshal()
+    public char[] marshal()
     {
         if (v)
         {
-            return "true";
+            return "true".to_char_array();
         }
-        return "false"
+        return "false".to_char_array();
     }
 
     public bool as_bool()
@@ -30,5 +30,5 @@ public class JsonBool
     bool v;
 }
 
-public final JsonBool TRUE = new JsonBool(true),
+public final JsonBool TRUE  = new JsonBool(true),
                       FALSE = new JsonBool(false);

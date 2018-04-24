@@ -12,7 +12,7 @@ public class JsonStr
         return "str";
     }
 
-    public String marshal()
+    public char[] marshal()
     {
         return marshal_str(v);
     }

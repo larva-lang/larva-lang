@@ -1,4 +1,1 @@
-public Json unmarshal(String s)
-{
-    return go_value_to_json_intf(go_unmarshal(s));
-}
+public native Json unmarshal(char[] buf);

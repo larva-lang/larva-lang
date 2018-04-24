@@ -12,9 +12,9 @@ public class JsonNum
         return "num";
     }
 
-    public String marshal()
+    public char[] marshal()
     {
-        return go_marshal(v);
+        return marshal_num(v);
     }
 
     public double as_num()

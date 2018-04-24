@@ -1,17 +1,2 @@
-/*
-注意：下面这些函数的参数和返回值的GoValue数据有可能引用larva不识别的go的数据类型，不要在其他接口对外传出
-*/
-
-interface GoValue
-{
-}
-
-native String go_marshal(GoValue v);
-native GoValue go_unmarshal(String s);
-
-native String marshal_str(String v);
-
-//转换json中的go数据类型到Json接口
-native Json go_value_to_json_intf(GoValue v);
-//转换外部传入的larva数据类型到json中的go数据类型
-native GoValue to_go_value(Any v);
+native char[] marshal_num(double v);
+native char[] marshal_str(String v);

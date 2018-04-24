@@ -7,7 +7,7 @@ public interface Json
     public String type();
 
     //序列化
-    public String marshal();
+    public char[] marshal();
 
     //判断是否为null
     public bool is_null();

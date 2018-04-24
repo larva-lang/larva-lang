@@ -1,0 +1,5 @@
+package LARVA_NATIVE
+
+func lar_func_@<<unmarshal>>(buf *lar_arr_uint8_1) lar_intf_@<<Json>> {
+    return lar_go_func_@<<go_value_to_json_intf>>(lar_go_func_@<<go_unmarshal>>(buf.arr))
+}

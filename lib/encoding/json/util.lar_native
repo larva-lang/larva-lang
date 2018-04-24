@@ -5,29 +5,45 @@ import (
     "reflect"
 )
 
-func lar_func_@<<go_marshal>>(v lar_intf_@<<GoValue>>) *lar_cls_@<<:String>> {
+func lar_go_func_@<<go_marshal>>(v interface{}) []byte {
     b, e := json.Marshal(v)
     if e != nil {
-        lar_func_@<<:throw>>(lar_new_obj_lar_cls_@<<MarshalError>>(lar_str_from_go_str(e.Error())))
+        lar_func_@<<:throw>>(&lar_cls_@<<MarshalError>>{
+            m_e: &lar_cls_@<<:GoError>>{
+                err: e,
+            },
+        })
     }
-    return lar_str_from_go_str(string(b))
+    return b
 }
 
-func lar_func_@<<go_unmarshal>>(s *lar_cls_@<<:String>>) lar_intf_@<<GoValue>> {
+func lar_go_func_@<<go_unmarshal>>(buf []byte) interface{} {
     var v interface{}
-    e := json.Unmarshal([]byte(lar_str_to_go_str(s)), &v)
+    e := json.Unmarshal(buf, &v)
     if e != nil {
-        lar_func_@<<:throw>>(lar_new_obj_lar_cls_@<<UnmarshalError>>(lar_str_from_go_str(e.Error())))
+        lar_func_@<<:throw>>(&lar_cls_@<<UnmarshalError>>{
+            m_e: &lar_cls_@<<:GoError>>{
+                err: e,
+            },
+        })
     }
     return v
 }
 
-func lar_func_@<<marshal_str>>(v *lar_cls_@<<:String>>) *lar_cls_@<<:String>> {
-    return lar_func_@<<go_marshal>>(lar_str_to_go_str(v))
+func lar_func_@<<marshal_num>>(v float64) *lar_arr_uint8_1 {
+    return &lar_arr_uint8_1{
+        arr: lar_go_func_@<<go_marshal>>(v),
+    }
+}
+
+func lar_func_@<<marshal_str>>(v *lar_cls_@<<:String>>) *lar_arr_uint8_1 {
+    return &lar_arr_uint8_1{
+        arr: lar_go_func_@<<go_marshal>>(lar_str_to_go_str(v)),
+    }
 }
 
 //将json中拿出的go数据类型转为对应的Json接口类型
-func lar_func_@<<go_value_to_json_intf>>(v lar_intf_@<<GoValue>>) lar_intf_@<<Json>> {
+func lar_go_func_@<<go_value_to_json_intf>>(v interface{}) lar_intf_@<<Json>> {
     if v == nil {
         return lar_gv_@<<NULL>>
     }
@@ -63,7 +79,7 @@ nil，bool，float64直接支持，不变
 lar str转为go str
 也支持传入实现Json接口的几种类型，转为对应的go类型数据
 */
-func lar_func_@<<to_go_value>>(v lar_intf_@<<:Any>>) lar_intf_@<<GoValue>> {
+func lar_go_func_@<<to_go_value>>(v lar_intf_@<<:Any>>) interface{} {
     if v == nil {
         return nil
     }

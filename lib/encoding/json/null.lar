@@ -11,9 +11,9 @@ public class JsonNull
         return "null";
     }
 
-    public String marshal()
+    public char[] marshal()
     {
-        return "null";
+        return "null".to_char_array();
     }
 
     public bool is_null()

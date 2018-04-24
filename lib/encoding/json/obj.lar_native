@@ -10,8 +10,10 @@ func lar_new_obj_lar_cls_@<<_JsonObj>>() *lar_cls_@<<_JsonObj>> {
     }
 }
 
-func (this *lar_cls_@<<_JsonObj>>) lar_method_marshal() *lar_cls_@<<:String>> {
-    return lar_func_@<<go_marshal>>(this.m)
+func (this *lar_cls_@<<_JsonObj>>) lar_method_marshal() *lar_arr_uint8_1 {
+    return &lar_arr_uint8_1{
+        arr: lar_go_func_@<<go_marshal>>(this.m),
+    }
 }
 
 func (this *lar_cls_@<<_JsonObj>>) lar_method_size() int64 {
@@ -23,9 +25,9 @@ func (this *lar_cls_@<<_JsonObj>>) lar_method_get(key *lar_cls_@<<:String>>) lar
     if !ok {
         lar_func_@<<:throw>>(lar_new_obj_lar_cls_@<<:KeyError>>(key))
     }
-    return lar_func_@<<go_value_to_json_intf>>(v)
+    return lar_go_func_@<<go_value_to_json_intf>>(v)
 }
 
 func (this *lar_cls_@<<_JsonObj>>) lar_method_set(key *lar_cls_@<<:String>>, value lar_intf_@<<:Any>>) {
-    this.m[lar_str_to_go_str(key)] = lar_func_@<<to_go_value>>(value)
+    this.m[lar_str_to_go_str(key)] = lar_go_func_@<<to_go_value>>(value)
 }

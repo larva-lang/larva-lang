@@ -4,7 +4,7 @@ native class _JsonArr
 {
     _JsonArr(long size);
 
-    public String marshal();
+    public char[] marshal();
     public long size();
     public Json get(long idx);
     public void set(long idx, Any value);
@@ -30,6 +30,17 @@ public class JsonArr
     public JsonArr as_arr()
     {
         return this;
+    }
+
+    public Json[] to_json_array()
+    {
+        var sz = size();
+        var a = new Json[sz];
+        for (var i = 0L; i < sz; ++ i)
+        {
+            a[i] = get(i);
+        }
+        return a;
     }
 
     usemethod JsonBase base;

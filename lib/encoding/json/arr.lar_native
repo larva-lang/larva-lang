@@ -10,8 +10,10 @@ func lar_new_obj_lar_cls_@<<_JsonArr>>(size int64) *lar_cls_@<<_JsonArr>> {
     }
 }
 
-func (this *lar_cls_@<<_JsonArr>>) lar_method_marshal() *lar_cls_@<<:String>> {
-    return lar_func_@<<go_marshal>>(this.arr)
+func (this *lar_cls_@<<_JsonArr>>) lar_method_marshal() *lar_arr_uint8_1 {
+    return &lar_arr_uint8_1{
+        arr: lar_go_func_@<<go_marshal>>(this.arr),
+    }
 }
 
 func (this *lar_cls_@<<_JsonArr>>) lar_method_size() int64 {
@@ -19,9 +21,9 @@ func (this *lar_cls_@<<_JsonArr>>) lar_method_size() int64 {
 }
 
 func (this *lar_cls_@<<_JsonArr>>) lar_method_get(idx int64) lar_intf_@<<Json>> {
-    return lar_func_@<<go_value_to_json_intf>>(this.arr[idx])
+    return lar_go_func_@<<go_value_to_json_intf>>(this.arr[idx])
 }
 
 func (this *lar_cls_@<<_JsonArr>>) lar_method_set(idx int64, value lar_intf_@<<:Any>>) {
-    this.arr[idx] = lar_func_@<<to_go_value>>(value)
+    this.arr[idx] = lar_go_func_@<<to_go_value>>(value)
 }

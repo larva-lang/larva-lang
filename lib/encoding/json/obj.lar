@@ -4,7 +4,7 @@ native class _JsonObj
 {
     _JsonObj();
 
-    public String marshal();
+    public char[] marshal();
     public long size();
     public Json get(String key);
     public void set(String key, Any value);

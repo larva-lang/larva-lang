@@ -15,32 +15,12 @@ public class TypeError
 
 public class MarshalError
 {
-    MarshalError(String e)
-    {
-        this.e = e;
-    }
-
-    public String str()
-    {
-        return e;
-    }
-
-    String e;
+    usemethod GoError e;
 }
 
 public class UnmarshalError
 {
-    UnmarshalError(String e)
-    {
-        this.e = e;
-    }
-
-    public String str()
-    {
-        return e;
-    }
-
-    String e;
+    usemethod GoError e;
 }
 
 public class UnsupportedJsonType
