@@ -227,3 +227,15 @@ public class TimeoutError
         return "";
     }
 }
+
+//go的error类型的一个port，用于一些native代码从error到异常的转换
+public native class GoError
+{
+    public String str();
+    public GoError go_err();
+}
+
+public interface GoErrorPorter
+{
+    public GoError go_err();
+}
