@@ -1,0 +1,11 @@
+import io;
+
+native class _Response
+{
+    public io.Readable body();
+}
+
+public class Response
+{
+    usemethod _Response rsp;
+}

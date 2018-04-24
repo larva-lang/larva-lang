@@ -1,0 +1,13 @@
+package LARVA_NATIVE
+
+import (
+    "net/http"
+)
+
+type lar_cls_@<<_Response>> struct {
+    rsp *http.Response
+}
+
+func (this *lar_cls_@<<_Response>>) lar_method_body() lar_intf_@<<io.Readable>> {
+    return lar_go_func_@<<io.go_ReadCloser_to_Readable>>(this.rsp.Body)
+}

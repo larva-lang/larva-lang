@@ -1,0 +1,34 @@
+package LARVA_NATIVE
+
+import (
+    "net/http"
+    "time"
+)
+
+type lar_cls_@<<_Client>> struct {
+    c *http.Client
+}
+
+func lar_new_obj_lar_cls_@<<_Client>>(timeout_nano int64) *lar_cls_@<<_Client>> {
+    return &lar_cls_@<<_Client>>{
+        c: &http.Client{
+            Timeout: time.Duration(timeout_nano),
+        },
+    }
+}
+
+func (this *lar_cls_@<<_Client>>) lar_method_do(req *lar_cls_@<<Request>>) *lar_cls_@<<Response>> {
+    rsp, e := this.c.Do(req.m_req.req)
+    if e != nil {
+        lar_func_@<<:throw>>(&lar_cls_@<<Error>>{
+            m_e: &lar_cls_@<<:GoError>>{
+                err: e,
+            },
+        })
+    }
+    return &lar_cls_@<<Response>>{
+        m_rsp: &lar_cls_@<<_Response>>{
+            rsp: rsp,
+        },
+    }
+}

@@ -1,0 +1,42 @@
+package LARVA_NATIVE
+
+import (
+    "net/http"
+    "io"
+    "strings"
+    "bytes"
+)
+
+type lar_cls_@<<_Request>> struct {
+    req *http.Request
+}
+
+func lar_new_obj_lar_cls_@<<_Request>>(method, url *lar_cls_@<<:String>>, data lar_intf_@<<:Any>>) *lar_cls_@<<_Request>> {
+    var body io.Reader = nil
+    if data != nil {
+        switch v := data.(type) {
+        case *lar_cls_@<<:String>>:
+            body = strings.NewReader(lar_str_to_go_str(v))
+        case *lar_arr_uint8_1:
+            body = bytes.NewReader(v.arr)
+        default:
+            readable, ok := v.(lar_intf_@<<io.Readable>>)
+            if !ok {
+                tp_name := lar_str_to_go_str(lar_func_@<<reflect.type_name>>(data))
+                lar_func_@<<:throw>>(lar_new_obj_lar_cls_@<<:ValueError>>(lar_str_from_go_str("无效的data类型：" + tp_name)))
+            }
+            body = lar_go_func_@<<io.Readable_to_go_ReadCloser>>(readable)
+        }
+    }
+    req, e := http.NewRequest(lar_str_to_go_str(method), lar_str_to_go_str(url), body)
+    if e != nil {
+        lar_func_@<<:throw>>(&lar_cls_@<<Error>>{
+            m_e: &lar_cls_@<<:GoError>>{
+                err: e,
+            },
+        })
+    }
+    return &lar_cls_@<<_Request>>{
+        req: req,
+    }
+}

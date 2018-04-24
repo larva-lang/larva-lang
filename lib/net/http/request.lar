@@ -1,0 +1,14 @@
+native class _Request
+{
+    _Request(String method, String url, Any data);
+}
+
+public class Request
+{
+    public Request(String method, String url, Any data)
+    {
+        req = new _Request(method, url, data);
+    }
+
+    usemethod _Request req;
+}
