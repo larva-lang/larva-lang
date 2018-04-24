@@ -21,8 +21,8 @@ native class _TcpConn
 {
     public String local_addr();
     public String remote_addr();
-    public void send(char[] buf);
-    public long recv(char[] buf);
+    public long read(char[] buf);
+    public void write(char[] buf);
     public void close();
 }
 

@@ -55,19 +55,19 @@ func (this *lar_cls_@<<_TcpConn>>) lar_method_remote_addr() *lar_cls_@<<:String>
     return lar_str_from_go_str(this.ntc.RemoteAddr().String())
 }
 
-func (this *lar_cls_@<<_TcpConn>>) lar_method_send(buf *lar_arr_uint8_1) {
+func (this *lar_cls_@<<_TcpConn>>) lar_method_read(buf *lar_arr_uint8_1) int64 {
+    n, err := lar_go_func_@<<io.read>>(this.ntc, buf.arr)
+    if err != nil {
+        lar_func_@<<:throw>>(lar_go_func_@<<new_Error>>(err))
+    }
+    return int64(n)
+}
+
+func (this *lar_cls_@<<_TcpConn>>) lar_method_write(buf *lar_arr_uint8_1) {
     _, err := this.ntc.Write(buf.arr)
     if err != nil {
         lar_func_@<<:throw>>(lar_go_func_@<<new_Error>>(err))
     }
-}
-
-func (this *lar_cls_@<<_TcpConn>>) lar_method_recv(buf *lar_arr_uint8_1) int64 {
-    recved_len, err := lar_go_func_@<<io.read>>(this.ntc, buf.arr)
-    if err != nil {
-        lar_func_@<<:throw>>(lar_go_func_@<<new_Error>>(err))
-    }
-    return int64(recved_len)
 }
 
 func (this *lar_cls_@<<_TcpConn>>) lar_method_close() {

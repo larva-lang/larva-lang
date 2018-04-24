@@ -55,7 +55,7 @@ class Client
 
     void send_str(String s)
     {
-        m_sock.send(s.to_char_array());
+        m_sock.write(s.to_char_array());
     }
     void send_line(String s)
     {
@@ -70,7 +70,7 @@ class Client
         {
             send_str("Guess a number, 4 different digits:");
 
-            long recved_size = m_sock.recv(recv_buf);
+            long recved_size = m_sock.read(recv_buf);
             if (recved_size == 0)
             {
                 client_log("client over");
