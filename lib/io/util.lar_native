@@ -1,0 +1,29 @@
+package LARVA_NATIVE
+
+import (
+    "io"
+)
+
+/*
+port go的Read方法，修改输入输出规则
+buf长度不可为0，否则抛出异常
+若Read读到数据，则忽略err，返回数据字节数和nil（再读一次可返回错误，参考go文档）
+若读到EOF，则返回0,nil
+若失败，则返回0,err
+若Read返回0,nil则视为空读一次，重启流程
+*/
+func lar_go_func_@<<io.read>>(r io.Reader, buf []byte) (int, error) {
+    if len(buf) == 0 {
+        lar_func_@<<:throw>>(lar_new_obj_lar_cls_@<<Error>>(lar_str_from_go_str("read参数为空buf")))
+    }
+    for {
+        n, err := r.Read(buf)
+        if n > 0 || err == io.EOF {
+            return n, nil
+        }
+        if err != nil {
+            return 0, err
+        }
+    }
+    panic("unreachable")
+}

@@ -1,0 +1,18 @@
+public interface Readable
+{
+    public long read(char[] buf);
+    public void close();
+}
+
+public interface Writeable
+{
+    public void write(char[] buf);
+    public void close();
+}
+
+public interface ReadWriteable
+{
+    public long read(char[] buf);
+    public void write(char[] buf);
+    public void close();
+}

@@ -1,12 +1,22 @@
-native class _Error
-{
-    public String str();
-    public bool is_timeout();
-    public bool is_temporary();
-    public int errno();
-}
-
 public class Error
 {
-    usemethod _Error e;
+    public bool is_timeout()
+    {
+        return _is_timeout;
+    }
+
+    public bool is_temporary()
+    {
+        return _is_temporary;
+    }
+
+    public int errno()
+    {
+        return _errno;
+    }
+
+    usemethod GoError e;
+    bool _is_timeout;
+    bool _is_temporary;
+    int _errno;
 }

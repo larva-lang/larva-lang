@@ -1,0 +1,85 @@
+package LARVA_NATIVE
+
+import (
+    "io"
+)
+
+type lar_go_stru_@<<io.Readable_to_go_ReadCloser>> struct {
+    readable lar_intf_@<<Readable>>
+}
+
+func (this lar_go_stru_@<<io.Readable_to_go_ReadCloser>>) Read(buf []byte) (n int, e error) {
+    defer func () {
+        c := lar_func_@<<:catch_base>>(recover())
+        if c != nil {
+            e = c.lar_go_method_to_go_err()
+        }
+    }()
+    read_len := this.readable.lar_method_read(&lar_arr_uint8_1{
+        arr: buf,
+    })
+    if read_len == 0 {
+        e = io.EOF
+    } else {
+        n = int(read_len)
+    }
+    return
+}
+
+func (this lar_go_stru_@<<io.Readable_to_go_ReadCloser>>) Close() (e error) {
+    defer func () {
+        c := lar_func_@<<:catch_base>>(recover())
+        if c != nil {
+            e = c.lar_go_method_to_go_err()
+        }
+    }()
+    this.readable.lar_method_close()
+    return
+}
+
+func lar_go_func_@<<io.Readable_to_go_ReadCloser>>(readable lar_intf_@<<Readable>>) io.ReadCloser {
+    p, ok := readable.(lar_go_stru_@<<io.go_ReadCloser_to_Readable>>)
+    if ok {
+        return p.r
+    }
+    return lar_go_stru_@<<io.Readable_to_go_ReadCloser>>{
+        readable: readable,
+    }
+}
+
+type lar_go_stru_@<<io.go_ReadCloser_to_Readable>> struct {
+    r io.ReadCloser
+}
+
+func (this lar_go_stru_@<<io.go_ReadCloser_to_Readable>>) lar_method_read(buf *lar_arr_uint8_1) int64 {
+    n, e := lar_go_func_@<<io.read>>(this.r, buf.arr)
+    if e != nil {
+        lar_func_@<<:throw>>(&lar_cls_@<<Error>>{
+            m_e: &lar_cls_@<<:GoError>>{
+                err: e,
+            },
+        })
+    }
+    return int64(n)
+}
+
+func (this lar_go_stru_@<<io.go_ReadCloser_to_Readable>>) lar_method_close() {
+    e := this.r.Close()
+    if e != nil {
+        lar_func_@<<:throw>>(&lar_cls_@<<Error>>{
+            m_e: &lar_cls_@<<:GoError>>{
+                err: e,
+            },
+        })
+    }
+}
+
+func lar_go_func_@<<io.go_ReadCloser_to_Readable>>(r io.ReadCloser) lar_intf_@<<Readable>> {
+    p, ok := r.(lar_go_stru_@<<io.Readable_to_go_ReadCloser>>)
+    if ok {
+        return p.readable
+    }
+    return lar_go_stru_@<<io.go_ReadCloser_to_Readable>>{
+        r: r,
+    }
+}

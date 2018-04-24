@@ -1,0 +1,19 @@
+package LARVA_NATIVE
+
+import (
+    "io/ioutil"
+)
+
+func lar_func_@<<read_all>>(readable lar_intf_@<<Readable>>) *lar_arr_uint8_1 {
+    b, e := ioutil.ReadAll(lar_go_func_@<<Readable_to_go_ReadCloser>>(readable))
+    if e != nil {
+        lar_func_@<<:throw>>(&lar_cls_@<<Error>>{
+            m_e: &lar_cls_@<<:GoError>>{
+                err: e,
+            },
+        })
+    }
+    return &lar_arr_uint8_1{
+        arr: b,
+    }
+}
