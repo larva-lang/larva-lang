@@ -34,6 +34,11 @@ public class String
         return this;
     }
 
+    public bool eq(String other)
+    {
+        return cmp(other) == 0;
+    }
+
     public ulong hash()
     {
         if (h == 0)

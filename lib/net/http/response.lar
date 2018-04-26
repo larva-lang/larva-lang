@@ -3,6 +3,7 @@ import io;
 native class _Response
 {
     public io.Readable body();
+    public long cont_len();
 }
 
 public class Response

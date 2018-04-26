@@ -1,0 +1,243 @@
+class HashMapNode<K, V>
+{
+    K k;
+    V v;
+}
+
+public class HashMap<K, V>
+{
+    public HashMap()
+    {
+        tbl = new HashMapNode<K, V>[1 << 3]; //表大小为2的幂
+        dummy = new HashMapNode<K, V>();
+        sz = 0;
+        dirty = 0;
+    }
+
+    public long size()
+    {
+        return sz;
+    }
+
+    //查找k，返回找到的idx位置，或者可以插入的idx位置，算法：开放定址
+    long find_node(HashMapNode<K, V>[] tbl, K k)
+    {
+        long mask = tbl.size() - 1; //用位运算代替取余
+        ulong h = hash<K>(k);
+        long idx = (long)h & mask;
+        /*
+        表大小为2的幂，因此探测步长为奇数即可遍历整张表，证明：
+        设表大小为n，步长为i，则从任意位置开始，若经过k步第一次回到原点，则i*k被n整除
+        最小的k为n/gcd(n,i)，则若要令k=n，i必须和n互质，由于n是2的幂，因此i选奇数即可
+        */
+        long step = (long)(h >> 4) | 1;
+        long first_dummy_idx = -1L; //若找不到，则第一次碰到dummy的位置作为插入位置
+        for (long i = 0; i <= mask; ++ i, idx = (idx + step) & mask) //遍历整个tbl
+        {
+            var node = tbl[idx];
+            if (node == nil)
+            {
+                //找不到，返回可插入的位置
+                if (first_dummy_idx >= 0)
+                {
+                    return first_dummy_idx;
+                }
+                return idx;
+            }
+            if (node == dummy)
+            {
+                //碰到dummy继续探测，记录第一次出现的位置
+                if (first_dummy_idx < 0)
+                {
+                    first_dummy_idx = idx;
+                }
+                continue;
+            }
+            //当前位置有数据，比对k
+            if (eq<K>(node.k, k))
+            {
+                //找到了
+                return idx;
+            }
+        }
+        //表里面没有nil，都是dummy和数据，rehash策略保证sz<tbl.size()，所以不会返回-1
+        assert(first_dummy_idx >= 0, "bug");
+        return first_dummy_idx;
+    }
+
+    void rehash()
+    {
+        //若表比较大则扩大2倍，否则扩大8倍
+        long new_size = tbl.size() << 1;
+        assert(new_size > 0, "bug");
+        if (new_size < 1L << 24)
+        {
+            new_size <<= 2;
+        }
+
+        //创建新表并迁移旧表数据，这个过程将来可以改成渐进式
+        var new_tbl = new HashMapNode<K, V>[new_size];
+        for (var i = tbl.size() - 1; i >= 0; -- i)
+        {
+            var node = tbl[i];
+            if (node != nil && node != dummy)
+            {
+                new_tbl[find_node(new_tbl, node.k)] = node;
+            }
+        }
+        tbl = new_tbl;
+        ++ dirty;
+    }
+
+    public void set(K k, V v)
+    {
+        if (sz > tbl.size() / 2)
+        {
+            rehash();
+        }
+
+        long idx = find_node(tbl, k);
+        var node = tbl[idx];
+        if (node == nil)
+        {
+            node = new HashMapNode<K, V>();
+            node.k = k;
+            tbl[idx] = node;
+            ++ sz;
+            ++ dirty;
+        }
+        node.v = v;
+    }
+
+    public Iter<K> iter()
+    {
+        return new HashMapIter<K, V>(this, 0);
+    }
+
+    HashMapNode<K, V>[] tbl;
+    HashMapNode<K, V> dummy;
+    long sz;
+    long dirty;
+}
+
+public class HashMapIter<K, V>
+{
+    HashMapIter(HashMap<K, V> hm, long idx)
+    {
+        this.hm = hm;
+        this.idx = idx;
+        this.dirty = hm.dirty;
+        skip_nil_and_dummy(false);
+    }
+
+    void skip_nil_and_dummy(bool backward)
+    {
+        if (backward)
+        {
+            for (; idx >= 0; -- idx)
+            {
+                var node = hm.tbl[idx];
+                if (node != nil && node != hm.dummy)
+                {
+                    return;
+                }
+            }
+        }
+        else
+        {
+            long tbl_size = hm.tbl.size();
+            for (; idx < tbl_size; ++ idx)
+            {
+                var node = hm.tbl[idx];
+                if (node != nil && node != hm.dummy)
+                {
+                    return;
+                }
+            }
+        }
+    }
+
+    public Iter<K> iter()
+    {
+        return this;
+    }
+
+    void check_dirty()
+    {
+        if (hm.dirty != dirty)
+        {
+            throw(new IterDirty());
+        }
+    }
+
+    public Iter<K> copy()
+    {
+        check_dirty();
+        return new HashMapIter<K, V>(hm, idx);
+    }
+
+    public bool before_begin()
+    {
+        check_dirty();
+        return idx < 0;
+    }
+
+    public bool after_end()
+    {
+        check_dirty();
+        return idx >= hm.tbl.size();
+    }
+
+    HashMapNode<K, V> get_node()
+    {
+        check_dirty();
+        var node = hm.tbl[idx];
+        assert(node != nil && node != hm.dummy, "bug");
+        return node;
+    }
+
+    public K get()
+    {
+        return get_node().k;
+    }
+
+    public void inc()
+    {
+        check_dirty();
+        if (before_begin())
+        {
+            idx = 0;
+        }
+        else if (after_end())
+        {
+            throw(new IterOutOfRange());
+        }
+        else
+        {
+            ++ idx;
+        }
+        skip_nil_and_dummy(false);
+    }
+
+    public void dec()
+    {
+        check_dirty();
+        if (before_begin())
+        {
+            throw(new IterOutOfRange());
+        }
+        else if (after_end())
+        {
+            idx = hm.tbl.size() - 1;
+        }
+        else
+        {
+            -- idx;
+        }
+        skip_nil_and_dummy(true);
+    }
+
+    HashMap<K, V> hm;
+    long idx;
+    long dirty;
+}

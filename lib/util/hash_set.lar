@@ -1,0 +1,44 @@
+public class HashSet<E>
+{
+    public HashSet()
+    {
+        hm = new HashMap<E, bool>();
+    }
+
+    public long size()
+    {
+        return hm.size();
+    }
+
+    public void add(E e)
+    {
+        hm.set(e, true);
+    }
+
+    public Iter<E> iter()
+    {
+        return new HashSetIter<E>(hm.iter());
+    }
+
+    HashMap<E, bool> hm;
+}
+
+class HashSetIter<E>
+{
+    HashSetIter(Iter<E> it)
+    {
+        hm_it = it;
+    }
+
+    public Iter<E> iter()
+    {
+        return this;
+    }
+
+    public Iter<E> copy()
+    {
+        return new HashSetIter<E>(hm_it.copy());
+    }
+
+    usemethod Iter<E> hm_it; //HashMapIter<E, bool>
+}

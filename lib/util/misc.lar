@@ -1,0 +1,32 @@
+ulong hash<T>(T t)
+{
+    ulong h;
+
+#use
+    h = hash_double(t);
+#oruse
+    h = hash_float(t);
+#oruse
+    h = (ulong)t;
+#oruse
+    h = t.hash();
+#enduse
+
+    h *= 2862933555777941757UL;
+    return (h >> 32) ^ h;
+}
+
+bool eq<T>(T a, T b)
+{
+#use
+    return a.eq(b);
+#oruse
+    return b.eq(a);
+#oruse
+    return a.cmp(b) == 0;
+#oruse
+    return b.cmp(a) == 0;
+#oruse
+    return a == b;
+#enduse
+}

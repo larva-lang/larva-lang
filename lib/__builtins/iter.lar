@@ -27,3 +27,32 @@ public interface Iterable<E>
 {
     public Iter<E> iter();
 }
+
+//以下为建议的迭代器接口可能抛出的异常，非强制，具体的异常类型每个类可自己定义
+
+//迭代器超出范围，在开始结束边界执行get，或试图移出边界时可抛出此异常
+public class IterOutOfRange
+{
+    public IterOutOfRange()
+    {
+    }
+
+    public String str()
+    {
+        return "";
+    }
+}
+
+//被迭代对象在迭代过程中被修改从而导致迭代器不可再用，此时调用迭代器的方法时可抛出此异常
+//不一定每个被迭代对象被修改后都会抛出此异常，有的对象在修改后，迭代器可从有效状态转为边界状态（如Vector），具体看每个类型自己的实现
+public class IterDirty
+{
+    public IterDirty()
+    {
+    }
+
+    public String str()
+    {
+        return "";
+    }
+}

@@ -201,6 +201,8 @@ class _ParseStk:
                 elif op in ("<<", ">>"):
                     if not (ea.type.is_integer_type and eb.type.is_unsigned_integer_type):
                         raise _InvalidBinocularOp()
+                    if eb.type.is_literal_int:
+                        eb = _Expr("force_convert", (larc_type.UINT_TYPE, eb), larc_type.UINT_TYPE)
                     tp = ea.type
                 else:
                     raise Exception("Bug")
