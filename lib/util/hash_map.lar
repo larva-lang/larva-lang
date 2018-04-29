@@ -198,32 +198,33 @@ public class HashMapIter<K, V>
         return idx >= hm.tbl.size();
     }
 
-    HashMapNode<K, V> get_node()
+    HashMapNode<K, V> node()
     {
         check_dirty();
-        var node = hm.tbl[idx];
-        assert(node != nil && node != hm.dummy, "bug");
-        return node;
+        var nd = hm.tbl[idx];
+        assert(nd != nil && nd != hm.dummy, "bug");
+        return nd;
     }
 
-    public K get()
+    public Pair<K, V> get()
     {
-        return get_key();
+        var nd = node();
+        return new Pair<K, V>(nd.k, nd.v);
     }
 
-    public K get_key()
+    public K key()
     {
-        return get_node().k;
+        return node().k;
     }
 
-    public V get_value()
+    public V value()
     {
-        return get_node().v;
+        return node().v;
     }
 
-    public void set_value(V v)
+    public void set(V v)
     {
-        get_node().v = v;
+        node().v = v;
     }
 
     public void inc()

@@ -23,12 +23,26 @@ public class HashSet<E>
     HashMap<E, bool> hm;
 }
 
+interface HashMapKeyIterIntf<K>
+{
+    public bool before_begin();
+    public bool after_end();
+    public K key();
+    public void inc();
+    public void dec();
+}
+
 class HashSetIter<E>
 {
-    HashSetIter(Iter<E> it)
+    HashSetIter(HashMapKeyIterIntf<E> it)
     {
         hm_it = it;
     }
 
-    usemethod Iter<E> hm_it; //HashMapIter<E, bool>
+    public E get()
+    {
+        return hm_it.key();
+    }
+
+    usemethod HashMapKeyIterIntf<E> hm_it;
 }

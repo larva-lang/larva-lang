@@ -2,7 +2,6 @@ package LARVA_NATIVE
 
 import (
     "unsafe"
-    "reflect"
 )
 
 func lar_func_@<<hash_float>>(n float32) int64 {
