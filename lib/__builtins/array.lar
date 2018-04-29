@@ -7,7 +7,7 @@ public class Array<E>
     public long size();                 //返回数组大小
     public E get(long idx);             //this[idx]
     public void set(long idx, E elem);  //this[idx] = elem
-    public Iter<E> iter();              //返回一个数组迭代器ArrayIter<E>
+    public ArrayIter<E> iter();              //返回一个数组迭代器ArrayIter<E>
 }
 
 */
@@ -19,16 +19,6 @@ public class ArrayIter<E>
     {
         arr = a;
         idx = i;
-    }
-
-    public Iter<E> iter()
-    {
-        return this;
-    }
-
-    public Iter<E> copy()
-    {
-        return new ArrayIter<E>(arr, idx);
     }
 
     public bool before_begin()

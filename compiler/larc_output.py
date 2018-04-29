@@ -342,9 +342,11 @@ def _gen_expr_code_ex(expr):
         fmt, expr_list = expr.arg
         return "lar_str_fmt(%s%s%s)" % (_gen_str_literal(fmt), ", " if expr_list else "", _gen_expr_list_code(expr_list))
 
-    if expr.op == "str_repr":
+    if expr.op == "to_go_str":
         e = expr.arg
-        return "lar_str_repr(%s)" % _gen_expr_code(e)
+        if e.type == larc_type.STR_TYPE:
+            return "lar_str_to_go_str(%s)" % _gen_expr_code(e)
+        return "lar_go_func_any_to_go_str(%s)" % _gen_expr_code(e)
 
     if expr.op == "call_method":
         e, method, expr_list = expr.arg
@@ -680,7 +682,7 @@ def _output_util():
                 code += "return la.arr[idx]"
             with code.new_blk("func (la *%s) lar_method_set(idx int64, elem %s)" % (arr_tp_name, elem_tp_name_code)):
                 code += "la.arr[idx] = elem"
-            with code.new_blk("func (la *%s) lar_method_iter() lar_gintf_inst_10___builtins_4_Iter_1_%s" %
+            with code.new_blk("func (la *%s) lar_method_iter() *lar_gcls_inst_10___builtins_9_ArrayIter_1_%s" %
                               (arr_tp_name, elem_tp_name_code.lstrip("*"))):
                 code += "return lar_new_obj_lar_gcls_inst_10___builtins_9_ArrayIter_1_%s(la, 0)" % elem_tp_name_code.lstrip("*")
             #输出数组的反射接口

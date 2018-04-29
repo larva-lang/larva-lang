@@ -23,14 +23,14 @@ public class HashMap<K, V>
     long find_node(HashMapNode<K, V>[] tbl, K k)
     {
         long mask = tbl.size() - 1; //用位运算代替取余
-        ulong h = hash<K>(k);
-        long idx = (long)h & mask;
+        long h = hash<K>(k);
+        long idx = h & mask;
         /*
         表大小为2的幂，因此探测步长为奇数即可遍历整张表，证明：
         设表大小为n，步长为i，则从任意位置开始，若经过k步第一次回到原点，则i*k被n整除
         最小的k为n/gcd(n,i)，则若要令k=n，i必须和n互质，由于n是2的幂，因此i选奇数即可
         */
-        long step = (long)(h >> 4) | 1;
+        long step = (h >> 4) | 1;
         long first_dummy_idx = -1L; //若找不到，则第一次碰到dummy的位置作为插入位置
         for (long i = 0; i <= mask; ++ i, idx = (idx + step) & mask) //遍历整个tbl
         {
@@ -89,6 +89,17 @@ public class HashMap<K, V>
         ++ dirty;
     }
 
+    public V get(K k)
+    {
+        long idx = find_node(tbl, k);
+        var node = tbl[idx];
+        if (node == nil)
+        {
+            throw(new KeyError("%s".(k)));
+        }
+        return node.v;
+    }
+
     public void set(K k, V v)
     {
         if (sz > tbl.size() / 2)
@@ -109,9 +120,19 @@ public class HashMap<K, V>
         node.v = v;
     }
 
-    public Iter<K> iter()
+    public HashMapIter<K, V> iter()
     {
         return new HashMapIter<K, V>(this, 0);
+    }
+
+    public HashMapIter<K, V> find(K k)
+    {
+        long idx = find_node(tbl, k);
+        if (tbl[idx] == nil)
+        {
+            return nil;
+        }
+        return new HashMapIter<K, V>(this, idx);
     }
 
     HashMapNode<K, V>[] tbl;
@@ -157,23 +178,12 @@ public class HashMapIter<K, V>
         }
     }
 
-    public Iter<K> iter()
-    {
-        return this;
-    }
-
     void check_dirty()
     {
         if (hm.dirty != dirty)
         {
             throw(new IterDirty());
         }
-    }
-
-    public Iter<K> copy()
-    {
-        check_dirty();
-        return new HashMapIter<K, V>(hm, idx);
     }
 
     public bool before_begin()
@@ -198,7 +208,22 @@ public class HashMapIter<K, V>
 
     public K get()
     {
+        return get_key();
+    }
+
+    public K get_key()
+    {
         return get_node().k;
+    }
+
+    public V get_value()
+    {
+        return get_node().v;
+    }
+
+    public void set_value(V v)
+    {
+        get_node().v = v;
     }
 
     public void inc()

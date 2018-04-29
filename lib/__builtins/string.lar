@@ -8,7 +8,7 @@ native class _String
     public long len();
     public char char_at(long idx);
     public char[] to_char_array();
-    ulong hash();
+    long hash();
 
     public int cmp(String other);
     public long index(String s);
@@ -39,7 +39,7 @@ public class String
         return cmp(other) == 0;
     }
 
-    public ulong hash()
+    public long hash()
     {
         if (h == 0)
         {
@@ -53,5 +53,5 @@ public class String
     }
 
     usemethod _String s; //内部实现
-    ulong h; //缓存的hash值，为0表示还没有计算
+    long h; //缓存的hash值，为0表示还没有计算
 }

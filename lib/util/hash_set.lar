@@ -15,7 +15,7 @@ public class HashSet<E>
         hm.set(e, true);
     }
 
-    public Iter<E> iter()
+    public HashSetIter<E> iter()
     {
         return new HashSetIter<E>(hm.iter());
     }
@@ -28,16 +28,6 @@ class HashSetIter<E>
     HashSetIter(Iter<E> it)
     {
         hm_it = it;
-    }
-
-    public Iter<E> iter()
-    {
-        return this;
-    }
-
-    public Iter<E> copy()
-    {
-        return new HashSetIter<E>(hm_it.copy());
     }
 
     usemethod Iter<E> hm_it; //HashMapIter<E, bool>

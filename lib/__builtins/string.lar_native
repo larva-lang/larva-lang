@@ -4,6 +4,7 @@ import (
     "strings"
     "strconv"
     "fmt"
+    "reflect"
 )
 
 type lar_cls_@<<_String>> struct {
@@ -34,14 +35,14 @@ func (this *lar_cls_@<<_String>>) lar_method_to_char_array() *lar_arr_uint8_1 {
     return &lar_arr_uint8_1{arr: []uint8(this.s)}
 }
 
-func (this *lar_cls_@<<_String>>) lar_method_@<<hash>>() uint64 {
+func (this *lar_cls_@<<_String>>) lar_method_@<<hash>>() int64 {
     var h uint64
     s := this.s
     sl := len(s)
     for i := 0; i < sl; i ++ {
         h = (h + uint64(s[i])) * 1000003
     }
-    return h
+    return int64(h)
 }
 
 func (this *lar_cls_@<<_String>>) lar_method_concat(other *lar_cls_@<<String>>) *lar_cls_@<<String>> {
@@ -114,41 +115,33 @@ func lar_str_to_go_str(ls *lar_cls_@<<String>>) string {
 }
 
 func lar_str_fmt(format string, a ...interface{}) *lar_cls_@<<String>> {
-    for i, v := range a {
-        s, ok := v.(*lar_cls_@<<String>>)
-        if ok {
-            a[i] = s.m_s.s
-        }
-    }
     return lar_str_from_go_str(fmt.Sprintf(format, a...))
 }
 
-const hex_digits = "0123456789ABCDEF"
-var escape_char_table = map[byte]byte {
-    '\a': 'a',
-    '\b': 'b',
-    '\n': 'n',
-    '\r': 'r',
-    '\t': 't',
-    '\v': 'v',
+type lar_go_intf_strable interface {
+    lar_method_str() *lar_cls_@<<String>>
 }
-func lar_str_repr(ls *lar_cls_@<<String>>) *lar_cls_@<<String>> {
-    s := lar_str_to_go_str(ls)
-    s_len := len(s)
-    b := make([]byte, 0, s_len)
-    b = append(b, '"')
-    for i := 0; i < s_len; i ++ {
-        c := s[i]
-        if ec, ok := escape_char_table[c]; ok {
-            b = append(b, '\\', ec)
-        } else if c < 32 || c > 126 {
-            b = append(b, '\\', 'x', hex_digits[c / 16], hex_digits[c % 16])
-        } else if c == '\\' || c == '"' {
-            b = append(b, '\\', c)
-        } else {
-            b = append(b, c)
-        }
+
+func lar_go_func_any_to_go_str(a lar_intf_@<<Any>>) string {
+    if a == nil {
+        return "<nil>"
     }
-    b = append(b, '"')
-    return lar_str_from_go_str(string(b))
+    switch a.(type) {
+    case bool:
+        return fmt.Sprintf("%t", a)
+    case int8, uint8, int16, uint16, int32, uint32, int64, uint64:
+        return fmt.Sprintf("%d", a)
+    case float32, float64:
+        return fmt.Sprintf("%f", a)
+    }
+    strable, ok := a.(lar_go_intf_strable)
+    if ok {
+        return lar_str_to_go_str(strable.lar_method_str())
+    }
+    lri, ok := a.(lar_reflect_intf)
+    if ok {
+        return fmt.Sprintf("<%s object at 0x%X>",
+                           lar_str_to_go_str(lri.lar_reflect_type_name()), reflect.ValueOf(&lri).Elem().InterfaceData()[1])
+    }
+    return fmt.Sprintf("<go object>")
 }

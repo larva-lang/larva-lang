@@ -1,2 +1,0 @@
-public native ulong hash_float(float n);
-public native ulong hash_double(double n);

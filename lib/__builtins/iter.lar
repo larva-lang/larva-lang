@@ -11,21 +11,12 @@
 //迭代器接口
 public interface Iter<E>
 {
-    public Iter<E> iter(); //迭代器本身也是可迭代的
-    public Iter<E> copy(); //返回当前迭代器的一个副本
-
     public bool before_begin(); //判断是否在开始边界
     public bool after_end(); //判断是否在结束边界
     public E get(); //获取当前位置元素
 
     public void inc(); //指向下一个元素
     public void dec(); //指向上一个元素
-}
-
-//可迭代类型的接口
-public interface Iterable<E>
-{
-    public Iter<E> iter();
 }
 
 //以下为建议的迭代器接口可能抛出的异常，非强制，具体的异常类型每个类可自己定义

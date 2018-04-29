@@ -657,19 +657,15 @@ class Parser:
                 elif verb in "eEfFgG":
                     if not expr.type.is_float_type:
                         raise ExprTypeError("浮点数")
-                elif verb in "sr":
+                elif verb in "s":
                     if expr.type.is_bool_type:
                         verb = "t"
                     elif expr.type.is_integer_type:
                         verb = "d"
                     elif expr.type.is_float_type:
                         verb = "f"
-                    elif expr.type == larc_type.STR_TYPE:
-                        if verb == "r":
-                            expr_list[expr_idx - 1] = _Expr("str_repr", expr, larc_type.STR_TYPE)
-                            verb = "s"
                     else:
-                        raise ExprTypeError("bool、整数、浮点数或字符串")
+                        expr_list[expr_idx - 1] = _Expr("to_go_str", expr, larc_type.STR_TYPE) #实际返回类型是go的string，这里只是方便编译检查
                 else:
                     t.syntax_err("非法的格式符：'%s...'" % `t.value[: pos]`[1 : -1])
                 conv_spec += verb

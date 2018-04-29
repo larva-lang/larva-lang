@@ -1,22 +1,47 @@
-ulong hash<T>(T t)
+import reflect;
+
+native long hash_float(float n);
+native long hash_double(double n);
+
+//通用的计算hash的方法，保证返回非负
+public long hash<T>(T t)
 {
-    ulong h;
+    long h;
 
 #use
     h = hash_double(t);
 #oruse
     h = hash_float(t);
 #oruse
-    h = (ulong)t;
+    h = (long)t;
 #oruse
     h = t.hash();
 #enduse
 
-    h *= 2862933555777941757UL;
-    return (h >> 32) ^ h;
+    ulong uh = (ulong)h * 2862933555777941757UL;
+    return (long)((uh >> 32) ^ uh) & 0x7FFFFFFFFFFFFFFFL;
 }
 
-bool eq<T>(T a, T b)
+public int cmp<T>(T a, T b)
+{
+#use
+    return a.cmp(b);
+#oruse
+    return -b.cmp(a);
+#oruse
+    if (a < b)
+    {
+        return -1;
+    }
+    if (a > b)
+    {
+        return 1;
+    }
+    return 0;
+#enduse
+}
+
+public bool eq<T>(T a, T b)
 {
 #use
     return a.eq(b);

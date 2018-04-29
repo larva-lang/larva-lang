@@ -317,7 +317,7 @@ _ARRAY_METHOD_MAP = {"size": (LONG_TYPE, []),
                      "iter": (_ARRAY_ITER_TYPE, [])}
 
 def _gen_array_iter_type(elem_tp):
-    t = larc_token.make_fake_token_name("Iter").copy_on_pos(elem_tp.token) #在当前位置弄个假token
+    t = larc_token.make_fake_token_name("ArrayIter").copy_on_pos(elem_tp.token) #在当前位置弄个假token
     iter_tp = _Type((t, t.value), None, None, module_name = "__builtins")
     iter_tp.gtp_list = [elem_tp] #设置elem_tp为泛型参数
     iter_tp.get_coi() #触发一下，这里也是check里面做的流程
@@ -392,8 +392,4 @@ def _reg_array(tp):
         array_type_set.add(tp)
         tp = tp.to_elem_type()
         #注册了一个新的数组，且tp是其元素，用tp构建一个ArrayIter的instance
-        t = larc_token.make_fake_token_name("ArrayIter").copy_on_pos(tp.token) #在当前位置弄个假token
-        array_iter_tp = _Type((t, t.value), None, None, module_name = "__builtins")
-        array_iter_tp.gtp_list = [tp] #设置tp为泛型参数
-        array_iter_tp.get_coi() #通过get_coi触发构建ArrayIter instance，由于ArrayIter<E>的实现中存在Iter<E>，后者也会被自动创建
-        array_iter_tp.set_is_checked() #锁住
+        _gen_array_iter_type(tp)
