@@ -433,21 +433,25 @@ def parse_token_list(src_file):
     return token_list
 
 def parse_token_list_until_sym(token_list, end_sym_set):
+    bracket_map = {"(" : ")", "[" : "]", "{" : "}"}
     sub_token_list = TokenList(token_list.src_file)
     stk = []
+    in_top_level_new = False #是否正在解析第一层的new，用于解决解析全局变量初始化expr_list时碰到泛型参数分隔的逗号停止的bug
     while True:
         t = token_list.pop()
         sub_token_list.append(t)
         if t.is_sym and t.value in end_sym_set and not stk:
             return sub_token_list, t.value
-        if t.is_sym and t.value in ("(", "[", "{"):
+        if t.is_sym and t.value in bracket_map:
             stk.append(t)
-        if t.is_sym and t.value in (")", "]", "}"):
-            if not (stk and stk[-1].is_sym and t.value == {"(" : ")", "[" : "]", "{" : "}"}[stk[-1].value]):
+            in_top_level_new = False
+        if t.is_sym and t.value in bracket_map.values():
+            if not (stk and stk[-1].is_sym and t.value == bracket_map[stk[-1].value]):
                 t.syntax_err("未匹配的'%s'" % t.value)
             stk.pop()
         if t.is_ccc("use"):
             stk.append(t)
+            in_top_level_new = False
         if t.is_ccc("oruse"):
             if not (stk and stk[-1].is_ccc("use")):
                 t.syntax_err("未匹配的'#oruse'")
@@ -455,6 +459,15 @@ def parse_token_list_until_sym(token_list, end_sym_set):
             if not (stk and stk[-1].is_ccc("use")):
                 t.syntax_err("未匹配的'#enduse'")
             stk.pop()
+        if t.is_reserved("new") and not stk:
+            in_top_level_new = True
+        if t.is_sym("<") and in_top_level_new:
+            stk.append(t)
+        if t.is_sym and t.value in (">", ">>") and in_top_level_new:
+            for _ in xrange(len(t.value)):
+                if not (stk and stk[-1].is_sym("<")):
+                    t.syntax_err("未匹配的'>'" % t.value)
+                stk.pop()
 
 def gen_empty_token_list(end_sym):
     token_list = TokenList("EMPTY")
