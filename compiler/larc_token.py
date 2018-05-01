@@ -436,7 +436,7 @@ def parse_token_list_until_sym(token_list, end_sym_set):
     bracket_map = {"(" : ")", "[" : "]", "{" : "}"}
     sub_token_list = TokenList(token_list.src_file)
     stk = []
-    in_top_level_new = False #是否正在解析第一层的new，用于解决解析全局变量初始化expr_list时碰到泛型参数分隔的逗号停止的bug
+    in_top_level_new = False #是否正在解析第一层的new，用于解决解析全局变量初始化expr token list时碰到泛型参数分隔的逗号停止的bug
     while True:
         t = token_list.pop()
         sub_token_list.append(t)
