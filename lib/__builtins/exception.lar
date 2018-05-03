@@ -100,12 +100,7 @@ public class Exception
         info = s;
     }
 
-    public String str()
-    {
-        return info;
-    }
-
-    String info;
+    String info usemethod(str);
 }
 
 //这里是通用的一些内建异常类型
@@ -118,7 +113,7 @@ public class AssertError
         e = new Exception(s);
     }
 
-    usemethod Exception e;
+    Exception e usemethod;
 }
 
 //运行时类型转换（从接口到类型或其他接口）失败的错误
@@ -201,7 +196,7 @@ public class KeyError
         e = new Exception(k);
     }
 
-    usemethod Exception e;
+    Exception e usemethod;
 }
 
 //值错误，用于根据值解析、查找等操作的地方，v为错误的值的字符串描述
@@ -212,7 +207,7 @@ public class ValueError
         e = new Exception(v);
     }
 
-    usemethod Exception e;
+    Exception e usemethod;
 }
 
 //超时错误，用于操作超时时抛出

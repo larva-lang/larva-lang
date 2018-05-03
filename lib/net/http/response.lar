@@ -8,5 +8,5 @@ native class _Response
 
 public class Response
 {
-    usemethod _Response rsp;
+    _Response rsp usemethod;
 }

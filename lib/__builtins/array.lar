@@ -7,7 +7,7 @@ public class Array<E>
     public long size();                 //返回数组大小
     public E get(long idx);             //this[idx]
     public void set(long idx, E elem);  //this[idx] = elem
-    public ArrayIter<E> iter();              //返回一个数组迭代器ArrayIter<E>
+    public ArrayIter<E> iter();         //返回一个数组迭代器ArrayIter<E>
 }
 
 */

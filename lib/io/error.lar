@@ -15,6 +15,6 @@ public class Error
     }
 
     //e和s有且仅有一个不为nil
-    usemethod GoError e;
+    GoError e usemethod;
     String s;
 }

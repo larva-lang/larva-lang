@@ -1,6 +1,6 @@
 native class _Client
 {
-    _Client(long timeout_nano);
+    _Client(double timeout);
 
     public Response do(Request req);
 }
@@ -9,8 +9,8 @@ public class Client
 {
     public Client(double timeout)
     {
-        c = new _Client((long)(timeout * 1e9));
+        c = new _Client(timeout);
     }
 
-    usemethod _Client c;
+    _Client c usemethod;
 }

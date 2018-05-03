@@ -32,5 +32,5 @@ public class Chan<T>
         return (T)ch.recv();
     }
 
-    usemethod _ChanAny ch;
+    _ChanAny ch usemethod;
 }

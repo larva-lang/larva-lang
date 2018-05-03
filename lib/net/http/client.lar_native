@@ -9,10 +9,10 @@ type lar_cls_@<<_Client>> struct {
     c *http.Client
 }
 
-func lar_new_obj_lar_cls_@<<_Client>>(timeout_nano int64) *lar_cls_@<<_Client>> {
+func lar_new_obj_lar_cls_@<<_Client>>(timeout float64) *lar_cls_@<<_Client>> {
     return &lar_cls_@<<_Client>>{
         c: &http.Client{
-            Timeout: time.Duration(timeout_nano),
+            Timeout: time.Duration(timeout * 1e9),
         },
     }
 }

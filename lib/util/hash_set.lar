@@ -5,11 +5,6 @@ public class HashSet<E>
         hm = new HashMap<E, bool>();
     }
 
-    public long size()
-    {
-        return hm.size();
-    }
-
     public void add(E e)
     {
         hm.set(e, true);
@@ -20,21 +15,12 @@ public class HashSet<E>
         return new HashSetIter<E>(hm.iter());
     }
 
-    HashMap<E, bool> hm;
+    HashMap<E, bool> hm usemethod(size);
 }
 
-interface HashMapKeyIterIntf<K>
+public class HashSetIter<E>
 {
-    public bool before_begin();
-    public bool after_end();
-    public K key();
-    public void inc();
-    public void dec();
-}
-
-class HashSetIter<E>
-{
-    HashSetIter(HashMapKeyIterIntf<E> it)
+    HashSetIter(HashMapIter<E, bool> it)
     {
         hm_it = it;
     }
@@ -44,5 +30,5 @@ class HashSetIter<E>
         return hm_it.key();
     }
 
-    usemethod HashMapKeyIterIntf<E> hm_it;
+    HashMapIter<E, bool> hm_it usemethod(before_begin, after_end, inc, dec);
 }

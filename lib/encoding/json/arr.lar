@@ -43,6 +43,6 @@ public class JsonArr
         return a;
     }
 
-    usemethod JsonBase base;
-    usemethod _JsonArr arr;
+    JsonBase base usemethod;
+    _JsonArr arr usemethod;
 }

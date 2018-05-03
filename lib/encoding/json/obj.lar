@@ -28,6 +28,6 @@ public class JsonObj
         return this;
     }
 
-    usemethod JsonBase base;
-    usemethod _JsonObj obj;
+    JsonBase base usemethod;
+    _JsonObj obj usemethod;
 }

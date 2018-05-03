@@ -14,7 +14,7 @@ public class TcpListener
         tl = new _TcpListener(addr);
     }
 
-    usemethod _TcpListener tl;
+    _TcpListener tl usemethod;
 }
 
 native class _TcpConn
@@ -28,5 +28,5 @@ native class _TcpConn
 
 public class TcpConn
 {
-    usemethod _TcpConn tc;
+    _TcpConn tc usemethod;
 }

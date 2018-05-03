@@ -15,7 +15,7 @@ public class Error
         return _errno;
     }
 
-    usemethod GoError e;
+    GoError e usemethod;
     bool _is_timeout;
     bool _is_temporary;
     int _errno;

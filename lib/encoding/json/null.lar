@@ -21,7 +21,7 @@ public class JsonNull
         return true;
     }
 
-    usemethod JsonBase base;
+    JsonBase base usemethod;
 }
 
 public final JsonNull NULL = new JsonNull();

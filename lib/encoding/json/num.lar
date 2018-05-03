@@ -22,6 +22,6 @@ public class JsonNum
         return v;
     }
 
-    usemethod JsonBase base;
+    JsonBase base usemethod;
     double v;
 }

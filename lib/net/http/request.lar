@@ -10,5 +10,5 @@ public class Request
         req = new _Request(method, url, data);
     }
 
-    usemethod _Request req;
+    _Request req usemethod;
 }

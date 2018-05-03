@@ -5,22 +5,17 @@ public class TypeError
         this.type = json.type();
     }
 
-    public String str()
-    {
-        return type;
-    }
-
-    String type;
+    String type usemethod(str);
 }
 
 public class MarshalError
 {
-    usemethod GoError e;
+    GoError e usemethod;
 }
 
 public class UnmarshalError
 {
-    usemethod GoError e;
+    GoError e usemethod;
 }
 
 public class UnsupportedJsonType
@@ -30,10 +25,5 @@ public class UnsupportedJsonType
         this.type = type;
     }
 
-    public String str()
-    {
-        return type;
-    }
-
-    String type;
+    String type usemethod(str);
 }

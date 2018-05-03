@@ -1,4 +1,4 @@
 public class Error
 {
-    usemethod GoError e;
+    GoError e usemethod;
 }

@@ -52,6 +52,6 @@ public class String
         return h;
     }
 
-    usemethod _String s; //内部实现
+    _String s usemethod; //内部实现
     long h; //缓存的hash值，为0表示还没有计算
 }

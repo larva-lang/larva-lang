@@ -23,7 +23,7 @@ def _parse_decr_set(token_list):
     decr_set = set()
     while True:
         t = token_list.peek()
-        for decr in "public", "native", "usemethod", "final":
+        for decr in "public", "native", "final":
             if t.is_reserved(decr):
                 if decr in decr_set:
                     t.syntax_err("重复的修饰'%s'" % decr)
@@ -167,7 +167,7 @@ class _ClsBase(_CoiBase):
                         coi.expand_usemethod(expand_chain + "." + attr.name)
                     usemethod_coi_list.append((attr, coi))
 
-        #列表中的类或接口的可见方法都use过来
+        #若默认指定，则列表中的类或接口的可见方法都use过来，否则use所有指定方法
         usemethod_map = larc_common.OrderedDict()
         def check_usemethod_name(name):
             if name in usemethod_map:
@@ -180,17 +180,40 @@ class _ClsBase(_CoiBase):
                 larc_common.exit("类'%s'通过usemethod引入的方法'%s'与泛型参数同名" % (self, name))
         for attr in usemethod_array_list:
             assert attr.type.is_array
-            for method in larc_type.iter_array_method_list(attr.type):
+            if attr.usemethod_list is None:
+                usemethod_list = list(larc_type.iter_array_method_list(attr.type))
+            else:
+                usemethod_list = []
+                for usemethod_name_token, usemethod_name in attr.usemethod_list:
+                    method = larc_type.get_array_method(attr.type, usemethod_name)
+                    if method is None:
+                        usemethod_name_token.syntax_err("数组没有方法'%s'" % usemethod_name)
+                    usemethod_list.append(method)
+            for method in usemethod_list:
                 if method.name in self.method_map:
                     #在本类已经重新实现的忽略
                     continue
                 check_usemethod_name(method.name)
                 usemethod_map[method.name] = _UseMethod(self, attr, method)
         for attr, coi in usemethod_coi_list:
-            for method in coi.method_map.itervalues():
-                if coi.module is not self.module and "public" not in method.decr_set:
-                    #无访问权限的忽略
-                    continue
+            if attr.usemethod_list is None:
+                usemethod_list = []
+                for method in coi.method_map.itervalues():
+                    if coi.module is not self.module and "public" not in method.decr_set:
+                        #无访问权限的忽略
+                        continue
+                    usemethod_list.append(method)
+            else:
+                usemethod_list = []
+                for usemethod_name_token, usemethod_name in attr.usemethod_list:
+                    try:
+                        method = coi.method_map[usemethod_name]
+                    except KeyError:
+                        usemethod_name_token.syntax_err("'%s'没有方法'%s'" % (coi, usemethod_name))
+                    if coi.module is not self.module and "public" not in method.decr_set:
+                        usemethod_name_token.syntax_err("对'%s'的方法'%s'没有访问权限" % (coi, usemethod_name))
+                    usemethod_list.append(method)
+            for method in usemethod_list:
                 if method.name in self.method_map:
                     #在本类已经重新实现的忽略
                     continue
@@ -248,12 +271,13 @@ class _Method(_MethodBase):
         del self.block_token_list
 
 class _Attr:
-    def __init__(self, cls, decr_set, type, name):
+    def __init__(self, cls, decr_set, type, name, usemethod_list):
         self.cls = cls
         self.module = cls.module
         self.decr_set = decr_set
         self.type = type
         self.name = name
+        self.usemethod_list = usemethod_list
 
     __repr__ = __str__ = lambda self : "%s.%s" % (self.cls, self.name)
 
@@ -311,8 +335,6 @@ class _Cls(_ClsBase):
                 t, name = token_list.pop_name()
                 if token_list.peek().is_sym("("):
                     #构造方法
-                    if "usemethod" in decr_set:
-                        t.syntax_err("方法不可用usemethod修饰")
                     token_list.pop_sym("(")
                     self._parse_method(decr_set, larc_type.VOID_TYPE, name, token_list)
                     continue
@@ -324,32 +346,48 @@ class _Cls(_ClsBase):
             if name == self.name:
                 t.syntax_err("属性或方法不可与类同名")
             self._check_redefine(t, name)
-            sym_t, sym = token_list.pop_sym()
-            if sym == "(":
+            next_t = token_list.pop()
+            if next_t.is_sym("("):
                 #方法
-                if "usemethod" in decr_set:
-                    sym_t.syntax_err("方法不可用usemethod修饰")
                 self._parse_method(decr_set, type, name, token_list)
                 continue
-            if sym in (";", ","):
+            if next_t.is_sym and next_t.value in (";", ",") or next_t.is_reserved("usemethod"):
                 #属性
                 if type.name == "void":
                     t.syntax_err("属性类型不可为void")
                 while True:
-                    if "usemethod" in decr_set and (type.is_nil or not type.is_obj_type):
-                        t.syntax_err("usemethod不可用于类型'%s'" % type)
-                    self.attr_map[name] = _Attr(self, decr_set, type, name)
-                    if sym == ";":
+                    usemethod_list = None
+                    if next_t.is_reserved("usemethod"):
+                        if type.is_nil or not type.is_obj_type:
+                            t.syntax_err("usemethod不可用于类型'%s'" % type)
+                        decr_set.add("usemethod")
+                        if token_list.peek().is_sym("("):
+                            token_list.pop()
+                            usemethod_list = []
+                            while True:
+                                usemethod_name_token, usemethod_name = token_list.pop_name()
+                                usemethod_list.append((usemethod_name_token, usemethod_name))
+                                sym_t, sym = token_list.pop_sym()
+                                if sym == ",":
+                                    continue
+                                if sym == ")":
+                                    break
+                                sym_t.syntax_err("需要','或')'")
+                        next_t = token_list.pop()
+                        if not (next_t.is_sym and next_t.value in (",", ";")):
+                            next_t.syntax_err("需要','或';'")
+                    self.attr_map[name] = _Attr(self, decr_set, type, name, usemethod_list)
+                    if next_t.is_sym(";"):
                         break
                     #多属性定义
-                    assert sym == ","
+                    assert next_t.is_sym(",")
                     t, name = token_list.pop_name()
                     self._check_redefine(t, name)
-                    sym_t, sym = token_list.pop_sym()
-                    if sym not in (";", ","):
-                        t.syntax_err()
+                    next_t = token_list.pop()
+                    if not (next_t.is_sym and next_t.value in (",", ";") or next_t.is_reserved("usemethod")):
+                        next_t.syntax_err()
                 continue
-            t.syntax_err()
+            next_t.syntax_err()
         if self.construct_method is None:
             #生成默认构造方法，非public，无参数，无指令
             if "native" in self.decr_set:
@@ -440,6 +478,7 @@ class _GclsInstAttr:
         self.decr_set = attr.decr_set
         self.type = copy.deepcopy(attr.type)
         self.name = attr.name
+        self.usemethod_list = attr.usemethod_list
 
     __repr__ = __str__ = lambda self : "%s.%s" % (self.cls, self.attr.name)
 
