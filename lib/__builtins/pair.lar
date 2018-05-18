@@ -6,6 +6,11 @@ public class Pair<F, S>
         this.second = second;
     }
 
+    public String str()
+    {
+        return "Pair{%s, %s}".(first, second);
+    }
+
     public F first;
     public S second;
 }
