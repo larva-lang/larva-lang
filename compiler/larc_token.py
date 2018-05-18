@@ -174,6 +174,7 @@ class TokenList:
             return t, t.value
         if t.value != sym:
             t.syntax_err("需要'%s'" % sym)
+        return t
 
     def pop_name(self):
         t = self.pop()
@@ -436,7 +437,7 @@ def parse_token_list_until_sym(token_list, end_sym_set):
     bracket_map = {"(" : ")", "[" : "]", "{" : "}"}
     sub_token_list = TokenList(token_list.src_file)
     stk = []
-    in_top_level_new = False #是否正在解析第一层的new，用于解决解析全局变量初始化expr token list时碰到泛型参数分隔的逗号停止的bug
+    in_top_level_new = False #是否刚解析过第一层的new且还没碰到括号，用于解决解析全局变量初始化expr token list时碰到泛型参数分隔的逗号停止的bug
     while True:
         t = token_list.pop()
         sub_token_list.append(t)
@@ -463,10 +464,11 @@ def parse_token_list_until_sym(token_list, end_sym_set):
             in_top_level_new = True
         if t.is_sym("<") and in_top_level_new:
             stk.append(t)
-        if t.is_sym and t.value in (">", ">>") and in_top_level_new:
+            in_top_level_new = False
+        if t.is_sym and t.value in (">", ">>") and (stk and stk[-1].is_sym("<")):
             for _ in xrange(len(t.value)):
                 if not (stk and stk[-1].is_sym("<")):
-                    t.syntax_err("未匹配的'>'" % t.value)
+                    t.syntax_err("未匹配的'>'")
                 stk.pop()
 
 def gen_empty_token_list(end_sym):

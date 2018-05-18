@@ -36,25 +36,35 @@ def _parse_decr_set(token_list):
 def _parse_gtp_name_list(token_list, dep_module_map):
     gtp_name_list = []
     while True:
+        t = token_list.peek()
+        if t.is_sym(">"):
+            token_list.pop_sym()
+            break
+
         t, name = token_list.pop_name()
         if name in dep_module_map:
             t.syntax_err("泛型参数名与导入模块重名")
         if name in gtp_name_list:
             t.syntax_err("泛型参数名重复定义")
         gtp_name_list.append(name)
-        t, sym = token_list.pop_sym()
-        if sym == ",":
-            continue
-        if sym == ">":
-            break
-        t.syntax_err("需要'>'或','")
+
+        t = token_list.peek()
+        if not (t.is_sym and t.value in (">", ",")):
+            t.syntax_err("需要','或'>'")
+        if t.value == ",":
+            token_list.pop_sym()
+
+    if not gtp_name_list:
+        t.syntax_err("泛型参数列表不能为空")
     return gtp_name_list
 
 def _parse_arg_map(token_list, dep_module_map, gtp_name_list):
     arg_map = larc_common.OrderedDict()
-    if token_list.peek().is_sym(")"):
-        return arg_map
     while True:
+        t = token_list.peek()
+        if t.is_sym(")"):
+            return arg_map
+
         if token_list.peek().is_reserved("ref"):
             token_list.pop()
             is_ref = True
@@ -71,13 +81,12 @@ def _parse_arg_map(token_list, dep_module_map, gtp_name_list):
         if name in gtp_name_list:
             t.syntax_err("参数名和函数或方法的泛型参数名冲突")
         arg_map[name] = type
+
         t = token_list.peek()
-        if t.is_sym(","):
-            token_list.pop_sym(",")
-            continue
-        if t.is_sym(")"):
-            return arg_map
-        t.syntax_err("需要','或')'")
+        if not (t.is_sym and t.value in (")", ",")):
+            t.syntax_err("需要','或')'")
+        if t.value == ",":
+            token_list.pop_sym()
 
 #下面_ClsBase和_IntfBase的基类，用于定义一些接口和类共有的通用属性和方法
 class _CoiBase:
@@ -365,14 +374,23 @@ class _Cls(_ClsBase):
                             token_list.pop()
                             usemethod_list = []
                             while True:
+                                t = token_list.peek()
+                                if t.is_sym(")"):
+                                    token_list.pop_sym()
+                                    break
+
                                 usemethod_name_token, usemethod_name = token_list.pop_name()
                                 usemethod_list.append((usemethod_name_token, usemethod_name))
-                                sym_t, sym = token_list.pop_sym()
-                                if sym == ",":
-                                    continue
-                                if sym == ")":
-                                    break
-                                sym_t.syntax_err("需要','或')'")
+
+                                t = token_list.peek()
+                                if not (t.is_sym and t.value in (")", ",")):
+                                    t.syntax_err("需要','或')'")
+                                if t.value == ",":
+                                    token_list.pop_sym()
+
+                            if not usemethod_list:
+                                t.syntax_err("usemethod方法列表不能为空")
+
                         next_t = token_list.pop()
                         if not (next_t.is_sym and next_t.value in (",", ";")):
                             next_t.syntax_err("需要','或';'")
@@ -896,6 +914,10 @@ class Module:
                 larc_common.exit("函数catch_base和catch不能有输入参数")
             if "_go_recovered" not in self.global_var_map:
                 larc_common.exit("内建模块缺少全局变量_go_recovered")
+            if "Pair" not in self.cls_map or len(self.cls_map["Pair"].gtp_name_list) != 2: #必须有Pair<F, S>
+                larc_common.exit("内建模块缺少泛型类Pair<F, S>")
+            if len(self.cls_map["Pair"].attr_map) != 2:
+                larc_common.exit("内建泛型类Pair<F, S>必须有2个字段")
 
     __repr__ = __str__ = lambda self : self.name
 

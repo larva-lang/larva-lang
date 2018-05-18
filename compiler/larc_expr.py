@@ -240,7 +240,7 @@ class _ParseStk:
 
 def _is_expr_end(t):
     if t.is_sym:
-        if t.value in (set([")", "]", ",", ";", ":"]) | larc_token.ASSIGN_SYM_SET | larc_token.INC_DEC_SYM_SET):
+        if t.value in (set([")", "]", ",", ";", ":", "}"]) | larc_token.ASSIGN_SYM_SET | larc_token.INC_DEC_SYM_SET):
             return True
     return False
 
@@ -368,31 +368,45 @@ class Parser:
                                 parse_stk.push_expr(_Expr("force_convert", (base_type, expr_list[0]), base_type))
                             else:
                                 t.syntax_err("基础类型或接口的new只能输入0或1个参数")
-                else:
-                    if not t.is_sym("["):
-                        t.syntax_err("需要'('或'['")
+                elif t.is_sym("["):
                     if base_type.is_void:
                         t.syntax_err("无法创建void数组")
-                    size_list = [self.parse(var_map_stk, larc_type.VALID_ARRAY_IDX_TYPES)]
-                    init_dim_count = 1
-                    self.token_list.pop_sym("]")
-                    while self.token_list.peek().is_sym("["):
-                        self.token_list.pop_sym("[")
-                        t = self.token_list.peek()
-                        if t.is_sym("]"):
-                            size_list.append(None)
-                            self.token_list.pop_sym("]")
-                            continue
-                        if size_list[-1] is None:
-                            t.syntax_err("需要']'")
-                        size_list.append(self.parse(var_map_stk, larc_type.VALID_ARRAY_IDX_TYPES))
-                        init_dim_count += 1
+                    if self.token_list.peek().is_sym("]"):
+                        #通过初始化列表创建数组
                         self.token_list.pop_sym("]")
-                    array_base_type = base_type
-                    while array_base_type.is_array:
-                        array_base_type = array_base_type.to_elem_type()
-                        size_list.append(None)
-                    parse_stk.push_expr(_Expr("new_array", (array_base_type, size_list), array_base_type.to_array_type(len(size_list))))
+                        init_list_type = base_type.to_array_type(1)
+                        while self.token_list.peek().is_sym("["):
+                            self.token_list.pop_sym("[")
+                            self.token_list.pop_sym("]")
+                            init_list_type = init_list_type.to_array_type(1)
+                        larc_module.check_new_ginst_during_compile()
+                        parse_stk.push_expr(self._parse_init_list(var_map_stk, init_list_type))
+                    else:
+                        #创建普通数组
+                        size_list = [self.parse(var_map_stk, larc_type.VALID_ARRAY_IDX_TYPES)]
+                        init_dim_count = 1
+                        self.token_list.pop_sym("]")
+                        while self.token_list.peek().is_sym("["):
+                            self.token_list.pop_sym("[")
+                            t = self.token_list.peek()
+                            if t.is_sym("]"):
+                                size_list.append(None)
+                                self.token_list.pop_sym("]")
+                                continue
+                            if size_list[-1] is None:
+                                t.syntax_err("需要']'")
+                            size_list.append(self.parse(var_map_stk, larc_type.VALID_ARRAY_IDX_TYPES))
+                            init_dim_count += 1
+                            self.token_list.pop_sym("]")
+                        array_base_type = base_type
+                        while array_base_type.is_array:
+                            array_base_type = array_base_type.to_elem_type()
+                            size_list.append(None)
+                        array_type = array_base_type.to_array_type(len(size_list))
+                        larc_module.check_new_ginst_during_compile()
+                        parse_stk.push_expr(_Expr("new_array", (array_base_type, size_list), array_type))
+                else:
+                    t.syntax_err("需要'('或'['")
             elif t.is_reserved("this"):
                 if self.cls is None:
                     t.syntax_err("'this'只能用于方法中")
@@ -554,10 +568,12 @@ class Parser:
 
     def _parse_expr_list(self, var_map_stk, allow_ref = True):
         expr_list = []
-        if self.token_list.peek().is_sym(")"):
-            self.token_list.pop_sym(")")
-            return expr_list
         while True:
+            t = self.token_list.peek()
+            if t.is_sym(")"):
+                self.token_list.pop_sym()
+                return expr_list
+
             t = self.token_list.peek()
             if t.is_reserved("ref"):
                 if not allow_ref:
@@ -576,10 +592,12 @@ class Parser:
                         t.syntax_err("ref修饰了带final属性的全局变量")
             expr.is_ref = is_ref
             expr_list.append(expr)
-            if self.token_list.peek().is_sym(")"):
-                self.token_list.pop_sym(")")
-                return expr_list
-            self.token_list.pop_sym(",")
+
+            t = self.token_list.peek()
+            if not (t.is_sym and t.value in (")", ",")):
+                t.syntax_err("需要','或')'")
+            if t.value == ",":
+                self.token_list.pop_sym()
 
     def _make_expr_list_match_arg_map(self, t, expr_list, arg_map):
         if len(expr_list) != len(arg_map):
@@ -677,3 +695,48 @@ class Parser:
         if expr_idx < len(expr_list):
             t.syntax_err("format格式化参数过多")
         return fmt, expr_list
+
+    #解析初始化列表，并作为init_list_type类型，支持嵌套解析
+    def _parse_init_list(self, var_map_stk, init_list_type):
+        #列表以'{'开始
+        t = self.token_list.pop_sym("{")
+        #init_list_type必须是数组
+        if not init_list_type.is_array:
+            t.syntax_err("类型'%s'不是数组，不支持列表初始化" % init_list_type)
+        elem_type = init_list_type.to_elem_type()
+        #检查是普通数组还是Pair数组，解析Pair的两部分的type
+        is_pair_elem = elem_type.module_name == "__builtins" and elem_type.name == "Pair" and not elem_type.is_array
+        if is_pair_elem:
+            assert len(elem_type.gtp_list) == 2
+            first_type, second_type = elem_type.gtp_list
+
+        expr_list = []
+        while True:
+            t = self.token_list.peek()
+            if t.is_sym("}"):
+                self.token_list.pop_sym()
+                break
+
+            need_type = first_type if is_pair_elem else elem_type
+            if self.token_list.peek().is_sym("{"):
+                expr = self._parse_init_list(var_map_stk, need_type)
+            else:
+                expr = self.parse(var_map_stk, need_type)
+            if is_pair_elem:
+                first_expr = expr
+                self.token_list.pop_sym(":")
+                if self.token_list.peek().is_sym("{"):
+                    second_expr = self._parse_init_list(var_map_stk, second_type)
+                else:
+                    second_expr = self.parse(var_map_stk, second_type)
+                expr_list.append((first_expr, second_expr))
+            else:
+                expr_list.append(expr)
+
+            t = self.token_list.peek()
+            if not (t.is_sym and t.value in ("}", ",")):
+                t.syntax_err("需要','或'}'")
+            if t.value == ",":
+                self.token_list.pop_sym()
+
+        return _Expr("new_array_by_init_list", expr_list, init_list_type)

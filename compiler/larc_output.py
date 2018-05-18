@@ -318,6 +318,21 @@ def _gen_expr_code_ex(expr):
         return "%s(%s)" % (_gen_new_arr_func_name(tp, len(size_list), new_dim_count),
                            ", ".join(["int64(%s)" % _gen_expr_code(e) for e in size_list[: new_dim_count]]))
 
+    if expr.op == "new_array_by_init_list":
+        expr_list = expr.arg
+        expr_code_list = []
+        for e in expr_list:
+            if isinstance(e, tuple):
+                first_e, second_e = e
+                expr_code = "{(%s), (%s)}" % (_gen_expr_code(first_e), _gen_expr_code(second_e))
+            else:
+                expr_code = "(%s)" % _gen_expr_code(e)
+            expr_code_list.append(expr_code)
+        array_type = expr.type
+        assert array_type.is_array
+        elem_type = array_type.to_elem_type()
+        return "&%s{arr: []%s{%s}}" % (_gen_type_name_code(array_type)[1 :], _gen_type_name_code(elem_type), ", ".join(expr_code_list))
+
     if expr.op == "this":
         return "this"
 

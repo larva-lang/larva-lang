@@ -284,19 +284,26 @@ def try_parse_type(token_list, curr_module, dep_module_map, gtp_map, used_dep_mo
 def parse_gtp_list(token_list, dep_module_map):
     gtp_list = []
     while True:
+        t = token_list.peek()
+        if t.is_sym and t.value in (">", ">>"):
+            token_list.pop_sym()
+            break
+
         tp = parse_type(token_list, dep_module_map)
         if tp.is_void:
             tp.token.syntax_err("void类型不可作为泛型参数传入")
         gtp_list.append(tp)
-        t = token_list.pop()
-        if t.is_sym(","):
-            continue
-        if t.is_sym(">"):
-            break
-        if t.is_sym(">>"):
-            token_list.split_shr_sym()
-            break
-        t.syntax_err("需要','或'>'")
+
+        t = token_list.peek()
+        if not (t.is_sym and t.value in (">", ">>", ",")):
+            t.syntax_err("需要','或'>'")
+        if t.value == ",":
+            token_list.pop_sym()
+
+    if t.is_sym(">>"):
+        token_list.split_shr_sym()
+    if not gtp_list:
+        t.syntax_err("泛型参数列表不能为空")
     return gtp_list
 
 def gen_type_from_cls(cls):
