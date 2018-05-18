@@ -12,10 +12,19 @@ native class _JsonObj
 
 public class JsonObj
 {
-    public JsonObj()
+    public JsonObj(Pair<String, Any>[] data)
     {
         base = new JsonBase(this);
         obj = new _JsonObj();
+        if (data != nil)
+        {
+            long data_size = data.size();
+            for (long i = 0; i < data_size; ++ i)
+            {
+                var p = data[i];
+                set(p.first, p.second);
+            }
+        }
     }
 
     public String type()

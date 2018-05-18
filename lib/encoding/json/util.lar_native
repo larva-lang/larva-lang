@@ -63,7 +63,7 @@ func lar_go_func_@<<go_value_to_json_intf>>(v interface{}) lar_intf_@<<Json>> {
         json_arr.m_arr.arr = a
         return json_arr
     case map[string]interface{}:
-        json_obj := lar_new_obj_lar_cls_@<<JsonObj>>()
+        json_obj := lar_new_obj_lar_cls_@<<JsonObj>>(nil)
         json_obj.m_obj.m = a
         return json_obj
     default:
