@@ -24,7 +24,7 @@ public class HashMap<K, V>
     public String repr()
     {
         var sl = new String[size() + 2];
-        sl[0] = "<HashMap<%s, %s> {".(reflect.type_name(zero_value<K>()), reflect.type_name(zero_value<V>()));
+        sl[0] = "<%s {".(reflect.type_name(this));
         long i = 1;
         for (var it = iter(); !it.after_end(); it.inc())
         {

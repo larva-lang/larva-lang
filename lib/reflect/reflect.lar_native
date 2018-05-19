@@ -4,7 +4,7 @@ package LARVA_NATIVE
 //lar_reflect_intf的定义放在__builtin的util.lar_native中，因为比较基础，runtime和__builtins可能需要
 
 var (
-    lar_reflect_type_name_any       = lar_str_from_go_str("__builtins.Any")
+    lar_reflect_type_name_nil_intf  = lar_str_from_go_str("<nil interface>")
     lar_reflect_type_name_bool      = lar_str_from_go_str("bool")
     lar_reflect_type_name_schar     = lar_str_from_go_str("schar")
     lar_reflect_type_name_char      = lar_str_from_go_str("char")
@@ -22,7 +22,7 @@ var lar_reflect_not_lar_obj_err = lar_new_obj_lar_cls_@<<NotLarvaObjectError>>()
 
 func lar_func_@<<type_name>>(a lar_intf_@<<:Any>>) *lar_cls_@<<:String>> {
     if a == nil {
-        return lar_reflect_type_name_any
+        return lar_reflect_type_name_nil_intf
     }
     switch a.(type) {
     case bool:
