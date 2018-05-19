@@ -6,9 +6,9 @@ public class Pair<F, S>
         this.second = second;
     }
 
-    public String str()
+    public String repr()
     {
-        return "Pair{%s, %s}".(first, second);
+        return "Pair{%r, %r}".(first, second);
     }
 
     public F first;

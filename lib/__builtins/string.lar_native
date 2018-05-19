@@ -45,12 +45,28 @@ func (this *lar_cls_@<<_String>>) lar_method_@<<hash>>() int64 {
     return int64(h)
 }
 
+func (this *lar_cls_@<<_String>>) lar_method_repr() *lar_cls_@<<String>> {
+    return &lar_cls_@<<String>>{
+        m_s: &lar_cls_@<<_String>>{
+            s: fmt.Sprintf("%q", this.s),
+        },
+    }
+}
+
 func (this *lar_cls_@<<_String>>) lar_method_concat(other *lar_cls_@<<String>>) *lar_cls_@<<String>> {
     return &lar_cls_@<<String>>{
         m_s: &lar_cls_@<<_String>>{
             s: this.s + other.m_s.s,
         },
     }
+}
+
+func (this *lar_cls_@<<_String>>) lar_method_join(si lar_gintf_inst_@<<Iter>>_1_lar_cls_@<<String>>) *lar_cls_@<<String>> {
+    sl := make([]string, 0, 16)
+    for ; !si.lar_method_after_end(); si.lar_method_inc() {
+        sl = append(sl, lar_str_to_go_str(si.lar_method_get()))
+    }
+    return lar_str_from_go_str(strings.Join(sl, this.s))
 }
 
 func (this *lar_cls_@<<_String>>) lar_method_parse_bool() bool {
@@ -114,6 +130,10 @@ func lar_str_to_go_str(ls *lar_cls_@<<String>>) string {
     return ls.m_s.s
 }
 
+func lar_str_repr_to_go_str(ls *lar_cls_@<<String>>) string {
+    return fmt.Sprintf("%q", ls.m_s.s)
+}
+
 func lar_str_fmt(format string, a ...interface{}) *lar_cls_@<<String>> {
     return lar_str_from_go_str(fmt.Sprintf(format, a...))
 }
@@ -123,20 +143,34 @@ type lar_go_intf_strable interface {
 }
 
 func lar_go_func_any_to_go_str(a lar_intf_@<<Any>>) string {
-    if a == nil {
-        return "<nil>"
-    }
-    switch a.(type) {
-    case bool:
-        return fmt.Sprintf("%t", a)
-    case int8, uint8, int16, uint16, int32, uint32, int64, uint64:
-        return fmt.Sprintf("%d", a)
-    case float32, float64:
-        return fmt.Sprintf("%f", a)
-    }
     strable, ok := a.(lar_go_intf_strable)
     if ok {
         return lar_str_to_go_str(strable.lar_method_str())
+    }
+    return lar_go_func_any_repr_to_go_str(a)
+}
+
+type lar_go_intf_reprable interface {
+    lar_method_repr() *lar_cls_@<<String>>
+}
+
+func lar_go_func_any_repr_to_go_str(a lar_intf_@<<Any>>) string {
+    if a == nil {
+        return "<nil>"
+    }
+    switch v := a.(type) {
+    case bool:
+        return fmt.Sprintf("%t", v)
+    case int8, uint8, int16, uint16, int32, uint32, int64, uint64:
+        return fmt.Sprintf("%d", v)
+    case float32, float64:
+        return fmt.Sprintf("%f", v)
+    case *lar_arr_uint8_1:
+        return fmt.Sprintf("<char[] %q>", string(v.arr))
+    }
+    reprable, ok := a.(lar_go_intf_reprable)
+    if ok {
+        return lar_str_to_go_str(reprable.lar_method_repr())
     }
     lri, ok := a.(lar_reflect_intf)
     if ok {
