@@ -27,8 +27,6 @@ public int cmp<T>(T a, T b)
 #use
     return a.cmp(b);
 #oruse
-    return -b.cmp(a);
-#oruse
     if (a < b)
     {
         return -1;
@@ -46,11 +44,7 @@ public bool eq<T>(T a, T b)
 #use
     return a.eq(b);
 #oruse
-    return b.eq(a);
-#oruse
     return a.cmp(b) == 0;
-#oruse
-    return b.cmp(a) == 0;
 #oruse
     return a == b;
 #enduse

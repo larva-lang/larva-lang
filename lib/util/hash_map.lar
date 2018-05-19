@@ -1,3 +1,5 @@
+import reflect;
+
 class HashMapNode<K, V>
 {
     K k;
@@ -6,12 +8,49 @@ class HashMapNode<K, V>
 
 public class HashMap<K, V>
 {
-    public HashMap()
+    public HashMap(Iter<Pair<K, V>> data_iter)
     {
         tbl = new HashMapNode<K, V>[1 << 3]; //表大小为2的幂
         dummy = new HashMapNode<K, V>();
         sz = 0;
         dirty = 0;
+
+        if (data_iter != nil)
+        {
+            update(data_iter);
+        }
+    }
+
+    public String repr()
+    {
+        var sl = new String[size() + 2];
+        sl[0] = "<HashMap<%s, %s> {".(reflect.type_name(zero_value<K>()), reflect.type_name(zero_value<V>()));
+        long i = 1;
+        for (var it = iter(); !it.after_end(); it.inc())
+        {
+            var p = it.get();
+            if (i == 1)
+            {
+                sl[i] = "%r: %r".(p.first, p.second);
+            }
+            else
+            {
+                sl[i] = ", %r: %r".(p.first, p.second);
+            }
+            ++ i;
+        }
+        sl[i] = "}>";
+        ++ i;
+        return "".join(sl[: i].iter());
+    }
+
+    public void update(Iter<Pair<K, V>> data_iter)
+    {
+        for (; !data_iter.after_end(); data_iter.inc())
+        {
+            var p = data_iter.get();
+            set(p.first, p.second);
+        }
     }
 
     public long size()
@@ -186,21 +225,35 @@ public class HashMapIter<K, V>
         }
     }
 
+    public bool _before_begin()
+    {
+        return idx < 0;
+    }
+
     public bool before_begin()
     {
         check_dirty();
-        return idx < 0;
+        return _before_begin();
+    }
+
+    public bool _after_end()
+    {
+        return idx >= hm.tbl.size();
     }
 
     public bool after_end()
     {
         check_dirty();
-        return idx >= hm.tbl.size();
+        return _after_end();
     }
 
     HashMapNode<K, V> node()
     {
         check_dirty();
+        if (_before_begin() || _after_end())
+        {
+            throw(new IterOutOfRange());
+        }
         var nd = hm.tbl[idx];
         assert(nd != nil && nd != hm.dummy, "bug");
         return nd;
@@ -230,11 +283,11 @@ public class HashMapIter<K, V>
     public void inc()
     {
         check_dirty();
-        if (before_begin())
+        if (_before_begin())
         {
             idx = 0;
         }
-        else if (after_end())
+        else if (_after_end())
         {
             throw(new IterOutOfRange());
         }
@@ -248,11 +301,11 @@ public class HashMapIter<K, V>
     public void dec()
     {
         check_dirty();
-        if (before_begin())
+        if (_before_begin())
         {
             throw(new IterOutOfRange());
         }
-        else if (after_end())
+        else if (_after_end())
         {
             idx = hm.tbl.size() - 1;
         }

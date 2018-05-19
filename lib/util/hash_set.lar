@@ -1,8 +1,44 @@
+import reflect;
+
 public class HashSet<E>
 {
-    public HashSet()
+    public HashSet(Iter<E> data_iter)
     {
-        hm = new HashMap<E, bool>();
+        hm = new HashMap<E, bool>(nil);
+        if (data_iter != nil)
+        {
+            update(data_iter);
+        }
+    }
+
+    public void update(Iter<E> data_iter)
+    {
+        for (; !data_iter.after_end(); data_iter.inc())
+        {
+            add(data_iter.get());
+        }
+    }
+
+    public String repr()
+    {
+        var sl = new String[size() + 2];
+        sl[0] = "<HashSet<%s> [".(reflect.type_name(zero_value<E>()));
+        long i = 1;
+        for (var it = iter(); !it.after_end(); it.inc())
+        {
+            if (i == 1)
+            {
+                sl[i] = "%r".(it.get());
+            }
+            else
+            {
+                sl[i] = ", %r".(it.get());
+            }
+            ++ i;
+        }
+        sl[i] = "]>";
+        ++ i;
+        return "".join(sl[: i].iter());
     }
 
     public void add(E e)

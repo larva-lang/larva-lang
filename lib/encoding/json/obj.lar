@@ -12,18 +12,13 @@ native class _JsonObj
 
 public class JsonObj
 {
-    public JsonObj(Pair<String, Any>[] data)
+    public JsonObj(Iter<Pair<String, Any>> data_iter)
     {
         base = new JsonBase(this);
         obj = new _JsonObj();
-        if (data != nil)
+        if (data_iter != nil)
         {
-            long data_size = data.size();
-            for (long i = 0; i < data_size; ++ i)
-            {
-                var p = data[i];
-                set(p.first, p.second);
-            }
+            update(data_iter);
         }
     }
 
@@ -35,6 +30,15 @@ public class JsonObj
     public JsonObj as_obj()
     {
         return this;
+    }
+
+    public void update(Iter<Pair<String, Any>> data_iter)
+    {
+        for (; !data_iter.after_end(); data_iter.inc())
+        {
+            var p = data_iter.get();
+            set(p.first, p.second);
+        }
     }
 
     JsonBase base usemethod;

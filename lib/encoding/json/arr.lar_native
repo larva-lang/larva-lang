@@ -27,3 +27,9 @@ func (this *lar_cls_@<<_JsonArr>>) lar_method_get(idx int64) lar_intf_@<<Json>> 
 func (this *lar_cls_@<<_JsonArr>>) lar_method_set(idx int64, value lar_intf_@<<:Any>>) {
     this.arr[idx] = lar_go_func_@<<to_go_value>>(value)
 }
+
+func (this *lar_cls_@<<_JsonArr>>) lar_method_slice(begin, end int64) *lar_cls_@<<JsonArr>> {
+    json_arr := lar_new_obj_lar_cls_@<<JsonArr>>(0)
+    json_arr.m_arr.arr = this.arr[begin : end]
+    return json_arr
+}

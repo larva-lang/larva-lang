@@ -8,6 +8,7 @@ native class _JsonArr
     public long size();
     public Json get(long idx);
     public void set(long idx, Any value);
+    public JsonArr slice(long begin, long end);
 }
 
 public class JsonArr
@@ -41,6 +42,14 @@ public class JsonArr
             a[i] = get(i);
         }
         return a;
+    }
+
+    public void update(Iter<Any> data_iter)
+    {
+        for (long i = 0; !data_iter.after_end(); data_iter.inc(), ++ i)
+        {
+            set(i, data_iter.get());
+        }
     }
 
     JsonBase base usemethod;
