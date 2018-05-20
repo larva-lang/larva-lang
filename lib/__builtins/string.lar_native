@@ -165,8 +165,6 @@ func lar_go_func_any_repr_to_go_str(a lar_intf_@<<Any>>) string {
         return fmt.Sprintf("%d", v)
     case float32, float64:
         return fmt.Sprintf("%f", v)
-    case *lar_arr_uint8_1:
-        return fmt.Sprintf("<char[] %q>", string(v.arr))
     }
     reprable, ok := a.(lar_go_intf_reprable)
     if ok {

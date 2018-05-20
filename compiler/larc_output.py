@@ -676,6 +676,9 @@ def _output_util():
 
     #生成util代码
     with _Code(os.path.join(out_prog_dir, "%s.util.go" % prog_module_name)) as code:
+        with code.new_blk("import"):
+            code += '"fmt"'
+            code += '"strings"'
         #生成数组相关代码
         for tp in larc_type.array_type_set:
             assert tp.is_array
@@ -699,6 +702,19 @@ def _output_util():
                 code += "return int64(len(la.arr))"
             with code.new_blk("func (la *%s) lar_method_cap() int64" % arr_tp_name):
                 code += "return int64(cap(la.arr))"
+            with code.new_blk("func (la *%s) lar_method_repr() %s" % (arr_tp_name, _gen_type_name_code(larc_type.STR_TYPE))):
+                if tp == larc_type.CHAR_TYPE and dim_count == 1:
+                    code += 'return lar_str_from_go_str(fmt.Sprintf("<char[] %q>", string(la.arr)))'
+                else:
+                    code += "sl := make([]string, 0, len(la.arr) + 2)"
+                    code += "sl = append(sl, %s)" % _gen_str_literal("<%s [" % (str(tp) + "[]" * dim_count))
+                    with code.new_blk("for i, elem := range la.arr"):
+                        with code.new_blk("if i == 0"):
+                            code += "sl = append(sl, lar_go_func_any_repr_to_go_str(elem))"
+                        with code.new_blk("else"):
+                            code += 'sl = append(sl, ", " + lar_go_func_any_repr_to_go_str(elem))'
+                    code += 'sl = append(sl, "]>")'
+                    code += 'return lar_str_from_go_str(strings.Join(sl, ""))'
             with code.new_blk("func (la *%s) lar_method_get(idx int64) %s" % (arr_tp_name, elem_tp_name_code)):
                 code += "return la.arr[idx]"
             with code.new_blk("func (la *%s) lar_method_set(idx int64, elem %s)" % (arr_tp_name, elem_tp_name_code)):
@@ -707,7 +723,7 @@ def _output_util():
                               (arr_tp_name, elem_tp_name_code.lstrip("*"))):
                 code += "return lar_new_obj_lar_gcls_inst_10___builtins_9_ArrayIter_1_%s(la, 0)" % elem_tp_name_code.lstrip("*")
             #输出数组的反射接口
-            code += "var lar_reflect_type_name_%s = lar_str_from_go_str(%s)" % (arr_tp_name, _gen_str_literal(tp_name + "[]" * dim_count))
+            code += "var lar_reflect_type_name_%s = lar_str_from_go_str(%s)" % (arr_tp_name, _gen_str_literal(str(tp) + "[]" * dim_count))
             with code.new_blk("func (la *%s) lar_reflect_type_name() %s" % (arr_tp_name, _gen_type_name_code(larc_type.STR_TYPE))):
                 code += "return lar_reflect_type_name_%s" % arr_tp_name
             #new数组的函数
