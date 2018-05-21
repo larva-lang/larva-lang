@@ -1,2 +1,2 @@
-native char[] marshal_num(double v);
+native char[] marshal_num(Any v);
 native char[] marshal_str(String v);

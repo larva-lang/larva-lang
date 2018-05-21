@@ -17,11 +17,6 @@ public class JsonStr
         return marshal_str(v);
     }
 
-    public String as_str()
-    {
-        return v;
-    }
-
     JsonBase base usemethod;
     String v;
 }

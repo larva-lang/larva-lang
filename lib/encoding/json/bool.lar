@@ -21,11 +21,6 @@ public class JsonBool
         return "false".to_char_array();
     }
 
-    public bool as_bool()
-    {
-        return v;
-    }
-
     JsonBase base usemethod;
     bool v;
 }

@@ -1,13 +1,3 @@
-public class TypeError
-{
-    TypeError(Json json)
-    {
-        this.type = json.type();
-    }
-
-    String type usemethod(str);
-}
-
 public class MarshalError
 {
     GoError e usemethod;

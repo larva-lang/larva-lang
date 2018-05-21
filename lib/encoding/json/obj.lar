@@ -27,11 +27,6 @@ public class JsonObj
         return "obj";
     }
 
-    public JsonObj as_obj()
-    {
-        return this;
-    }
-
     public void update(Iter<Pair<String, Any>> data_iter)
     {
         for (; !data_iter.after_end(); data_iter.inc())
@@ -39,6 +34,31 @@ public class JsonObj
             var p = data_iter.get();
             set(p.first, p.second);
         }
+    }
+
+    public bool get_bool(String key)
+    {
+        return get(key).as_bool();
+    }
+
+    public JsonNum get_num(String key)
+    {
+        return get(key).as_num();
+    }
+
+    public String get_str(String key)
+    {
+        return get(key).as_str();
+    }
+
+    public JsonArr get_arr(String key)
+    {
+        return get(key).as_arr();
+    }
+
+    public JsonObj get_obj(String key)
+    {
+        return get(key).as_obj();
     }
 
     JsonBase base usemethod;

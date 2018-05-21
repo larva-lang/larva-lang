@@ -12,32 +12,33 @@ class JsonBase
 
     public bool is_null()
     {
-        return false;
+        JsonNull n;
+        return try_cast<JsonNull>(me, ref n);
     }
 
     public bool as_bool()
     {
-        throw(new TypeError(me));
+        return ((JsonBool)me).v;
     }
 
-    public double as_num()
+    public JsonNum as_num()
     {
-        throw(new TypeError(me));
+        return (JsonNum)me;
     }
 
     public String as_str()
     {
-        throw(new TypeError(me));
+        return ((JsonStr)me).v;
     }
 
     public JsonArr as_arr()
     {
-        throw(new TypeError(me));
+        return (JsonArr)me;
     }
 
     public JsonObj as_obj()
     {
-        throw(new TypeError(me));
+        return (JsonObj)me;
     }
 
     Json me;

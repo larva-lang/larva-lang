@@ -16,11 +16,6 @@ public class JsonNull
         return "null".to_char_array();
     }
 
-    public bool is_null()
-    {
-        return true;
-    }
-
     JsonBase base usemethod;
 }
 

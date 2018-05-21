@@ -28,11 +28,6 @@ public class JsonArr
         return "arr";
     }
 
-    public JsonArr as_arr()
-    {
-        return this;
-    }
-
     public Json[] to_json_array()
     {
         var sz = size();
@@ -50,6 +45,31 @@ public class JsonArr
         {
             set(i, data_iter.get());
         }
+    }
+
+    public bool get_bool(long idx)
+    {
+        return get(idx).as_bool();
+    }
+
+    public JsonNum get_num(long idx)
+    {
+        return get(idx).as_num();
+    }
+
+    public String get_str(long idx)
+    {
+        return get(idx).as_str();
+    }
+
+    public JsonArr get_arr(long idx)
+    {
+        return get(idx).as_arr();
+    }
+
+    public JsonObj get_obj(long idx)
+    {
+        return get(idx).as_obj();
     }
 
     JsonBase base usemethod;

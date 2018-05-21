@@ -1,8 +1,18 @@
 //json num对象
+
+/*
+to_json_num_value将构造JsonNum时输入的参数转为标准的json num value
+整数类型依具体值转为long或ulong类型
+浮点数转double类型
+其他值抛ValueError异常
+*/
+native Any to_json_num_value(Any v);
+
 public class JsonNum
 {
-    public JsonNum(double v)
+    public JsonNum(Any v)
     {
+        v = to_json_num_value(v);
         base = new JsonBase(this);
         this.v = v;
     }
@@ -17,11 +27,41 @@ public class JsonNum
         return marshal_num(v);
     }
 
-    public double as_num()
+    public long as_long()
     {
-        return v;
+        ulong n;
+        if (try_cast<ulong>(v, ref n) && n < (1UL << 63))
+        {
+            return (long)n;
+        }
+        return (long)v;
+    }
+
+    public ulong as_ulong()
+    {
+        long n;
+        if (try_cast<long>(v, ref n) && n >= 0)
+        {
+            return (ulong)n;
+        }
+        return (ulong)v;
+    }
+
+    public double as_double()
+    {
+        long n;
+        if (try_cast<long>(v, ref n))
+        {
+            return (double)n;
+        }
+        ulong un;
+        if (try_cast<ulong>(v, ref un))
+        {
+            return (double)un;
+        }
+        return (double)v;
     }
 
     JsonBase base usemethod;
-    double v;
+    Any v;
 }

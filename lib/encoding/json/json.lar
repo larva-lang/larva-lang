@@ -14,7 +14,7 @@ public interface Json
 
     //转为对应的bool、num或str的值，若类型不对则抛出TypeError异常
     public bool as_bool();
-    public double as_num();
+    public JsonNum as_num();
     public String as_str();
 
     //转为对应json数组或对象的引用，若类型不对则抛出TypeError异常

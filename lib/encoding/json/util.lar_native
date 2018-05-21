@@ -3,6 +3,9 @@ package LARVA_NATIVE
 import (
     "encoding/json"
     "reflect"
+    "strconv"
+    "fmt"
+    "bytes"
 )
 
 func lar_go_func_@<<go_marshal>>(v interface{}) []byte {
@@ -18,8 +21,13 @@ func lar_go_func_@<<go_marshal>>(v interface{}) []byte {
 }
 
 func lar_go_func_@<<go_unmarshal>>(buf []byte) interface{} {
+    dec := json.NewDecoder(bytes.NewReader(buf))
+    dec.UseNumber()
     var v interface{}
-    e := json.Unmarshal(buf, &v)
+    e := dec.Decode(&v)
+    if e == nil && dec.More() {
+        e = fmt.Errorf("json后面存在多余的数据")
+    }
     if e != nil {
         lar_func_@<<:throw>>(&lar_cls_@<<UnmarshalError>>{
             m_e: &lar_cls_@<<:GoError>>{
@@ -30,7 +38,7 @@ func lar_go_func_@<<go_unmarshal>>(buf []byte) interface{} {
     return v
 }
 
-func lar_func_@<<marshal_num>>(v float64) *lar_arr_uint8_1 {
+func lar_func_@<<marshal_num>>(v lar_intf_@<<:Any>>) *lar_arr_uint8_1 {
     return &lar_arr_uint8_1{
         arr: lar_go_func_@<<go_marshal>>(v),
     }
@@ -54,7 +62,7 @@ func lar_go_func_@<<go_value_to_json_intf>>(v interface{}) lar_intf_@<<Json>> {
         } else {
             return lar_gv_@<<FALSE>>
         }
-    case float64:
+    case int64, uint64, float64:
         return lar_new_obj_lar_cls_@<<JsonNum>>(a)
     case string:
         return lar_new_obj_lar_cls_@<<JsonStr>>(lar_str_from_go_str(a))
@@ -66,6 +74,23 @@ func lar_go_func_@<<go_value_to_json_intf>>(v interface{}) lar_intf_@<<Json>> {
         json_obj := lar_new_obj_lar_cls_@<<JsonObj>>(nil)
         json_obj.m_obj.m = a
         return json_obj
+    case json.Number:
+        s := string(a)
+        var n interface{}
+        var err error
+        n, err = strconv.ParseInt(s, 10, 64)
+        if err == nil {
+            return lar_new_obj_lar_cls_@<<JsonNum>>(n)
+        }
+        n, err = strconv.ParseUint(s, 10, 64)
+        if err == nil {
+            return lar_new_obj_lar_cls_@<<JsonNum>>(n)
+        }
+        n, err = strconv.ParseFloat(s, 64)
+        if err == nil {
+            return lar_new_obj_lar_cls_@<<JsonNum>>(n)
+        }
+        lar_func_@<<:throw>>(lar_new_obj_lar_cls_@<<:ValueError>>(lar_str_from_go_str(fmt.Sprintf("无效的json.Number值[%s]", s))))
     default:
         lar_func_@<<:throw>>(lar_new_obj_lar_cls_@<<UnsupportedJsonType>>(lar_str_from_go_str(reflect.TypeOf(v).String())))
     }
@@ -74,8 +99,9 @@ func lar_go_func_@<<go_value_to_json_intf>>(v interface{}) lar_intf_@<<Json>> {
 
 /*
 将larva接口调用时传入的数据类型转为json支持的对应go类型
-nil，bool，float64直接支持，不变
-其他整数和浮点数强转为float64
+nil，bool，int64，uint64，float64直接支持，不变
+其他整数转int64类型
+float32转float64类型
 lar str转为go str
 也支持传入实现Json接口的几种类型，转为对应的go类型数据
 */
@@ -84,24 +110,20 @@ func lar_go_func_@<<to_go_value>>(v lar_intf_@<<:Any>>) interface{} {
         return nil
     }
     switch a := v.(type) {
-    case bool, float64:
+    case bool, int64, uint64, float64:
         return v
     case int8:
-        return float64(a)
+        return int64(a)
     case uint8:
-        return float64(a)
+        return int64(a)
     case int16:
-        return float64(a)
+        return int64(a)
     case uint16:
-        return float64(a)
+        return int64(a)
     case int32:
-        return float64(a)
+        return int64(a)
     case uint32:
-        return float64(a)
-    case int64:
-        return float64(a)
-    case uint64:
-        return float64(a)
+        return int64(a)
     case float32:
         return float64(a)
     case *lar_cls_@<<:String>>:
