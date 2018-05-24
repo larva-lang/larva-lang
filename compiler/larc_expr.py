@@ -681,7 +681,7 @@ class Parser:
                     elif expr.type.is_integer_type:
                         verb = "d"
                     elif expr.type.is_float_type:
-                        verb = "f"
+                        verb = "g"
                     else:
                         #这两个特殊expr实际类型是go的string，这里用STR_TYPE只是方便编译检查
                         if verb == "s":

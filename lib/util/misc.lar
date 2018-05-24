@@ -19,7 +19,7 @@ public long hash<T>(T t)
 #enduse
 
     ulong uh = (ulong)h * 2862933555777941757UL;
-    return (long)((uh >> 32) ^ uh) & 0x7FFFFFFFFFFFFFFFL;
+    return (long)((uh >> 32) ^ uh) & LONG_MAX;
 }
 
 public int cmp<T>(T a, T b)
