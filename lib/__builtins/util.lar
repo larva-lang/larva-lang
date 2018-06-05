@@ -2,8 +2,8 @@ public interface Any
 {
 }
 
-public native void print(String s);
-public native void println(String s);
+public native void print(Any a);
+public native void println(Any a);
 
 public native bool is_same_type(Any a1, Any a2);
 
