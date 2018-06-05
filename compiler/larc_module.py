@@ -78,8 +78,6 @@ def _parse_arg_map(token_list, dep_module_map, gtp_name_list):
             t.syntax_err("参数名重定义")
         if name in dep_module_map:
             t.syntax_err("参数名和导入模块名冲突")
-        if name in gtp_name_list:
-            t.syntax_err("参数名和函数或方法的泛型参数名冲突")
         arg_map[name] = type
 
         t = token_list.peek()
@@ -1373,3 +1371,23 @@ def check_new_ginst_during_compile():
     check_type_for_ginst()
     for m in module_map.itervalues():
         m.expand_usemethod()
+
+def decide_if_name_maybe_type_by_lcgb(name, var_map_stk, gtp_map, cls, dep_module_map, module):
+    for var_map in var_map_stk:
+        if name in var_map:
+            return False #局部变量
+    if gtp_map is not None and name in gtp_map:
+        return True #泛型类型
+    if cls is not None and cls.has_method_or_attr(name):
+        return False #方法或属性
+    if name in dep_module_map:
+        return True #显式引用其他模块元素
+    if module.has_type(name):
+        return True #本模块的类型
+    if module.has_func(name) or module.has_global_var(name):
+        return False #本模块的函数或全局变量
+    if builtins_module.has_type(name):
+        return True #内建模块的类型
+    if builtins_module.has_func(name) or builtins_module.has_global_var(name):
+        return False #内建模块的函数或全局变量
+    return True #其他可能

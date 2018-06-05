@@ -11,6 +11,7 @@ import larc_common
 import larc_token
 import larc_expr
 import larc_type
+import larc_module
 
 class _Stmt:
     def __init__(self, type, **kw_arg):
@@ -222,7 +223,14 @@ class Parser:
 
             self.token_list.revert()
             t = self.token_list.peek()
-            tp = larc_type.try_parse_type(self.token_list, self.module, self.dep_module_map, self.gtp_map)
+            maybe_type = True
+            if t.is_name:
+                maybe_type = larc_module.decide_if_name_maybe_type_by_lcgb(t.value, var_map_stk, self.gtp_map, self.cls, self.dep_module_map,
+                                                                           self.module)
+            if maybe_type:
+                tp = larc_type.try_parse_type(self.token_list, self.module, self.dep_module_map, self.gtp_map)
+            else:
+                tp = None
             if tp is not None:
                 #变量定义
                 if tp.is_void:
@@ -313,7 +321,14 @@ class Parser:
                     break
                 self.token_list.pop_sym(",")
         else:
-            tp = larc_type.try_parse_type(self.token_list, self.module, self.dep_module_map, self.gtp_map)
+            maybe_type = True
+            if self.token_list.peek().is_name:
+                maybe_type = larc_module.decide_if_name_maybe_type_by_lcgb(self.token_list.peek().value, var_map_stk, self.gtp_map, self.cls,
+                                                                           self.dep_module_map, self.module)
+            if maybe_type:
+                tp = larc_type.try_parse_type(self.token_list, self.module, self.dep_module_map, self.gtp_map)
+            else:
+                tp = None
             if tp is None:
                 #第一部分为表达式列表
                 if not self.token_list.peek().is_sym(";"):
