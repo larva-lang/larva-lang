@@ -155,10 +155,9 @@ type lar_go_intf_reprable interface {
 }
 
 func lar_go_func_any_repr_to_go_str(a lar_intf_@<<Any>>) string {
-    if a == nil {
-        return "<nil>"
-    }
     switch v := a.(type) {
+    case nil:
+        return "<nil>"
     case bool:
         return fmt.Sprintf("%t", v)
     case int8, uint8, int16, uint16, int32, uint32, int64, uint64:

@@ -21,10 +21,9 @@ var (
 var lar_reflect_not_lar_obj_err = lar_new_obj_lar_cls_@<<NotLarvaObjectError>>()
 
 func lar_func_@<<type_name>>(a lar_intf_@<<:Any>>) *lar_cls_@<<:String>> {
-    if a == nil {
-        return lar_reflect_type_name_nil_intf
-    }
     switch a.(type) {
+    case nil:
+        return lar_reflect_type_name_nil_intf
     case bool:
         return lar_reflect_type_name_bool
     case int8:

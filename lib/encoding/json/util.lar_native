@@ -52,10 +52,9 @@ func lar_func_@<<marshal_str>>(v *lar_cls_@<<:String>>) *lar_arr_uint8_1 {
 
 //将json中拿出的go数据类型转为对应的Json接口类型
 func lar_go_func_@<<go_value_to_json_intf>>(v interface{}) lar_intf_@<<Json>> {
-    if v == nil {
-        return lar_gv_@<<NULL>>
-    }
     switch a := v.(type) {
+    case nil:
+        return lar_gv_@<<NULL>>
     case bool:
         if a {
             return lar_gv_@<<TRUE>>
@@ -106,10 +105,9 @@ lar str转为go str
 也支持传入实现Json接口的几种类型，转为对应的go类型数据
 */
 func lar_go_func_@<<to_go_value>>(v lar_intf_@<<:Any>>) interface{} {
-    if v == nil {
-        return nil
-    }
     switch a := v.(type) {
+    case nil:
+        return nil
     case bool, int64, uint64, float64:
         return v
     case int8:
