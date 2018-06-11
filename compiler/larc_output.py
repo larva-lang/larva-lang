@@ -703,18 +703,27 @@ def _output_util():
             with code.new_blk("func (la *%s) lar_method_cap() int64" % arr_tp_name):
                 code += "return int64(cap(la.arr))"
             with code.new_blk("func (la *%s) lar_method_repr() %s" % (arr_tp_name, _gen_type_name_code(larc_type.STR_TYPE))):
+                code += 'sl := []string{%s, "", ">"}' % _gen_str_literal("<%s " % (str(tp) + "[]" * dim_count))
+                code += "sl[1] = la.sub_arr_repr()"
+                code += 'return lar_str_from_go_str(strings.Join(sl, ""))'
+            with code.new_blk("func (la *%s) sub_arr_repr() string" % arr_tp_name):
                 if tp == larc_type.CHAR_TYPE and dim_count == 1:
-                    code += 'return lar_str_from_go_str(fmt.Sprintf("<char[] %q>", string(la.arr)))'
+                    code += 'return fmt.Sprintf("%q", string(la.arr))'
                 else:
                     code += "sl := make([]string, 0, len(la.arr) + 2)"
-                    code += "sl = append(sl, %s)" % _gen_str_literal("<%s [" % (str(tp) + "[]" * dim_count))
+                    code += 'sl = append(sl, "[")'
                     with code.new_blk("for i, elem := range la.arr"):
+                        if dim_count == 1:
+                            elem_repr_code = "lar_go_func_any_repr_to_go_str(elem)"
+                        else:
+                            assert dim_count > 1
+                            elem_repr_code = "elem.sub_arr_repr()"
                         with code.new_blk("if i == 0"):
-                            code += "sl = append(sl, lar_go_func_any_repr_to_go_str(elem))"
+                            code += "sl = append(sl, %s)" % elem_repr_code
                         with code.new_blk("else"):
-                            code += 'sl = append(sl, ", " + lar_go_func_any_repr_to_go_str(elem))'
-                    code += 'sl = append(sl, "]>")'
-                    code += 'return lar_str_from_go_str(strings.Join(sl, ""))'
+                            code += 'sl = append(sl, ", " + %s)' % elem_repr_code
+                    code += 'sl = append(sl, "]")'
+                    code += 'return strings.Join(sl, "")'
             with code.new_blk("func (la *%s) lar_method_get(idx int64) %s" % (arr_tp_name, elem_tp_name_code)):
                 code += "return la.arr[idx]"
             with code.new_blk("func (la *%s) lar_method_set(idx int64, elem %s)" % (arr_tp_name, elem_tp_name_code)):
