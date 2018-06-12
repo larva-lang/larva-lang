@@ -4,6 +4,8 @@
 类型相关
 """
 
+import copy
+
 import larc_common
 import larc_module
 import larc_token
@@ -113,6 +115,46 @@ class _Type:
         self.is_freezed = True #锁住type，禁止更改
         if self.is_array:
             _reg_array(self) #注册数组信息
+
+    #忽略泛型类型，对其他部分做check，用于泛型类和函数中类型的预check，和实际check流程类似，主要目的是完善module信息并检查权限
+    def check_ignore_gtp(self, curr_module, gtp_name_set):
+        if self.token.is_reserved:
+            #忽略基础类型（及其数组类型）
+            assert not self.gtp_list
+            return
+        assert self.token.is_name
+        #先check泛型参数
+        for tp in self.gtp_list:
+            tp.check_ignore_gtp(curr_module, gtp_name_set)
+        #构建find_path并查找类型
+        if self.module_name is None:
+            if self.name in gtp_name_set:
+                #忽略泛型类型
+                return
+            find_path = curr_module, larc_module.builtins_module
+        else:
+            find_path = larc_module.module_map[self.module_name],
+        #check并标准化coi类型，不影响是否为数组
+        for m in find_path:
+            if m.has_coi(self.name):
+                coi = m.get_coi_original(self.name)
+                if coi.gtp_name_list:
+                    if self.gtp_list:
+                        if len(coi.gtp_name_list) != len(self.gtp_list):
+                            self.token.syntax_err("泛型参数数量错误：需要%d个，传入了%d个" % (len(coi.gtp_name_list), len(self.gtp_list)))
+                    else:
+                        self.token.syntax_err("泛型类型'%s'无法单独使用" % coi)
+                else:
+                    if self.gtp_list:
+                        self.token.syntax_err("'%s'不是泛型类型" % coi)
+                self.module_name = m.name
+                if m is not curr_module:
+                    #非当前模块，检查权限
+                    if "public" not in coi.decr_set:
+                        self.token.syntax_err("无法使用类型'%s'：没有权限" % self)
+                break
+        else:
+            self.token.syntax_err("找不到类型'%s'" % self)
 
     def check(self, curr_module, gtp_map = None, used_dep_module_set = None):
         if not self.is_checked:
@@ -315,8 +357,11 @@ def gen_type_from_cls(cls):
     assert tp.get_coi() is cls
     return tp
 
+#数组类型相关 ------------------------------------------------------
+
 _ARRAY_ELEM_TYPE = object()
 _ARRAY_ITER_TYPE = object()
+
 _ARRAY_METHOD_MAP = {"size": (LONG_TYPE, []),
                      "cap":  (LONG_TYPE, []),
                      "repr": (STR_TYPE, []),
@@ -401,3 +446,166 @@ def _reg_array(tp):
         tp = tp.to_elem_type()
         #注册了一个新的数组，且tp是其元素，用tp构建一个ArrayIter的instance
         _gen_array_iter_type(tp)
+
+#gtp类型推导 ----------------------------------------
+
+def infer_gtp(expr_list_start_token, gtp_name_list, arg_type_list, type_list, ref_tag_list):
+    assert len(set(gtp_name_list)) == len(gtp_name_list)
+    assert len(arg_type_list) == len(type_list) == len(ref_tag_list)
+
+    class _GtpInferenceResult:
+        def __init__(self, gtp_name):
+            self.gtp_name = gtp_name
+
+            self.tp = None
+            self.is_freezed = False
+
+        def update(self, tp):
+            if tp.is_nil or tp.is_literal_int:
+                expr_list_start_token.syntax_err("参数#%d无法进行推导：实参类型不可为无类型nil或整数字面量，请指定类型" % (arg_idx + 1))
+            if self.tp is None:
+                #初次推导
+                assert not self.is_freezed
+                self.tp = tp
+                return
+            if self.is_freezed:
+                #已经freeze，之前推导的结果必须兼容tp
+                if not self.tp.can_convert_from(tp):
+                    expr_list_start_token.syntax_err(
+                        "无法确定泛型参数'%s'的类型，存在不兼容的推导结果：'%s', '%s'……" % (self.gtp_name, self.tp, tp))
+                return
+            #之前update过但是未定，从二者之间选择兼容的那个
+            if self.tp.can_convert_from(tp):
+                return
+            if tp.can_convert_from(self.tp):
+                self.tp = tp
+                return
+            expr_list_start_token.syntax_err("无法确定泛型参数'%s'的类型，存在多种不同的推导结果：'%s', '%s'……" % (self.gtp_name, self.tp, tp))
+
+        def freeze(self, tp):
+            assert not tp.is_nil and not tp.is_literal_int
+            if self.tp is None:
+                #初次推导
+                self.tp = tp
+            elif self.is_freezed:
+                #已经freeze，检查推导结果是否一致
+                if tp != self.tp:
+                    expr_list_start_token.syntax_err(
+                        "无法确定泛型参数'%s'的类型，存在多种不同的推导结果：'%s', '%s'……" % (self.gtp_name, self.tp, tp))
+            else:
+                #已经有推导过但是还未freeze，则tp必须兼容之前的结果
+                if tp.can_convert_from(self.tp):
+                    self.tp = tp
+                else:
+                    expr_list_start_token.syntax_err(
+                        "无法确定泛型参数'%s'的类型，存在不兼容的推导结果：'%s', '%s'……" % (self.gtp_name, self.tp, tp))
+            #将类型确定下来
+            assert self.tp is not None
+            self.is_freezed = True
+
+        def finish(self):
+            if self.tp is None:
+                expr_list_start_token.syntax_err("无法确定泛型参数'%s'的类型" % self.gtp_name)
+            if self.tp.is_void:
+                expr_list_start_token.syntax_err("泛型参数'%s'的类型推导为void" % self.gtp_name)
+            return self.tp
+
+    #构建gtp_infer_map，value为推导结果对象
+    gtp_infer_map = larc_common.OrderedDict()
+    for gtp_name in gtp_name_list:
+        gtp_infer_map[gtp_name] = _GtpInferenceResult(gtp_name)
+
+    #通过精确匹配类型来推导arg_type中的泛型参数
+    def match_type(arg_type, tp):
+        if arg_type.is_array:
+            #数组类型匹配
+            if tp.array_dim_count < arg_type.array_dim_count:
+                expr_list_start_token.syntax_err("参数#%d类型匹配失败：数组维度不匹配，'%s'->'%s'" % (arg_idx + 1, tp, arg_type))
+            while arg_type.is_array:
+                #arg_type是unchecked，因此不能直接to_elem_type，手动解决
+                arg_type = copy.deepcopy(arg_type)
+                arg_type.array_dim_count -= 1
+                arg_type.is_array = arg_type.array_dim_count != 0
+                tp = tp.to_elem_type()
+            match_type(arg_type, tp)
+            return
+        if arg_type.module_name is None:
+            if arg_type.token.is_name:
+                assert not arg_type.gtp_list and arg_type.name in gtp_infer_map
+                assert not tp.is_nil and not tp.is_literal_int
+                #parse到了最终泛型参数，可以确定类型了
+                gtp_infer_map[arg_type.name].freeze(tp)
+                return
+            assert arg_type.token.is_reserved
+            #基础类型，直接忽略，tp是否匹配的检查让后面去做
+            return
+        assert arg_type.token.is_name
+        coi = larc_module.module_map[arg_type.module_name].get_coi_original(arg_type.name)
+        assert len(coi.gtp_name_list) == len(arg_type.gtp_list)
+        if not coi.gtp_name_list:
+            #非泛型的类或接口，直接忽略
+            return
+        assert not arg_type.is_array
+        if (arg_type.module_name, arg_type.name) != (tp.module_name, tp.name) or tp.is_array or len(arg_type.gtp_list) != len(tp.gtp_list):
+            expr_list_start_token.syntax_err("参数#%d类型匹配失败：'%s'->'%s'" % (arg_idx + 1, tp, arg_type))
+        for arg_type_gtp, tp_gtp in zip(arg_type.gtp_list, tp.gtp_list):
+            match_type(arg_type_gtp, tp_gtp)
+
+    #遍历各匹配对，依次进行推导算法
+    for arg_idx, (arg_type, tp, is_ref) in enumerate(zip(arg_type_list, type_list, ref_tag_list)):
+        #先检查ref修饰是否一致
+        if arg_type.is_ref and not is_ref:
+            expr_list_start_token.syntax_err("参数#%d需要ref修饰")
+        if not arg_type.is_ref and is_ref:
+            expr_list_start_token.syntax_err("参数#%d存在无效的ref修饰")
+        if arg_type.is_ref:
+            assert is_ref
+            #带ref修饰的类型需要精确匹配
+            match_type(arg_type, tp)
+            continue
+        #不带ref修饰的类型匹配，需要分几种情况
+        if not arg_type.is_array:
+            if arg_type.token.is_name:
+                if arg_type.module_name is None:
+                    #参数类型经历了check_ignore_gtp依然是裸name，且不是数组，则必然是单独的泛型类型
+                    assert not arg_type.gtp_list and arg_type.name in gtp_infer_map
+                    #用update接口，类型之后还可能被进一步推导为其他兼容类型
+                    gtp_infer_map[arg_type.name].update(tp)
+                    continue
+                coi = larc_module.module_map[arg_type.module_name].get_coi_original(arg_type.name)
+                if coi.is_intf and coi.gtp_name_list:
+                    #泛型接口，展开双方的接口进行精确匹配
+                    def match_method_type(method, tp_method):
+                        if tp_method is None:
+                            expr_list_start_token.syntax_err(
+                                "参数#%d类型匹配失败，接口方法'%s'找不到：'%s'->'%s'" % (arg_idx + 1, method.name, tp, arg_type))
+                        if (list(method.decr_set) + list(tp_method.decr_set)).count("public") not in (0, 2):
+                            #权限签名不同
+                            expr_list_start_token.syntax_err(
+                                "参数#%d类型匹配失败，接口方法'%s'权限签名不同：'%s'->'%s'" % (arg_idx + 1, method.name, tp, arg_type))
+                        if "public" not in method.decr_set and method.module is not tp_method.module:
+                            #权限私有且两个coi不在同一模块，这个接口无权访问
+                            expr_list_start_token.syntax_err(
+                                "参数#%d类型匹配失败，对接口方法'%s'无访问权限：'%s'->'%s'" % (arg_idx + 1, method.name, tp, arg_type))
+                        if len(method.arg_map) != len(tp_method.arg_map):
+                            expr_list_start_token.syntax_err(
+                                "参数#%d类型匹配失败，接口方法'%s'参数数量不匹配：'%s'->'%s'" % (arg_idx + 1, method.name, tp, arg_type))
+                        match_type(method.type, tp_method.type)
+                        for method_arg_type, tp_method_arg_type in zip(method.arg_map.itervalues(), tp_method.arg_map.itervalues()):
+                            match_type(method_arg_type, tp_method_arg_type)
+                    if tp.is_array:
+                        for method in coi.method_map.itervalues():
+                            match_method_type(method, get_array_method(tp, method.name))
+                        continue
+                    if tp.module_name is not None:
+                        assert tp.token.is_name
+                        tp_coi = tp.get_coi()
+                        for method in coi.method_map.itervalues():
+                            match_method_type(method, tp_coi.method_map[method.name] if method.name in tp_coi.method_map else None)
+                        continue
+        #其余情况，必须精确匹配
+        match_type(arg_type, tp)
+
+    #遍历gtp_map，确保所有类型都推导完毕并生成gtp_list
+    gtp_list = [result.finish() for result in gtp_infer_map.itervalues()]
+    return gtp_list

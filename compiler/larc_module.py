@@ -267,6 +267,11 @@ class _Method(_MethodBase):
         for tp in self.arg_map.itervalues():
             tp.check(self.cls.module)
 
+    def check_type_ignore_gtp(self, gtp_name_set):
+        self.type.check_ignore_gtp(self.cls.module, gtp_name_set)
+        for tp in self.arg_map.itervalues():
+            tp.check_ignore_gtp(self.cls.module, gtp_name_set)
+
     def compile(self):
         if self.block_token_list is None:
             self.stmt_list = None
@@ -290,6 +295,9 @@ class _Attr:
 
     def check_type(self):
         self.type.check(self.cls.module)
+
+    def check_type_ignore_gtp(self, gtp_name_set):
+        self.type.check_ignore_gtp(self.cls.module, gtp_name_set)
 
 class _UseMethod(_MethodBase):
     def __init__(self, cls, attr, method):
@@ -443,11 +451,21 @@ class _Cls(_ClsBase):
             self.method_map[name] = _Method(self, decr_set, type, name, arg_map, block_token_list)
 
     def check_type(self):
+        assert not self.gtp_name_list
         for attr in self.attr_map.itervalues():
             attr.check_type()
         self.construct_method.check_type()
         for method in self.method_map.itervalues():
             method.check_type()
+
+    def check_type_ignore_gtp(self):
+        assert self.gtp_name_list
+        gtp_name_set = set(self.gtp_name_list)
+        for attr in self.attr_map.itervalues():
+            attr.check_type_ignore_gtp(gtp_name_set)
+        self.construct_method.check_type_ignore_gtp(gtp_name_set)
+        for method in self.method_map.itervalues():
+            method.check_type_ignore_gtp(gtp_name_set)
 
     def compile(self):
         assert not self.gtp_name_list
@@ -582,6 +600,11 @@ class _IntfMethod:
         for tp in self.arg_map.itervalues():
             tp.check(self.intf.module)
 
+    def check_type_ignore_gtp(self, gtp_name_set):
+        self.type.check_ignore_gtp(self.intf.module, gtp_name_set)
+        for tp in self.arg_map.itervalues():
+            tp.check_ignore_gtp(self.intf.module, gtp_name_set)
+
 class _Intf(_IntfBase):
     def __init__(self, module, file_name, decr_set, name, gtp_name_list):
         _IntfBase.__init__(self)
@@ -626,8 +649,15 @@ class _Intf(_IntfBase):
         self.method_map[name] = _IntfMethod(self, decr_set, type, name, arg_map)
 
     def check_type(self):
+        assert not self.gtp_name_list
         for method in self.method_map.itervalues():
             method.check_type()
+
+    def check_type_ignore_gtp(self):
+        assert self.gtp_name_list
+        gtp_name_set = set(self.gtp_name_list)
+        for method in self.method_map.itervalues():
+            method.check_type_ignore_gtp(gtp_name_set)
 
 class _GintfInstMethod:
     def __init__(self, gintf_inst, method):
@@ -709,6 +739,13 @@ class _Func(_FuncBase):
         self.type.check(self.module)
         for tp in self.arg_map.itervalues():
             tp.check(self.module)
+
+    def check_type_ignore_gtp(self):
+        assert self.gtp_name_list
+        gtp_name_set = set(self.gtp_name_list)
+        self.type.check_ignore_gtp(self.module, gtp_name_set)
+        for tp in self.arg_map.itervalues():
+            tp.check_ignore_gtp(self.module, gtp_name_set)
 
     def compile(self):
         if self.block_token_list is None:
@@ -1145,9 +1182,11 @@ class Module:
         for map in self.cls_map, self.intf_map, self.func_map:
             for i in map.itervalues():
                 if i.gtp_name_list:
-                    #泛型元素不做check
-                    continue
-                i.check_type()
+                    #泛型元素做check type ignore gtp
+                    i.check_type_ignore_gtp()
+                else:
+                    #普通check type
+                    i.check_type()
         for i in self.global_var_map.itervalues():
             i.check_type()
 
@@ -1224,6 +1263,12 @@ class Module:
             module_map[dep_module].check_cycle_import_for_gv_init(gv, stk)
             stk.pop()
 
+    def get_coi_original(self, name):
+        assert self.has_coi(name)
+        if name in self.cls_map:
+            return self.cls_map[name]
+        return self.intf_map[name]
+
     def get_coi(self, type):
         is_cls = is_intf = False
         if type.name in self.cls_map:
@@ -1279,6 +1324,10 @@ class Module:
 
         return ginst
 
+    def get_func_original(self, name):
+        assert self.has_func(name)
+        return self.func_map[name]
+
     def get_func(self, t, gtp_list):
         name = t.value
         if name not in self.func_map:
@@ -1324,6 +1373,8 @@ class Module:
 
     def has_type(self, name):
         return name in self.cls_map or name in self.intf_map
+
+    has_coi = has_type
 
     def has_func(self, name):
         return name in self.func_map

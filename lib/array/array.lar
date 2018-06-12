@@ -1,0 +1,25 @@
+public T[] copy<T>(T[] a)
+{
+    long sz = a.size();
+    var b = new T[sz];
+    for (long i = 0; i < sz; ++ i)
+    {
+        b[i] = a[i];
+    }
+    return b;
+}
+
+public T[] deep_copy<T>(T[] a)
+{
+    long sz = a.size();
+    var b = new T[sz];
+    for (long i = 0; i < sz; ++ i)
+    {
+#use
+        b[i] = deep_copy(a[i]);
+#oruse
+        b[i] = a[i];
+#enduse
+    }
+    return b;
+}

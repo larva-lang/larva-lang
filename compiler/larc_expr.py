@@ -5,6 +5,7 @@
 """
 
 import re
+import copy
 
 import larc_common
 import larc_token
@@ -535,15 +536,22 @@ class Parser:
     def _parse_func_or_global_var(self, module, (t, name), var_map_stk):
         if self.used_dep_module_set is not None:
             self.used_dep_module_set.add(module.name)
+
+        #试着找全局变量
         global_var = module.get_global_var(name)
         if global_var is not None:
             if module is not self.curr_module and "public" not in global_var.decr_set:
                 t.syntax_err("无法使用全局变量'%s'：没有权限" % global_var)
             return _Expr("global_var", global_var, global_var.type)
 
+        #找函数
         if not module.has_func(name):
             t.syntax_err("未定义的全局变量或函数'%s.%s'" % (module, name))
+        func = module.get_func_original(name)
+        if func.module is not self.curr_module and "public" not in func.decr_set:
+            t.syntax_err("无法使用函数'%s'：没有权限" % func)
 
+        #解析泛型参数表
         if self.token_list.peek().is_sym("<"):
             self.token_list.pop_sym("<")
             gtp_list = larc_type.parse_gtp_list(self.token_list, self.dep_module_map)
@@ -551,14 +559,25 @@ class Parser:
                 tp.check(self.curr_module, self.gtp_map, self.used_dep_module_set)
         else:
             gtp_list = []
+
+        #继续解析表达式列表
+        self.token_list.pop_sym("(")
+        expr_list_start_token = self.token_list.peek()
+        expr_list = self._parse_expr_list(var_map_stk)
+        #为下面的推导做准备，需要先检查下参数数量
+        if len(expr_list) != len(func.arg_map):
+            expr_list_start_token.syntax_err("传入参数数量错误：需要%d个，传入了%d个" % (len(func.arg_map), len(expr_list)))
+
+        if func.gtp_name_list and not gtp_list:
+            #泛型函数，但是没有指定泛型参数表，需要从参数列表推导
+            arg_type_list = copy.deepcopy(list(func.arg_map.itervalues()))
+            gtp_list = larc_type.infer_gtp(expr_list_start_token, func.gtp_name_list, arg_type_list, [e.type for e in expr_list],
+                                           [e.is_ref for e in expr_list])
+
+        #无需类型推导或已推导完成，正式get_func并match参数表
         func = module.get_func(t, gtp_list)
         larc_module.check_new_ginst_during_compile() #这个check必须在get_func之后，因为get_func同时负责创建gfunc_inst
-        if func.module is not self.curr_module and "public" not in func.decr_set:
-            t.syntax_err("无法使用函数'%s'：没有权限" % func)
-        self.token_list.pop_sym("(")
-        t = self.token_list.peek()
-        expr_list = self._parse_expr_list(var_map_stk)
-        self._make_expr_list_match_arg_map(t, expr_list, func.arg_map)
+        self._make_expr_list_match_arg_map(expr_list_start_token, expr_list, func.arg_map)
         return _Expr("call_func", (func, expr_list), func.type)
 
     def _parse_method_or_attr_of_this_cls(self, (t, name), var_map_stk):
