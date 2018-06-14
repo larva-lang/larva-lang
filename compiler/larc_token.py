@@ -462,7 +462,7 @@ def parse_token_list_until_sym(token_list, end_sym_set):
             stk.pop()
         if t.is_reserved("new") and not stk:
             in_top_level_new = True
-        if t.is_sym("<") and in_top_level_new:
+        if t.is_sym("<") and (in_top_level_new or (stk and stk[-1].is_sym("<"))):
             stk.append(t)
             in_top_level_new = False
         if t.is_sym and t.value in (">", ">>") and (stk and stk[-1].is_sym("<")):

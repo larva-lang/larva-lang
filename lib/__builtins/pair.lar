@@ -1,3 +1,5 @@
+import util;
+
 public class Pair<F, S>
 {
     public Pair(F first, S second)
@@ -9,6 +11,21 @@ public class Pair<F, S>
     public String repr()
     {
         return "Pair{%r, %r}".(first, second);
+    }
+
+    public long hash()
+    {
+        return util.hash<F>(first) ^ util.hash<S>(second);
+    }
+
+    public int cmp(Pair<F, S> other)
+    {
+        int r = util.cmp<F>(first, other.first);
+        if (r != 0)
+        {
+            return r;
+        }
+        return util.cmp<S>(second, other.second);
     }
 
     public F first;
