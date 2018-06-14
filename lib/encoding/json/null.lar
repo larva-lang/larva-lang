@@ -3,7 +3,7 @@ public class JsonNull
 {
     JsonNull()
     {
-        base = new JsonBase(this);
+        this.base = new JsonBase(this);
     }
 
     public String type()

@@ -8,11 +8,11 @@ class Record
 
     void assign(Record other)
     {
-        PtrComp = other.PtrComp;
-        Discr = other.Discr;
-        EnumComp = other.EnumComp;
-        IntComp = other.IntComp;
-        StringComp = other.StringComp;
+        this.PtrComp = other.PtrComp;
+        this.Discr = other.Discr;
+        this.EnumComp = other.EnumComp;
+        this.IntComp = other.IntComp;
+        this.StringComp = other.StringComp;
     }
 }
 

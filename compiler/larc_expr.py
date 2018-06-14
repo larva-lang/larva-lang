@@ -306,19 +306,14 @@ class Parser:
                             parse_stk.push_expr(_Expr("local_var", t.value, var_map[t.value]))
                             break
                     else:
-                        if self.cls is not None and self.cls.has_method_or_attr(t.value):
-                            #类方法或属性
-                            expr = self._parse_method_or_attr_of_this_cls((t, t.value), var_map_stk)
-                            parse_stk.push_expr(expr)
+                        #当前模块或builtin模块
+                        for m in self.curr_module, larc_module.builtins_module:
+                            if m.has_func(t.value) or m.has_global_var(t.value):
+                                expr = self._parse_func_or_global_var(m, (t, t.value), var_map_stk)
+                                parse_stk.push_expr(expr)
+                                break
                         else:
-                            #当前模块或builtin模块
-                            for m in self.curr_module, larc_module.builtins_module:
-                                if m.has_func(t.value) or m.has_global_var(t.value):
-                                    expr = self._parse_func_or_global_var(m, (t, t.value), var_map_stk)
-                                    parse_stk.push_expr(expr)
-                                    break
-                            else:
-                                t.syntax_err("未定义的标识符'%s'" % t.value)
+                            t.syntax_err("未定义的标识符'%s'" % t.value)
             elif t.is_literal:
                 assert t.type.startswith("literal_")
                 if t.type == "literal_int":

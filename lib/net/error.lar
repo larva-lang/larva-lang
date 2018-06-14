@@ -2,17 +2,17 @@ public class Error
 {
     public bool is_timeout()
     {
-        return _is_timeout;
+        return this._is_timeout;
     }
 
     public bool is_temporary()
     {
-        return _is_temporary;
+        return this._is_temporary;
     }
 
     public int errno()
     {
-        return _errno;
+        return this._errno;
     }
 
     GoError e usemethod;

@@ -19,17 +19,17 @@ public class Catched<T>
 
     public void rethrow()
     {
-        rethrow_catched(new Catched<Throwable>(t, tb));
+        rethrow_catched(new Catched<Throwable>(this.t, this.tb));
     }
 
     public T throwed()
     {
-        return t;
+        return this.t;
     }
 
     public String traceback()
     {
-        return tb;
+        return this.tb;
     }
 
     T t;
@@ -97,7 +97,7 @@ public class Exception
 {
     public Exception(String s)
     {
-        info = s;
+        this.info = s;
     }
 
     String info usemethod(str);
@@ -110,7 +110,7 @@ public class AssertError
 {
     public AssertError(String s)
     {
-        e = new Exception(s);
+        this.e = new Exception(s);
     }
 
     Exception e usemethod;
@@ -130,15 +130,15 @@ public class IndexError
 {
     public IndexError(long i)
     {
-        has_idx = true;
-        idx = i;
+        this.has_idx = true;
+        this.idx = i;
     }
 
     public String str()
     {
-        if (has_idx)
+        if (this.has_idx)
         {
-            return "%d".(idx);
+            return "%d".(this.idx);
         }
         else
         {
@@ -155,17 +155,17 @@ public class RangeError
 {
     public RangeError(long l, long b, long e)
     {
-        has_range_info = true;
-        len = l;
-        begin = b;
-        end = e;
+        this.has_range_info = true;
+        this.len = l;
+        this.begin = b;
+        this.end = e;
     }
 
     public String str()
     {
-        if (has_range_info)
+        if (this.has_range_info)
         {
-            return "[%d][%d:%d]".(len, begin, end);
+            return "[%d][%d:%d]".(this.len, this.begin, this.end);
         }
         else
         {
@@ -193,7 +193,7 @@ public class KeyError
 {
     public KeyError(String k)
     {
-        e = new Exception(k);
+        this.e = new Exception(k);
     }
 
     Exception e usemethod;
@@ -204,7 +204,7 @@ public class ValueError
 {
     public ValueError(String v)
     {
-        e = new Exception(v);
+        this.e = new Exception(v);
     }
 
     Exception e usemethod;

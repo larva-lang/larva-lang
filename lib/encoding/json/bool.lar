@@ -3,7 +3,7 @@ public class JsonBool
 {
     JsonBool(bool v)
     {
-        base = new JsonBase(this);
+        this.base = new JsonBase(this);
         this.v = v;
     }
 
@@ -14,7 +14,7 @@ public class JsonBool
 
     public char[] marshal()
     {
-        if (v)
+        if (this.v)
         {
             return "true".to_char_array();
         }

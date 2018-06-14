@@ -7,13 +7,13 @@ void log(String msg)
 
 class Client
 {
-    net.TcpConn m_sock;
-    char[] m_result;
+    net.TcpConn sock;
+    char[] result;
 
     Client(net.TcpConn sock)
     {
-        m_sock = sock;
-        m_result = new char[4];
+        this.sock = sock;
+        this.result = new char[4];
         bool[] selected = new bool[10];
         for (int i = 0; i < 4; )
         {
@@ -23,15 +23,15 @@ class Client
                 continue;
             }
             selected[c] = true;
-            m_result[i] = '0' + c;
+            this.result[i] = '0' + c;
             ++ i;
         }
-        client_log("start with result [%s]".(new String(m_result)));
+        this.client_log("start with result [%s]".(new String(this.result)));
     }
 
     void client_log(String s)
     {
-        log("client [%s]: %s".(m_sock.remote_addr(), s));
+        log("client [%s]: %s".(this.sock.remote_addr(), s));
     }
 
     bool is_valid_input(char[] s, long sz)
@@ -55,11 +55,11 @@ class Client
 
     void send_str(String s)
     {
-        m_sock.write(s.to_char_array());
+        this.sock.write(s.to_char_array());
     }
     void send_line(String s)
     {
-        send_str(s.concat("\r\n"));
+        this.send_str(s.concat("\r\n"));
     }
 
     void _run()
@@ -68,12 +68,12 @@ class Client
         int[] rsp = new int[2];
         while (true)
         {
-            send_str("Guess a number, 4 different digits:");
+            this.send_str("Guess a number, 4 different digits:");
 
-            long recved_size = m_sock.read(recv_buf);
+            long recved_size = this.sock.read(recv_buf);
             if (recved_size == 0)
             {
-                client_log("client over");
+                this.client_log("client over");
                 return;
             }
 
@@ -86,9 +86,9 @@ class Client
                 continue;
             }
 
-            if (!is_valid_input(recv_buf, recved_size))
+            if (!this.is_valid_input(recv_buf, recved_size))
             {
-                send_line("Invalid input");
+                this.send_line("Invalid input");
                 continue;
             }
 
@@ -98,7 +98,7 @@ class Client
             {
                 for (long j = 0; j < 4; ++ j)
                 {
-                    if (m_result[i] == recv_buf[j])
+                    if (this.result[i] == recv_buf[j])
                     {
                         if (i == j)
                         {
@@ -113,11 +113,11 @@ class Client
             }
             if (rsp[0] == 4)
             {
-                send_line("You got it");
-                client_log("player win");
+                this.send_line("You got it");
+                this.client_log("player win");
                 return;
             }
-            send_line("%dA%dB".(rsp[0], rsp[1]));
+            this.send_line("%dA%dB".(rsp[0], rsp[1]));
         }
     }
 
@@ -128,12 +128,12 @@ class Client
             var c = catch_base();
             if (c != nil)
             {
-                client_log("client ends with exception [%s], traceback[%s]".(c.throwed().str(), c.traceback()));
+                this.client_log("client ends with exception [%s], traceback[%s]".(c.throwed().str(), c.traceback()));
             }
         }
-        defer m_sock.close();
+        defer this.sock.close();
 
-        _run();
+        this._run();
     }
 }
 

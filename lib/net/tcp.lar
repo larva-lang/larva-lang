@@ -11,7 +11,7 @@ public class TcpListener
 {
     public TcpListener(String addr)
     {
-        tl = new _TcpListener(addr);
+        this.tl = new _TcpListener(addr);
     }
 
     _TcpListener tl usemethod;

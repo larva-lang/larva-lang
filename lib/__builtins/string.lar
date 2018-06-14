@@ -27,8 +27,8 @@ public class String
 {
     public String(char[] arr)
     {
-        s = new _String(arr);
-        h = 0;
+        this.s = new _String(arr);
+        this.h = 0;
     }
 
     public String str()
@@ -38,20 +38,20 @@ public class String
 
     public bool eq(String other)
     {
-        return cmp(other) == 0;
+        return this.cmp(other) == 0;
     }
 
     public long hash()
     {
-        if (h == 0)
+        if (this.h == 0)
         {
-            h = s.hash();
-            if (h == 0)
+            this.h = this.s.hash();
+            if (this.h == 0)
             {
-                h = 1;
+                this.h = 1;
             }
         }
-        return h;
+        return this.h;
     }
 
     _String s usemethod; //内部实现

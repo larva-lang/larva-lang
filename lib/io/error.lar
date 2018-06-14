@@ -7,11 +7,11 @@ public class Error
 
     public String str()
     {
-        if (s == nil)
+        if (this.s == nil)
         {
-            return e.str();
+            return this.e.str();
         }
-        return s;
+        return this.s;
     }
 
     //e和s有且仅有一个不为nil

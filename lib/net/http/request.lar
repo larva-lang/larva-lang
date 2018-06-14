@@ -7,7 +7,7 @@ public class Request
 {
     public Request(String method, String url, Any data)
     {
-        req = new _Request(method, url, data);
+        this.req = new _Request(method, url, data);
     }
 
     _Request req usemethod;

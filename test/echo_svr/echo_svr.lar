@@ -2,11 +2,11 @@ import net;
 
 class Client
 {
-    net.TcpConn m_sock;
+    net.TcpConn sock;
 
     Client(net.TcpConn sock)
     {
-        m_sock = sock;
+        this.sock = sock;
     }
 
     public void run()
@@ -23,17 +23,17 @@ class Client
                 println("client ends");
             }
         }
-        defer m_sock.close();
+        defer this.sock.close();
 
         var buf = new char[10000];
         while (true)
         {
-            long recved_size = m_sock.read(buf);
+            long recved_size = this.sock.read(buf);
             if (recved_size == 0)
             {
                 return;
             }
-            m_sock.write(buf);
+            this.sock.write(buf);
         }
     }
 }

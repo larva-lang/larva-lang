@@ -13,32 +13,32 @@ class JsonBase
     public bool is_null()
     {
         JsonNull n;
-        return try_cast<JsonNull>(me, ref n);
+        return try_cast<JsonNull>(this.me, ref n);
     }
 
     public bool as_bool()
     {
-        return ((JsonBool)me).v;
+        return ((JsonBool)this.me).v;
     }
 
     public JsonNum as_num()
     {
-        return (JsonNum)me;
+        return (JsonNum)this.me;
     }
 
     public String as_str()
     {
-        return ((JsonStr)me).v;
+        return ((JsonStr)this.me).v;
     }
 
     public JsonArr as_arr()
     {
-        return (JsonArr)me;
+        return (JsonArr)this.me;
     }
 
     public JsonObj as_obj()
     {
-        return (JsonObj)me;
+        return (JsonObj)this.me;
     }
 
     Json me;

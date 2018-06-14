@@ -19,8 +19,8 @@ public class JsonArr
         {
             throw(new ValueError("%d".(size)));
         }
-        base = new JsonBase(this);
-        arr = new _JsonArr(size);
+        this.base = new JsonBase(this);
+        this.arr = new _JsonArr(size);
     }
 
     public String type()
@@ -30,11 +30,11 @@ public class JsonArr
 
     public Json[] to_json_array()
     {
-        var sz = size();
+        var sz = this.size();
         var a = new Json[sz];
         for (var i = 0L; i < sz; ++ i)
         {
-            a[i] = get(i);
+            a[i] = this.get(i);
         }
         return a;
     }
@@ -43,33 +43,33 @@ public class JsonArr
     {
         for (long i = 0; !data_iter.after_end(); data_iter.inc(), ++ i)
         {
-            set(i, data_iter.get());
+            this.set(i, data_iter.get());
         }
     }
 
     public bool get_bool(long idx)
     {
-        return get(idx).as_bool();
+        return this.get(idx).as_bool();
     }
 
     public JsonNum get_num(long idx)
     {
-        return get(idx).as_num();
+        return this.get(idx).as_num();
     }
 
     public String get_str(long idx)
     {
-        return get(idx).as_str();
+        return this.get(idx).as_str();
     }
 
     public JsonArr get_arr(long idx)
     {
-        return get(idx).as_arr();
+        return this.get(idx).as_arr();
     }
 
     public JsonObj get_obj(long idx)
     {
-        return get(idx).as_obj();
+        return this.get(idx).as_obj();
     }
 
     JsonBase base usemethod;

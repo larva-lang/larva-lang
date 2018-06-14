@@ -4,10 +4,10 @@ public class HashSet<E>
 {
     public HashSet(Iter<E> data_iter)
     {
-        hm = new HashMap<E, bool>(nil);
+        this.hm = new HashMap<E, bool>(nil);
         if (data_iter != nil)
         {
-            update(data_iter);
+            this.update(data_iter);
         }
     }
 
@@ -15,16 +15,16 @@ public class HashSet<E>
     {
         for (; !data_iter.after_end(); data_iter.inc())
         {
-            add(data_iter.get());
+            this.add(data_iter.get());
         }
     }
 
     public String repr()
     {
-        var sl = new String[size() + 2];
+        var sl = new String[this.size() + 2];
         sl[0] = "<%s [".(reflect.type_name(this));
         long i = 1;
-        for (var it = iter(); !it.after_end(); it.inc())
+        for (var it = this.iter(); !it.after_end(); it.inc())
         {
             if (i == 1)
             {
@@ -43,12 +43,12 @@ public class HashSet<E>
 
     public void add(E e)
     {
-        hm.set(e, true);
+        this.hm.set(e, true);
     }
 
     public HashSetIter<E> iter()
     {
-        return new HashSetIter<E>(hm.iter());
+        return new HashSetIter<E>(this.hm.iter());
     }
 
     HashMap<E, bool> hm usemethod(size);
@@ -58,12 +58,12 @@ public class HashSetIter<E>
 {
     HashSetIter(HashMapIter<E, bool> it)
     {
-        hm_it = it;
+        this.hm_it = it;
     }
 
     public E get()
     {
-        return hm_it.key();
+        return this.hm_it.key();
     }
 
     HashMapIter<E, bool> hm_it usemethod(before_begin, after_end, inc, dec);

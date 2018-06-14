@@ -13,7 +13,7 @@ public class JsonNum
     public JsonNum(Any v)
     {
         v = to_json_num_value(v);
-        base = new JsonBase(this);
+        this.base = new JsonBase(this);
         this.v = v;
     }
 
@@ -24,42 +24,42 @@ public class JsonNum
 
     public char[] marshal()
     {
-        return marshal_num(v);
+        return marshal_num(this.v);
     }
 
     public long as_long()
     {
         ulong n;
-        if (try_cast<ulong>(v, ref n) && n < (1UL << 63))
+        if (try_cast<ulong>(this.v, ref n) && n < (1UL << 63))
         {
             return (long)n;
         }
-        return (long)v;
+        return (long)this.v;
     }
 
     public ulong as_ulong()
     {
         long n;
-        if (try_cast<long>(v, ref n) && n >= 0)
+        if (try_cast<long>(this.v, ref n) && n >= 0)
         {
             return (ulong)n;
         }
-        return (ulong)v;
+        return (ulong)this.v;
     }
 
     public double as_double()
     {
         long n;
-        if (try_cast<long>(v, ref n))
+        if (try_cast<long>(this.v, ref n))
         {
             return (double)n;
         }
         ulong un;
-        if (try_cast<ulong>(v, ref un))
+        if (try_cast<ulong>(this.v, ref un))
         {
             return (double)un;
         }
-        return (double)v;
+        return (double)this.v;
     }
 
     JsonBase base usemethod;

@@ -9,7 +9,7 @@ public class Client
 {
     public Client(double timeout)
     {
-        c = new _Client(timeout);
+        this.c = new _Client(timeout);
     }
 
     _Client c usemethod;

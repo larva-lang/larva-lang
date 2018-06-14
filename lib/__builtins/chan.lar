@@ -19,17 +19,17 @@ public class Chan<T>
         {
             throw(new ValueError("%d".(buf_size)));
         }
-        ch = new _ChanAny(buf_size);
+        this.ch = new _ChanAny(buf_size);
     }
 
     public void send(T data)
     {
-        ch.send(data);
+        this.ch.send(data);
     }
 
     public T recv()
     {
-        return (T)ch.recv();
+        return (T)this.ch.recv();
     }
 
     _ChanAny ch usemethod;

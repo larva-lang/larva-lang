@@ -17,56 +17,56 @@ public class ArrayIter<E>
 {
     public ArrayIter(E[] a, long i)
     {
-        arr = a;
-        idx = i;
+        this.arr = a;
+        this.idx = i;
     }
 
     public bool before_begin()
     {
-        return idx < 0;
+        return this.idx < 0;
     }
 
     public bool after_end()
     {
-        return idx >= arr.size();
+        return this.idx >= this.arr.size();
     }
 
     public E get()
     {
-        return arr[idx];
+        return this.arr[this.idx];
     }
 
     public void set(E e)
     {
-        arr[idx] = e;
+        this.arr[this.idx] = e;
     }
 
     public void inc()
     {
-        if (before_begin())
+        if (this.before_begin())
         {
-            idx = 0;
+            this.idx = 0;
             return;
         }
-        if (after_end())
+        if (this.after_end())
         {
             throw(new IterOutOfRange());
         }
-        ++ idx;
+        ++ this.idx;
     }
 
     public void dec()
     {
-        if (before_begin())
+        if (this.before_begin())
         {
             throw(new IterOutOfRange());
         }
-        if (after_end())
+        if (this.after_end())
         {
-            idx = arr.size() - 1;
+            this.idx = this.arr.size() - 1;
             return;
         }
-        -- idx;
+        -- this.idx;
     }
 
     E[] arr;

@@ -10,23 +10,23 @@ public class HashMap<K, V>
 {
     public HashMap(Iter<Pair<K, V>> data_iter)
     {
-        tbl = new HashMapNode<K, V>[1 << 3]; //表大小为2的幂
-        dummy = new HashMapNode<K, V>();
-        sz = 0;
-        dirty = 0;
+        this.tbl = new HashMapNode<K, V>[1 << 3]; //表大小为2的幂
+        this.dummy = new HashMapNode<K, V>();
+        this.sz = 0;
+        this.dirty = 0;
 
         if (data_iter != nil)
         {
-            update(data_iter);
+            this.update(data_iter);
         }
     }
 
     public String repr()
     {
-        var sl = new String[size() + 2];
+        var sl = new String[this.size() + 2];
         sl[0] = "<%s {".(reflect.type_name(this));
         long i = 1;
-        for (var it = iter(); !it.after_end(); it.inc())
+        for (var it = this.iter(); !it.after_end(); it.inc())
         {
             var p = it.get();
             if (i == 1)
@@ -49,13 +49,13 @@ public class HashMap<K, V>
         for (; !data_iter.after_end(); data_iter.inc())
         {
             var p = data_iter.get();
-            set(p.first, p.second);
+            this.set(p.first, p.second);
         }
     }
 
     public long size()
     {
-        return sz;
+        return this.sz;
     }
 
     //查找k，返回找到的idx位置，或者可以插入的idx位置，算法：开放定址
@@ -83,7 +83,7 @@ public class HashMap<K, V>
                 }
                 return idx;
             }
-            if (node == dummy)
+            if (node == this.dummy)
             {
                 //碰到dummy继续探测，记录第一次出现的位置
                 if (first_dummy_idx < 0)
@@ -107,7 +107,7 @@ public class HashMap<K, V>
     void rehash()
     {
         //若表比较大则扩大2倍，否则扩大8倍
-        long new_size = tbl.size() << 1;
+        long new_size = this.tbl.size() << 1;
         assert(new_size > 0, "bug");
         if (new_size < 1L << 24)
         {
@@ -116,22 +116,22 @@ public class HashMap<K, V>
 
         //创建新表并迁移旧表数据，这个过程将来可以改成渐进式
         var new_tbl = new HashMapNode<K, V>[new_size];
-        for (var i = tbl.size() - 1; i >= 0; -- i)
+        for (var i = this.tbl.size() - 1; i >= 0; -- i)
         {
-            var node = tbl[i];
-            if (node != nil && node != dummy)
+            var node = this.tbl[i];
+            if (node != nil && node != this.dummy)
             {
-                new_tbl[find_node(new_tbl, node.k)] = node;
+                new_tbl[this.find_node(new_tbl, node.k)] = node;
             }
         }
-        tbl = new_tbl;
-        ++ dirty;
+        this.tbl = new_tbl;
+        ++ this.dirty;
     }
 
     public V get(K k)
     {
-        long idx = find_node(tbl, k);
-        var node = tbl[idx];
+        long idx = this.find_node(this.tbl, k);
+        var node = this.tbl[idx];
         if (node == nil)
         {
             throw(new KeyError("%s".(k)));
@@ -141,20 +141,20 @@ public class HashMap<K, V>
 
     public void set(K k, V v)
     {
-        if (sz > tbl.size() / 2)
+        if (this.sz > this.tbl.size() / 2)
         {
-            rehash();
+            this.rehash();
         }
 
-        long idx = find_node(tbl, k);
-        var node = tbl[idx];
+        long idx = this.find_node(this.tbl, k);
+        var node = this.tbl[idx];
         if (node == nil)
         {
             node = new HashMapNode<K, V>();
             node.k = k;
-            tbl[idx] = node;
-            ++ sz;
-            ++ dirty;
+            this.tbl[idx] = node;
+            ++ this.sz;
+            ++ this.dirty;
         }
         node.v = v;
     }
@@ -166,8 +166,8 @@ public class HashMap<K, V>
 
     public HashMapIter<K, V> find(K k)
     {
-        long idx = find_node(tbl, k);
-        if (tbl[idx] == nil)
+        long idx = this.find_node(this.tbl, k);
+        if (this.tbl[idx] == nil)
         {
             return nil;
         }
@@ -187,17 +187,17 @@ public class HashMapIter<K, V>
         this.hm = hm;
         this.idx = idx;
         this.dirty = hm.dirty;
-        skip_nil_and_dummy(false);
+        this.skip_nil_and_dummy(false);
     }
 
     void skip_nil_and_dummy(bool backward)
     {
         if (backward)
         {
-            for (; idx >= 0; -- idx)
+            for (; this.idx >= 0; -- this.idx)
             {
-                var node = hm.tbl[idx];
-                if (node != nil && node != hm.dummy)
+                var node = this.hm.tbl[this.idx];
+                if (node != nil && node != this.hm.dummy)
                 {
                     return;
                 }
@@ -205,11 +205,11 @@ public class HashMapIter<K, V>
         }
         else
         {
-            long tbl_size = hm.tbl.size();
-            for (; idx < tbl_size; ++ idx)
+            long tbl_size = this.hm.tbl.size();
+            for (; this.idx < tbl_size; ++ this.idx)
             {
-                var node = hm.tbl[idx];
-                if (node != nil && node != hm.dummy)
+                var node = this.hm.tbl[this.idx];
+                if (node != nil && node != this.hm.dummy)
                 {
                     return;
                 }
@@ -219,7 +219,7 @@ public class HashMapIter<K, V>
 
     void check_dirty()
     {
-        if (hm.dirty != dirty)
+        if (this.hm.dirty != this.dirty)
         {
             throw(new IterDirty());
         }
@@ -227,93 +227,93 @@ public class HashMapIter<K, V>
 
     public bool _before_begin()
     {
-        return idx < 0;
+        return this.idx < 0;
     }
 
     public bool before_begin()
     {
-        check_dirty();
-        return _before_begin();
+        this.check_dirty();
+        return this._before_begin();
     }
 
     public bool _after_end()
     {
-        return idx >= hm.tbl.size();
+        return this.idx >= this.hm.tbl.size();
     }
 
     public bool after_end()
     {
-        check_dirty();
-        return _after_end();
+        this.check_dirty();
+        return this._after_end();
     }
 
     HashMapNode<K, V> node()
     {
-        check_dirty();
-        if (_before_begin() || _after_end())
+        this.check_dirty();
+        if (this._before_begin() || this._after_end())
         {
             throw(new IterOutOfRange());
         }
-        var nd = hm.tbl[idx];
-        assert(nd != nil && nd != hm.dummy, "bug");
+        var nd = this.hm.tbl[this.idx];
+        assert(nd != nil && nd != this.hm.dummy, "bug");
         return nd;
     }
 
     public Pair<K, V> get()
     {
-        var nd = node();
+        var nd = this.node();
         return new Pair<K, V>(nd.k, nd.v);
     }
 
     public K key()
     {
-        return node().k;
+        return this.node().k;
     }
 
     public V value()
     {
-        return node().v;
+        return this.node().v;
     }
 
     public void set(V v)
     {
-        node().v = v;
+        this.node().v = v;
     }
 
     public void inc()
     {
-        check_dirty();
-        if (_before_begin())
+        this.check_dirty();
+        if (this._before_begin())
         {
-            idx = 0;
+            this.idx = 0;
         }
-        else if (_after_end())
+        else if (this._after_end())
         {
             throw(new IterOutOfRange());
         }
         else
         {
-            ++ idx;
+            ++ this.idx;
         }
-        skip_nil_and_dummy(false);
+        this.skip_nil_and_dummy(false);
     }
 
     public void dec()
     {
-        check_dirty();
-        if (_before_begin())
+        this.check_dirty();
+        if (this._before_begin())
         {
             throw(new IterOutOfRange());
         }
-        else if (_after_end())
+        else if (this._after_end())
         {
-            idx = hm.tbl.size() - 1;
+            this.idx = this.hm.tbl.size() - 1;
         }
         else
         {
-            -- idx;
+            -- this.idx;
         }
-        skip_nil_and_dummy(true);
+        this.skip_nil_and_dummy(true);
     }
 
     HashMap<K, V> hm;
