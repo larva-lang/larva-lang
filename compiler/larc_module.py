@@ -74,10 +74,10 @@ def _parse_arg_map(token_list, dep_module_map, gtp_name_list):
         if type.name == "void":
             type.token.syntax_err("参数类型不可为void")
         t, name = token_list.pop_name()
-        if name in arg_map:
-            t.syntax_err("参数名重定义")
         if name in dep_module_map:
             t.syntax_err("参数名和导入模块名冲突")
+        if name in arg_map:
+            t.syntax_err("参数名重定义")
         arg_map[name] = type
 
         t = token_list.peek()
@@ -181,10 +181,6 @@ class _ClsBase(_CoiBase):
                 larc_common.exit("类'%s'对方法'%s'存在多个可能的usemethod来源" % (self, name))
             if name in self.attr_map:
                 larc_common.exit("类'%s'中的属性'%s'和通过usemethod引入的方法同名" % (self, name))
-            if name in self.module.get_dep_module_map(self.file_name):
-                larc_common.exit("类'%s'通过usemethod引入的方法'%s'与导入模块同名" % (self, name))
-            if self.is_gcls_inst and name in self.gcls.gtp_name_list:
-                larc_common.exit("类'%s'通过usemethod引入的方法'%s'与泛型参数同名" % (self, name))
         for attr in usemethod_array_list:
             assert attr.type.is_array
             if attr.usemethod_list is None:
@@ -423,10 +419,6 @@ class _Cls(_ClsBase):
         self.usemethod_stat = "to_expand"
 
     def _check_redefine(self, t, name):
-        if name in self.module.get_dep_module_map(self.file_name):
-            t.syntax_err("属性或方法名与导入模块名相同")
-        if name in self.gtp_name_list:
-            t.syntax_err("属性或方法名与泛型参数名相同")
         for i in self.attr_map, self.method_map:
             if name in i:
                 t.syntax_err("属性或方法名重定义")
@@ -635,10 +627,6 @@ class _Intf(_IntfBase):
             self._parse_method(decr_set, type, name, token_list)
 
     def _check_redefine(self, t, name):
-        if name in self.module.get_dep_module_map(self.file_name):
-            t.syntax_err("接口方法名与导入模块名相同")
-        if name in self.gtp_name_list:
-            t.syntax_err("接口方法名与泛型参数名相同")
         if name in self.method_map:
             t.syntax_err("接口方法名重定义")
 
