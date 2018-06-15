@@ -276,7 +276,7 @@ class Parser:
                 maybe_type = True
                 if self.token_list.peek().is_name:
                     maybe_type = larc_module.decide_if_name_maybe_type_by_lcgb(self.token_list.peek().value, var_map_stk, self.gtp_map,
-                                                                               self.cls, self.dep_module_map, self.curr_module)
+                                                                               self.dep_module_map, self.curr_module)
                 if maybe_type:
                     tp = larc_type.try_parse_type(self.token_list, self.curr_module, self.dep_module_map, self.gtp_map,
                                                   used_dep_module_set = self.used_dep_module_set)

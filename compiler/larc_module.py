@@ -1411,14 +1411,12 @@ def check_new_ginst_during_compile():
     for m in module_map.itervalues():
         m.expand_usemethod()
 
-def decide_if_name_maybe_type_by_lcgb(name, var_map_stk, gtp_map, cls, dep_module_map, module):
+def decide_if_name_maybe_type_by_lcgb(name, var_map_stk, gtp_map, dep_module_map, module):
     for var_map in var_map_stk:
         if name in var_map:
             return False #局部变量
     if gtp_map is not None and name in gtp_map:
         return True #泛型类型
-    if cls is not None and cls.has_method_or_attr(name):
-        return False #方法或属性
     if name in dep_module_map:
         return True #显式引用其他模块元素
     if module.has_type(name):
