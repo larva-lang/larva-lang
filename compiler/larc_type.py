@@ -138,6 +138,13 @@ class _Type:
         for m in find_path:
             if m.has_coi(self.name):
                 coi = m.get_coi_original(self.name)
+                if m is not curr_module:
+                    #非当前模块，检查权限
+                    if "public" not in coi.decr_set:
+                        if self.module_name is None:
+                            continue
+                        else:
+                            self.token.syntax_err("无法使用类型'%s'：没有权限" % self)
                 if coi.gtp_name_list:
                     if self.gtp_list:
                         if len(coi.gtp_name_list) != len(self.gtp_list):
@@ -148,10 +155,6 @@ class _Type:
                     if self.gtp_list:
                         self.token.syntax_err("'%s'不是泛型类型" % coi)
                 self.module_name = m.name
-                if m is not curr_module:
-                    #非当前模块，检查权限
-                    if "public" not in coi.decr_set:
-                        self.token.syntax_err("无法使用类型'%s'：没有权限" % self)
                 break
         else:
             self.token.syntax_err("找不到类型'%s'" % self)
@@ -193,11 +196,14 @@ class _Type:
         for m in find_path:
             coi = m.get_coi(self)
             if coi is not None:
-                self.module_name = m.name #check的同时也将不带模块的类型标准化
                 if m is not curr_module:
                     #非当前模块，检查权限
                     if "public" not in coi.decr_set:
-                        self.token.syntax_err("无法使用类型'%s'：没有权限" % self)
+                        if self.module_name is None:
+                            continue
+                        else:
+                            self.token.syntax_err("无法使用类型'%s'：没有权限" % self)
+                self.module_name = m.name #check的同时也将不带模块的类型标准化
                 break
         else:
             self.token.syntax_err("无效的类型'%s'" % self)

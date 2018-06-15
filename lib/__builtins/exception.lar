@@ -19,7 +19,7 @@ public class Catched<T>
 
     public void rethrow()
     {
-        rethrow_catched(new Catched<Throwable>(this.t, this.tb));
+        _rethrow_catched(new Catched<Throwable>(this.t, this.tb));
     }
 
     public T throwed()
@@ -37,7 +37,7 @@ public class Catched<T>
 }
 
 //继续往上抛当前Catched对象，维持对象不变，即和再次throw的区别在于traceback可以保持不变
-native void rethrow_catched(Catched<Throwable> c);
+native void _rethrow_catched(Catched<Throwable> c);
 
 //assert函数
 public void assert(bool b, String s)

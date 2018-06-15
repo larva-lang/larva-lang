@@ -12,7 +12,7 @@ func lar_func_@<<throw>>(t lar_intf_@<<Throwable>>) {
     panic(lar_exc_create_catched_throwable(t, 2))
 }
 
-func lar_func_@<<rethrow_catched>>(c *lar_gcls_inst_@<<Catched>>_1_lar_intf_@<<Throwable>>) {
+func lar_func_@<<_rethrow_catched>>(c *lar_gcls_inst_@<<Catched>>_1_lar_intf_@<<Throwable>>) {
     panic(c)
 }
 
