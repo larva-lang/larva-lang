@@ -277,6 +277,12 @@ class Parser:
         for var_map in var_map_stk[: -1]:
             if name in var_map:
                 t.syntax_err("与上层的变量名冲突")
+        if self.gtp_map is not None and name in self.gtp_map:
+            t.syntax_err("变量名与泛型参数名冲突")
+        for m in self.module, larc_module.builtins_module:
+            elem = m.get_elem(name, public_only = m is larc_module.builtins_module)
+            if elem is not None:
+                t.syntax_err("变量名与'%s'名字冲突" % elem)
 
     def _parse_return(self, var_map_stk):
         if self.fom.type.is_void:

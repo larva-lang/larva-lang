@@ -536,7 +536,10 @@ class Parser:
         global_var = module.get_global_var(name)
         if global_var is not None:
             if module is not self.curr_module and "public" not in global_var.decr_set:
-                t.syntax_err("无法使用全局变量'%s'：没有权限" % global_var)
+                if module is larc_module.builtins_module:
+                    t.syntax_err("找不到'%s'" % name)
+                else:
+                    t.syntax_err("无法使用全局变量'%s'：没有权限" % global_var)
             return _Expr("global_var", global_var, global_var.type)
 
         #找函数
@@ -544,7 +547,10 @@ class Parser:
             t.syntax_err("未定义的全局变量或函数'%s.%s'" % (module, name))
         func = module.get_func_original(name)
         if func.module is not self.curr_module and "public" not in func.decr_set:
-            t.syntax_err("无法使用函数'%s'：没有权限" % func)
+            if module is larc_module.builtins_module:
+                t.syntax_err("找不到'%s'" % name)
+            else:
+                t.syntax_err("无法使用函数'%s'：没有权限" % func)
 
         #解析泛型参数表
         if self.token_list.peek().is_sym("<"):

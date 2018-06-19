@@ -34,6 +34,7 @@ def _parse_decr_set(token_list):
             return decr_set
 
 def _parse_gtp_name_list(token_list, dep_module_map):
+    gtp_name_t_list = []
     gtp_name_list = []
     while True:
         t = token_list.peek()
@@ -46,6 +47,7 @@ def _parse_gtp_name_list(token_list, dep_module_map):
             t.syntax_err("泛型参数名与导入模块重名")
         if name in gtp_name_list:
             t.syntax_err("泛型参数名重复定义")
+        gtp_name_t_list.append(t)
         gtp_name_list.append(name)
 
         t = token_list.peek()
@@ -56,14 +58,15 @@ def _parse_gtp_name_list(token_list, dep_module_map):
 
     if not gtp_name_list:
         t.syntax_err("泛型参数列表不能为空")
-    return gtp_name_list
+    return gtp_name_t_list, gtp_name_list
 
 def _parse_arg_map(token_list, dep_module_map, gtp_name_list):
+    arg_name_t_list = []
     arg_map = larc_common.OrderedDict()
     while True:
         t = token_list.peek()
         if t.is_sym(")"):
-            return arg_map
+            return arg_name_t_list, arg_map
 
         if token_list.peek().is_reserved("ref"):
             token_list.pop()
@@ -76,8 +79,11 @@ def _parse_arg_map(token_list, dep_module_map, gtp_name_list):
         t, name = token_list.pop_name()
         if name in dep_module_map:
             t.syntax_err("参数名和导入模块名冲突")
+        if name in gtp_name_list:
+            t.syntax_err("参数名和泛型参数名冲突")
         if name in arg_map:
             t.syntax_err("参数名重定义")
+        arg_name_t_list.append(t)
         arg_map[name] = type
 
         t = token_list.peek()
@@ -245,7 +251,7 @@ class _MethodBase:
         assert [self.is_method, self.is_usemethod].count(True) == 1
 
 class _Method(_MethodBase):
-    def __init__(self, cls, decr_set, type, name, arg_map, block_token_list):
+    def __init__(self, cls, decr_set, type, name, arg_name_t_list, arg_map, block_token_list):
         _MethodBase.__init__(self)
 
         self.cls = cls
@@ -253,10 +259,19 @@ class _Method(_MethodBase):
         self.decr_set = decr_set
         self.type = type
         self.name = name
+        self.arg_name_t_list = arg_name_t_list
         self.arg_map = arg_map
         self.block_token_list = block_token_list
 
     __repr__ = __str__ = lambda self : "%s.%s" % (self.cls, self.name)
+
+    def check_name_conflict(self):
+        for name_t, name in zip(self.arg_name_t_list, self.arg_map):
+            for m in self.module, builtins_module:
+                if m is not None:
+                    elem = m.get_elem(name, public_only = m is builtins_module)
+                    if elem is not None:
+                        name_t.syntax_err("参数'%s'和'%s'名字冲突" % (name, elem))
 
     def check_type(self):
         self.type.check(self.cls.module)
@@ -312,7 +327,7 @@ class _UseMethod(_MethodBase):
     __repr__ = __str__ = lambda self : "%s.usemethod[%s.%s]" % (self.cls, self.attr.name, self.used_method)
 
 class _Cls(_ClsBase):
-    def __init__(self, module, file_name, decr_set, name, gtp_name_list):
+    def __init__(self, module, file_name, decr_set, name_t, name, gtp_name_t_list, gtp_name_list):
         _ClsBase.__init__(self)
 
         if gtp_name_list:
@@ -321,7 +336,9 @@ class _Cls(_ClsBase):
         self.module = module
         self.file_name = file_name
         self.decr_set = decr_set
+        self.name_t = name_t
         self.name = name
+        self.gtp_name_t_list = gtp_name_t_list
         self.gtp_name_list = gtp_name_list
         self.construct_method = None
         self.attr_map = larc_common.OrderedDict()
@@ -414,7 +431,7 @@ class _Cls(_ClsBase):
                 block_token_list = None
             else:
                 block_token_list = larc_token.gen_empty_token_list("}")
-            self.construct_method = _Method(self, set(), larc_type.VOID_TYPE, self.name, larc_common.OrderedDict(), block_token_list)
+            self.construct_method = _Method(self, set(), larc_type.VOID_TYPE, self.name, [], larc_common.OrderedDict(), block_token_list)
             self.is_construct_method_auto_gened = True
         self.usemethod_stat = "to_expand"
 
@@ -424,7 +441,7 @@ class _Cls(_ClsBase):
                 t.syntax_err("属性或方法名重定义")
 
     def _parse_method(self, decr_set, type, name, token_list):
-        arg_map = _parse_arg_map(token_list, self.module.get_dep_module_map(self.file_name), [])
+        arg_name_t_list, arg_map = _parse_arg_map(token_list, self.module.get_dep_module_map(self.file_name), self.gtp_name_list)
         token_list.pop_sym(")")
 
         if "native" in self.decr_set:
@@ -438,9 +455,20 @@ class _Cls(_ClsBase):
         if name == self.name:
             #构造方法
             assert type is larc_type.VOID_TYPE
-            self.construct_method = _Method(self, decr_set, larc_type.VOID_TYPE, name, arg_map, block_token_list)
+            self.construct_method = _Method(self, decr_set, larc_type.VOID_TYPE, name, arg_name_t_list, arg_map, block_token_list)
         else:
-            self.method_map[name] = _Method(self, decr_set, type, name, arg_map, block_token_list)
+            self.method_map[name] = _Method(self, decr_set, type, name, arg_name_t_list, arg_map, block_token_list)
+
+    def check_name_conflict(self):
+        for name_t, name in zip(self.gtp_name_t_list, self.gtp_name_list):
+            for m in self.module, builtins_module:
+                if m is not None:
+                    elem = self.module.get_elem(name, public_only = m is builtins_module)
+                    if elem is not None:
+                        name_t.syntax_err("泛型参数'%s'和'%s'名字冲突" % (name, elem))
+        self.construct_method.check_name_conflict()
+        for method in self.method_map.itervalues():
+            method.check_name_conflict()
 
     def check_type(self):
         assert not self.gtp_name_list
@@ -576,16 +604,25 @@ class _IntfBase(_CoiBase):
         token.syntax_err("接口'%s'没有方法'%s'" % (self, name))
 
 class _IntfMethod:
-    def __init__(self, intf, decr_set, type, name, arg_map):
+    def __init__(self, intf, decr_set, type, name, arg_name_t_list, arg_map):
         self.intf = intf
 
         self.module = intf.module
         self.decr_set = decr_set
         self.type = type
         self.name = name
+        self.arg_name_t_list = arg_name_t_list
         self.arg_map = arg_map
 
     __repr__ = __str__ = lambda self : "%s.%s" % (self.intf, self.name)
+
+    def check_name_conflict(self):
+        for name_t, name in zip(self.arg_name_t_list, self.arg_map):
+            for m in self.module, builtins_module:
+                if m is not None:
+                    elem = m.get_elem(name, public_only = m is builtins_module)
+                    if elem is not None:
+                        name_t.syntax_err("参数'%s'和'%s'名字冲突" % (name, elem))
 
     def check_type(self):
         self.type.check(self.intf.module)
@@ -598,13 +635,15 @@ class _IntfMethod:
             tp.check_ignore_gtp(self.intf.module, gtp_name_set)
 
 class _Intf(_IntfBase):
-    def __init__(self, module, file_name, decr_set, name, gtp_name_list):
+    def __init__(self, module, file_name, decr_set, name_t, name, gtp_name_t_list, gtp_name_list):
         _IntfBase.__init__(self)
 
         self.module = module
         self.file_name = file_name
         self.decr_set = decr_set
+        self.name_t = name_t
         self.name = name
+        self.gtp_name_t_list = gtp_name_t_list
         self.gtp_name_list = gtp_name_list
         self.method_map = larc_common.OrderedDict()
 
@@ -631,10 +670,20 @@ class _Intf(_IntfBase):
             t.syntax_err("接口方法名重定义")
 
     def _parse_method(self, decr_set, type, name, token_list):
-        arg_map = _parse_arg_map(token_list, self.module.get_dep_module_map(self.file_name), [])
+        arg_name_t_list, arg_map = _parse_arg_map(token_list, self.module.get_dep_module_map(self.file_name), self.gtp_name_list)
         token_list.pop_sym(")")
         token_list.pop_sym(";")
-        self.method_map[name] = _IntfMethod(self, decr_set, type, name, arg_map)
+        self.method_map[name] = _IntfMethod(self, decr_set, type, name, arg_name_t_list, arg_map)
+
+    def check_name_conflict(self):
+        for name_t, name in zip(self.gtp_name_t_list, self.gtp_name_list):
+            for m in self.module, builtins_module:
+                if m is not None:
+                    elem = self.module.get_elem(name, public_only = m is builtins_module)
+                    if elem is not None:
+                        name_t.syntax_err("泛型参数'%s'和'%s'名字冲突" % (name, elem))
+        for method in self.method_map.itervalues():
+            method.check_name_conflict()
 
     def check_type(self):
         assert not self.gtp_name_list
@@ -708,19 +757,37 @@ class _FuncBase:
         assert [self.is_func, self.is_gfunc_inst].count(True) == 1
 
 class _Func(_FuncBase):
-    def __init__(self, module, file_name, decr_set, type, name, gtp_name_list, arg_map, block_token_list):
+    def __init__(self, module, file_name, decr_set, type, name_t, name, gtp_name_t_list, gtp_name_list, arg_name_t_list, arg_map,
+                 block_token_list):
         _FuncBase.__init__(self)
 
         self.module = module
         self.file_name = file_name
         self.decr_set = decr_set
         self.type = type
+        self.name_t = name_t
         self.name = name
+        self.gtp_name_t_list = gtp_name_t_list
         self.gtp_name_list = gtp_name_list
+        self.arg_name_t_list = arg_name_t_list
         self.arg_map = arg_map
         self.block_token_list = block_token_list
 
     __repr__ = __str__ = lambda self : "%s.%s" % (self.module, self.name)
+
+    def check_name_conflict(self):
+        for name_t, name in zip(self.gtp_name_t_list, self.gtp_name_list):
+            for m in self.module, builtins_module:
+                if m is not None:
+                    elem = self.module.get_elem(name, public_only = m is builtins_module)
+                    if elem is not None:
+                        name_t.syntax_err("泛型参数'%s'和'%s'名字冲突" % (name, elem))
+        for name_t, name in zip(self.arg_name_t_list, self.arg_map):
+            for m in self.module, builtins_module:
+                if m is not None:
+                    elem = m.get_elem(name, public_only = m is builtins_module)
+                    if elem is not None:
+                        name_t.syntax_err("参数'%s'和'%s'名字冲突" % (name, elem))
 
     def check_type(self):
         assert not self.gtp_name_list
@@ -793,11 +860,12 @@ class _GfuncInst(_FuncBase):
         return True
 
 class _GlobalVar:
-    def __init__(self, module, file_name, decr_set, type, name, expr_token_list):
+    def __init__(self, module, file_name, decr_set, type, name_t, name, expr_token_list):
         self.module = module
         self.file_name = file_name
         self.decr_set = decr_set
         self.type = type
+        self.name_t = name_t
         self.name = name
         self.expr_token_list = expr_token_list
         self.used_dep_module_set = set()
@@ -924,6 +992,7 @@ class Module:
         for file_name in native_file_name_list:
             self._parse_native_file(file_name)
         if self.name == "__builtins":
+            assert builtins_module is None
             #内建模块需要做一些必要的检查
             if "String" not in self.cls_map: #必须有String类
                 larc_common.exit("内建模块缺少String类")
@@ -941,8 +1010,31 @@ class Module:
                 larc_common.exit("内建模块缺少泛型类Pair<F, S>")
             if len(self.cls_map["Pair"].attr_map) != 2:
                 larc_common.exit("内建泛型类Pair<F, S>必须有2个字段")
+        self._check_name_conflict()
 
     __repr__ = __str__ = lambda self : self.name
+
+    def _check_name_conflict(self):
+        #如果不是内建模块，则检查本模块name和内建模块导出name是否冲突
+        if builtins_module is not None:
+            for map in self.cls_map, self.intf_map, self.func_map, self.global_var_map:
+                for i in map.itervalues():
+                    elem = builtins_module.get_elem(i.name, public_only = True)
+                    if elem is not None:
+                        i.name_t.syntax_err("'%s'与'%s'名字冲突" % (i, elem))
+        #依次检查类、接口和函数的定义名字中是否有冲突的
+        for map in self.cls_map, self.intf_map, self.func_map:
+            for i in map.itervalues():
+                i.check_name_conflict()
+
+    def get_elem(self, name, public_only = False):
+        for map in self.cls_map, self.intf_map, self.func_map, self.global_var_map:
+            if name in map:
+                elem = map[name]
+                if public_only and "public" not in elem.decr_set:
+                    return None
+                return elem
+        return None
 
     def _parse_native_file(self, file_name):
         assert file_name.endswith(".lar_native")
@@ -1021,7 +1113,7 @@ class Module:
                         expr_token_list, sym = larc_token.parse_token_list_until_sym(token_list, (";", ","))
                     else:
                         expr_token_list = None
-                    self.global_var_map[name] = _GlobalVar(self, file_name, decr_set, type, name, expr_token_list)
+                    self.global_var_map[name] = _GlobalVar(self, file_name, decr_set, type, name_t, name, expr_token_list)
                     if sym == ";":
                         break
                     #定义了多个变量，继续解析
@@ -1109,20 +1201,21 @@ class Module:
     def _parse_cls(self, file_name, dep_module_map, decr_set, token_list):
         t = token_list.pop()
         assert t.is_reserved("class")
-        t, name = token_list.pop_name()
-        self._check_redefine(t, name, dep_module_map)
+        name_t, name = token_list.pop_name()
+        self._check_redefine(name_t, name, dep_module_map)
         t = token_list.peek()
         if t.is_sym("<"):
             if "native" in decr_set:
                 t.syntax_err("不可定义native泛型类")
             token_list.pop_sym("<")
-            gtp_name_list = _parse_gtp_name_list(token_list, dep_module_map)
+            gtp_name_t_list, gtp_name_list = _parse_gtp_name_list(token_list, dep_module_map)
             if name in gtp_name_list:
                 t.syntax_err("存在与类名相同的泛型参数名")
         else:
+            gtp_name_t_list = []
             gtp_name_list = []
         token_list.pop_sym("{")
-        cls = _Cls(self, file_name, decr_set, name, gtp_name_list)
+        cls = _Cls(self, file_name, decr_set, name_t, name, gtp_name_t_list, gtp_name_list)
         cls.parse(token_list)
         token_list.pop_sym("}")
         self.cls_map[name] = cls
@@ -1130,16 +1223,17 @@ class Module:
     def _parse_intf(self, file_name, dep_module_map, decr_set, token_list):
         t = token_list.pop()
         assert t.is_reserved("interface")
-        t, name = token_list.pop_name()
-        self._check_redefine(t, name, dep_module_map)
+        name_t, name = token_list.pop_name()
+        self._check_redefine(name_t, name, dep_module_map)
         t = token_list.peek()
         if t.is_sym("<"):
             token_list.pop_sym("<")
-            gtp_name_list = _parse_gtp_name_list(token_list, dep_module_map)
+            gtp_name_t_list, gtp_name_list = _parse_gtp_name_list(token_list, dep_module_map)
         else:
+            gtp_name_t_list = []
             gtp_name_list = []
         token_list.pop_sym("{")
-        intf = _Intf(self, file_name, decr_set, name, gtp_name_list)
+        intf = _Intf(self, file_name, decr_set, name_t, name, gtp_name_t_list, gtp_name_list)
         intf.parse(token_list)
         token_list.pop_sym("}")
         self.intf_map[name] = intf
@@ -1148,11 +1242,12 @@ class Module:
         name = name_t.value
 
         if is_gfunc:
-            gtp_name_list = _parse_gtp_name_list(token_list, dep_module_map)
+            gtp_name_t_list, gtp_name_list = _parse_gtp_name_list(token_list, dep_module_map)
             token_list.pop_sym("(")
         else:
+            gtp_name_t_list = []
             gtp_name_list = []
-        arg_map = _parse_arg_map(token_list, dep_module_map, gtp_name_list)
+        arg_name_t_list, arg_map = _parse_arg_map(token_list, dep_module_map, gtp_name_list)
         token_list.pop_sym(")")
 
         if "native" in decr_set:
@@ -1164,7 +1259,8 @@ class Module:
             block_token_list, sym = larc_token.parse_token_list_until_sym(token_list, ("}",))
             assert sym == "}"
 
-        self.func_map[name] = _Func(self, file_name, decr_set, type, name, gtp_name_list, arg_map, block_token_list)
+        self.func_map[name] = _Func(self, file_name, decr_set, type, name_t, name, gtp_name_t_list, gtp_name_list, arg_name_t_list, arg_map,
+                                    block_token_list)
 
     def check_type_for_non_ginst(self):
         for map in self.cls_map, self.intf_map, self.func_map:
