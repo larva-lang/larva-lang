@@ -1,0 +1,35 @@
+public final int
+    O_RDONLY,
+    O_WRONLY,
+    O_RDWR,
+    O_APPEND,
+    O_CREAT,
+    O_EXCL,
+    O_SYNC,
+    O_TRUNC;
+
+public final int
+    SEEK_SET = 0,
+    SEEK_CUR = 1,
+    SEEK_END = 2;
+
+native class _File
+{
+    _File(String file_name, int flag, uint perm);
+
+    public long seek(long offset, int whence);
+    public long read(char[] buf);
+    public void write(char[] buf);
+    public void write_str(String s);
+    public void close();
+}
+
+public class File
+{
+    public File(String file_name, int flag, uint perm)
+    {
+        this.f = new _File(file_name, flag, perm);
+    }
+
+    _File f usemethod;
+}

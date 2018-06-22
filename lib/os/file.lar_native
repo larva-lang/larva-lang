@@ -1,0 +1,55 @@
+package LARVA_NATIVE
+
+import (
+    "os"
+)
+
+func init() {
+    lar_gv_@<<O_RDONLY>>    = int32(os.O_RDONLY)
+    lar_gv_@<<O_WRONLY>>    = int32(os.O_WRONLY)
+    lar_gv_@<<O_RDWR>>      = int32(os.O_RDWR)
+    lar_gv_@<<O_APPEND>>    = int32(os.O_APPEND)
+    lar_gv_@<<O_CREAT>>     = int32(os.O_CREATE)
+    lar_gv_@<<O_EXCL>>      = int32(os.O_EXCL)
+    lar_gv_@<<O_SYNC>>      = int32(os.O_SYNC)
+    lar_gv_@<<O_TRUNC>>     = int32(os.O_TRUNC)
+}
+
+type lar_cls_@<<_File>> struct {
+    f *os.File
+}
+
+func lar_new_obj_lar_cls_@<<_File>>(file_name *lar_cls_@<<:String>>, flag int32, perm uint32) *lar_cls_@<<_File>> {
+    f, err := os.OpenFile(lar_str_to_go_str(file_name), int(flag), os.FileMode(perm))
+    lar_go_func_@<<throw_on_go_err>>(err)
+    return &lar_cls_@<<_File>>{
+        f: f,
+    }
+}
+
+func (this *lar_cls_@<<_File>>) lar_method_seek(offset int64, whence int32) int64 {
+    new_offset, err := this.f.Seek(offset, int(whence))
+    lar_go_func_@<<throw_on_go_err>>(err)
+    return new_offset
+}
+
+func (this *lar_cls_@<<_File>>) lar_method_read(buf *lar_arr_uint8_1) int64 {
+    n, err := lar_go_func_@<<io.read>>(this.f, buf.arr)
+    lar_go_func_@<<throw_on_go_err>>(err)
+    return int64(n)
+}
+
+func (this *lar_cls_@<<_File>>) lar_method_write(buf *lar_arr_uint8_1) {
+    _, err := this.f.Write(buf.arr)
+    lar_go_func_@<<throw_on_go_err>>(err)
+}
+
+func (this *lar_cls_@<<_File>>) lar_method_write_str(s *lar_cls_@<<:String>>) {
+    _, err := this.f.WriteString(lar_str_to_go_str(s))
+    lar_go_func_@<<throw_on_go_err>>(err)
+}
+
+func (this *lar_cls_@<<_File>>) lar_method_close() {
+    err := this.f.Close()
+    lar_go_func_@<<throw_on_go_err>>(err)
+}

@@ -1,0 +1,4 @@
+public class Error
+{
+    GoError e usemethod;
+}
