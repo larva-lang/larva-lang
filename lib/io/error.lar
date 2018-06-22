@@ -1,20 +1,4 @@
 public class Error
 {
-    public Error(String s)
-    {
-        this.s = s;
-    }
-
-    public String str()
-    {
-        if (this.s == nil)
-        {
-            return this.e.str();
-        }
-        return this.s;
-    }
-
-    //e和s有且仅有一个不为nil
     GoError e usemethod;
-    String s;
 }

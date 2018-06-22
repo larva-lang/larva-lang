@@ -83,3 +83,78 @@ func lar_go_func_@<<io.go_ReadCloser_to_Readable>>(r io.ReadCloser) lar_intf_@<<
         r: r,
     }
 }
+
+type lar_go_stru_@<<io.Writeable_to_go_WriteCloser>> struct {
+    writeable lar_intf_@<<Writeable>>
+}
+
+func (this lar_go_stru_@<<io.Writeable_to_go_WriteCloser>>) Write(buf []byte) (n int, e error) {
+    defer func () {
+        c := lar_func_@<<:catch_base>>(recover())
+        if c != nil {
+            e = c.lar_go_method_to_go_err()
+        }
+    }()
+    this.writeable.lar_method_write(&lar_arr_uint8_1{
+        arr: buf,
+    })
+    n = len(buf)
+    return
+}
+
+func (this lar_go_stru_@<<io.Writeable_to_go_WriteCloser>>) Close() (e error) {
+    defer func () {
+        c := lar_func_@<<:catch_base>>(recover())
+        if c != nil {
+            e = c.lar_go_method_to_go_err()
+        }
+    }()
+    this.writeable.lar_method_close()
+    return
+}
+
+func lar_go_func_@<<io.Writeable_to_go_WriteCloser>>(writeable lar_intf_@<<Writeable>>) io.WriteCloser {
+    p, ok := writeable.(lar_go_stru_@<<io.go_WriteCloser_to_Writeable>>)
+    if ok {
+        return p.w
+    }
+    return lar_go_stru_@<<io.Writeable_to_go_WriteCloser>>{
+        writeable: writeable,
+    }
+}
+
+type lar_go_stru_@<<io.go_WriteCloser_to_Writeable>> struct {
+    w io.WriteCloser
+}
+
+func (this lar_go_stru_@<<io.go_WriteCloser_to_Writeable>>) lar_method_write(buf *lar_arr_uint8_1) {
+    _, e := this.w.Write(buf.arr)
+    if e != nil {
+        lar_func_@<<:throw>>(&lar_cls_@<<Error>>{
+            m_e: &lar_cls_@<<:GoError>>{
+                err: e,
+            },
+        })
+    }
+}
+
+func (this lar_go_stru_@<<io.go_WriteCloser_to_Writeable>>) lar_method_close() {
+    e := this.w.Close()
+    if e != nil {
+        lar_func_@<<:throw>>(&lar_cls_@<<Error>>{
+            m_e: &lar_cls_@<<:GoError>>{
+                err: e,
+            },
+        })
+    }
+}
+
+func lar_go_func_@<<io.go_WriteCloser_to_Writeable>>(w io.WriteCloser) lar_intf_@<<Writeable>> {
+    p, ok := w.(lar_go_stru_@<<io.Writeable_to_go_WriteCloser>>)
+    if ok {
+        return p.writeable
+    }
+    return lar_go_stru_@<<io.go_WriteCloser_to_Writeable>>{
+        w: w,
+    }
+}
