@@ -1,3 +1,5 @@
+import util;
+
 public T[] copy<T>(T[] a)
 {
     long sz = a.size();
@@ -22,4 +24,17 @@ public T[] deep_copy<T>(T[] a)
 #enduse
     }
     return b;
+}
+
+public long index<E>(E[] a, E e)
+{
+    long sz = a.size();
+    for (long i = 0; i < sz; ++ i)
+    {
+        if (util.eq<E>(a[i], e))
+        {
+            return i;
+        }
+    }
+    return -1L;
 }

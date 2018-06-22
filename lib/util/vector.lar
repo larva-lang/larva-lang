@@ -1,0 +1,155 @@
+import reflect;
+
+public class Vector<E>
+{
+    public Vector(Iter<E> data_iter)
+    {
+        this.arr = (new E[8])[: 0];
+        if (data_iter != nil)
+        {
+            this.update(data_iter);
+        }
+    }
+
+    public void update(Iter<E> data_iter)
+    {
+        for (; !data_iter.after_end(); data_iter.inc())
+        {
+            this.add(data_iter.get());
+        }
+    }
+
+    public String repr()
+    {
+        var sl = new String[this.size() + 2];
+        sl[0] = "<%s [".(reflect.type_name(this));
+        long i = 1;
+        long sz = this.arr.size();
+        for (; i <= sz; ++ i)
+        {
+            E e = this.arr[i - 1];
+            if (i == 1)
+            {
+                sl[i] = "%r".(e);
+            }
+            else
+            {
+                sl[i] = ", %r".(e);
+            }
+        }
+        sl[i] = "]>";
+        ++ i;
+        return "".join(sl[: i].iter());
+    }
+
+    public long size()
+    {
+        return this.arr.size();
+    }
+
+    public void add(E e)
+    {
+        long sz = this.arr.size();
+        this.reserve(sz + 1);
+        this.arr = this.arr[: sz + 1];
+        this.arr[sz] = e;
+    }
+
+    public void reserve(long sz)
+    {
+        long new_cap = this.arr.cap();
+        if (new_cap >= sz)
+        {
+            return;
+        }
+        while (new_cap < sz)
+        {
+            new_cap += new_cap >> 1;
+        }
+        var new_arr = new E[new_cap];
+        new_arr.copy_from(this.arr);
+        this.arr = new_arr[: this.arr.size()];
+    }
+
+    public E[] array()
+    {
+        return this.arr;
+    }
+
+    public VectorIter<E> iter()
+    {
+        return new VectorIter<E>(this, 0);
+    }
+
+    public E get(long idx)
+    {
+        return this.arr[idx];
+    }
+
+    public void set(long idx, E e)
+    {
+        this.arr[idx] = e;
+    }
+
+    E[] arr;
+}
+
+public class VectorIter<E>
+{
+    public VectorIter(Vector<E> v, long i)
+    {
+        this.vec = v;
+        this.idx = i;
+    }
+
+    public bool before_begin()
+    {
+        return this.idx < 0;
+    }
+
+    public bool after_end()
+    {
+        return this.idx >= this.vec.size();
+    }
+
+    public E get()
+    {
+        return this.vec.get(this.idx);
+    }
+
+    public void set(E e)
+    {
+        this.vec.set(this.idx, e);
+    }
+
+    public void inc()
+    {
+        if (this.before_begin())
+        {
+            this.idx = 0;
+            return;
+        }
+        if (this.after_end())
+        {
+            throw(new IterOutOfRange());
+        }
+        ++ this.idx;
+    }
+
+    public void dec()
+    {
+        if (this.before_begin())
+        {
+            throw(new IterOutOfRange());
+        }
+        if (this.after_end())
+        {
+            this.idx = this.vec.size() - 1;
+            return;
+        }
+        -- this.idx;
+    }
+
+    Vector<E>   vec;
+    long        idx;
+}
