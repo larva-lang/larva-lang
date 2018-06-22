@@ -51,6 +51,11 @@ public class HashSet<E>
         return new HashSetIter<E>(this.hm.iter());
     }
 
+    public bool contains(E e)
+    {
+        return this.hm.find(e) != nil;
+    }
+
     HashMap<E, bool> hm usemethod(size);
 }
 
