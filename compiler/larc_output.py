@@ -731,6 +731,8 @@ def _output_util():
             with code.new_blk("func (la *%s) lar_method_iter() *lar_gcls_inst_10___builtins_9_ArrayIter_1_%s" %
                               (arr_tp_name, elem_tp_name_code.lstrip("*"))):
                 code += "return lar_new_obj_lar_gcls_inst_10___builtins_9_ArrayIter_1_%s(la, 0)" % elem_tp_name_code.lstrip("*")
+            with code.new_blk("func (la *%s) lar_method_copy_from(src *%s) int64" % (arr_tp_name, arr_tp_name)):
+                code += "return int64(copy(la.arr, src.arr))"
             #输出数组的反射接口
             code += "var lar_reflect_type_name_%s = lar_str_from_go_str(%s)" % (arr_tp_name, _gen_str_literal(str(tp) + "[]" * dim_count))
             with code.new_blk("func (la *%s) lar_reflect_type_name() %s" % (arr_tp_name, _gen_type_name_code(larc_type.STR_TYPE))):

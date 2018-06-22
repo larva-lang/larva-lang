@@ -365,15 +365,17 @@ def gen_type_from_cls(cls):
 
 #数组类型相关 ------------------------------------------------------
 
-_ARRAY_ELEM_TYPE = object()
-_ARRAY_ITER_TYPE = object()
+_ARRAY_TYPE         = object()
+_ARRAY_ELEM_TYPE    = object()
+_ARRAY_ITER_TYPE    = object()
 
-_ARRAY_METHOD_MAP = {"size": (LONG_TYPE, []),
-                     "cap":  (LONG_TYPE, []),
-                     "repr": (STR_TYPE, []),
-                     "get":  (_ARRAY_ELEM_TYPE, [("idx", LONG_TYPE)]),
-                     "set":  (VOID_TYPE, [("idx", LONG_TYPE), ("elem", _ARRAY_ELEM_TYPE)]),
-                     "iter": (_ARRAY_ITER_TYPE, [])}
+_ARRAY_METHOD_MAP = {"size":        (LONG_TYPE, []),
+                     "cap":         (LONG_TYPE, []),
+                     "repr":        (STR_TYPE, []),
+                     "get":         (_ARRAY_ELEM_TYPE, [("idx", LONG_TYPE)]),
+                     "set":         (VOID_TYPE, [("idx", LONG_TYPE), ("elem", _ARRAY_ELEM_TYPE)]),
+                     "iter":        (_ARRAY_ITER_TYPE, []),
+                     "copy_from":   (LONG_TYPE, [("src", _ARRAY_TYPE)])}
 
 def _gen_array_iter_type(elem_tp):
     t = larc_token.make_fake_token_name("ArrayIter").copy_on_pos(elem_tp.token) #在当前位置弄个假token
@@ -399,6 +401,9 @@ def array_has_method(tp, method):
         return False
     #检查类型匹配情况
     for tp_want, tp_given in zip([ret_type] + [arg_type for arg_name, arg_type in arg_list], [method.type] + list(method.arg_map.itervalues())):
+        if tp_want is _ARRAY_TYPE:
+            #替换为实际的元素类型进行比较
+            tp_want = tp
         if tp_want is _ARRAY_ELEM_TYPE:
             #替换为实际的元素类型进行比较
             tp_want = elem_tp
@@ -415,6 +420,8 @@ class _ArrayMethod:
         assert array_type.is_array
         elem_type = array_type.to_elem_type()
         ret_type, arg_list = _ARRAY_METHOD_MAP[name]
+        if ret_type is _ARRAY_TYPE:
+            ret_type = array_type
         if ret_type is _ARRAY_ELEM_TYPE:
             ret_type = elem_type
         if ret_type is _ARRAY_ITER_TYPE:
@@ -426,6 +433,8 @@ class _ArrayMethod:
         self.arg_map = larc_common.OrderedDict()
         for arg_name, arg_type in arg_list:
             assert arg_name not in self.arg_map
+            if arg_type is _ARRAY_TYPE:
+                arg_type = array_type
             if arg_type is _ARRAY_ELEM_TYPE:
                 arg_type = elem_type
             if arg_type is _ARRAY_ITER_TYPE:
