@@ -69,6 +69,28 @@ func (this *lar_cls_@<<_String>>) lar_method_join(si lar_gintf_inst_@<<Iter>>_1_
     return lar_str_from_go_str(strings.Join(sl, this.s))
 }
 
+func (this *lar_cls_@<<_String>>) lar_method_split(sep *lar_cls_@<<String>>, count int64) *lar_arr_lar_cls_@<<String>>_1 {
+    var sl []string
+    if sep == nil {
+        sl = strings.Fields(this.s)
+    } else if len(sep.m_s.s) == 0 {
+        s_len := len(this.s)
+        sl = make([]string, 0, s_len)
+        for i := 0; i < s_len; i ++ {
+            sl = append(sl, this.s[i : i + 1])
+        }
+    } else {
+        sl = strings.SplitN(this.s, sep.m_s.s, int(count))
+    }
+    a := make([]*lar_cls_@<<String>>, 0, len(sl))
+    for _, s := range sl {
+        a = append(a, lar_str_from_go_str(s))
+    }
+    return &lar_arr_lar_cls_@<<String>>_1{
+        arr: a,
+    }
+}
+
 func (this *lar_cls_@<<_String>>) lar_method_parse_bool() bool {
     s := this.s
     r, err := strconv.ParseBool(s)
