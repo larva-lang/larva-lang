@@ -50,12 +50,14 @@ Traceback:
 
 func lar_exc_create_catched_throwable(t lar_intf_@<<Throwable>>, skip int) *lar_gcls_inst_@<<Catched>>_1_lar_intf_@<<Throwable>> {
     var tb_line_list []string
-    t_type_name := "Throwed"
-    lri, ok := t.(lar_reflect_intf)
-    if ok {
-        t_type_name = lar_str_to_go_str(lri.lar_reflect_type_name())
+    if t != nil {
+        t_type_name := "Throwed"
+        lri, ok := t.(lar_reflect_intf)
+        if ok {
+            t_type_name = lar_str_to_go_str(lri.lar_reflect_type_name())
+        }
+        tb_line_list = append(tb_line_list, t_type_name + ": " + lar_str_to_go_str(t.lar_method_str()))
     }
-    tb_line_list = append(tb_line_list, t_type_name + ": " + lar_str_to_go_str(t.lar_method_str()))
     for i := skip; true; i ++ {
         pc, file, line, ok := runtime.Caller(i)
         if !ok {
@@ -88,7 +90,7 @@ func lar_exc_create_catched_throwable(t lar_intf_@<<Throwable>>, skip int) *lar_
             if func_name != "" {
                 tb_line += ", in " + func_name
             }
-            if tb_line_list[len(tb_line_list) - 1] != tb_line {
+            if len(tb_line_list) == 0 || tb_line_list[len(tb_line_list) - 1] != tb_line {
                 tb_line_list = append(tb_line_list, tb_line)
             }
         }
