@@ -91,6 +91,10 @@ func (this *lar_cls_@<<_String>>) lar_method_split(sep *lar_cls_@<<String>>, cou
     }
 }
 
+func (this *lar_cls_@<<_String>>) lar_method_sub_str(begin, end int64) *lar_cls_@<<String>> {
+    return lar_str_from_go_str(this.s[begin : end])
+}
+
 func (this *lar_cls_@<<_String>>) lar_method_parse_bool() bool {
     s := this.s
     r, err := strconv.ParseBool(s)

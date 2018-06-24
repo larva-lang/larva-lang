@@ -1,0 +1,120 @@
+import io, util, array;
+
+public final long DEFAULT_READ_BUF_SIZE = 4L << 10;
+
+public class Reader
+{
+    public Reader(io.Readable r, long buf_size)
+    {
+        if (buf_size <= 0)
+        {
+            buf_size = DEFAULT_READ_BUF_SIZE;
+        }
+
+        this.r          = r;
+        this.buf        = new char[buf_size];
+        this.buf_data   = this.buf[: 0];
+    }
+
+    public io.Readable readable()
+    {
+        return this.r;
+    }
+
+    public long buf_size()
+    {
+        return this.buf.size();
+    }
+
+    public long buf_data_size()
+    {
+        return this.buf_data.size();
+    }
+
+    public long read(char[] b)
+    {
+        long dst_buf_size = b.size();
+        if (dst_buf_size == 0) {
+            throw(new ValueError("read参数为空buf"));
+        }
+
+        long buf_data_size = this.buf_data.size();
+        if (buf_data_size == 0)
+        {
+            //buf没数据，直接读就行了
+            return this.r.read(b);
+        }
+
+        //buf有数据，拷贝过去
+        long copy_size = dst_buf_size;
+        if (copy_size > buf_data_size)
+        {
+            copy_size = buf_data_size;
+        }
+        b[: copy_size].copy_from(this.buf_data[: copy_size]);
+        this.buf_data = this.buf_data[copy_size :];
+
+        return copy_size;
+    }
+
+    public String read_line()
+    {
+        util.Vector<String> sl = nil;
+        for (;;)
+        {
+            long buf_data_size = this.fill_buf();
+            if (buf_data_size == 0)
+            {
+                //读到末尾了
+                if (sl == nil)
+                {
+                    return nil;
+                }
+                return "".join(sl.iter());
+            }
+            long idx = array.index<char>(this.buf_data, '\n');
+            if (idx >= 0)
+            {
+                //找到换行符了
+                var s = new String(this.buf_data[: idx + 1]);
+                this.buf_data = this.buf_data[idx + 1 :];
+                if (sl == nil)
+                {
+                    return s;
+                }
+                sl.add(s);
+                return "".join(sl.iter());
+            }
+            //一行太长了还没读完，加入sl后继续读
+            if (sl == nil)
+            {
+                sl = new util.Vector<String>(nil);
+            }
+            sl.add(new String(this.buf_data));
+            this.buf_data = this.buf_data[this.buf_data.size() :];
+        }
+    }
+
+    long fill_buf()
+    {
+        long buf_data_size = this.buf_data.size();
+        if (buf_data_size > 0)
+        {
+            //buf有数据就不需要fill
+            return buf_data_size;
+        }
+        //读取数据到buf中
+        long n = this.r.read(this.buf);
+        this.buf_data = this.buf[: n];
+        return n;
+    }
+
+    void drop_buf_data()
+    {
+        this.buf_data = this.buf[: 0];
+    }
+
+    io.Readable r;
+    char[]      buf;
+    char[]      buf_data;
+}

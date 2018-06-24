@@ -1,0 +1,209 @@
+import os;
+
+final int
+    STAT_RD     = 1,
+    STAT_WR     = 2,
+    STAT_RDWR   = 3,
+    STAT_CLOSED = 4;
+
+public class File
+{
+    public File(String file_name, String mode)
+    {
+        this.fn = file_name;
+        this.md = mode;
+        this.f  = new os.File(file_name, this.parse_mode(mode), 0644);
+        this.r  = new Reader(this.f, 0);
+        this.w  = new Writer(this.f, 0);
+    }
+
+    public String file_name()
+    {
+        return this.fn;
+    }
+
+    public String mode()
+    {
+        return this.md;
+    }
+
+    int parse_mode(String mode)
+    {
+        bool has_plus = false;
+        if (mode.len() == 2 && mode.char_at(1) == '+')
+        {
+            has_plus = true;
+            mode = mode.sub_str(0, 1);
+        }
+        if (mode.len() == 1)
+        {
+            char c = mode.char_at(0);
+            if (c == 'r')
+            {
+                if (has_plus)
+                {
+                    this.stat = STAT_RDWR;
+                    return os.O_RDWR;
+                }
+                this.stat = STAT_RD;
+                return os.O_RDONLY;
+            }
+            else if (c == 'w')
+            {
+                int flag = os.O_CREAT | os.O_TRUNC;
+                if (has_plus)
+                {
+                    this.stat = STAT_RDWR;
+                    return os.O_RDWR | flag;
+                }
+                this.stat = STAT_WR;
+                return os.O_WRONLY | flag;
+            }
+            else if (c == 'a')
+            {
+                int flag = os.O_CREAT | os.O_APPEND;
+                if (has_plus)
+                {
+                    this.stat = STAT_RDWR;
+                    return os.O_RDWR | flag;
+                }
+                this.stat = STAT_WR;
+                return os.O_WRONLY | flag;
+            }
+        }
+        throw(new ValueError("无效的文件打开模式[%s]".(mode)));
+    }
+
+    bool allow_read()
+    {
+        return this.stat == STAT_RD || this.stat == STAT_RDWR;
+    }
+
+    void raise_if_not_allow_read()
+    {
+        if (!this.allow_read())
+        {
+            throw("文件以模式[%s]打开，不可读".(this.md));
+        }
+    }
+
+    bool allow_write()
+    {
+        return this.stat == STAT_WR || this.stat == STAT_RDWR;
+    }
+
+    void raise_if_not_allow_write()
+    {
+        if (!this.allow_write())
+        {
+            throw("文件以模式[%s]打开，不可写".(this.md));
+        }
+    }
+
+    public long seek(long offset, int whence)
+    {
+        this.flush();
+        this.f.seek(offset, whence);
+    }
+
+    void prepare_for_reading()
+    {
+        this.raise_if_closed();
+        this.raise_if_not_allow_read();
+        this.flush_w();
+    }
+
+    public long read(char[] b)
+    {
+        this.prepare_for_reading();
+        return this.r.read(b);
+    }
+
+    public String read_line()
+    {
+        this.prepare_for_reading();
+        return this.r.read_line();
+    }
+
+    void prepare_for_writing()
+    {
+        this.raise_if_closed();
+        this.raise_if_not_allow_write();
+        this.flush_r();
+    }
+
+    public void write(char[] b)
+    {
+        this.prepare_for_writing();
+        this.w.write(b);
+    }
+
+    public void write_str(String s)
+    {
+        this.prepare_for_writing();
+        this.w.write_str(s);
+    }
+
+    public void write_line(String s)
+    {
+        this.prepare_for_writing();
+        this.w.write_line(s);
+    }
+
+    public void write_char(char c)
+    {
+        this.prepare_for_writing();
+        this.w.write_char(c);
+    }
+
+    void flush_r()
+    {
+        if (this.allow_read())
+        {
+            long buf_data_size = this.r.buf_data_size();
+            if (buf_data_size > 0)
+            {
+                //向前seek，然后清掉r的buf
+                this.f.seek(-buf_data_size, os.SEEK_CUR);
+                this.r.drop_buf_data();
+            }
+        }
+    }
+
+    void flush_w()
+    {
+        if (this.allow_write())
+        {
+            this.w.flush();
+        }
+    }
+
+    public void flush()
+    {
+        this.raise_if_closed();
+        this.flush_r();
+        this.flush_w();
+    }
+
+    public void close()
+    {
+        this.flush();
+        this.f.close();
+        this.stat = STAT_CLOSED;
+    }
+
+    void raise_if_closed()
+    {
+        if (this.stat == STAT_CLOSED)
+        {
+            throw(new Error("文件[%s]已被关闭".(this.fn)));
+        }
+    }
+
+    String  fn;
+    String  md;
+    os.File f;
+    int     stat;
+    Reader  r;
+    Writer  w;
+}

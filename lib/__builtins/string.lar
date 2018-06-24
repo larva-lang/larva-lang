@@ -16,6 +16,7 @@ native class _String
     public String concat(String s);
     public String join(Iter<String> si);
     public String[] split(String sep, long count);
+    public String sub_str(long begin, long end);
 
     public bool parse_bool();
     public long parse_long(int base);

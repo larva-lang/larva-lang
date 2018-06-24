@@ -1,0 +1,103 @@
+import io;
+
+public final long DEFAULT_WRITE_BUF_SIZE = 4L << 10;
+
+public class Writer
+{
+    public Writer(io.Writeable w, long buf_size)
+    {
+        if (buf_size <= 0)
+        {
+            buf_size = DEFAULT_WRITE_BUF_SIZE;
+        }
+
+        this.w          = w;
+        this.buf_data   = (new char[buf_size])[: 0];
+    }
+
+    public io.Writeable writeable()
+    {
+        return this.w;
+    }
+
+    public long buf_size()
+    {
+        return this.buf_data.cap();
+    }
+
+    public long buf_data_size()
+    {
+        return this.buf_data.size();
+    }
+
+    public void write(char[] b)
+    {
+        for (;;)
+        {
+            long remain_sz = this.flush_when_full();
+            long sz = this.buf_data.size();
+            long bsz = b.size();
+            if (bsz <= remain_sz)
+            {
+                //buf中可以放下，直接拷贝进来
+                this.buf_data = this.buf_data[: sz + bsz];
+                this.buf_data[sz :].copy_from(b);
+                return;
+            }
+            if (sz == 0)
+            {
+                //空buf，大数据，不走缓冲，直接write
+                this.w.write(b);
+                return;
+            }
+            //把b前面部分内容拼接到buf中
+            this.buf_data = this.buf_data[: sz + remain_sz];
+            this.buf_data[sz :].copy_from(b);
+            b = b[remain_sz :];
+        }
+    }
+
+    public void write_str(String s)
+    {
+        this.write(s.to_char_array());
+    }
+
+    public void write_line(String s)
+    {
+        this.write_str(s);
+        this.write_char('\n');
+    }
+
+    public void write_char(char c)
+    {
+        this.flush_when_full();
+        long sz = this.buf_data.size();
+        this.buf_data = this.buf_data[: sz + 1];
+        this.buf_data[sz] = c;
+    }
+
+    //若buf满则flush，返回buf中可用空间，返回值必然大于0
+    long flush_when_full()
+    {
+        long sz = this.buf_data.size();
+        long cap = this.buf_data.cap();
+        if (sz == cap)
+        {
+            this.flush();
+            sz = 0;
+        }
+        return cap - sz;
+    }
+
+    public void flush()
+    {
+        if (this.buf_data.size() > 0)
+        {
+            this.w.write(this.buf_data);
+            this.buf_data = this.buf_data[: 0];
+        }
+    }
+
+    io.Writeable    w;
+    char[]          buf_data;
+}
