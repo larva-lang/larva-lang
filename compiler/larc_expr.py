@@ -82,7 +82,7 @@ class _Expr(ExprBase):
         self.op = op
         self.arg = arg
         self.type = type
-        self.is_lvalue = op in ("this.attr", "global_var", "local_var", "[]", ".")
+        self.is_lvalue = op in ("global_var", "local_var", "[]", ".")
         self.is_ref = False #仅用于标识函数或方法的参数ref传递的表达式修饰，由外部修改和使用
         self.pos_info = None #位置信息，只有在解析栈finish时候才会被赋值为解析栈的开始位置，参考相关代码，主要用于output时候的代码位置映射构建
 
@@ -413,14 +413,7 @@ class Parser:
             elif t.is_reserved("this"):
                 if self.cls is None:
                     t.syntax_err("'this'只能用于方法中")
-                if self.token_list.peek().is_sym("."):
-                    self.token_list.pop_sym(".")
-                    t, name = self.token_list.pop_name()
-                    expr = self._parse_method_or_attr_of_this_cls((t, name), var_map_stk)
-                    parse_stk.push_expr(expr)
-                else:
-                    #单独的this
-                    parse_stk.push_expr(_Expr("this", t, larc_type.gen_type_from_cls(self.cls)))
+                parse_stk.push_expr(_Expr("this", t, larc_type.gen_type_from_cls(self.cls)))
             else:
                 t.syntax_err("非法的表达式")
 
@@ -580,18 +573,6 @@ class Parser:
         larc_module.check_new_ginst_during_compile() #这个check必须在get_func之后，因为get_func同时负责创建gfunc_inst
         self._make_expr_list_match_arg_map(expr_list_start_token, expr_list, func.arg_map)
         return _Expr("call_func", (func, expr_list), func.type)
-
-    def _parse_method_or_attr_of_this_cls(self, (t, name), var_map_stk):
-        assert self.cls is not None
-        method, attr = self.cls.get_method_or_attr(name, t)
-        if attr is not None:
-            return _Expr("this.attr", attr, attr.type)
-        assert method is not None
-        self.token_list.pop_sym("(")
-        t = self.token_list.peek()
-        expr_list = self._parse_expr_list(var_map_stk)
-        self._make_expr_list_match_arg_map(t, expr_list, method.arg_map)
-        return _Expr("call_this.method", (method, expr_list), method.type)
 
     def _parse_expr_list(self, var_map_stk, allow_ref = True):
         expr_list = []
