@@ -23,10 +23,11 @@ main_module_name = None
 out_dir = None
 runtime_dir = None
 
-out_prog_dir = None
-prog_module_name = None
+_out_prog_dir = None
+_prog_module_name = None
 
-prog_name = None
+_prog_name = None
+_exe_file = None
 
 _tb_map = {}
 
@@ -50,7 +51,7 @@ class _Code:
         self.file_path_name = file_path_name
         self.indent = ""
         self.line_list = []
-        self += "package %s" % (prog_module_name if pkg_name is None else pkg_name)
+        self += "package %s" % (_prog_module_name if pkg_name is None else pkg_name)
 
     def __iadd__(self, line):
         self.line_list.append(self.indent + line)
@@ -97,9 +98,14 @@ class _Code:
             tb_info = t.src_file, t.line_no, str(fom)
         _tb_map[(self.file_path_name, len(self.line_list) + 1 + adjust)] = tb_info
 
+#gen funcs -----------------------------------------------------------------------------------------------
+
 def _gen_module_name_code(module):
+    #模块名的代码，分两种情况
     if "/" not in module.name:
+        #单模块名直接用长度+名字
         return "%d_%s" % (len(module.name), module.name)
+    #多级模块名需要增加级数
     pl = module.name.split("/")
     return "%d_%s" % (len(pl), "_".join(["%d_%s" % (len(p), p) for p in pl]))
 
@@ -115,7 +121,7 @@ def _gen_coi_name(coi):
         #泛型实例还需增加泛型参数信息
         coi_name += "_%d" % len(coi.gtp_map)
         for tp in coi.gtp_map.itervalues():
-            coi_name += "_%s" % _gen_type_name_code_with_out_star(tp)
+            coi_name += "_%s" % _gen_type_name_code_without_star(tp)
     return coi_name
 
 def _gen_non_array_type_name(tp):
@@ -130,25 +136,34 @@ def _gen_non_array_type_name(tp):
             "long" : "int64", "ulong" : "uint64",
             "float" : "float32", "double" : "float64"}[tp.name]
 
+def _gen_arr_tp_name(elem_tp_name, dim_count):
+    return "lar_arr_%s_%d" % (elem_tp_name, dim_count)
+
+def _gen_arr_tp_name_code(elem_tp_name, dim_count):
+    return "*" + _gen_arr_tp_name(elem_tp_name, dim_count)
+
 def _gen_type_name_code(tp):
     if tp.is_void:
         return ""
     array_dim_count = tp.array_dim_count
     while tp.is_array:
         tp = tp.to_elem_type()
-    type_name_code = _gen_non_array_type_name(tp)
+    tp_name = _gen_non_array_type_name(tp)
     if array_dim_count > 0:
-        return "*lar_arr_%s_%d" % (type_name_code, array_dim_count)
-    if type_name_code.startswith("lar_cls") or type_name_code.startswith("lar_gcls"):
-        type_name_code = "*" + type_name_code
-    return type_name_code
+        return _gen_arr_tp_name_code(tp_name, array_dim_count)
+    return _gen_tp_name_code_from_tp_name(tp_name)
 
-def _gen_type_name_code_with_out_star(tp):
+def _gen_type_name_code_without_star(tp):
     c = _gen_type_name_code(tp)
     if c[0] == "*":
         c = c[1 :]
     assert c and re.match("^\w*$", c) is not None
     return c
+
+def _gen_tp_name_code_from_tp_name(tp_name):
+    if tp_name.startswith("lar_cls") or tp_name.startswith("lar_gcls"):
+        return "*" + tp_name
+    return tp_name
 
 def _gen_new_arr_func_name_by_tp_name(tp_name, dim_count, new_dim_count):
     assert dim_count >= new_dim_count > 0
@@ -170,43 +185,17 @@ def _gen_func_name(func):
         #泛型实例还需增加泛型参数信息
         func_name += "_%d" % len(func.gtp_map)
         for tp in func.gtp_map.itervalues():
-            func_name += "_%s" % _gen_type_name_code_with_out_star(tp)
+            func_name += "_%s" % _gen_type_name_code_without_star(tp)
     return func_name
 
-def _output_main_pkg():
-    with _Code(os.path.join(out_dir, "src", "lar_prog.%s.P.go" % prog_name), "main") as code:
-        with code.new_blk("import"):
-            code += '"os"'
-            code += '"%s"' % prog_module_name
-        with code.new_blk("func main()"):
-            code += "os.Exit(%s.Lar_booter_start_prog())" % prog_module_name
-
-def _output_booter():
-    booter_fix_file_path_name = os.path.join(runtime_dir, "lar_booter.go")
-    if not os.path.exists(booter_fix_file_path_name):
-        larc_common.exit("runtime文件缺失，请检查编译器环境：[%s]" % booter_fix_file_path_name)
-    f = open(os.path.join(out_prog_dir, "%s.booter_fix.go" % prog_module_name), "w")
-    print >> f, "package %s" % prog_module_name
-    print >> f
-    f.write(open(booter_fix_file_path_name).read())
-    f.close()
-
-    with _Code(os.path.join(out_prog_dir, "%s.booter.go" % prog_module_name)) as code:
-        with code.new_blk("import"):
-            code += '"os"'
-        with code.new_blk("func Lar_booter_start_prog() int"):
-            code += "argv := %s(int64(len(os.Args)))" % (_gen_new_arr_func_name(larc_type.STR_TYPE, 1, 1))
-            with code.new_blk("for i := 0; i < len(os.Args); i ++"):
-                code += "argv.arr[i] = lar_str_from_go_str(os.Args[i])"
-            code += ("return lar_booter_start_prog(lar_env_init_mod_%s, %s, argv)" %
-                     (_gen_module_name_code(larc_module.module_map[main_module_name]),
-                      _gen_func_name(larc_module.module_map[main_module_name].get_main_func())))
+def _gen_init_mod_func_name(module):
+    return "lar_env_init_mod_" + _gen_module_name_code(module)
 
 def _gen_str_literal_name(t):
-    return "lar_literal_str_%s_%d" % (_gen_module_name_code(curr_module), t.id)
+    return "lar_literal_str_%s_%d" % (_gen_module_name_code(_curr_module), t.id)
 
 def _gen_number_literal_name(t):
-    return "lar_literal_number_%s_%d" % (_gen_module_name_code(curr_module), t.id)
+    return "lar_literal_number_%s_%d" % (_gen_module_name_code(_curr_module), t.id)
 
 def _gen_str_literal(s):
     code_list = []
@@ -233,6 +222,7 @@ def _gen_default_value_code(tp):
     return "nil"
 
 def _gen_method_name_code(method):
+    #public的用同样的名字模板，非public的要加上module名，限定在模块内部使用
     if "public" in method.decr_set:
         return "lar_method_" + method.name
     return "lar_method_%s_%d_%s" % (_gen_module_name_code(method.module), len(method.name), method.name)
@@ -261,9 +251,12 @@ def _gen_expr_code_ex(expr):
         tp_name_code = _gen_type_name_code(tp)
         e_code = _gen_expr_code(e)
         if e.type.is_obj_type and not (e.type.is_array or e.type.is_nil) and e.type.get_coi().is_intf_any():
+            #Any到其他类型的转换，用断言
             return "(%s).(%s)" % (e_code, tp_name_code)
         if tp.can_convert_from(e.type) or not tp.is_obj_type:
+            #可以隐式转换，或到基础类型的强转，用go的强转形式（Any到基础类型的强转已经在上面处理了）
             return "(%s)(%s)" % (tp_name_code, e_code)
+        #接口到其他类型的断言
         assert e.type.is_obj_type and not (e.type.is_array or e.type.is_nil)
         e_coi = e.type.get_coi()
         assert e_coi.is_intf or e_coi.is_gintf_inst
@@ -390,18 +383,45 @@ def _gen_expr_code_ex(expr):
             expr_list_code = _gen_expr_list_code(expr_list)
         return "%s(%s)" % (_gen_func_name(func), expr_list_code)
 
-    if expr.op == "this.attr":
-        attr = expr.arg
-        return "this.m_%s" % attr.name
-
-    if expr.op == "call_this.method":
-        method, expr_list = expr.arg
-        return "this.%s(%s)" % (_gen_method_name_code(method), _gen_expr_list_code(expr_list))
-
     raise Exception("Bug")
 
 def _gen_arg_def(arg_map):
     return ", ".join(["l_%s %s%s" % (name, "*" if tp.is_ref else "", _gen_type_name_code(tp)) for name, tp in arg_map.iteritems()])
+
+#gen funcs end -----------------------------------------------------------------------------------------------
+
+_main_pkg_file = None
+
+_BOOTER_START_PROC_FUNC_NAME = "Lar_booter_start_prog"
+
+def _output_main_pkg():
+    with _Code(_main_pkg_file, "main") as code:
+        with code.new_blk("import"):
+            code += '"os"'
+            code += '"%s"' % _prog_module_name
+        with code.new_blk("func main()"):
+            code += "os.Exit(%s.%s())" % (_prog_module_name, _BOOTER_START_PROC_FUNC_NAME)
+
+def _output_booter():
+    booter_fix_file_path_name = runtime_dir + "/lar_booter.go"
+    if not os.path.exists(booter_fix_file_path_name):
+        larc_common.exit("runtime文件缺失，请检查编译器环境：[%s]" % booter_fix_file_path_name)
+    f = open("%s/%s.booter_fix.go" % (_out_prog_dir, _prog_module_name), "w")
+    print >> f, "package %s" % _prog_module_name
+    print >> f
+    f.write(open(booter_fix_file_path_name).read())
+    f.close()
+
+    with _Code("%s/%s.booter.go" % (_out_prog_dir, _prog_module_name)) as code:
+        with code.new_blk("import"):
+            code += '"os"'
+        with code.new_blk("func %s() int" % _BOOTER_START_PROC_FUNC_NAME):
+            code += "argv := %s(int64(len(os.Args)))" % (_gen_new_arr_func_name(larc_type.STR_TYPE, 1, 1))
+            with code.new_blk("for i := 0; i < len(os.Args); i ++"):
+                code += "argv.arr[i] = lar_str_from_go_str(os.Args[i])"
+            code += ("return lar_booter_start_prog(%s, %s, argv)" %
+                     (_gen_init_mod_func_name(larc_module.module_map[main_module_name]),
+                      _gen_func_name(larc_module.module_map[main_module_name].get_main_func())))
 
 #fom:func or method; boc:break or continue
 _NEST_LOOP_INVALID = -(10 ** 10) #无效值采用一个很小的负数，这样递归过程中逐步+1也保证不会>=0
@@ -445,6 +465,7 @@ def _output_stmt_list(code, stmt_list, fom, long_ret_nest_deep, long_boc_nest_de
             with code.new_blk(""):
                 _output_stmt_list(code, stmt.stmt_list, fom, long_ret_nest_deep, long_boc_nest_deep)
             continue
+
         if stmt.type in ("break", "continue"):
             assert long_boc_nest_deep >= 0 #出现boc的代码一定在循环内部
             if long_boc_nest_deep == 0:
@@ -453,6 +474,7 @@ def _output_stmt_list(code, stmt_list, fom, long_ret_nest_deep, long_boc_nest_de
                 code += "rbc_%d = RBC_%s" % (long_ret_nest_deep - 1, stmt.type.upper())
                 code += "return"
             continue
+
         if stmt.type == "return":
             assert long_ret_nest_deep >= 0 #defer代码块中不会有return stmt，校验下
             if long_ret_nest_deep == 0:
@@ -468,6 +490,7 @@ def _output_stmt_list(code, stmt_list, fom, long_ret_nest_deep, long_boc_nest_de
                 code += "rbc_%d = RBC_RET" % (long_ret_nest_deep - 1)
                 code += "return"
             continue
+
         if stmt.type == "for":
             with code.new_blk(""):
                 if len(stmt.for_var_map) == 0:
@@ -505,11 +528,13 @@ def _output_stmt_list(code, stmt_list, fom, long_ret_nest_deep, long_boc_nest_de
                 with code.new_blk(blk_title, start_with_blank_line = False):
                     _output_stmt_list(code, stmt.stmt_list, fom, long_ret_nest_deep, 0)
             continue
+
         if stmt.type == "while":
             code.record_tb_info(stmt.expr.pos_info, adjust = 1)
             with code.new_blk("for (%s)" % _gen_expr_code(stmt.expr)):
                 _output_stmt_list(code, stmt.stmt_list, fom, long_ret_nest_deep, 0)
             continue
+
         if stmt.type == "if":
             assert len(stmt.if_expr_list) == len(stmt.if_stmt_list_list)
             for i, (if_expr, if_stmt_list) in enumerate(zip(stmt.if_expr_list, stmt.if_stmt_list_list)):
@@ -520,6 +545,7 @@ def _output_stmt_list(code, stmt_list, fom, long_ret_nest_deep, long_boc_nest_de
                 with code.new_blk("else"):
                     _output_stmt_list(code, stmt.else_stmt_list, fom, long_ret_nest_deep, long_boc_nest_deep)
             continue
+
         if stmt.type == "var":
             if stmt.expr is None:
                 expr_code = _gen_default_value_code(stmt_list.var_map[stmt.name])
@@ -529,30 +555,34 @@ def _output_stmt_list(code, stmt_list, fom, long_ret_nest_deep, long_boc_nest_de
             code += "var l_%s %s = (%s)" % (stmt.name, _gen_type_name_code(stmt_list.var_map[stmt.name]), expr_code)
             code += "_ = l_%s" % stmt.name
             continue
+
         if stmt.type == "expr":
             code.record_tb_info(stmt.expr.pos_info)
             code += _gen_expr_code(stmt.expr)
             continue
+
         if stmt.type == "defer_block":
             with code.new_blk("defer func ()"):
                 _output_stmt_list(code, stmt.stmt_list, fom, _NEST_LOOP_INVALID, _NEST_LOOP_INVALID, need_check_defer = False)
             assert code.line_list[-1].strip() == "}"
             code.line_list[-1] += "()"
             continue
+
         if stmt.type == "defer_expr":
             code.record_tb_info(stmt.expr.pos_info)
             code += "defer " + _gen_expr_code(stmt.expr)
             continue
+
         raise Exception("Bug")
 
 _literal_token_id_set = set()
 
 _native_file_name_map = {}
 
-curr_module = None
+_curr_module = None
 def _output_module():
-    module = curr_module
-    module_file_name = os.path.join(out_prog_dir, "%s.mod.%s.mod.go" % (prog_module_name, _gen_module_name_code(module)))
+    module = _curr_module
+    module_file_name = "%s/%s.mod.%s.mod.go" % (_out_prog_dir, _prog_module_name, _gen_module_name_code(module))
     with _Code(module_file_name) as code:
         code += ""
         for t in module.literal_str_list:
@@ -574,11 +604,11 @@ def _output_module():
         code += ""
         mod_inited_flag_name = "lar_env_inited_flag_of_mod_%s" % _gen_module_name_code(module)
         code += "var %s bool = false" % mod_inited_flag_name
-        with code.new_blk("func lar_env_init_mod_%s()" % _gen_module_name_code(module), False):
+        with code.new_blk("func %s()" % _gen_init_mod_func_name(module), False):
             with code.new_blk("if !%s" % mod_inited_flag_name):
                 code += "%s = true" % mod_inited_flag_name
                 for dep_module_name in module.get_dep_module_set():
-                    code += "lar_env_init_mod_%s()" % _gen_module_name_code(larc_module.module_map[dep_module_name])
+                    code += "%s()" % _gen_init_mod_func_name(larc_module.module_map[dep_module_name])
                 for gv in module.global_var_map.itervalues():
                     if gv.expr is not None:
                         code.record_tb_info(gv.expr.pos_info)
@@ -590,8 +620,8 @@ def _output_module():
                 code += "return lar_reflect_type_name_%s" % lar_cls_name
         for cls in [i for i in module.cls_map.itervalues() if not i.gtp_name_list] + list(module.gcls_inst_map.itervalues()):
             lar_cls_name = _gen_coi_name(cls)
+            output_reflect_method(code)
             if "native" in cls.decr_set:
-                output_reflect_method(code)
                 continue
             with code.new_blk("type %s struct" % (lar_cls_name)):
                 for attr in cls.attr_map.itervalues():
@@ -618,7 +648,6 @@ def _output_module():
                         code += ("%sthis.m_%s.%s(%s)" %
                                  ("" if method.type.is_void else "return ", method.attr.name, method_name,
                                   ", ".join(["l_%s" % name for name in method.arg_map])))
-            output_reflect_method(code)
 
         for intf in [i for i in module.intf_map.itervalues() if not i.gtp_name_list] + list(module.gintf_inst_map.itervalues()):
             with code.new_blk("type %s interface" % (_gen_coi_name(intf))):
@@ -647,8 +676,8 @@ def _output_module():
 
     #输出native实现
     for sub_mod_name, nf in module.native_file_map.iteritems():
-        nf.line_list[0] = ["package %s" % prog_module_name]
-        nfn = os.path.join(out_prog_dir, "%s.mod.%s.native.%s.N.go" % (prog_module_name, _gen_module_name_code(module), sub_mod_name))
+        nf.line_list[0] = ["package %s" % _prog_module_name]
+        nfn = "%s/%s.mod.%s.native.%s.N.go" % (_out_prog_dir, _prog_module_name, _gen_module_name_code(module), sub_mod_name)
         f = open(nfn, "w")
         for line in nf.line_list:
             s = ""
@@ -665,17 +694,17 @@ def _output_module():
 
 def _output_util():
     #拷贝runtime中固定的util代码
-    util_fix_file_path_name = os.path.join(runtime_dir, "lar_util.go")
+    util_fix_file_path_name = runtime_dir + "/lar_util.go"
     if not os.path.exists(util_fix_file_path_name):
         larc_common.exit("runtime文件缺失，请检查编译器环境：[%s]" % util_fix_file_path_name)
-    f = open(os.path.join(out_prog_dir, "%s.util_fix.go" % prog_module_name), "w")
-    print >> f, "package %s" % prog_module_name
+    f = open("%s/%s.util_fix.go" % (_out_prog_dir, _prog_module_name), "w")
+    print >> f, "package %s" % _prog_module_name
     print >> f
     f.write(open(util_fix_file_path_name).read())
     f.close()
 
     #生成util代码
-    with _Code(os.path.join(out_prog_dir, "%s.util.go" % prog_module_name)) as code:
+    with _Code("%s/%s.util.go" % (_out_prog_dir, _prog_module_name)) as code:
         with code.new_blk("import"):
             code += '"fmt"'
             code += '"strings"'
@@ -687,13 +716,11 @@ def _output_util():
                 tp = tp.to_elem_type()
             tp_name = _gen_non_array_type_name(tp)
             #数组结构体名和元素类型的code
-            arr_tp_name = "lar_arr_%s_%d" % (tp_name, dim_count)
+            arr_tp_name = _gen_arr_tp_name(tp_name, dim_count)
             if dim_count == 1:
-                elem_tp_name_code = tp_name
-                if tp_name.startswith("lar_cls") or tp_name.startswith("lar_gcls"):
-                    elem_tp_name_code = "*" + elem_tp_name_code
+                elem_tp_name_code = _gen_tp_name_code_from_tp_name(tp_name)
             else:
-                elem_tp_name_code = "*lar_arr_%s_%d" % (tp_name, dim_count - 1)
+                elem_tp_name_code = _gen_arr_tp_name_code(tp_name, dim_count - 1)
             #数组结构体定义：元素的slice
             with code.new_blk("type %s struct" % arr_tp_name):
                 code += "arr []%s" % elem_tp_name_code
@@ -785,7 +812,7 @@ def _make_prog():
             larc_common.exit("通过go env获取GOPATH失败")
         go_path = p.stdout.read().strip()
         os.environ["GOPATH"] = out_dir + ":" + go_path
-        rc = os.system("go build -o %s/%s %s/src/lar_prog.%s.P.go" % (out_dir, prog_name, out_dir, prog_name))
+        rc = os.system("go build -o %s %s" % (_exe_file, _main_pkg_file))
         if rc != 0:
             larc_common.exit("go build失败")
     else:
@@ -793,27 +820,32 @@ def _make_prog():
 
 def _run_prog(args_for_run):
     if platform.system() in ("Darwin", "Linux"):
-        exe_file = os.path.join(out_dir, "%s" % prog_name)
+        pass
     else:
         raise Exception("Bug")
-    if os.path.exists(exe_file):
-        os.execv(exe_file, [exe_file] + args_for_run)
+    if os.path.exists(_exe_file):
+        os.execv(_exe_file, [_exe_file] + args_for_run)
+    else:
+        larc_common.exit("找不到可执行文件[%s]" % _exe_file)
 
 def output(need_run_prog, args_for_run):
-    global runtime_dir, out_prog_dir, prog_module_name, prog_name, curr_module
+    global runtime_dir, _out_prog_dir, _prog_module_name, _prog_name, _exe_file, _main_pkg_file, _curr_module
 
-    out_prog_dir = os.path.join(out_dir, "src", "lar_prog_" + _gen_module_name_code(larc_module.module_map[main_module_name]))
+    _out_prog_dir = "%s/src/lar_prog_%s" % (out_dir, _gen_module_name_code(larc_module.module_map[main_module_name]))
 
     shutil.rmtree(out_dir, True)
-    os.makedirs(out_prog_dir)
+    os.makedirs(_out_prog_dir)
 
-    prog_module_name = "lar_prog_" + _gen_module_name_code(larc_module.module_map[main_module_name])
+    _prog_module_name = "lar_prog_" + _gen_module_name_code(larc_module.module_map[main_module_name])
 
-    prog_name = main_module_name.split("/")[-1]
+    _prog_name = main_module_name.split("/")[-1]
+    _exe_file = "%s/%s" % (out_dir, _prog_name)
+
+    _main_pkg_file = "%s/src/lar_prog.%s.P.go" % (out_dir, _prog_name)
 
     _output_main_pkg()
     _output_booter()
-    for curr_module in larc_module.module_map.itervalues():
+    for _curr_module in larc_module.module_map.itervalues():
         _output_module()
     _output_util()
     _make_prog()

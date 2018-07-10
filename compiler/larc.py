@@ -58,7 +58,7 @@ def main():
     compiler_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
     lib_dir = os.path.join(os.path.dirname(compiler_dir), "lib")
     module_path_list = [lib_dir] + module_path_list
-    larc_module.find_module_file = find_module_file = lambda mn: _find_module_file(module_path_list, mn)
+    larc_module.find_module_file = lambda mn: _find_module_file(module_path_list, mn)
 
     #预处理builtins模块
     larc_module.builtins_module = larc_module.module_map["__builtins"] = larc_module.Module("__builtins")
