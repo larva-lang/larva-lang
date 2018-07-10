@@ -50,6 +50,15 @@ class _Token:
 
         self._set_is_XXX()
 
+        self._freeze()
+
+    def _freeze(self):
+        self.is_freezed = True
+
+    def _unfreeze(self):
+        assert self.is_freezed
+        del self.__dict__["is_freezed"]
+
     def _set_is_XXX(self):
         """设置各种is_XXX属性
            如果实现为方法，可能会因偶尔的手误导致莫名其妙的错误，比如：if token.is_literal()写成了if token.is_literal，导致bug
@@ -98,9 +107,17 @@ class _Token:
 
     def __str__(self):
         return """<token %r, %d, %d, %r>""" % (self.src_file, self.line_no, self.pos + 1, self.value)
+    __repr__ = __str__
 
-    def __repr__(self):
-        return self.__str__()
+    def __setattr__(self, name, value):
+        if self.__dict__.get("is_freezed", False):
+            raise Exception("Bug")
+        self.__dict__[name] = value
+
+    def __delattr__(self, name):
+        if self.__dict__.get("is_freezed", False):
+            raise Exception("Bug")
+        del self.__dict__[name]
 
     def copy_on_pos(self, t):
         #用t的位置构建一个自身的副本，用于泛型替换等场景
@@ -481,8 +498,10 @@ def is_valid_name(name):
 
 def make_fake_token_reserved(w):
     t = _Token("word", w, "<nil>", 0, -1)
+    t._unfreeze()
     t.is_reserved = lambda r: r == w
     t.is_name = False
+    t._freeze()
     return t
 
 def make_fake_token_name(w):
