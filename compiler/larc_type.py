@@ -86,20 +86,21 @@ class _Type:
         return hash(str(self))
 
     def to_array_type(self, array_dim_count):
+        assert array_dim_count > 0
         tp = _Type((self.token, self.name), None, None, module_name = self.module_name)
         tp.gtp_list = self.gtp_list
         tp.array_dim_count = self.array_dim_count + array_dim_count
         tp._set_is_XXX()
-        tp.set_is_checked()
+        tp._set_is_checked()
         return tp
 
     def to_elem_type(self):
-        assert self.array_dim_count > 0
+        assert self.is_array
         tp = _Type((self.token, self.name), None, None, module_name = self.module_name)
         tp.gtp_list = self.gtp_list
         tp.array_dim_count = self.array_dim_count - 1
         tp._set_is_XXX()
-        tp.set_is_checked()
+        tp._set_is_checked()
         return tp
 
     def get_coi(self):
@@ -110,7 +111,7 @@ class _Type:
         return coi
 
     #check完成或无需check的时候
-    def set_is_checked(self):
+    def _set_is_checked(self):
         self.is_checked = True
         self.is_freezed = True #锁住type，禁止更改
         if self.is_array:
@@ -142,9 +143,9 @@ class _Type:
                     #非当前模块，检查权限
                     if "public" not in coi.decr_set:
                         if self.module_name is None:
+                            #如果走到这里，说明是引用了一个内建模块的私有成员，不应该报没有权限，因此continue，会跳到for的else报找不到类型
                             continue
-                        else:
-                            self.token.syntax_err("无法使用类型'%s'：没有权限" % self)
+                        self.token.syntax_err("无法使用类型'%s'：没有权限" % self)
                 if coi.gtp_name_list:
                     if self.gtp_list:
                         if len(coi.gtp_name_list) != len(self.gtp_list):
@@ -162,7 +163,7 @@ class _Type:
     def check(self, curr_module, gtp_map = None, used_dep_module_set = None):
         if not self.is_checked:
             self._check(curr_module, gtp_map, used_dep_module_set)
-            self.set_is_checked()
+            self._set_is_checked()
 
     def _check(self, curr_module, gtp_map, used_dep_module_set):
         if self.token.is_reserved:
@@ -200,9 +201,9 @@ class _Type:
                     #非当前模块，检查权限
                     if "public" not in coi.decr_set:
                         if self.module_name is None:
+                            #continue的理由同上，参考check_ignore_gtp中相关代码的注释
                             continue
-                        else:
-                            self.token.syntax_err("无法使用类型'%s'：没有权限" % self)
+                        self.token.syntax_err("无法使用类型'%s'：没有权限" % self)
                 self.module_name = m.name #check的同时也将不带模块的类型标准化
                 break
         else:
@@ -217,10 +218,10 @@ class _Type:
                 assert tp.token.is_reserved and not tp.token.is_name
             else:
                 assert tp.token.is_name and not tp.token.is_reserved
-        #nil和literal_int类型仅作为字面量的类型，转换的目标类型不可能是nil
-        assert not self.is_nil
-        if self.is_integer_type:
-            assert not self.is_literal_int
+            assert tp.is_checked and tp.is_freezed
+
+        #nil和literal_int类型仅作为字面量的类型，转换的目标类型不可能是它们
+        assert not (self.is_nil or self.is_literal_int)
 
         if self == type:
             #完全一样
@@ -235,14 +236,14 @@ class _Type:
                 #任何类型都能赋值给Any接口
                 return True
             if type.is_array:
-                #数组可以复制给实现了数组内建方法的接口
+                #数组可以赋值给实现了数组内建方法的接口
                 return coi.can_convert_from_array(type)
             if type.is_obj_type:
                 from_coi = type.get_coi()
                 #若self是接口，则检查其他对象或接口到接口的转换
-                if coi.can_convert_from(from_coi):
-                    return True
+                return coi.can_convert_from(from_coi)
 
+        #其余情况都不行
         return False
 
     def can_force_convert_from(self, type):
@@ -251,7 +252,7 @@ class _Type:
             return True
 
         if type.is_nil:
-            #无法隐式转nil，则肯定不能强转
+            #无法隐式从nil转换过来，则肯定不能强转
             return False
 
         if not type.is_literal_int and type.can_convert_from(self):
@@ -262,13 +263,17 @@ class _Type:
         if self.is_number_type and type.is_number_type:
             return True
 
+        #其余情况不能强转
         return False
 
+#生成默认类型对象，其中literal_int和nil类型内部使用，String类型虽然是class，但由于代码中有str literal，也需预先生成
 for _tp in _BASE_TYPE_LIST + ("literal_int", "nil"):
     exec '%s_TYPE = _Type((larc_token.make_fake_token_reserved("%s"), "%s"), None, None)' % (_tp.upper(), _tp, _tp)
-    exec "%s_TYPE.set_is_checked()" % _tp.upper()
+    exec "%s_TYPE._set_is_checked()" % _tp.upper()
 STR_TYPE = _Type((larc_token.make_fake_token_name("String"), "String"), None, None, module_name = "__builtins")
-STR_TYPE.set_is_checked()
+STR_TYPE._set_is_checked()
+
+#所有整数类型都可以作为数组下标
 VALID_ARRAY_IDX_TYPES = [SCHAR_TYPE, CHAR_TYPE]
 for _tp in "short", "int", "long":
     VALID_ARRAY_IDX_TYPES.append(eval("%s_TYPE" % _tp.upper()))
@@ -277,7 +282,7 @@ del _tp
 
 def parse_type(token_list, dep_module_map, is_ref = False, non_array = False):
     if is_ref:
-        assert not non_array
+        assert not non_array #ref只出现在函数参数，所以必然是要完整parse的
     t = token_list.pop()
     if t.is_reserved and t.value in _BASE_TYPE_LIST:
         return _Type((t, t.value), token_list, dep_module_map, is_ref = is_ref, non_array = non_array)
@@ -315,6 +320,10 @@ def _try_parse_type(token_list, curr_module, dep_module_map, gtp_map, used_dep_m
                 return tp
             for module in curr_module, larc_module.builtins_module:
                 if module.has_type(name):
+                    if (module is not curr_module and module is larc_module.builtins_module and
+                        "public" not in module.get_coi_original(name).decr_set):
+                        #内建模块的私有类型原则上是不对外的，当做不存在
+                        return None
                     tp = _Type((t, name), token_list, dep_module_map, module_name = module.name)
                     tp.check(curr_module, gtp_map, used_dep_module_set)
                     larc_module.check_new_ginst_during_compile()
@@ -359,16 +368,18 @@ def gen_type_from_cls(cls):
     if cls.is_gcls_inst:
         tp.gtp_list = list(cls.gtp_map.itervalues())
     #这个类型没必要check了，校验一下get_coi正常就直接返回
-    tp.set_is_checked()
+    tp._set_is_checked()
     assert tp.get_coi() is cls
     return tp
 
 #数组类型相关 ------------------------------------------------------
 
+#类型占位标记，具体生成时候替换
 _ARRAY_TYPE         = object()
 _ARRAY_ELEM_TYPE    = object()
 _ARRAY_ITER_TYPE    = object()
 
+#数组方法表
 _ARRAY_METHOD_MAP = {"size":        (LONG_TYPE, []),
                      "cap":         (LONG_TYPE, []),
                      "repr":        (STR_TYPE, []),
@@ -382,15 +393,25 @@ def _gen_array_iter_type(elem_tp):
     iter_tp = _Type((t, t.value), None, None, module_name = "__builtins")
     iter_tp.gtp_list = [elem_tp] #设置elem_tp为泛型参数
     iter_tp.get_coi() #触发一下，这里也是check里面做的流程
-    iter_tp.set_is_checked() #锁住
+    iter_tp._set_is_checked() #锁住
     return iter_tp
 
+def _replace_array_type_tag(tp, arr_tp):
+    assert arr_tp.is_array
+    if tp is _ARRAY_TYPE:
+        return arr_tp
+    if tp is _ARRAY_ELEM_TYPE:
+        return arr_tp.to_elem_type()
+    if tp is _ARRAY_ITER_TYPE:
+        return _gen_array_iter_type(arr_tp.to_elem_type())
+    return tp
+
+#判断数组是否包含指定方法，用于数组和接口类型转换时
 def array_has_method(tp, method):
     assert tp.is_array
     #必须是public方法
     if "public" not in method.decr_set:
         return False
-    elem_tp = tp.to_elem_type()
     #查找方法
     try:
         ret_type, arg_list = _ARRAY_METHOD_MAP[method.name]
@@ -401,15 +422,7 @@ def array_has_method(tp, method):
         return False
     #检查类型匹配情况
     for tp_want, tp_given in zip([ret_type] + [arg_type for arg_name, arg_type in arg_list], [method.type] + list(method.arg_map.itervalues())):
-        if tp_want is _ARRAY_TYPE:
-            #替换为实际的元素类型进行比较
-            tp_want = tp
-        if tp_want is _ARRAY_ELEM_TYPE:
-            #替换为实际的元素类型进行比较
-            tp_want = elem_tp
-        if tp_want is _ARRAY_ITER_TYPE:
-            #替换为迭代器接口类型
-            tp_want = _gen_array_iter_type(elem_tp)
+        tp_want = _replace_array_type_tag(tp_want, tp)
         #需要考虑ref修饰
         if tp_want != tp_given or tp_want.is_ref != tp_given.is_ref:
             return False
@@ -418,14 +431,8 @@ def array_has_method(tp, method):
 class _ArrayMethod:
     def __init__(self, array_type, name):
         assert array_type.is_array
-        elem_type = array_type.to_elem_type()
         ret_type, arg_list = _ARRAY_METHOD_MAP[name]
-        if ret_type is _ARRAY_TYPE:
-            ret_type = array_type
-        if ret_type is _ARRAY_ELEM_TYPE:
-            ret_type = elem_type
-        if ret_type is _ARRAY_ITER_TYPE:
-            ret_type = _gen_array_iter_type(elem_type)
+        ret_type = _replace_array_type_tag(ret_type, array_type)
 
         self.decr_set = set(["public"])
         self.name = name
@@ -433,12 +440,7 @@ class _ArrayMethod:
         self.arg_map = larc_common.OrderedDict()
         for arg_name, arg_type in arg_list:
             assert arg_name not in self.arg_map
-            if arg_type is _ARRAY_TYPE:
-                arg_type = array_type
-            if arg_type is _ARRAY_ELEM_TYPE:
-                arg_type = elem_type
-            if arg_type is _ARRAY_ITER_TYPE:
-                arg_type = _gen_array_iter_type(elem_type)
+            arg_type = _replace_array_type_tag(arg_type, array_type)
             self.arg_map[arg_name] = arg_type
 
 def iter_array_method_list(tp):

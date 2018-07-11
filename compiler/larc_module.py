@@ -1520,6 +1520,7 @@ def decide_if_name_maybe_type_by_lcgb(name, var_map_stk, gtp_map, dep_module_map
     if module.has_func(name) or module.has_global_var(name):
         return False #本模块的函数或全局变量
     if builtins_module.has_type(name):
+        #因为只是返回可能性，所以也没必要做是否私有判断了，后面try_parse_type的时候会做的
         return True #内建模块的类型
     if builtins_module.has_func(name) or builtins_module.has_global_var(name):
         return False #内建模块的函数或全局变量
