@@ -110,7 +110,7 @@ class _ParseStk:
             else:
                 #同优先级看结合性
                 if op in _UNARY_OP_SET:
-                    #单目、三目运算符右结合
+                    #单目运算符右结合
                     break
                 self._pop_top_op()
         if op == "force_convert":
@@ -438,10 +438,10 @@ class Parser:
                     else:
                         parse_stk.stk[-1] = _Expr("[]", [array_expr, expr], array_expr.type.to_elem_type())
                 elif t.is_sym("."):
+                    t, name = self.token_list.pop_name()
                     obj = parse_stk.stk[-1]
                     if obj.type.is_array:
                         #数组
-                        t, name = self.token_list.pop_name()
                         method = larc_type.get_array_method(obj.type, name)
                         if method is None:
                             t.syntax_err("数组没有方法'%s'" % name)
@@ -451,26 +451,24 @@ class Parser:
                         self._make_expr_list_match_arg_map(t, expr_list, method.arg_map)
                         parse_stk.stk[-1] = _Expr("call_array.method", (parse_stk.stk[-1], method, expr_list), method.type)
                     else:
-                        t, name = self.token_list.pop_name()
                         if obj.type.token.is_reserved:
                             t.syntax_err("不能对基础类型取属性或调用方法")
+                        obj_coi = obj.type.get_coi()
+                        method, attr = obj_coi.get_method_or_attr(name, t)
+                        if method is not None:
+                            assert attr is None
+                            self.token_list.pop_sym("(")
+                            if method.module is not self.curr_module and "public" not in method.decr_set:
+                                t.syntax_err("无法使用方法'%s'：没有权限" % method)
+                            t = self.token_list.peek()
+                            expr_list = self._parse_expr_list(var_map_stk)
+                            self._make_expr_list_match_arg_map(t, expr_list, method.arg_map)
+                            parse_stk.stk[-1] = _Expr("call_method", (parse_stk.stk[-1], method, expr_list), method.type)
                         else:
-                            obj_coi = obj.type.get_coi()
-                            method, attr = obj_coi.get_method_or_attr(name, t)
-                            if method is not None:
-                                assert attr is None
-                                self.token_list.pop_sym("(")
-                                if method.module is not self.curr_module and "public" not in method.decr_set:
-                                    t.syntax_err("无法使用方法'%s'：没有权限" % method)
-                                t = self.token_list.peek()
-                                expr_list = self._parse_expr_list(var_map_stk)
-                                self._make_expr_list_match_arg_map(t, expr_list, method.arg_map)
-                                parse_stk.stk[-1] = _Expr("call_method", (parse_stk.stk[-1], method, expr_list), method.type)
-                            else:
-                                assert attr is not None and method is None
-                                if attr.module is not self.curr_module and "public" not in attr.decr_set:
-                                    t.syntax_err("无法访问属性'%s'：没有权限" % attr)
-                                parse_stk.stk[-1] = _Expr(".", (parse_stk.stk[-1], attr), attr.type)
+                            assert attr is not None and method is None
+                            if attr.module is not self.curr_module and "public" not in attr.decr_set:
+                                t.syntax_err("无法访问属性'%s'：没有权限" % attr)
+                            parse_stk.stk[-1] = _Expr(".", (parse_stk.stk[-1], attr), attr.type)
                 else:
                     self.token_list.revert()
                     break
