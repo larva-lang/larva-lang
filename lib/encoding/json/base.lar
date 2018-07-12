@@ -6,7 +6,7 @@ class JsonBase
         this.me = me;
     }
 
-    void _()
+    void _instance_of_this_module()
     {
     }
 

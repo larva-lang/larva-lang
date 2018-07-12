@@ -46,12 +46,7 @@ public class Reader
         }
 
         //buf有数据，拷贝过去
-        long copy_size = dst_buf_size;
-        if (copy_size > buf_data_size)
-        {
-            copy_size = buf_data_size;
-        }
-        b[: copy_size].copy_from(this.buf_data[: copy_size]);
+        long copy_size = b.copy_from(this.buf_data);
         this.buf_data = this.buf_data[copy_size :];
 
         return copy_size;
@@ -76,8 +71,9 @@ public class Reader
             if (idx >= 0)
             {
                 //找到换行符了
-                var s = new String(this.buf_data[: idx + 1]);
-                this.buf_data = this.buf_data[idx + 1 :];
+                long line_len = idx + 1;
+                var s = new String(this.buf_data[: line_len]);
+                this.buf_data = this.buf_data[line_len :];
                 if (sl == nil)
                 {
                     return s;
@@ -91,7 +87,7 @@ public class Reader
                 sl = new util.Vector<String>(nil);
             }
             sl.add(new String(this.buf_data));
-            this.buf_data = this.buf_data[this.buf_data.size() :];
+            this.buf_data = this.buf[: 0];
         }
     }
 

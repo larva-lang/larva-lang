@@ -5,8 +5,6 @@ public interface Any
 public native void print(Any a);
 public native void println(Any a);
 
-public native bool is_same_type(Any a1, Any a2);
-
 public T zero_value<T>()
 {
     T t;

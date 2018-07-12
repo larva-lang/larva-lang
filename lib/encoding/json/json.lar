@@ -1,7 +1,8 @@
 //json对象接口
 public interface Json
 {
-    void _();
+    //限定此接口只能被赋值为当前模块的类实例
+    void _instance_of_this_module();
 
     //获取类型，返回类型名：null|bool|num|str|arr|obj
     public String type();

@@ -25,5 +25,6 @@ public class JsonBool
     bool v;
 }
 
-public final JsonBool TRUE  = new JsonBool(true),
-                      FALSE = new JsonBool(false);
+public final JsonBool
+    TRUE  = new JsonBool(true),
+    FALSE = new JsonBool(false);

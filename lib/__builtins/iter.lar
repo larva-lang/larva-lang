@@ -47,3 +47,31 @@ public class IterDirty
         return "";
     }
 }
+
+//具体的迭代器不一定实现了所有的方法，对于没实现的可以抛这个异常
+public class UnsupportedIterOper
+{
+    public UnsupportedIterOper()
+    {
+    }
+
+    public String str()
+    {
+        return "";
+    }
+}
+
+//只支持前进的迭代器实现可简单usemethod这个Base然后只实现必要接口
+//usemethod的字段置nil即可，也不支持其他模块建立这个类的对象
+public class IncOnlyIterBase
+{
+    public bool before_begin()
+    {
+        throw(new UnsupportedIterOper());
+    }
+
+    public void dec()
+    {
+        throw(new UnsupportedIterOper());
+    }
+}
