@@ -164,8 +164,16 @@ func (this *lar_gcls_inst_@<<Catched>>_1_lar_intf_@<<Throwable>>) lar_go_method_
     return errors.New("[Larva throwed]" + t_type_name + ": " + lar_str_to_go_str(this.m_t.lar_method_str()))
 }
 
-func lar_go_func_throw_go_err(err error) {
+func lar_go_func_@<<throw_go_err>>(err error) {
     lar_func_@<<throw>>(&lar_cls_@<<GoError>>{
         err: err,
     })
+}
+
+//用于反向port时候的defer
+func lar_go_func_@<<catch_go_err>>(err_ptr *error) {
+    c := lar_func_@<<catch_base>>(recover())
+    if c != nil {
+        *err_ptr = c.lar_go_method_to_go_err()
+    }
 }
