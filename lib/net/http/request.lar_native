@@ -28,14 +28,8 @@ func lar_new_obj_lar_cls_@<<_Request>>(method, url *lar_cls_@<<:String>>, data l
             body = lar_go_func_@<<io.Readable_to_go_ReadCloser>>(readable)
         }
     }
-    req, e := http.NewRequest(lar_str_to_go_str(method), lar_str_to_go_str(url), body)
-    if e != nil {
-        lar_func_@<<:throw>>(&lar_cls_@<<Error>>{
-            m_e: &lar_cls_@<<:GoError>>{
-                err: e,
-            },
-        })
-    }
+    req, err := http.NewRequest(lar_str_to_go_str(method), lar_str_to_go_str(url), body)
+    lar_go_func_@<<throw_on_go_err>>(err)
     return &lar_cls_@<<_Request>>{
         req: req,
     }

@@ -6,12 +6,6 @@ import (
 
 func lar_func_@<<cwd>>() *lar_cls_@<<:String>> {
     cwd, err := os.Getwd()
-    if err != nil {
-        lar_func_@<<:throw>>(&lar_cls_@<<Error>>{
-            m_e:    &lar_cls_@<<:GoError>>{
-                err:    err,
-            },
-        })
-    }
+    lar_go_func_@<<throw_on_go_err>>(err)
     return lar_str_from_go_str(cwd)
 }

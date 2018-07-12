@@ -10,13 +10,9 @@ type lar_cls_@<<_TcpListener>> struct {
 
 func lar_new_obj_lar_cls_@<<_TcpListener>>(addr *lar_cls_@<<:String>>) *lar_cls_@<<_TcpListener>> {
     tcp_addr, err := net.ResolveTCPAddr("tcp", lar_str_to_go_str(addr))
-    if err != nil {
-        lar_func_@<<:throw>>(lar_go_func_@<<new_Error>>(err))
-    }
+    lar_go_func_@<<throw_on_go_err>>(err)
     ntl, err := net.ListenTCP("tcp", tcp_addr)
-    if err != nil {
-        lar_func_@<<:throw>>(lar_go_func_@<<new_Error>>(err))
-    }
+    lar_go_func_@<<throw_on_go_err>>(err)
     return &lar_cls_@<<_TcpListener>>{ntl: ntl}
 }
 
@@ -26,9 +22,7 @@ func (this *lar_cls_@<<_TcpListener>>) lar_method_addr() *lar_cls_@<<:String>> {
 
 func (this *lar_cls_@<<_TcpListener>>) lar_method_accept() *lar_cls_@<<TcpConn>> {
     ntc, err := this.ntl.AcceptTCP()
-    if err != nil {
-        lar_func_@<<:throw>>(lar_go_func_@<<new_Error>>(err))
-    }
+    lar_go_func_@<<throw_on_go_err>>(err)
     return &lar_cls_@<<TcpConn>>{
         m_tc: &lar_cls_@<<_TcpConn>>{
             ntc: ntc,
@@ -38,9 +32,7 @@ func (this *lar_cls_@<<_TcpListener>>) lar_method_accept() *lar_cls_@<<TcpConn>>
 
 func (this *lar_cls_@<<_TcpListener>>) lar_method_close() {
     err := this.ntl.Close()
-    if err != nil {
-        lar_func_@<<:throw>>(lar_go_func_@<<new_Error>>(err))
-    }
+    lar_go_func_@<<throw_on_go_err>>(err)
 }
 
 type lar_cls_@<<_TcpConn>> struct {
@@ -57,22 +49,16 @@ func (this *lar_cls_@<<_TcpConn>>) lar_method_remote_addr() *lar_cls_@<<:String>
 
 func (this *lar_cls_@<<_TcpConn>>) lar_method_read(buf *lar_arr_uint8_1) int64 {
     n, err := lar_go_func_@<<io.read>>(this.ntc, buf.arr)
-    if err != nil {
-        lar_func_@<<:throw>>(lar_go_func_@<<new_Error>>(err))
-    }
+    lar_go_func_@<<throw_on_go_err>>(err)
     return int64(n)
 }
 
 func (this *lar_cls_@<<_TcpConn>>) lar_method_write(buf *lar_arr_uint8_1) {
     _, err := this.ntc.Write(buf.arr)
-    if err != nil {
-        lar_func_@<<:throw>>(lar_go_func_@<<new_Error>>(err))
-    }
+    lar_go_func_@<<throw_on_go_err>>(err)
 }
 
 func (this *lar_cls_@<<_TcpConn>>) lar_method_close() {
     err := this.ntc.Close()
-    if err != nil {
-        lar_func_@<<:throw>>(lar_go_func_@<<new_Error>>(err))
-    }
+    lar_go_func_@<<throw_on_go_err>>(err)
 }

@@ -25,3 +25,9 @@ func lar_go_func_@<<new_Error>>(e error) *lar_cls_@<<Error>> {
     }
     return le
 }
+
+func lar_go_func_@<<throw_on_go_err>>(err error) {
+    if err != nil {
+        lar_func_@<<:throw>>(lar_go_func_@<<new_Error>>(err))
+    }
+}

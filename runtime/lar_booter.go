@@ -11,8 +11,8 @@ func lar_booter_exit_with_catched(c *lar_gcls_inst_10___builtins_7_Catched_1_lar
 func lar_booter_check_go_panic() {
     r := recover()
     if r != nil {
-        fmt.Println("process crash, traceback:")
-        fmt.Println(lar_str_to_go_str(lar_exc_create_catched_throwable(nil, 5).m_tb))
+        fmt.Fprintln(os.Stderr, "process crash, traceback:")
+        fmt.Fprintln(os.Stderr, lar_str_to_go_str(lar_exc_create_catched_throwable(nil, 5).m_tb))
         panic(r)
     }
 }

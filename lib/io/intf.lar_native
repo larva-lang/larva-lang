@@ -52,26 +52,14 @@ type lar_go_stru_@<<io.go_ReadCloser_to_Readable>> struct {
 }
 
 func (this lar_go_stru_@<<io.go_ReadCloser_to_Readable>>) lar_method_read(buf *lar_arr_uint8_1) int64 {
-    n, e := lar_go_func_@<<io.read>>(this.r, buf.arr)
-    if e != nil {
-        lar_func_@<<:throw>>(&lar_cls_@<<Error>>{
-            m_e: &lar_cls_@<<:GoError>>{
-                err: e,
-            },
-        })
-    }
+    n, err := lar_go_func_@<<io.read>>(this.r, buf.arr)
+    lar_go_func_@<<throw_on_go_err>>(err)
     return int64(n)
 }
 
 func (this lar_go_stru_@<<io.go_ReadCloser_to_Readable>>) lar_method_close() {
-    e := this.r.Close()
-    if e != nil {
-        lar_func_@<<:throw>>(&lar_cls_@<<Error>>{
-            m_e: &lar_cls_@<<:GoError>>{
-                err: e,
-            },
-        })
-    }
+    err := this.r.Close()
+    lar_go_func_@<<throw_on_go_err>>(err)
 }
 
 func lar_go_func_@<<io.go_ReadCloser_to_Readable>>(r io.ReadCloser) lar_intf_@<<Readable>> {
@@ -128,25 +116,13 @@ type lar_go_stru_@<<io.go_WriteCloser_to_Writeable>> struct {
 }
 
 func (this lar_go_stru_@<<io.go_WriteCloser_to_Writeable>>) lar_method_write(buf *lar_arr_uint8_1) {
-    _, e := this.w.Write(buf.arr)
-    if e != nil {
-        lar_func_@<<:throw>>(&lar_cls_@<<Error>>{
-            m_e: &lar_cls_@<<:GoError>>{
-                err: e,
-            },
-        })
-    }
+    _, err := this.w.Write(buf.arr)
+    lar_go_func_@<<throw_on_go_err>>(err)
 }
 
 func (this lar_go_stru_@<<io.go_WriteCloser_to_Writeable>>) lar_method_close() {
-    e := this.w.Close()
-    if e != nil {
-        lar_func_@<<:throw>>(&lar_cls_@<<Error>>{
-            m_e: &lar_cls_@<<:GoError>>{
-                err: e,
-            },
-        })
-    }
+    err := this.w.Close()
+    lar_go_func_@<<throw_on_go_err>>(err)
 }
 
 func lar_go_func_@<<io.go_WriteCloser_to_Writeable>>(w io.WriteCloser) lar_intf_@<<Writeable>> {

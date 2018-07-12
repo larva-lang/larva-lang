@@ -18,14 +18,8 @@ func lar_new_obj_lar_cls_@<<_Client>>(timeout float64) *lar_cls_@<<_Client>> {
 }
 
 func (this *lar_cls_@<<_Client>>) lar_method_do(req *lar_cls_@<<Request>>) *lar_cls_@<<Response>> {
-    rsp, e := this.c.Do(req.m_req.req)
-    if e != nil {
-        lar_func_@<<:throw>>(&lar_cls_@<<Error>>{
-            m_e: &lar_cls_@<<:GoError>>{
-                err: e,
-            },
-        })
-    }
+    rsp, err := this.c.Do(req.m_req.req)
+    lar_go_func_@<<throw_on_go_err>>(err)
     return &lar_cls_@<<Response>>{
         m_rsp: &lar_cls_@<<_Response>>{
             rsp: rsp,

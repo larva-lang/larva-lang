@@ -1,0 +1,11 @@
+package LARVA_NATIVE
+
+func lar_go_func_@<<throw_on_go_err>>(err error) {
+    if err != nil {
+        lar_func_@<<:throw>>(&lar_cls_@<<Error>>{
+            m_e: &lar_cls_@<<:GoError>>{
+                err: err,
+            },
+        })
+    }
+}
