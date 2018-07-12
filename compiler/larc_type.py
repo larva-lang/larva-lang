@@ -331,7 +331,11 @@ def _try_parse_type(token_list, curr_module, dep_module_map, gtp_map, used_dep_m
     return None
 
 #若解析类型成功，则统一做check_new_ginst_during_compile，即这个函数只用于编译过程
-def try_parse_type(token_list, curr_module, dep_module_map, gtp_map, used_dep_module_set = None):
+def try_parse_type(token_list, curr_module, dep_module_map, gtp_map, var_map_stk, used_dep_module_set = None):
+    t = token_list.peek()
+    if t.is_name and not larc_module.decide_if_name_maybe_type_by_lcgb(t.value, var_map_stk, gtp_map, dep_module_map, curr_module):
+        return None
+
     revert_idx = token_list.i #用于解析失败时候回滚
     ret = _try_parse_type(token_list, curr_module, dep_module_map, gtp_map, used_dep_module_set)
     if ret is None:

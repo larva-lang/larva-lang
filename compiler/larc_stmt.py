@@ -60,6 +60,18 @@ class Parser:
 
             t = self.token_list.pop()
 
+            def ccc_jmp():
+                #跳过ccc块，返回跳过的块的结束ccc token
+                nested_ccc_use_deep = 0
+                while True:
+                    t = self.token_list.pop()
+                    if t.is_ccc("use"):
+                        nested_ccc_use_deep += 1
+                    elif t.is_ccc("oruse") or t.is_ccc("enduse"):
+                        if nested_ccc_use_deep == 0:
+                            return t
+                        if t.is_ccc("enduse"):
+                            nested_ccc_use_deep -= 1
             if t.is_ccc("use"):
                 self.ccc_use_deep += 1
                 while True:
@@ -80,21 +92,10 @@ class Parser:
                         break
                     #失败了，跳过这个use block继续尝试下一个
                     revert_idx = self.token_list.i #用于最后一个use block的回滚
-                    nested_ccc_use_deep = 0
-                    while True:
-                        t = self.token_list.pop()
-                        if t.is_ccc("use"):
-                            nested_ccc_use_deep += 1
-                        elif t.is_ccc("oruse"):
-                            if nested_ccc_use_deep == 0:
-                                break
-                        elif t.is_ccc("enduse"):
-                            if nested_ccc_use_deep == 0:
-                                self.token_list.revert(revert_idx)
-                                break
-                            nested_ccc_use_deep -= 1
-                    if self.token_list.i == revert_idx:
+                    t = ccc_jmp()
+                    if t.is_ccc("enduse"):
                         #已经是最后一个了，以这个为准
+                        self.token_list.revert(revert_idx)
                         break
                 continue
             if t.is_ccc and t.value in ("oruse", "enduse"):
@@ -105,15 +106,9 @@ class Parser:
                     os.write(fd, "1")
                     sys.exit(0)
                 #当前进程为一个父进程，成功选择了一个use block，跳到enduse继续编译
-                nested_ccc_use_deep = 0
-                while True:
-                    if t.is_ccc("use"):
-                        nested_ccc_use_deep += 1
-                    if t.is_ccc("enduse"):
-                        if nested_ccc_use_deep == 0:
-                            break
-                        nested_ccc_use_deep -= 1
-                    t = self.token_list.pop()
+                self.token_list.revert()
+                while not ccc_jmp().is_ccc("enduse"):
+                    pass
                 self.ccc_use_deep -= 1
                 continue
 
@@ -183,28 +178,11 @@ class Parser:
                 continue
             if t.is_reserved("var"):
                 while True:
-                    t, name = self.token_list.pop_name()
-                    self._check_var_redefine(t, name, var_map_stk)
-                    self.token_list.pop_sym("=")
-                    t = self.token_list.peek()
-                    expr = self.expr_parser.parse(var_map_stk, None)
-                    if expr.type.is_void:
-                        t.syntax_err("变量类型不能为void")
-                    if expr.type.is_nil:
-                        t.syntax_err("var定义的变量不能用无类型的nil初始化")
-                    if expr.type.is_literal_int:
-                        tp = larc_type.INT_TYPE
-                    else:
-                        tp = expr.type
-                    var_map_stk[-1][name] = tp
+                    tp, name, expr, end_sym = self._parse_var(None, var_map_stk)
                     stmt_list.append(_Stmt("var", name = name, expr = expr))
-                    t = self.token_list.peek()
-                    if not t.is_sym or t.value not in (";", ","):
-                        t.syntax_err("需要';'或','")
-                    if t.is_sym(";"):
+                    if end_sym == ";":
                         break
-                    self.token_list.pop_sym(",")
-                self.token_list.pop_sym(";")
+                    assert end_sym == ","
                 continue
             if t.is_reserved("defer"):
                 if self.token_list.peek().is_sym("{"):
@@ -222,52 +200,67 @@ class Parser:
                 continue
 
             self.token_list.revert()
-            t = self.token_list.peek()
-            maybe_type = True
-            if t.is_name:
-                maybe_type = larc_module.decide_if_name_maybe_type_by_lcgb(t.value, var_map_stk, self.gtp_map, self.dep_module_map, self.module)
-            if maybe_type:
-                tp = larc_type.try_parse_type(self.token_list, self.module, self.dep_module_map, self.gtp_map)
-            else:
-                tp = None
+            tp = larc_type.try_parse_type(self.token_list, self.module, self.dep_module_map, self.gtp_map, var_map_stk)
             if tp is not None:
                 #变量定义
-                if tp.is_void:
-                    t.syntax_err("变量类型不能为void")
                 while True:
-                    t, name = self.token_list.pop_name()
-                    self._check_var_redefine(t, name, var_map_stk)
-                    t = self.token_list.pop()
-                    if not t.is_sym or t.value not in ("=", ",", ";"):
-                        t.syntax_err("需要'='、';'或','")
-                    if t.value == "=":
-                        expr = self.expr_parser.parse(var_map_stk, tp)
-                    else:
-                        expr = None
-                        self.token_list.revert()
-                    var_map_stk[-1][name] = tp
+                    _, name, expr, end_sym = self._parse_var(tp, var_map_stk)
                     stmt_list.append(_Stmt("var", name = name, expr = expr))
-                    t = self.token_list.peek()
-                    if not t.is_sym or t.value not in (";", ","):
-                        t.syntax_err("需要';'或','")
-                    if t.is_sym(";"):
+                    if end_sym == ";":
                         break
-                    self.token_list.pop_sym(",")
-                self.token_list.pop_sym(";")
+                    assert end_sym == ","
                 continue
 
             #表达式
             expr = self._parse_expr_with_se(var_map_stk)
-            if not self._is_valid_expr_stmt(expr):
-                t.syntax_err("表达式求值后未使用")
+            self._check_valid_expr_stmt(expr)
             stmt_list.append(_Stmt("expr", expr = expr))
             self.token_list.pop_sym(";")
             continue
 
         return stmt_list
 
+    def _parse_var(self, var_tp, var_map_stk):
+        t, name = self.token_list.pop_name()
+        self._check_var_redefine(t, name, var_map_stk)
+        if var_tp is None:
+            #var语法
+            self.token_list.pop_sym("=")
+            t = self.token_list.peek()
+            expr = self.expr_parser.parse(var_map_stk, None)
+            if expr.type.is_void:
+                t.syntax_err("变量类型不能为void")
+            if expr.type.is_nil:
+                t.syntax_err("var定义的变量不能用无类型的nil初始化")
+            if expr.type.is_literal_int:
+                tp = larc_type.INT_TYPE
+            else:
+                tp = expr.type
+        else:
+            #指定类型
+            if var_tp.is_void:
+                t.syntax_err("变量类型不能为void")
+            t = self.token_list.pop()
+            if not t.is_sym or t.value not in ("=", ",", ";"):
+                t.syntax_err("需要'='、';'或','")
+            if t.value == "=":
+                expr = self.expr_parser.parse(var_map_stk, var_tp)
+            else:
+                expr = None
+                self.token_list.revert()
+            tp = var_tp
+        var_map_stk[-1][name] = tp
+        t = self.token_list.pop()
+        if not t.is_sym or t.value not in (";", ","):
+            t.syntax_err("需要';'或','")
+        return tp, name, expr, t.value
+
     def _is_valid_expr_stmt(self, expr):
         return isinstance(expr, _SeExpr) or expr.op in ("new", "call_array.method", "call_method", "call_func")
+
+    def _check_valid_expr_stmt(self, expr):
+        if not self._is_valid_expr_stmt(expr):
+            t.syntax_err("表达式求值后未使用")
 
     def _check_var_redefine(self, t, name, var_map_stk):
         if name in self.dep_module_map:
@@ -304,64 +297,26 @@ class Parser:
             #第一部分为var变量定义
             self.token_list.pop()
             while True:
-                t, name = self.token_list.pop_name()
-                self._check_var_redefine(t, name, var_map_stk + (for_var_map,))
-                self.token_list.pop_sym("=")
-                t = self.token_list.peek()
-                expr = self.expr_parser.parse(var_map_stk + (for_var_map,), None)
-                if expr.type.is_void:
-                    t.syntax_err("变量类型不能为void")
-                if expr.type.is_nil:
-                    t.syntax_err("var定义的变量不能用无类型的nil初始化")
-                if expr.type.is_literal_int:
-                    tp = larc_type.INT_TYPE
-                else:
-                    tp = expr.type
-                for_var_map[name] = tp
+                _, _, expr, end_sym = self._parse_var(None, var_map_stk + (for_var_map,))
                 init_expr_list.append(expr)
-                t = self.token_list.peek()
-                if not t.is_sym or t.value not in (";", ","):
-                    t.syntax_err("需要';'或','")
-                if t.is_sym(";"):
+                if end_sym == ";":
                     break
-                self.token_list.pop_sym(",")
+                assert end_sym == ","
         else:
-            maybe_type = True
-            if self.token_list.peek().is_name:
-                maybe_type = larc_module.decide_if_name_maybe_type_by_lcgb(self.token_list.peek().value, var_map_stk, self.gtp_map,
-                                                                           self.dep_module_map, self.module)
-            if maybe_type:
-                tp = larc_type.try_parse_type(self.token_list, self.module, self.dep_module_map, self.gtp_map)
-            else:
-                tp = None
+            tp = larc_type.try_parse_type(self.token_list, self.module, self.dep_module_map, self.gtp_map, var_map_stk)
             if tp is None:
                 #第一部分为表达式列表
                 if not self.token_list.peek().is_sym(";"):
                     init_expr_list += self._parse_expr_list_with_se(var_map_stk + (for_var_map,))
+                self.token_list.pop_sym(";")
             else:
                 #第一部分为若干指定类型的变量定义
-                if tp.is_void:
-                    t.syntax_err("变量类型不能为void")
                 while True:
-                    t, name = self.token_list.pop_name()
-                    self._check_var_redefine(t, name, var_map_stk + (for_var_map,))
-                    t = self.token_list.pop()
-                    if not t.is_sym or t.value not in ("=", ",", ";"):
-                        t.syntax_err("需要'='、';'或','")
-                    if t.value == "=":
-                        expr = self.expr_parser.parse(var_map_stk + (for_var_map,), tp)
-                    else:
-                        expr = None
-                        self.token_list.revert()
-                    for_var_map[name] = tp
+                    _, _, expr, end_sym = self._parse_var(tp, var_map_stk + (for_var_map,))
                     init_expr_list.append(expr)
-                    t = self.token_list.peek()
-                    if not t.is_sym or t.value not in (";", ","):
-                        t.syntax_err("需要';'或','")
-                    if t.is_sym(";"):
+                    if end_sym == ";":
                         break
-                    self.token_list.pop_sym(",")
-        self.token_list.pop_sym(";")
+                    assert end_sym == ","
 
         if self.token_list.peek().is_sym(";"):
             #没有第二部分
@@ -446,8 +401,7 @@ class Parser:
         while True:
             t = self.token_list.peek()
             expr = self._parse_expr_with_se(var_map_stk)
-            if not self._is_valid_expr_stmt(expr):
-                t.syntax_err("表达式求值后未使用")
+            self._check_valid_expr_stmt(expr)
             expr_list.append(expr)
             if not self.token_list.peek().is_sym(","):
                 return expr_list
