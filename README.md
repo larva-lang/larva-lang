@@ -19,10 +19,20 @@ larva-lang
 
 4 Larva源代码和Go语言目标代码的对应规则简单明了，用Go开发native模块很方便，但是标准库和运行时对Go语言的native实现依赖降低，大量lib将采用Larva自身实现
 
-进度和TODO：
+大体进度和TODO：
 
 1 语法基本完成，编译器和runtime的剩余工作就是测试和修复bug
 
 2 还需补充必要的基础库，包括os、net等库，以及Vector之类的泛型类库
 
 3 补充文档
+
+近期计划：
+
+1 interface的继承语法
+
+2 for (iter: \[iterator | iterable\])语法
+
+3 完整的反射实现
+
+生了二胎，最近没空搞了。。。
