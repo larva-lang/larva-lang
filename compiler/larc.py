@@ -86,9 +86,13 @@ def main():
         m.check_type_for_non_ginst()
     larc_module.check_type_for_ginst()
 
-    #扩展通过usemethod继承的方法
+    #扩展接口中通过usemethod继承的方法
     for m in larc_module.module_map.itervalues():
-        m.expand_usemethod()
+        m.expand_intf_usemethod()
+
+    #扩展类中通过usemethod继承的方法
+    for m in larc_module.module_map.itervalues():
+        m.expand_cls_usemethod()
 
     #主模块main函数检查
     main_module.check_main_func()

@@ -5,17 +5,22 @@
 3 inc和dec将向后或向前移动对元素的指向，若试图移出范围则应抛异常
 4 若由于集合发生变化（如迭代器指向的元素被删除，或数据结构重组等）操作导致迭代器失效，get、inc、dec操作应抛出异常
 5 若迭代器指向开始或结束边界，则get操作应抛出异常
-6 迭代器的iter一般返回其自身即可，这个接口只表示迭代器本身可迭代，copy接口表示复制迭代器对象
+6 一般来说实现常用的正向迭代接口即可，不过如果可能的话，最好也实现双向迭代接口
 */
 
 //迭代器接口
 public interface Iter<E>
 {
-    public bool before_begin(); //判断是否在开始边界
     public bool after_end(); //判断是否在结束边界
     public E get(); //获取当前位置元素
-
     public void inc(); //指向下一个元素
+}
+
+//双向迭代器
+public interface ReversibleIter<E>
+{
+    Iter<E> usemethod;
+    public bool before_begin(); //判断是否在开始边界
     public void dec(); //指向上一个元素
 }
 
@@ -58,20 +63,5 @@ public class UnsupportedIterOper
     public String str()
     {
         return "";
-    }
-}
-
-//只支持前进的迭代器实现可简单usemethod这个Base然后只实现必要接口
-//usemethod的字段置nil即可，也不支持其他模块建立这个类的对象
-public class IncOnlyIterBase
-{
-    public bool before_begin()
-    {
-        throw(new UnsupportedIterOper());
-    }
-
-    public void dec()
-    {
-        throw(new UnsupportedIterOper());
     }
 }

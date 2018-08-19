@@ -1,11 +1,16 @@
+public interface Closeable
+{
+    public void close();
+}
+
 public interface Readable
 {
+    Closeable usemethod;
     public long read(char[] buf);
-    public void close();
 }
 
 public interface Writeable
 {
+    Closeable usemethod;
     public void write(char[] buf);
-    public void close();
 }

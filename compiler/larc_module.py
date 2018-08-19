@@ -92,6 +92,31 @@ def _parse_arg_map(token_list, dep_module_map, gtp_name_list):
         if t.value == ",":
             token_list.pop_sym()
 
+def _parse_usemethod_list(token_list):
+    usemethod_list = None
+    if token_list.peek().is_sym("("):
+        token_list.pop()
+        usemethod_list = []
+        while True:
+            t = token_list.peek()
+            if t.is_sym(")"):
+                token_list.pop_sym()
+                break
+
+            usemethod_name_token, usemethod_name = token_list.pop_name()
+            usemethod_list.append((usemethod_name_token, usemethod_name))
+
+            t = token_list.peek()
+            if not (t.is_sym and t.value in (")", ",")):
+                t.syntax_err("需要','或')'")
+            if t.value == ",":
+                token_list.pop_sym()
+
+        if not usemethod_list:
+            t.syntax_err("usemethod方法列表不能为空")
+
+    return usemethod_list
+
 #下面_ClsBase和_IntfBase的基类，用于定义一些接口和类共有的通用属性和方法
 class _CoiBase:
     def __init__(self):
@@ -176,7 +201,7 @@ class _ClsBase(_CoiBase):
                     usemethod_array_list.append(attr)
                 else:
                     coi = attr.type.get_coi()
-                    if isinstance(coi, (_Cls, _GclsInst)):
+                    if coi.is_cls or coi.is_gcls_inst:
                         coi.expand_usemethod(expand_chain + "." + attr.name)
                     usemethod_coi_list.append((attr, coi))
 
@@ -389,26 +414,7 @@ class _Cls(_ClsBase):
                         if type.is_nil or not type.is_obj_type:
                             t.syntax_err("usemethod不可用于类型'%s'" % type)
                         decr_set.add("usemethod")
-                        if token_list.peek().is_sym("("):
-                            token_list.pop()
-                            usemethod_list = []
-                            while True:
-                                t = token_list.peek()
-                                if t.is_sym(")"):
-                                    token_list.pop_sym()
-                                    break
-
-                                usemethod_name_token, usemethod_name = token_list.pop_name()
-                                usemethod_list.append((usemethod_name_token, usemethod_name))
-
-                                t = token_list.peek()
-                                if not (t.is_sym and t.value in (")", ",")):
-                                    t.syntax_err("需要','或')'")
-                                if t.value == ",":
-                                    token_list.pop_sym()
-
-                            if not usemethod_list:
-                                t.syntax_err("usemethod方法列表不能为空")
+                        usemethod_list = _parse_usemethod_list(token_list)
 
                         next_t = token_list.pop()
                         if not (next_t.is_sym and next_t.value in (",", ";")):
@@ -491,7 +497,7 @@ class _Cls(_ClsBase):
         assert not self.gtp_name_list
         self.construct_method.compile()
         for method in self.method_map.itervalues():
-            if isinstance(method, _UseMethod):
+            if method.is_usemethod:
                 continue
             method.compile()
 
@@ -590,7 +596,7 @@ class _GclsInst(_ClsBase):
             return False
         self.construct_method.compile()
         for method in self.method_map.itervalues():
-            if isinstance(method, _UseMethod):
+            if method.is_usemethod:
                 continue
             method.compile()
         self.compiled = True
@@ -602,6 +608,97 @@ class _IntfBase(_CoiBase):
         if name in self.method_map:
             return self.method_map[name], None
         token.syntax_err("接口'%s'没有方法'%s'" % (self, name))
+
+    def expand_usemethod(self, expand_chain):
+        if self.is_intf:
+            assert not self.gtp_name_list
+        else:
+            assert self.type_checked
+
+        #检查扩展状态
+        assert self.usemethod_stat
+        if self.usemethod_stat == "expanded":
+            return
+        if self.usemethod_stat == "expanding":
+            larc_common.exit("检测到环形usemethod：'%s'" % expand_chain)
+
+        self.usemethod_stat = "expanding"
+
+        #确保所有usemethod的类型是接口，并确保对其扩展完毕
+        for tp, _ in self.usemethod_intf_list:
+            assert not tp.is_nil
+            if tp.is_obj_type and not tp.is_array:
+                coi = tp.get_coi()
+                if coi.is_intf or coi.is_gintf_inst:
+                    coi.expand_usemethod("%s.(%s)" % (expand_chain, coi))
+                    continue
+            tp.token.syntax_err("需要接口类型")
+
+        #根据usemethod的指定列表将method复制到当前接口，如未指定列表则复制所有method
+        usemethod_map = larc_common.OrderedDict()
+        for tp, usemethod_list in self.usemethod_intf_list:
+            assert tp.is_obj_type and not (tp.is_nil or tp.is_array)
+            coi = tp.get_coi()
+            assert coi.is_intf or coi.is_gintf_inst
+            assert coi.usemethod_stat == "expanded"
+            if usemethod_list is None:
+                usemethod_list = []
+                for method in coi.method_map.itervalues():
+                    if coi.module is not self.module and "public" not in method.decr_set:
+                        #无访问权限的忽略
+                        continue
+                    usemethod_list.append(method)
+            else:
+                it = iter(usemethod_list)
+                usemethod_list = []
+                for usemethod_name_token, usemethod_name in it:
+                    try:
+                        method = coi.method_map[usemethod_name]
+                    except KeyError:
+                        usemethod_name_token.syntax_err("'%s'没有方法'%s'" % (coi, usemethod_name))
+                    if coi.module is not self.module and "public" not in method.decr_set:
+                        usemethod_name_token.syntax_err("对'%s'的方法'%s'没有访问权限" % (coi, usemethod_name))
+                    usemethod_list.append(method)
+            for method in usemethod_list:
+                if method.name in self.method_map:
+                    #在本接口已经重新定义的忽略
+                    continue
+                if method.name in usemethod_map:
+                    #有多个来源，检查是否一致，一致的话忽略，不一致则报错
+                    used_method = usemethod_map[method.name]
+                    assert used_method.name == method.name
+                    class MethodNotMatch(Exception):
+                        pass
+                    try:
+                        if (used_method.decr_set != method.decr_set or used_method.type != method.type or
+                            len(used_method.arg_map) != len(method.arg_map)):
+                            raise MethodNotMatch()
+                        for used_method_arg_tp, arg_tp in zip(used_method.arg_map.itervalues(), method.arg_map.itervalues()):
+                            if ((used_method_arg_tp.is_ref and not arg_tp.is_ref) or (not used_method_arg_tp.is_ref and arg_tp.is_ref) or
+                                used_method_arg_tp != arg_tp):
+                                raise MethodNotMatch()
+                    except MethodNotMatch:
+                        larc_common.exit("接口'%s'对方法'%s'存在签名不一致的usemethod来源" % (self, method.name))
+                    continue
+                usemethod_map[method.name] = _IntfUseMethod(self, method)
+        for method in usemethod_map.itervalues():
+            assert method.name not in self.method_map
+            self.method_map[method.name] = method
+
+        self.usemethod_stat = "expanded"
+
+class _IntfUseMethod: #todo:检查下usemethod是否需要特殊处理
+    def __init__(self, intf, method):
+        self.intf = intf
+        self.used_method = method
+
+        self.module = intf.module
+        self.decr_set = method.decr_set
+        self.type = method.type
+        self.name = method.name
+        self.arg_map = method.arg_map
+
+    __repr__ = __str__ = lambda self : "%s.usemethod[%s]" % (self.intf, self.used_method)
 
 class _IntfMethod:
     def __init__(self, intf, decr_set, type, name, arg_name_t_list, arg_map):
@@ -646,6 +743,8 @@ class _Intf(_IntfBase):
         self.gtp_name_t_list = gtp_name_t_list
         self.gtp_name_list = gtp_name_list
         self.method_map = larc_common.OrderedDict()
+        self.usemethod_intf_list = []
+        self.usemethod_stat = None
 
     __repr__ = __str__ = lambda self : "%s.%s" % (self.module, self.name)
 
@@ -660,10 +759,19 @@ class _Intf(_IntfBase):
                 t.syntax_err("接口方法只能用public修饰")
 
             type = larc_type.parse_type(token_list, self.module.get_dep_module_map(self.file_name))
+            if token_list.peek().is_reserved("usemethod"):
+                #接口usemethod
+                token_list.pop()
+                usemethod_list = _parse_usemethod_list(token_list)
+
+                token_list.pop_sym(";")
+                self.usemethod_intf_list.append((type, usemethod_list))
+                continue
             t, name = token_list.pop_name()
             self._check_redefine(t, name)
             token_list.pop_sym("(")
             self._parse_method(decr_set, type, name, token_list)
+        self.usemethod_stat = "to_expand"
 
     def _check_redefine(self, t, name):
         if name in self.method_map:
@@ -687,12 +795,16 @@ class _Intf(_IntfBase):
 
     def check_type(self):
         assert not self.gtp_name_list
+        for tp, _ in self.usemethod_intf_list:
+            tp.check(self.module)
         for method in self.method_map.itervalues():
             method.check_type()
 
     def check_type_ignore_gtp(self):
         assert self.gtp_name_list
         gtp_name_set = set(self.gtp_name_list)
+        for tp, _ in self.usemethod_intf_list:
+            tp.check_ignore_gtp(self.module, gtp_name_set)
         for method in self.method_map.itervalues():
             method.check_type_ignore_gtp(gtp_name_set)
 
@@ -732,6 +844,8 @@ class _GintfInst(_IntfBase):
         self.decr_set = gintf.decr_set
         self.name = gintf.name
         self._init_method()
+        self.usemethod_intf_list = copy.deepcopy(gintf.usemethod_intf_list)
+        self.usemethod_stat = "to_expand"
         self.type_checked = False
 
     __repr__ = __str__ = lambda self : "%s<%s>" % (self.gintf, ", ".join([str(tp) for tp in self.gtp_map.itervalues()]))
@@ -744,6 +858,8 @@ class _GintfInst(_IntfBase):
     def check_type(self):
         if self.type_checked:
             return False
+        for tp, _ in self.usemethod_intf_list:
+            tp.check(self.module, self.gtp_map)
         for method in self.method_map.itervalues():
             method.check_type()
         self.type_checked = True
@@ -1287,7 +1403,15 @@ class Module:
         #全部都无需处理
         return False
 
-    def expand_usemethod(self):
+    def expand_intf_usemethod(self):
+        for intf in self.intf_map.itervalues():
+            if intf.gtp_name_list:
+                continue
+            intf.expand_usemethod(str(intf))
+        for gintf_inst in self.gintf_inst_map.itervalues():
+            gintf_inst.expand_usemethod(str(gintf_inst))
+
+    def expand_cls_usemethod(self):
         for cls in self.cls_map.itervalues():
             if cls.gtp_name_list:
                 continue
@@ -1505,7 +1629,9 @@ def check_type_for_ginst():
 def check_new_ginst_during_compile():
     check_type_for_ginst()
     for m in module_map.itervalues():
-        m.expand_usemethod()
+        m.expand_intf_usemethod()
+    for m in module_map.itervalues():
+        m.expand_cls_usemethod()
 
 def decide_if_name_maybe_type_by_lcgb(name, var_map_stk, gtp_map, dep_module_map, module):
     for var_map in var_map_stk:
