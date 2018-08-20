@@ -42,6 +42,7 @@ class _Type:
         self.is_array = self.array_dim_count != 0
         self.is_nil = self.token.is_reserved("nil")
         self.is_obj_type = self.is_nil or self.is_array or self.token.is_name
+        self.is_coi_type = self.token.is_name and not self.is_array #非数组的coi，意即在check之后可以get_coi
         self.is_void = self.token.is_reserved("void")
         if self.is_void:
             assert not self.is_array
@@ -229,7 +230,7 @@ class _Type:
         if self.is_obj_type and type.is_nil:
             #允许nil直接赋值给任何对象
             return True
-        if self.is_obj_type and not self.is_array:
+        if self.is_coi_type:
             #目标类型为接口或类，非数组，分几种情况检查
             coi = self.get_coi()
             if coi.is_intf_any():

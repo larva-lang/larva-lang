@@ -635,7 +635,7 @@ class _IntfBase(_CoiBase):
         #确保所有usemethod的类型是接口，并确保对其扩展完毕
         for tp, _ in self.usemethod_intf_list:
             assert not tp.is_nil
-            if tp.is_obj_type and not tp.is_array:
+            if tp.is_coi_type:
                 coi = tp.get_coi()
                 if coi.is_intf or coi.is_gintf_inst:
                     coi.expand_usemethod("%s.(%s)" % (expand_chain, coi))
@@ -645,7 +645,7 @@ class _IntfBase(_CoiBase):
         #根据usemethod的指定列表将method复制到当前接口，如未指定列表则复制所有method
         usemethod_map = larc_common.OrderedDict()
         for tp, usemethod_list in self.usemethod_intf_list:
-            assert tp.is_obj_type and not (tp.is_nil or tp.is_array)
+            assert tp.is_coi_type
             coi = tp.get_coi()
             assert coi.is_intf or coi.is_gintf_inst
             assert coi.usemethod_stat == "expanded"

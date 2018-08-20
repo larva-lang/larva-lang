@@ -321,7 +321,7 @@ class Parser:
         #解析出其get方法返回的类型，代入_Iter<E>类型，检查是否为一个迭代器
         iter_tp = iter_expr.type
         iter_elem_tp = None
-        if iter_tp.is_obj_type and not (iter_tp.is_nil or iter_tp.is_array):
+        if iter_tp.is_coi_type:
             coi = iter_tp.get_coi()
             if coi.has_method("get"):
                 elem_tp = coi.get_method("get", iter_expr_start_token).type

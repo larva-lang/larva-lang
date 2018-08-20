@@ -250,14 +250,14 @@ def _gen_expr_code_ex(expr):
         tp, e = expr.arg
         tp_name_code = _gen_type_name_code(tp)
         e_code = _gen_expr_code(e)
-        if e.type.is_obj_type and not (e.type.is_array or e.type.is_nil) and e.type.get_coi().is_intf_any():
+        if e.type.is_coi_type and e.type.get_coi().is_intf_any():
             #Any到其他类型的转换，用断言
             return "(%s).(%s)" % (e_code, tp_name_code)
         if tp.can_convert_from(e.type) or not tp.is_obj_type:
             #可以隐式转换，或到基础类型的强转，用go的强转形式（Any到基础类型的强转已经在上面处理了）
             return "(%s)(%s)" % (tp_name_code, e_code)
         #接口到其他类型的断言
-        assert e.type.is_obj_type and not (e.type.is_array or e.type.is_nil)
+        assert e.type.is_coi_type
         e_coi = e.type.get_coi()
         assert e_coi.is_intf or e_coi.is_gintf_inst
         return "(%s).(%s)" % (e_code, tp_name_code)
