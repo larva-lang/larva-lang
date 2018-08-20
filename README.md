@@ -29,10 +29,6 @@ larva-lang
 
 近期计划：
 
-1 interface的继承语法
-
-2 for (iter: \[iterator | iterable\])语法
-
-3 完整的反射实现
+1 完整的反射实现
 
 生了二胎，最近没空搞了。。。
