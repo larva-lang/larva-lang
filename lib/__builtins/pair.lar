@@ -14,3 +14,9 @@ public class Pair<F, S>
     public F first;
     public S second;
 }
+
+//一个比直接new简单点的写法，因为可以用到类型推导
+public Pair<F, S> make_pair<F, S>(F f, S s)
+{
+    return new Pair<F, S>(f, s);
+}

@@ -401,6 +401,39 @@ class Parser:
                         array_type = array_base_type.to_array_type(len(size_list))
                         larc_module.check_new_ginst_during_compile()
                         parse_stk.push_expr(_Expr("new_array", (array_base_type, size_list), array_type))
+                elif t.is_sym("{"):
+                    new_coi = None
+                    if base_type.is_coi_type:
+                        coi = base_type.get_coi()
+                        if coi.is_cls or coi.is_gcls_inst:
+                            new_coi = coi
+                    if new_coi is None:
+                        base_type.token.syntax_err("'%s'不是类，不能按属性初始化")
+                    attr_map = new_coi.get_initable_attr_map(base_type.token)
+                    attr_init_map = larc_common.OrderedDict()
+                    while True:
+                        t = self.token_list.peek()
+                        if t.is_sym("}"):
+                            self.token_list.pop_sym()
+                            break
+
+                        t, name = self.token_list.pop_name()
+                        if name not in attr_map:
+                            t.syntax_err("类'%s'没有属性'%s'或不可初始化它" % (base_type, name))
+                        if name in attr_init_map:
+                            t.syntax_err("属性'%s'重复初始化" % (name))
+                        self.token_list.pop_sym(":")
+                        attr_init_map[name] = self.parse(var_map_stk, attr_map[name])
+
+                        t = self.token_list.peek()
+                        if not (t.is_sym and t.value in ("}", ",")):
+                            t.syntax_err("需要','或'}'")
+                        if t.value == ",":
+                            self.token_list.pop_sym()
+                    for name, tp in attr_map.iteritems():
+                        if name not in attr_init_map:
+                            attr_init_map[name] = _Expr("default_value", tp, tp)
+                    parse_stk.push_expr(_Expr("new_obj_init_by_attr", attr_init_map, base_type))
                 else:
                     t.syntax_err("需要'('或'['")
             elif t.is_reserved("this"):

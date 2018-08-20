@@ -277,6 +277,16 @@ class _ClsBase(_CoiBase):
             return None, self.attr_map[name]
         token.syntax_err("类'%s'没有方法或属性'%s'" % (self, name))
 
+    def get_initable_attr_map(self, t):
+        if "native" in self.decr_set:
+            t.syntax_err("类'%s'不能按属性初始化：是native类" % self)
+        attr_map = larc_common.OrderedDict()
+        for attr in self.attr_map.itervalues():
+            if "public" not in attr.decr_set:
+                t.syntax_err("类'%s'不能按属性初始化：属性'%s'不是public" % (self, attr.name))
+            attr_map[attr.name] = attr.type
+        return attr_map
+
 class _MethodBase:
     def __init__(self):
         self.is_method = isinstance(self, _Method) or isinstance(self, _GclsInstMethod)

@@ -296,6 +296,14 @@ def _gen_expr_code_ex(expr):
         tp = expr.type
         return "lar_new_obj_%s(%s)" % (_gen_non_array_type_name(tp), _gen_expr_list_code(expr_list))
 
+    if expr.op == "new_obj_init_by_attr":
+        attr_init_map = expr.arg
+        tp = expr.type
+        init_code_list = []
+        for name, e in attr_init_map.iteritems():
+            init_code_list.append("m_%s: (%s)" % (name, _gen_expr_code(e)))
+        return "&%s{%s}" % (_gen_non_array_type_name(tp), ", ".join(init_code_list))
+
     if expr.op == "default_value":
         tp = expr.arg
         assert tp == expr.type
