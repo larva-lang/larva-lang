@@ -26,9 +26,8 @@ public class HashMap<K, V>
         var sl = new String[this.size() + 2];
         sl[0] = "<%s {".(reflect.type_name(this));
         long i = 1;
-        for (var it = this.iter(); !it.after_end(); it.inc())
+        foreach (var p : this.iter())
         {
-            var p = it.get();
             if (i == 1)
             {
                 sl[i] = "%r: %r".(p.first, p.second);
@@ -46,9 +45,8 @@ public class HashMap<K, V>
 
     public void update(Iter<Pair<K, V>> data_iter)
     {
-        for (; !data_iter.after_end(); data_iter.inc())
+        foreach (var p : data_iter)
         {
-            var p = data_iter.get();
             this.set(p.first, p.second);
         }
     }

@@ -13,9 +13,9 @@ public class HashSet<E>
 
     public void update(Iter<E> data_iter)
     {
-        for (; !data_iter.after_end(); data_iter.inc())
+        foreach (var e : data_iter)
         {
-            this.add(data_iter.get());
+            this.add(e);
         }
     }
 
@@ -24,15 +24,15 @@ public class HashSet<E>
         var sl = new String[this.size() + 2];
         sl[0] = "<%s [".(reflect.type_name(this));
         long i = 1;
-        for (var it = this.iter(); !it.after_end(); it.inc())
+        foreach (var e : this.iter())
         {
             if (i == 1)
             {
-                sl[i] = "%r".(it.get());
+                sl[i] = "%r".(e);
             }
             else
             {
-                sl[i] = ", %r".(it.get());
+                sl[i] = ", %r".(e);
             }
             ++ i;
         }

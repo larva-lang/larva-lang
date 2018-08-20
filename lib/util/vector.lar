@@ -13,9 +13,9 @@ public class Vector<E>
 
     public void update(Iter<E> data_iter)
     {
-        for (; !data_iter.after_end(); data_iter.inc())
+        foreach (var e : data_iter)
         {
-            this.add(data_iter.get());
+            this.add(e);
         }
     }
 

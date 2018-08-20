@@ -140,6 +140,15 @@ class Parser:
                 stmt_list.append(_Stmt("for", for_var_map = for_var_map, init_expr_list = init_expr_list, judge_expr = judge_expr,
                                        loop_expr_list = loop_expr_list, stmt_list = for_stmt_list))
                 continue
+            if t.is_reserved("foreach"):
+                var_tp, var_name, iter_expr = self._parse_foreach_prefix(var_map_stk)
+                foreach_var_map = larc_common.OrderedDict()
+                foreach_var_map[var_name] = var_tp
+                self.token_list.pop_sym("{")
+                foreach_stmt_list = self.parse(var_map_stk + (foreach_var_map,), loop_deep + 1, defer_deep)
+                self.token_list.pop_sym("}")
+                stmt_list.append(_Stmt("foreach", var_tp = var_tp, var_name = var_name, iter_expr = iter_expr, stmt_list = foreach_stmt_list))
+                continue
             if t.is_reserved("while"):
                 self.token_list.pop_sym("(")
                 expr = self.expr_parser.parse(var_map_stk, larc_type.BOOL_TYPE)
@@ -287,6 +296,51 @@ class Parser:
         expr = self.expr_parser.parse(var_map_stk, self.fom.type)
         self.token_list.pop_sym(";")
         return expr
+
+    def _parse_foreach_prefix(self, var_map_stk):
+        self.token_list.pop_sym("(")
+
+        if self.token_list.peek().is_reserved("var"):
+            #foreach (var var_name : iter_expr)
+            self.token_list.pop()
+            var_tp = None
+        else:
+            #foreach (var_tp var_name : iter_expr)
+            t = self.token_list.peek()
+            var_tp = larc_type.try_parse_type(self.token_list, self.module, self.dep_module_map, self.gtp_map, var_map_stk)
+            if var_tp is None:
+                t.syntax_err("需要变量定义")
+
+        var_name_token, var_name = self.token_list.pop_name()
+        self._check_var_redefine(var_name_token, var_name, var_map_stk)
+
+        self.token_list.pop_sym(":")
+        iter_expr_start_token = self.token_list.peek()
+        iter_expr = self.expr_parser.parse(var_map_stk, None)
+
+        #解析出其get方法返回的类型，代入_Iter<E>类型，检查是否为一个迭代器
+        iter_tp = iter_expr.type
+        iter_elem_tp = None
+        if iter_tp.is_obj_type and not (iter_tp.is_nil or iter_tp.is_array):
+            coi = iter_tp.get_coi()
+            if coi.has_method("get"):
+                elem_tp = coi.get_method("get", iter_expr_start_token).type
+                internal_iter_tp = larc_type.gen_internal_iter_type(elem_tp, iter_expr_start_token)
+                if internal_iter_tp.can_convert_from(iter_tp):
+                    iter_elem_tp = elem_tp
+        if iter_elem_tp is None:
+            iter_expr_start_token.syntax_err("需要迭代器类型")
+
+        #若为var定义，则设置var_tp，否则检查var_tp的类型是否匹配
+        if var_tp is None:
+            var_tp = iter_elem_tp
+        else:
+            if not var_tp.can_convert_from(iter_elem_tp):
+                var_name_token.syntax_err("迭代器的元素类型'%s'不能隐式转为类型'%s'" % (iter_elem_tp, var_tp))
+
+        self.token_list.pop_sym(")")
+
+        return var_tp, var_name, iter_expr
 
     def _parse_for_prefix(self, var_map_stk):
         self.token_list.pop_sym("(")

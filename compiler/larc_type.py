@@ -367,6 +367,9 @@ def parse_gtp_list(token_list, dep_module_map):
         t.syntax_err("泛型参数列表不能为空")
     return gtp_list
 
+#通用小函数 ----------------------------------------------------------
+
+#构建一个类型为cls的type，主要用于this表达式
 def gen_type_from_cls(cls):
     tp = _Type((larc_token.make_fake_token_name(cls.name), cls.name), None, None, module_name = cls.module.name)
     if cls.is_gcls_inst:
@@ -375,6 +378,16 @@ def gen_type_from_cls(cls):
     tp._set_is_checked()
     assert tp.get_coi() is cls
     return tp
+
+#构建一个_Iter<E>的type，方便foreach语法检查
+def gen_internal_iter_type(elem_tp, t):
+    t = larc_token.make_fake_token_name("_Iter").copy_on_pos(t) #在当前位置弄个假token
+    iter_tp = _Type((t, t.value), None, None, module_name = "__builtins")
+    iter_tp.gtp_list = [elem_tp] #设置elem_tp为泛型参数
+    iter_tp.get_coi() #触发一下，这里也是check里面做的流程
+    iter_tp._set_is_checked() #锁住
+    larc_module.check_new_ginst_during_compile()
+    return iter_tp
 
 #数组类型相关 ------------------------------------------------------
 
@@ -398,6 +411,7 @@ def _gen_array_iter_type(elem_tp):
     iter_tp.gtp_list = [elem_tp] #设置elem_tp为泛型参数
     iter_tp.get_coi() #触发一下，这里也是check里面做的流程
     iter_tp._set_is_checked() #锁住
+    #这里暂时不需要check_new_ginst_during_compile，因为调用这个函数的时候要么array_iter已经存在了，要么是在其他type的check流程中
     return iter_tp
 
 def _replace_array_type_tag(tp, arr_tp):
