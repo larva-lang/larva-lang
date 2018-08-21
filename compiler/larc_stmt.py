@@ -325,9 +325,10 @@ class Parser:
             coi = iter_tp.get_coi()
             if coi.has_method("get"):
                 elem_tp = coi.get_method("get", iter_expr_start_token).type
-                internal_iter_tp = larc_type.gen_internal_iter_type(elem_tp, iter_expr_start_token)
-                if internal_iter_tp.can_convert_from(iter_tp):
-                    iter_elem_tp = elem_tp
+                if elem_tp != larc_type.VOID_TYPE:
+                    internal_iter_tp = larc_type.gen_internal_iter_type(elem_tp, iter_expr_start_token)
+                    if internal_iter_tp.can_convert_from(iter_tp):
+                        iter_elem_tp = elem_tp
         if iter_elem_tp is None:
             iter_expr_start_token.syntax_err("需要迭代器类型")
 
