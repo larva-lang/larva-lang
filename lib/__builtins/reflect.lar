@@ -1,0 +1,3 @@
+//内建模块也用到了反射模块中的定义，要import一下保证编译进来
+//其实全做到__builtins也行，不过reflect作为一个单独模块貌似已经是习惯了
+import reflect;
