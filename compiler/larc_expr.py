@@ -353,17 +353,7 @@ class Parser:
                                 is_new_cls = True
                         if not is_new_cls:
                             #对基础类型或接口使用new语法
-                            if base_type.is_void:
-                                new_token.syntax_err("不能创建void实例")
-                            if len(expr_list) == 0:
-                                #构建默认值的语法
-                                parse_stk.push_expr(_Expr("default_value", base_type, base_type))
-                            elif len(expr_list) == 1:
-                                if not base_type.can_force_convert_from(expr_list[0].type):
-                                    new_token.syntax_err("无法从类型'%s'转换到'%s'" % (expr_list[0].type, base_type))
-                                parse_stk.push_expr(_Expr("force_convert", (base_type, expr_list[0]), base_type))
-                            else:
-                                t.syntax_err("基础类型或接口的new只能输入0或1个参数")
+                            new_token.syntax_err("不能对类型'%s'使用new语法" % base_type)
                 elif t.is_sym("["):
                     if base_type.is_void:
                         t.syntax_err("无法创建void数组")
