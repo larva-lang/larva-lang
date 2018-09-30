@@ -271,6 +271,8 @@ class _Type:
 for _tp in _BASE_TYPE_LIST + ("literal_int", "nil"):
     exec '%s_TYPE = _Type((larc_token.make_fake_token_reserved("%s"), "%s"), None, None)' % (_tp.upper(), _tp, _tp)
     exec "%s_TYPE._set_is_checked()" % _tp.upper()
+ANY_INTF_TYPE = _Type((larc_token.make_fake_token_name("Any"), "Any"), None, None, module_name = "__builtins")
+ANY_INTF_TYPE._set_is_checked()
 STR_TYPE = _Type((larc_token.make_fake_token_name("String"), "String"), None, None, module_name = "__builtins")
 STR_TYPE._set_is_checked()
 

@@ -608,8 +608,7 @@ def _output_module():
         for t in module.literal_str_list:
             assert t.is_literal("str") and t.id not in _literal_token_id_set
             _literal_token_id_set.add(t.id)
-            code += ("var %s %s = lar_str_from_go_str(%s)" %
-                     (_gen_str_literal_name(t), _gen_type_name_code(larc_type.STR_TYPE), _gen_str_literal(t.value)))
+            code += ("var %s %s = lar_str_from_go_str(%s)" % (_gen_str_literal_name(t), _STR_TYPE_NAME_CODE, _gen_str_literal(t.value)))
         for t in module.literal_number_list:
             assert (t.is_literal and t.type[8 :] in ("char", "int", "uint", "long", "ulong", "float", "double") and
                     t.id not in _literal_token_id_set)
@@ -636,7 +635,7 @@ def _output_module():
 
         def output_reflect_method(code):
             code += "var lar_reflect_type_name_%s = lar_str_from_go_str(%s)" % (lar_cls_name, _gen_str_literal(str(cls)))
-            with code.new_blk("func (this *%s) lar_reflect_type_name() %s" % (lar_cls_name, _gen_type_name_code(larc_type.STR_TYPE))):
+            with code.new_blk("func (this *%s) lar_reflect_type_name() %s" % (lar_cls_name, _STR_TYPE_NAME_CODE)):
                 code += "return lar_reflect_type_name_%s" % lar_cls_name
         for cls in [i for i in module.cls_map.itervalues() if not i.gtp_name_list] + list(module.gcls_inst_map.itervalues()):
             lar_cls_name = _gen_coi_name(cls)
@@ -749,7 +748,7 @@ def _output_util():
                 code += "return int64(len(la.arr))"
             with code.new_blk("func (la *%s) lar_method_cap() int64" % arr_tp_name):
                 code += "return int64(cap(la.arr))"
-            with code.new_blk("func (la *%s) lar_method_repr() %s" % (arr_tp_name, _gen_type_name_code(larc_type.STR_TYPE))):
+            with code.new_blk("func (la *%s) lar_method_repr() %s" % (arr_tp_name, _STR_TYPE_NAME_CODE)):
                 code += 'sl := []string{%s, "", ">"}' % _gen_str_literal("<%s " % (str(tp) + "[]" * dim_count))
                 code += "sl[1] = la.sub_arr_repr()"
                 code += 'return lar_str_from_go_str(strings.Join(sl, ""))'
@@ -784,7 +783,7 @@ def _output_util():
                 code += "return int64(copy(la.arr, src.arr))"
             #输出数组的反射接口
             code += "var lar_reflect_type_name_%s = lar_str_from_go_str(%s)" % (arr_tp_name, _gen_str_literal(str(tp) + "[]" * dim_count))
-            with code.new_blk("func (la *%s) lar_reflect_type_name() %s" % (arr_tp_name, _gen_type_name_code(larc_type.STR_TYPE))):
+            with code.new_blk("func (la *%s) lar_reflect_type_name() %s" % (arr_tp_name, _STR_TYPE_NAME_CODE)):
                 code += "return lar_reflect_type_name_%s" % arr_tp_name
             #new数组的函数
             for new_dim_count in xrange(1, dim_count + 1):
@@ -850,8 +849,15 @@ def _run_prog(args_for_run):
     else:
         larc_common.exit("找不到可执行文件[%s]" % _exe_file)
 
+_ANY_INTF_TYPE_NAME_CODE = None
+_STR_TYPE_NAME_CODE = None
+
 def output(need_run_prog, args_for_run):
-    global runtime_dir, _out_prog_dir, _prog_module_name, _prog_name, _exe_file, _main_pkg_file, _curr_module
+    global _ANY_INTF_TYPE_NAME_CODE, _STR_TYPE_NAME_CODE
+    _ANY_INTF_TYPE_NAME_CODE = _gen_type_name_code(larc_type.ANY_INTF_TYPE)
+    _STR_TYPE_NAME_CODE = _gen_type_name_code(larc_type.STR_TYPE)
+
+    global _out_prog_dir, _prog_module_name, _prog_name, _exe_file, _main_pkg_file, _curr_module
 
     _out_prog_dir = "%s/src/lar_prog_%s" % (out_dir, _gen_module_name_code(larc_module.module_map[main_module_name]))
 
