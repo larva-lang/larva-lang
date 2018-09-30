@@ -213,7 +213,9 @@ class TokenList:
             if first is not None:
                 #正在合并
                 if t.type == first.type:
+                    first._unfreeze()
                     first.value += t.value
+                    first._freeze()
                     self.l[i] = None
                 else:
                     #其他token，结束流程
@@ -381,11 +383,19 @@ def _parse_token(src_file, line_no, line, pos):
 
     raise Exception("Bug")
 
+class _RawStr:
+    def __init__(self, value, src_file, line_no, pos):
+        self.value = value
+        self.src_file = src_file
+        self.line_no = line_no
+        self.pos = pos
+
 def parse_token_list(src_file):
     line_list = larc_common.open_src_file(src_file).read().splitlines()
 
     token_list = TokenList(src_file)
     in_comment = False
+    raw_str = None
     for line_no, line in enumerate(line_list):
         line_no += 1
 
@@ -397,6 +407,18 @@ def parse_token_list(src_file):
                 continue
             pos += 2
             in_comment = False
+        elif raw_str is not None:
+            #有未完的原始字符串
+            pos = line.find("`")
+            if pos < 0:
+                #整行都是字符串内容，追加
+                raw_str.value += line + "\n"
+                continue
+            #在本行结束
+            raw_str.value += line[: pos]
+            token_list.append(_Token("literal_str", raw_str.value, raw_str.src_file, raw_str.line_no, raw_str.pos))
+            pos += 1
+            raw_str = None
         else:
             pos = 0
             if line.lstrip("\t\x20").startswith("#"):
@@ -432,6 +454,21 @@ def parse_token_list(src_file):
                 #注释在本行结束，跳过它
                 pos += comment_end_pos + 2
                 continue
+            if line[pos] == "`":
+                #原始字符串
+                raw_str = _RawStr("", src_file, line_no, pos)
+                pos += 1
+                raw_str_end_pos = line[pos :].find("`")
+                if raw_str_end_pos < 0:
+                    #跨行了，追加内容并进行下一行
+                    raw_str.value += line[pos :] + "\n"
+                    break
+                #在本行结束
+                raw_str.value += line[pos : pos + raw_str_end_pos]
+                token_list.append(_Token("literal_str", raw_str.value, raw_str.src_file, raw_str.line_no, raw_str.pos))
+                pos += raw_str_end_pos + 1
+                raw_str = None
+                continue
 
             #解析token
             token, token_len = _parse_token(src_file, line_no, line, pos)
@@ -440,6 +477,8 @@ def parse_token_list(src_file):
 
     if in_comment:
         _syntax_err(src_file, len(line_list), len(line_list[-1]), "存在未结束的块注释")
+    if raw_str is not None:
+        _syntax_err(src_file, len(line_list), len(line_list[-1]), "存在未结束的原始字符串")
 
     token_list.join_str_literal()
 
