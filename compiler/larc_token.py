@@ -387,7 +387,12 @@ def parse_token_list(src_file):
     if f.tell() > 100 * 1024 ** 2:
         larc_common.exit("源代码文件[%s]过大" % src_file)
     f.seek(0, os.SEEK_SET)
-    line_list = f.read().splitlines()
+    f_cont = f.read()
+    try:
+        f_cont.decode("utf8")
+    except UnicodeDecodeError:
+        larc_common.exit("源代码文件[%s]不是utf8编码" % src_file)
+    line_list = f_cont.splitlines()
 
     token_list = TokenList(src_file)
     in_comment = False
