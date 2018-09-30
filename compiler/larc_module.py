@@ -1125,48 +1125,6 @@ class Module:
             self._precompile(file_name)
         for file_name in native_file_name_list:
             self._parse_native_file(file_name)
-        if self.name == "__builtins":
-            assert builtins_module is None
-            #内建模块需要做一些必要的检查
-            if "String" not in self.cls_map: #必须有String类
-                larc_common.exit("内建模块缺少类'String'")
-            if "ArrayIter" not in self.cls_map or len(self.cls_map["ArrayIter"].gtp_name_list) != 1: #必须有ArrayIter<E>
-                larc_common.exit("内建模块缺少泛型类'ArrayIter<E>'")
-
-            if "Iter" not in self.intf_map or len(self.intf_map["Iter"].gtp_name_list) != 1: #必须有Iter<E>
-                larc_common.exit("内建模块缺少泛型接口'Iter<E>'")
-            if "_Iter" not in self.intf_map or len(self.intf_map["_Iter"].gtp_name_list) != 1: #必须有_Iter<E>
-                larc_common.exit("内建模块缺少泛型接口'_Iter<E>'")
-            #检查iter接口的各方法，因为foreach语法要用到
-            iter_intf = self.intf_map["_Iter"]
-            iter_elem_gtp_name = iter_intf.gtp_name_list[0]
-            if set(["get", "after_end", "inc"]) != set(iter_intf.method_map):
-                larc_common.exit("内建泛型接口'_Iter<E>'必须有且仅有方法'get'、'after_end'和'inc'")
-            for method in iter_intf.method_map.itervalues():
-                if "public" not in method.decr_set:
-                    larc_common.exit("内建泛型接口'_Iter<E>'的方法必须是public的")
-                if method.name == "get":
-                    #method.type这时候还没有check，手工检查一下
-                    if not (method.type.name == iter_elem_gtp_name and method.type.module_name is None and not method.type.gtp_list and
-                            not method.type.is_array and len(method.arg_map) == 0):
-                        larc_common.exit("内建泛型接口'_Iter<E>'的方法'get'的定义必须是'public E get()'")
-                if method.name == "after_end":
-                    if not (method.type == larc_type.BOOL_TYPE and len(method.arg_map) == 0):
-                        larc_common.exit("内建泛型接口'_Iter<E>'的方法'after_end'的定义必须是'public bool after_end()'")
-                if method.name == "inc":
-                    if not (method.type == larc_type.VOID_TYPE and len(method.arg_map) == 0):
-                        larc_common.exit("内建泛型接口'_Iter<E>'的方法'inc'的定义必须是'public void inc()'")
-
-            if "catch_base" not in self.func_map or "catch" not in self.func_map:
-                larc_common.exit("内建模块缺少函数'catch_base'或'catch'")
-            if len(self.func_map["catch_base"].arg_map) != 0 or len(self.func_map["catch"].arg_map) != 0:
-                larc_common.exit("函数'catch_base'和'catch'不能有输入参数")
-            if "_go_recovered" not in self.global_var_map:
-                larc_common.exit("内建模块缺少全局变量'_go_recovered'")
-            if "Pair" not in self.cls_map or len(self.cls_map["Pair"].gtp_name_list) != 2: #必须有Pair<F, S>
-                larc_common.exit("内建模块缺少泛型类'Pair<F, S>'")
-            if len(self.cls_map["Pair"].attr_map) != 2:
-                larc_common.exit("内建泛型类'Pair<F, S>'必须有2个字段")
         self._check_name_conflict()
 
     __repr__ = __str__ = lambda self : self.name
