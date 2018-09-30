@@ -593,9 +593,9 @@ def infer_gtp(expr_list_start_token, gtp_name_list, arg_type_list, type_list, re
     for arg_idx, (arg_type, tp, is_ref) in enumerate(zip(arg_type_list, type_list, ref_tag_list)):
         #先检查ref修饰是否一致
         if arg_type.is_ref and not is_ref:
-            expr_list_start_token.syntax_err("参数#%d需要ref修饰")
+            expr_list_start_token.syntax_err("参数#%d需要ref修饰" % (arg_idx + 1))
         if not arg_type.is_ref and is_ref:
-            expr_list_start_token.syntax_err("参数#%d存在无效的ref修饰")
+            expr_list_start_token.syntax_err("参数#%d存在无效的ref修饰" % (arg_idx + 1))
         if arg_type.is_ref:
             assert is_ref
             #带ref修饰的类型需要精确匹配
