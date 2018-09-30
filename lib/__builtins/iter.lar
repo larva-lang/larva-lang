@@ -39,10 +39,7 @@ public class IterOutOfRange
     {
     }
 
-    public String str()
-    {
-        return "";
-    }
+    EmptyException e usemethod;
 }
 
 //被迭代对象在迭代过程中被修改从而导致迭代器不可再用，此时调用迭代器的方法时可抛出此异常
@@ -53,10 +50,7 @@ public class IterDirty
     {
     }
 
-    public String str()
-    {
-        return "";
-    }
+    EmptyException e usemethod;
 }
 
 //具体的迭代器不一定实现了所有的方法，对于没实现的可以抛这个异常
@@ -66,8 +60,5 @@ public class UnsupportedIterOper
     {
     }
 
-    public String str()
-    {
-        return "";
-    }
+    EmptyException e usemethod;
 }

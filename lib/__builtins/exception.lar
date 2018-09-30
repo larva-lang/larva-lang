@@ -99,6 +99,15 @@ public class Exception
     String info usemethod(str);
 }
 
+//空异常，用于一些简单的不含信息的异常的base，异常区分只需要通过名字来识别
+public class EmptyException
+{
+    public String str()
+    {
+        return "";
+    }
+}
+
 //这里是通用的一些内建异常类型
 
 //Assert错误，只用于assert
@@ -115,10 +124,7 @@ public class AssertError
 //运行时类型转换（从接口到类型或其他接口）失败的错误
 public class CastError
 {
-    public String str()
-    {
-        return "";
-    }
+    EmptyException e usemethod;
 }
 
 //索引（下标）错误，用于数组、Slice、Vector等可用下标定位元素的相关代码中
@@ -213,10 +219,7 @@ public class TimeoutError
     {
     }
 
-    public String str()
-    {
-        return "";
-    }
+    EmptyException e usemethod;
 }
 
 //go的error类型的一个port，用于一些native代码从error到异常的转换

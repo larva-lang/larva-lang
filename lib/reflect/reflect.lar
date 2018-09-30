@@ -1,10 +1,7 @@
 //无效larva对象
-public class NotLarvaObjectError
+public class NotLarvaObject
 {
-    public String str()
-    {
-        return "";
-    }
+    EmptyException e usemethod;
 }
 
 public native String type_name(Any a);

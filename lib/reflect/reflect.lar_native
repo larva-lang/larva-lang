@@ -18,7 +18,7 @@ var (
     lar_reflect_type_name_double    = lar_str_from_go_str("double")
 )
 
-var lar_reflect_not_lar_obj_err = lar_new_obj_lar_cls_@<<NotLarvaObjectError>>()
+var lar_reflect_not_lar_obj_err = lar_new_obj_lar_cls_@<<NotLarvaObject>>()
 
 func lar_func_@<<type_name>>(a lar_intf_@<<:Any>>) *lar_cls_@<<:String>> {
     switch a.(type) {
