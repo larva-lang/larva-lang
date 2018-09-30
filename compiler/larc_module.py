@@ -1030,7 +1030,7 @@ class _NativeFile:
         self.module = module
         self.sub_module_name = sub_module_name
         self.file_path_name = file_path_name
-        self.line_list = [line.rstrip() for line in open(file_path_name)]
+        self.line_list = [line.rstrip() for line in larc_common.open_src_file(file_path_name)]
         self.dep_module_set = set()
         self._parse()
 

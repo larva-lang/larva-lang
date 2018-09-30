@@ -118,3 +118,17 @@ def new_id():
     global _id
     _id += 1
     return _id
+
+def open_src_file(fn):
+    f = open(fn)
+    f.seek(0, os.SEEK_END)
+    if f.tell() > 100 * 1024 ** 2:
+        larc_common.exit("源代码文件[%s]过大" % fn)
+    f.seek(0, os.SEEK_SET)
+    f_cont = f.read()
+    try:
+        f_cont.decode("utf8")
+    except UnicodeDecodeError:
+        exit("源代码文件[%s]不是utf8编码" % fn)
+    f.seek(0, os.SEEK_SET)
+    return f

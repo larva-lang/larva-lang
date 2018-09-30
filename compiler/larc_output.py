@@ -418,7 +418,7 @@ def _output_booter():
     f = open("%s/%s.booter_fix.go" % (_out_prog_dir, _prog_module_name), "w")
     print >> f, "package %s" % _prog_module_name
     print >> f
-    f.write(open(booter_fix_file_path_name).read())
+    f.write(larc_common.open_src_file(booter_fix_file_path_name).read())
     f.close()
 
     with _Code("%s/%s.booter.go" % (_out_prog_dir, _prog_module_name)) as code:
@@ -719,7 +719,7 @@ def _output_util():
     f = open("%s/%s.util_fix.go" % (_out_prog_dir, _prog_module_name), "w")
     print >> f, "package %s" % _prog_module_name
     print >> f
-    f.write(open(util_fix_file_path_name).read())
+    f.write(larc_common.open_src_file(util_fix_file_path_name).read())
     f.close()
 
     #生成util代码
