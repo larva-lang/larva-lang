@@ -124,17 +124,19 @@ def _gen_coi_name(coi):
             coi_name += "_%s" % _gen_type_name_code_without_star(tp)
     return coi_name
 
+_BASE_TYPE_NAME_MAP = {"bool": "bool",
+                       "schar": "int8", "char": "uint8",
+                       "short": "int16", "ushort": "uint16",
+                       "int": "int32", "uint": "uint32",
+                       "long": "int64", "ulong": "uint64",
+                       "float": "float32", "double": "float64"}
+
 def _gen_non_array_type_name(tp):
     assert not (tp.is_array or tp.is_nil or tp.is_void or tp.is_literal_int)
     if tp.is_obj_type:
         return _gen_coi_name(tp.get_coi())
     assert tp.token.is_reserved
-    return {"bool" : "bool",
-            "schar" : "int8", "char" : "uint8",
-            "short" : "int16", "ushort" : "uint16",
-            "int" : "int32", "uint" : "uint32",
-            "long" : "int64", "ulong" : "uint64",
-            "float" : "float32", "double" : "float64"}[tp.name]
+    return _BASE_TYPE_NAME_MAP[tp.name]
 
 def _gen_arr_tp_name(elem_tp_name, dim_count):
     return "lar_arr_%s_%d" % (elem_tp_name, dim_count)
@@ -752,6 +754,8 @@ def _output_util():
                 code += "sl[1] = la.sub_arr_repr()"
                 code += 'return lar_str_from_go_str(strings.Join(sl, ""))'
             with code.new_blk("func (la *%s) sub_arr_repr() string" % arr_tp_name):
+                with code.new_blk("if la == nil"):
+                    code += 'return "<nil>"'
                 if tp == larc_type.CHAR_TYPE and dim_count == 1:
                     code += 'return fmt.Sprintf("%q", string(la.arr))'
                 else:
