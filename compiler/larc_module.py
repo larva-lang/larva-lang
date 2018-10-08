@@ -705,7 +705,7 @@ class _IntfBase(_CoiBase):
 
         self.usemethod_stat = "expanded"
 
-class _IntfUseMethod: #todo:检查下usemethod是否需要特殊处理
+class _IntfUseMethod:
     def __init__(self, intf, method):
         self.intf = intf
         self.used_method = method
