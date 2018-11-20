@@ -14,13 +14,6 @@ func lar_util_fmod_double(a, b float64) float64 {
     return math.Mod(a, b)
 }
 
-const (
-    RBC_NONE     = 0
-    RBC_RET      = 1
-    RBC_BREAK    = 2
-    RBC_CONTINUE = 3
-)
-
 type lar_util_go_tb struct {
     file string
     line int

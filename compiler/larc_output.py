@@ -432,72 +432,22 @@ def _output_booter():
                      (_gen_init_mod_func_name(larc_module.module_map[main_module_name]),
                       _gen_func_name(larc_module.module_map[main_module_name].get_main_func())))
 
-#fom:func or method; boc:break or continue
-_NEST_LOOP_INVALID = -(10 ** 10) #无效值采用一个很小的负数，这样递归过程中逐步+1也保证不会>=0
-def _output_stmt_list(code, stmt_list, fom, long_ret_nest_deep, long_boc_nest_deep, need_check_defer = True):
-    if need_check_defer:
-        #需要检查当前block是否有defer，若有则转为输出一个嵌套函数调用
-        if stmt_list.has_defer():
-            if long_ret_nest_deep >= 0:
-                if not fom.type.is_void:
-                    code += "var ret_%d %s" % (long_ret_nest_deep, _gen_type_name_code(fom.type))
-                code += "rbc_%d := RBC_NONE" % long_ret_nest_deep
-
-            with code.new_blk("func ()"):
-                _output_stmt_list(code, stmt_list, fom, long_ret_nest_deep + 1, long_boc_nest_deep + 1, need_check_defer = False)
-            assert code.line_list[-1].strip() == "}"
-            code.line_list[-1] += "()"
-            code.record_tb_info(_POS_INFO_IGNORE, adjust = -1)
-
-            if long_ret_nest_deep == 0:
-                with code.new_blk("if rbc_%d == RBC_RET" % long_ret_nest_deep):
-                    code += "return %s" % ("" if fom.type.is_void else "ret_%d" % long_ret_nest_deep)
-            elif long_ret_nest_deep > 0:
-                with code.new_blk("if rbc_%d == RBC_RET" % long_ret_nest_deep):
-                    if not fom.type.is_void:
-                        code += "ret_%d = ret_%d" % (long_ret_nest_deep - 1, long_ret_nest_deep)
-                    code += "rbc_%d = RBC_RET" % (long_ret_nest_deep - 1)
-                    code += "return"
-
-            for rbc in "break", "continue":
-                if long_boc_nest_deep == 0:
-                    code += "if rbc_%d == RBC_%s {%s}" % (long_ret_nest_deep, rbc.upper(), rbc)
-                elif long_boc_nest_deep > 0:
-                    with code.new_blk("if rbc_%d == RBC_%s" % (long_ret_nest_deep, rbc.upper())):
-                        code += "rbc_%d = RBC_%s" % (long_ret_nest_deep - 1, rbc.upper())
-                        code += "return"
-
-            return
-
+def _output_stmt_list(code, stmt_list):
     for stmt in stmt_list:
         if stmt.type == "block":
             with code.new_blk(""):
-                _output_stmt_list(code, stmt.stmt_list, fom, long_ret_nest_deep, long_boc_nest_deep)
+                _output_stmt_list(code, stmt.stmt_list)
             continue
 
         if stmt.type in ("break", "continue"):
-            assert long_boc_nest_deep >= 0 #出现boc的代码一定在循环内部
-            if long_boc_nest_deep == 0:
-                code += stmt.type
-            else:
-                code += "rbc_%d = RBC_%s" % (long_ret_nest_deep - 1, stmt.type.upper())
-                code += "return"
+            code += stmt.type
             continue
 
         if stmt.type == "return":
-            assert long_ret_nest_deep >= 0 #defer代码块中不会有return stmt，校验下
-            if long_ret_nest_deep == 0:
-                #顶层，普通return
-                if stmt.expr is not None:
-                    code.record_tb_info(stmt.expr.pos_info)
-                code += "return %s" % ("" if stmt.expr is None else "(%s)" % _gen_expr_code(stmt.expr))
-            else:
-                #内层，设置上一层的ret并return上去
-                if stmt.expr is not None:
-                    code.record_tb_info(stmt.expr.pos_info)
-                    code += "ret_%d = (%s)" % (long_ret_nest_deep - 1, _gen_expr_code(stmt.expr))
-                code += "rbc_%d = RBC_RET" % (long_ret_nest_deep - 1)
-                code += "return"
+            #顶层，普通return
+            if stmt.expr is not None:
+                code.record_tb_info(stmt.expr.pos_info)
+            code += "return %s" % ("" if stmt.expr is None else "(%s)" % _gen_expr_code(stmt.expr))
             continue
 
         if stmt.type == "for":
@@ -535,7 +485,7 @@ def _output_stmt_list(code, stmt_list, fom, long_ret_nest_deep, long_boc_nest_de
                     code.record_tb_info(_POS_INFO_IGNORE)
 
                 with code.new_blk(blk_title, start_with_blank_line = False):
-                    _output_stmt_list(code, stmt.stmt_list, fom, long_ret_nest_deep, 0)
+                    _output_stmt_list(code, stmt.stmt_list)
             continue
 
         if stmt.type == "foreach":
@@ -546,13 +496,13 @@ def _output_stmt_list(code, stmt_list, fom, long_ret_nest_deep, long_boc_nest_de
                 with code.new_blk("for foreach_iter := (%s); !foreach_iter.lar_method_after_end(); foreach_iter.lar_method_inc()" %
                                   _gen_expr_code(stmt.iter_expr), start_with_blank_line = False):
                     code += "l_%s = foreach_iter.lar_method_get()" % (stmt.var_name)
-                    _output_stmt_list(code, stmt.stmt_list, fom, long_ret_nest_deep, 0)
+                    _output_stmt_list(code, stmt.stmt_list)
             continue
 
         if stmt.type == "while":
             code.record_tb_info(stmt.expr.pos_info, adjust = 1)
             with code.new_blk("for (%s)" % _gen_expr_code(stmt.expr)):
-                _output_stmt_list(code, stmt.stmt_list, fom, long_ret_nest_deep, 0)
+                _output_stmt_list(code, stmt.stmt_list)
             continue
 
         if stmt.type == "if":
@@ -560,10 +510,10 @@ def _output_stmt_list(code, stmt_list, fom, long_ret_nest_deep, long_boc_nest_de
             for i, (if_expr, if_stmt_list) in enumerate(zip(stmt.if_expr_list, stmt.if_stmt_list_list)):
                 code.record_tb_info(if_expr.pos_info, adjust = 1 if i == 0 else -1)
                 with code.new_blk("%sif (%s)" % ("" if i == 0 else "else ", _gen_expr_code(if_expr))):
-                    _output_stmt_list(code, if_stmt_list, fom, long_ret_nest_deep, long_boc_nest_deep)
+                    _output_stmt_list(code, if_stmt_list)
             if stmt.else_stmt_list is not None:
                 with code.new_blk("else"):
-                    _output_stmt_list(code, stmt.else_stmt_list, fom, long_ret_nest_deep, long_boc_nest_deep)
+                    _output_stmt_list(code, stmt.else_stmt_list)
             continue
 
         if stmt.type == "var":
@@ -583,7 +533,7 @@ def _output_stmt_list(code, stmt_list, fom, long_ret_nest_deep, long_boc_nest_de
 
         if stmt.type == "defer_block":
             with code.new_blk("defer func ()"):
-                _output_stmt_list(code, stmt.stmt_list, fom, _NEST_LOOP_INVALID, _NEST_LOOP_INVALID, need_check_defer = False)
+                _output_stmt_list(code, stmt.stmt_list)
             assert code.line_list[-1].strip() == "}"
             code.line_list[-1] += "()"
             continue
@@ -659,7 +609,7 @@ def _output_module():
                 with code.new_blk("func (this *%s) %s(%s) %s" %
                                   (lar_cls_name, method_name, _gen_arg_def(method.arg_map), _gen_type_name_code(method.type))):
                     if method.is_method:
-                        _output_stmt_list(code, method.stmt_list, method, 0, _NEST_LOOP_INVALID, need_check_defer = False)
+                        _output_stmt_list(code, method.stmt_list)
                         code += "return %s" % _gen_default_value_code(method.type)
                     else:
                         assert method.is_usemethod
@@ -690,7 +640,7 @@ def _output_module():
                     code += "*l_%s, ok = l_%s.(%s)" % (cast_ref_name, var_name, _gen_type_name_code(cast_tp))
                     code += "return ok"
                 else:
-                    _output_stmt_list(code, func.stmt_list, func, 0, _NEST_LOOP_INVALID, need_check_defer = False)
+                    _output_stmt_list(code, func.stmt_list)
                     code += "return %s" % _gen_default_value_code(func.type)
 
     #输出native实现
