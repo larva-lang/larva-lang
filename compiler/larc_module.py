@@ -861,6 +861,7 @@ class _GintfInst(_IntfBase):
         self.module = gintf.module
         self.decr_set = gintf.decr_set
         self.name = gintf.name
+        self.file_name = gintf.file_name
         self._init_method()
         self.usemethod_intf_list = copy.deepcopy(gintf.usemethod_intf_list)
         self.usemethod_stat = "to_expand"
@@ -955,6 +956,7 @@ class _GfuncInst(_FuncBase):
         self.module = gfunc.module
         self.decr_set = gfunc.decr_set
         self.name = gfunc.name
+        self.file_name = gfunc.file_name
 
         self.gtp_map = larc_common.OrderedDict()
         assert len(gfunc.gtp_name_list) == len(gtp_list)
@@ -985,7 +987,7 @@ class _GfuncInst(_FuncBase):
     def compile(self):
         if self.compiled:
             return False
-        self.stmt_list = larc_stmt.Parser(self.block_token_list, self.module, self.module.get_dep_module_map(self.gfunc.file_name), None,
+        self.stmt_list = larc_stmt.Parser(self.block_token_list, self.module, self.module.get_dep_module_map(self.file_name), None,
                                           self.gtp_map, self).parse((self.arg_map.copy(),), 0, 0)
         self.block_token_list.pop_sym("}")
         assert not self.block_token_list
