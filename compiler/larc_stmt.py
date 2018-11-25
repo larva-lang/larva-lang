@@ -222,7 +222,7 @@ class Parser:
 
             #表达式
             expr = self._parse_expr_with_se(var_map_stk)
-            self._check_valid_expr_stmt(expr)
+            self._check_valid_expr_stmt(t, expr)
             stmt_list.append(_Stmt("expr", expr = expr))
             self.token_list.pop_sym(";")
             continue
@@ -267,7 +267,7 @@ class Parser:
     def _is_valid_expr_stmt(self, expr):
         return isinstance(expr, _SeExpr) or expr.op in ("new", "call_array.method", "call_method", "call_func")
 
-    def _check_valid_expr_stmt(self, expr):
+    def _check_valid_expr_stmt(self, t, expr):
         if not self._is_valid_expr_stmt(expr):
             t.syntax_err("表达式求值后未使用")
 
@@ -456,7 +456,7 @@ class Parser:
         while True:
             t = self.token_list.peek()
             expr = self._parse_expr_with_se(var_map_stk)
-            self._check_valid_expr_stmt(expr)
+            self._check_valid_expr_stmt(t, expr)
             expr_list.append(expr)
             if not self.token_list.peek().is_sym(","):
                 return expr_list

@@ -390,12 +390,20 @@ class _RawStr:
         self.line_no = line_no
         self.pos = pos
 
+class _NativeCode:
+    def __init__(self, src_file, line_no, pos):
+        self.src_file = src_file
+        self.line_no = line_no
+        self.pos = pos
+        self.line_list = []
+
 def parse_token_list(src_file):
     line_list = larc_common.open_src_file(src_file).read().splitlines()
 
     token_list = TokenList(src_file)
     in_comment = False
     raw_str = None
+    native_code = None
     for line_no, line in enumerate(line_list):
         line_no += 1
 
@@ -419,6 +427,14 @@ def parse_token_list(src_file):
             token_list.append(_Token("literal_str", raw_str.value, raw_str.src_file, raw_str.line_no, raw_str.pos))
             pos += 1
             raw_str = None
+        elif native_code is not None:
+            if line.strip() == "```":
+                #native code结束
+                token_list.append(_Token("native_code", native_code.line_list, native_code.src_file, native_code.line_no, native_code.pos))
+                native_code = None
+            else:
+                native_code.line_list.append(line)
+            continue
         else:
             pos = 0
             if line.lstrip("\t\x20").startswith("#"):
@@ -429,6 +445,10 @@ def parse_token_list(src_file):
                 if ccc not in _COMPILING_CTRL_CMD_SET:
                     _syntax_err(src_file, line_no, pos, "非法的编译控制命令'%s'" % ccc)
                 token_list.append(_Token("ccc", ccc, src_file, line_no, pos))
+                continue
+            if line.strip() == "```":
+                #native code开始
+                native_code = _NativeCode(src_file, line_no, line.find("```"))
                 continue
 
         #解析当前行token
@@ -479,6 +499,8 @@ def parse_token_list(src_file):
         _syntax_err(src_file, len(line_list), len(line_list[-1]), "存在未结束的块注释")
     if raw_str is not None:
         _syntax_err(src_file, len(line_list), len(line_list[-1]), "存在未结束的原始字符串")
+    if native_code is not None:
+        _syntax_err(src_file, len(line_list), len(line_list[-1]), "存在未结束的native code")
 
     token_list.join_str_literal()
 

@@ -1241,6 +1241,7 @@ class Module:
                     if sym not in (";", "=", ","):
                         t.syntax_err()
                 continue
+
             t.syntax_err()
 
     def _check_redefine(self, t, name, dep_module_map):
