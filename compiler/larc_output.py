@@ -48,10 +48,26 @@ class _Code:
             self.code += self.end_line
 
     def __init__(self, file_path_name, pkg_name = None):
-        self.file_path_name = file_path_name
+        assert file_path_name.endswith(".go")
+        self.file_path_name_base = file_path_name[: -3]
+        self.line_list_map = {}
+        self.pkg_name = _prog_module_name if pkg_name is None else pkg_name
         self.indent = ""
-        self.line_list = []
-        self += "package %s" % (_prog_module_name if pkg_name is None else pkg_name)
+
+        self.file_path_name = None
+        self.line_list = None
+        self.switch_file("")
+
+    def switch_file(self, file_name):
+        assert self.indent == ""
+        if file_name != "":
+            file_name = "." + file_name
+        self.file_path_name = self.file_path_name_base + file_name + ".go"
+        if file_name in self.line_list_map:
+            self.line_list = self.line_list_map[file_name]
+        else:
+            self.line_list = self.line_list_map[file_name] = []
+            self += "package %s" % self.pkg_name
 
     def __iadd__(self, line):
         self.line_list.append(self.indent + line)
@@ -63,9 +79,11 @@ class _Code:
     def __exit__(self, exc_type, exc_value, traceback):
         if exc_type is not None:
             return
-        f = open(self.file_path_name, "w")
-        for line in self.line_list:
-            print >> f, line
+        for file_name, line_list in self.line_list_map.iteritems():
+            f = open(self.file_path_name_base + file_name + ".go", "w")
+            for line in line_list:
+                print >> f, line
+            f.close()
 
     def new_blk(self, title, start_with_blank_line = True):
         if start_with_blank_line:
@@ -583,11 +601,17 @@ def _output_module():
                         code.record_tb_info(gv.expr.pos_info)
                         code += "%s = %s" % (_gen_gv_name(gv), _gen_expr_code(gv.expr))
 
+        for intf in [i for i in module.intf_map.itervalues() if not i.gtp_name_list] + list(module.gintf_inst_map.itervalues()):
+            with code.new_blk("type %s interface" % (_gen_coi_name(intf))):
+                for method in intf.method_map.itervalues():
+                    code += "%s(%s) %s" % (_gen_method_name_code(method), _gen_arg_def(method.arg_map), _gen_type_name_code(method.type))
+
         def output_reflect_method(code):
             code += "var lar_reflect_type_name_%s = lar_str_from_go_str(%s)" % (lar_cls_name, _gen_str_literal(str(cls)))
             with code.new_blk("func (this *%s) lar_reflect_type_name() %s" % (lar_cls_name, _STR_TYPE_NAME_CODE)):
                 code += "return lar_reflect_type_name_%s" % lar_cls_name
         for cls in [i for i in module.cls_map.itervalues() if not i.gtp_name_list] + list(module.gcls_inst_map.itervalues()):
+            code.switch_file(cls.file_name)
             lar_cls_name = _gen_coi_name(cls)
             output_reflect_method(code)
             if "native" in cls.decr_set:
@@ -618,12 +642,8 @@ def _output_module():
                                  ("" if method.type.is_void else "return ", method.attr.name, method_name,
                                   ", ".join(["l_%s" % name for name in method.arg_map])))
 
-        for intf in [i for i in module.intf_map.itervalues() if not i.gtp_name_list] + list(module.gintf_inst_map.itervalues()):
-            with code.new_blk("type %s interface" % (_gen_coi_name(intf))):
-                for method in intf.method_map.itervalues():
-                    code += "%s(%s) %s" % (_gen_method_name_code(method), _gen_arg_def(method.arg_map), _gen_type_name_code(method.type))
-
         for func in [i for i in module.func_map.itervalues() if not i.gtp_name_list] + list(module.gfunc_inst_map.itervalues()):
+            code.switch_file(func.file_name)
             if "native" in func.decr_set:
                 continue
             if module.name == "__builtins" and func.name in ("catch_base", "catch"):
