@@ -1,15 +1,4 @@
-//Channel通讯类，简单通过go的chan interface{}来实现
-
-native class _ChanAny
-{
-    _ChanAny(long buf_size);
-
-    public long size();
-    public long buf_size();
-
-    void send(Any data);
-    Any recv();
-}
+//Channel通讯类
 
 public class Chan<T>
 {
@@ -19,18 +8,40 @@ public class Chan<T>
         {
             throw(new ValueError("%d".(buf_size)));
         }
-        this.ch = new _ChanAny(buf_size);
+        !<<
+        this.ch = make(chan @<<{T}>>, l_buf_size)
+        !>>
+    }
+
+    public long size()
+    {
+        !<<
+        return int64(len(this.ch))
+        !>>
+    }
+
+    public long buf_size()
+    {
+        !<<
+        return int64(cap(this.ch))
+        !>>
     }
 
     public void send(T data)
     {
-        this.ch.send(data);
+        !<<
+        this.ch <- l_data
+        !>>
     }
 
     public T recv()
     {
-        return (T)this.ch.recv();
+        !<<
+        return <-this.ch
+        !>>
     }
 
-    _ChanAny ch usemethod;
+    !<<
+    ch chan @<<{T}>>
+    !>>
 }
