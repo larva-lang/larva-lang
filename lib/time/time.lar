@@ -1,10 +1,34 @@
 //time模块，时间相关接口
 
+!<<
+
+import (
+    "time"
+)
+
+!>>
+
 //获取当前unix时间戳，单位秒
-public native double time();
+public double time()
+{
+    !<<
+    return float64(time.Now().UnixNano()) / 1e9
+    !>>
+}
 
 //睡眠指定时间
-public native void sleep(double sec);
+public void sleep(double sec)
+{
+    !<<
+    time.Sleep(time.Duration(l_sec * 1e9))
+    !>>
+}
 
 //根据layout指定的格式格式化时间
-public native String format_time(String layout, double tm);
+public String format_time(String layout, double tm)
+{
+    !<<
+    nano_sec := int64(l_tm * 1e9)
+    return lar_str_from_go_str(time.Unix(nano_sec / int64(1e9), nano_sec % int64(1e9)).Format(lar_str_to_go_str(l_layout)))
+    !>>
+}
