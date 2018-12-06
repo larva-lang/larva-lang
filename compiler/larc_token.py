@@ -424,15 +424,13 @@ def parse_token_list(src_file):
                 #整行都是字符串内容，追加
                 raw_str.value += line + "\n"
                 continue
-            if line[pos : pos + 3] == "```":
-                _syntax_err(src_file, line_no, pos, "native标记不能出现在原始字符串中")
             #在本行结束
             raw_str.value += line[: pos]
             token_list.append(_Token("literal_str", raw_str.value, raw_str.src_file, raw_str.line_no, raw_str.pos))
             pos += 1
             raw_str = None
         elif native_code is not None:
-            if line.strip() == "```":
+            if line.strip() == "!>>":
                 #native code结束
                 token_list.append(_Token("native_code", native_code.line_list, native_code.src_file, native_code.line_no, native_code.pos))
                 native_code = None
@@ -450,9 +448,9 @@ def parse_token_list(src_file):
                     _syntax_err(src_file, line_no, pos, "非法的编译控制命令'%s'" % ccc)
                 token_list.append(_Token("ccc", ccc, src_file, line_no, pos))
                 continue
-            if line.strip() == "```":
+            if line.strip() == "!<<":
                 #native code开始
-                native_code = _NativeCode(src_file, line_no, line.find("```"))
+                native_code = _NativeCode(src_file, line_no, line.find("!<<"))
                 continue
 
         #解析当前行token
@@ -479,8 +477,6 @@ def parse_token_list(src_file):
                 pos += comment_end_pos + 2
                 continue
             if line[pos] == "`":
-                if line[pos : pos + 3] == "```":
-                    _syntax_err(src_file, line_no, pos, "native标记必须存在于独立的行")
                 #原始字符串
                 raw_str = _RawStr("", src_file, line_no, pos)
                 pos += 1
@@ -489,8 +485,6 @@ def parse_token_list(src_file):
                     #跨行了，追加内容并进行下一行
                     raw_str.value += line[pos :] + "\n"
                     break
-                if line[pos + raw_str_end_pos : pos + raw_str_end_pos + 3] == "```":
-                    _syntax_err(src_file, line_no, pos + raw_str_end_pos, "native标记不能出现在原始字符串中")
                 #在本行结束
                 raw_str.value += line[pos : pos + raw_str_end_pos]
                 token_list.append(_Token("literal_str", raw_str.value, raw_str.src_file, raw_str.line_no, raw_str.pos))
