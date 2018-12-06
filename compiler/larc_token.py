@@ -105,6 +105,8 @@ class _Token:
                 return self and self.token.value == ccc
         self.is_ccc = IsCcc(self)
 
+        self.is_native_code = self.type == "native_code"
+
     def __str__(self):
         return """<token %r, %d, %d, %r>""" % (self.src_file, self.line_no, self.pos + 1, self.value)
     __repr__ = __str__

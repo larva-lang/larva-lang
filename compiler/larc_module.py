@@ -1101,6 +1101,76 @@ class _NativeFile:
                 token.syntax_err("非法的标识符宏")
             result.append((module_name, name))
 
+class NativeCode:
+    def __init__(self, module, file_name, t):
+        self.module = module
+        self.file_name = os.path.join(module.dir, file_name)
+        self.t = t
+        self.line_list = t.value[:]
+        self.dep_module_set = set()
+        self._parse()
+
+    def _parse(self):
+        #逐行扫描，分析标识符的宏替换
+        for i, line in enumerate(self.line_list):
+            self.line_list[i] = self._analyze_name_macro(i + 1, line)
+
+    def _analyze_name_macro(self, line_no, line):
+        #native code的token类，只用于报告错误
+        class NativeCodeToken:
+            def __init__(token_self, pos):
+                token_self.pos_desc = "文件[%s]行[%d]列[%d]" % (self.t.src_file, self.t.line_no + line_no, pos + 1)
+            def syntax_err(self, msg):
+                larc_common.exit("%s %s" % (self.pos_desc, msg))
+
+        #line转换为一个列表，列表元素为字符串、类型或元组，字符串为单行的子串，类型为替换后的泛型类型，元组为解析后的标识符宏(module_name, name)
+        result = []
+        idx = 0
+        while True:
+            pos = line.find("@<<", idx)
+            if pos < 0:
+                result.append(line[idx :])
+                return result
+            result.append(line[idx : pos])
+            token = NativeCodeToken(pos)
+            end_pos = line.find(">>", pos + 3)
+            if end_pos < 0:
+                token.syntax_err("非法的标识符宏：找不到结束标记'>>'")
+            macro = line[pos + 3 : end_pos]
+            idx = end_pos + 2
+            #开始分析macro
+            if "." in macro:
+                #带模块的macro
+                relative_deep = None
+                if macro.startswith("./"):
+                    relative_deep = 0
+                    macro = macro[2 :]
+                elif macro.startswith("../"):
+                    relative_deep = 0
+                    while macro.startswith("../"):
+                        macro = macro[3 :]
+                        relative_deep += 1
+                try:
+                    module_name, name = macro.split(".")
+                except ValueError:
+                    token.syntax_err("非法的标识符宏")
+                if not all([larc_token.is_valid_name(p) for p in module_name.split("/")]):
+                    token.syntax_err("非法的标识符宏")
+                #module_name相当于匿名导入了一个模块，按import流程处理：修正module_name后加入dep_module_set
+                module_name = self.module.fix_module_name(relative_deep, token, module_name)
+                self.dep_module_set.add(module_name)
+            elif macro.startswith(":"):
+                #__builtin模块name简写形式
+                module_name = "__builtins"
+                name = macro[1 :]
+            else:
+                #单个name
+                module_name = self.module.name
+                name = macro
+            if not larc_token.is_valid_name(name):
+                token.syntax_err("非法的标识符宏")
+            result.append((module_name, name))
+
 dep_module_token_map = {}
 class Module:
     def __init__(self, name):
@@ -1123,6 +1193,7 @@ class Module:
         self.literal_str_list = []
         self.literal_number_list = []
         self.native_file_map = {}
+        self.global_native_code_map = {}
         for file_name in file_name_list:
             self._precompile(file_name)
         for file_name in native_file_name_list:
@@ -1172,6 +1243,7 @@ class Module:
     def _parse_text(self, file_name, token_list):
         self.file_dep_module_map_map[file_name] = dep_module_map = larc_common.OrderedDict()
         import_end = False
+        self.global_native_code_map[file_name] = native_code_list = []
         self.literal_str_list += [t for t in token_list if t.type == "literal_str"]
         self.literal_number_list += [
             t for t in token_list
@@ -1186,6 +1258,12 @@ class Module:
                 self._parse_import(token_list, dep_module_map)
                 continue
             import_end = True
+
+            #解析global域的native_code
+            if t.is_native_code:
+                token_list.pop()
+                native_code_list.append(NativeCode(self, file_name, t))
+                continue
 
             #解析修饰
             decr_set = _parse_decr_set(token_list)

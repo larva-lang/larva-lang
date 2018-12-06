@@ -46,6 +46,7 @@ class Parser:
         self.cls = cls
         self.gtp_map = gtp_map
         self.fom = fom
+        self.file_name = self.fom.file_name if self.cls is None else self.cls.file_name
         self.expr_parser = larc_expr.Parser(token_list, module, dep_module_map, cls, gtp_map, fom)
         self.ccc_use_deep = 0
 
@@ -206,6 +207,9 @@ class Parser:
                     if expr.op not in ("call_method", "call_func"):
                         t.syntax_err("defer表达式必须是一个函数或方法调用")
                     stmt_list.append(_Stmt("defer_expr", expr = expr))
+                continue
+            if t.is_native_code:
+                stmt_list.append(_Stmt("native_code", native_code = larc_module.NativeCode(self.module, self.file_name, t), fom = self.fom))
                 continue
 
             self.token_list.revert()

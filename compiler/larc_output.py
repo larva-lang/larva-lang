@@ -450,6 +450,24 @@ def _output_booter():
                      (_gen_init_mod_func_name(larc_module.module_map[main_module_name]),
                       _gen_func_name(larc_module.module_map[main_module_name].get_main_func())))
 
+def _output_native_code(code, native_code, fom):
+    class FakeToken:
+        def __init__(self, line_no):
+            self.src_file = native_code.file_name
+            self.line_no = native_code.t.line_no + line_no
+
+    for line_idx, line in enumerate(native_code.line_list):
+        s = ""
+        for i in line:
+            if isinstance(i, str):
+                s += i
+            else:
+                assert isinstance(i, tuple)
+                module_name, name = i
+                s += "%s_%d_%s" % (_gen_module_name_code(larc_module.module_map[module_name]), len(name), name)
+        code.record_tb_info((FakeToken(line_idx + 1), fom))
+        code += s
+
 def _output_stmt_list(code, stmt_list):
     for stmt in stmt_list:
         if stmt.type == "block":
@@ -561,6 +579,10 @@ def _output_stmt_list(code, stmt_list):
             code += "defer " + _gen_expr_code(stmt.expr)
             continue
 
+        if stmt.type == "native_code":
+            _output_native_code(code, stmt.native_code, stmt.fom)
+            continue
+
         raise Exception("Bug")
 
 _literal_token_id_set = set()
@@ -605,6 +627,11 @@ def _output_module():
             with code.new_blk("type %s interface" % (_gen_coi_name(intf))):
                 for method in intf.method_map.itervalues():
                     code += "%s(%s) %s" % (_gen_method_name_code(method), _gen_arg_def(method.arg_map), _gen_type_name_code(method.type))
+
+        for file_name, native_code_list in module.global_native_code_map.iteritems():
+            code.switch_file(file_name)
+            for native_code in native_code_list:
+                _output_native_code(code, native_code, "<module>")
 
         def output_reflect_method(code):
             code += "var lar_reflect_type_name_%s = lar_str_from_go_str(%s)" % (lar_cls_name, _gen_str_literal(str(cls)))
