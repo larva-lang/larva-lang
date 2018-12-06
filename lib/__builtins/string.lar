@@ -6,7 +6,6 @@ import (
     "strings"
     "strconv"
     "fmt"
-    "reflect"
 )
 
 !>>
@@ -234,80 +233,3 @@ public class String
     !>>
     long h; //缓存的hash值，为0表示还没有计算
 }
-
-!<<
-
-func lar_str_from_go_str(s string) *lar_cls_@<<String>> {
-    return &lar_cls_@<<String>>{
-        s: s,
-    }
-}
-
-func lar_str_to_go_str(ls *lar_cls_@<<String>>) string {
-    return ls.s
-}
-
-func lar_str_fmt(format string, a ...interface{}) *lar_cls_@<<String>> {
-    return lar_str_from_go_str(fmt.Sprintf(format, a...))
-}
-
-type lar_go_intf_strable interface {
-    lar_method_str() *lar_cls_@<<String>>
-}
-
-func lar_go_func_any_to_go_str(a lar_intf_@<<Any>>) string {
-    strable, ok := a.(lar_go_intf_strable)
-    if ok {
-        return lar_str_to_go_str(strable.lar_method_str())
-    }
-    return lar_go_func_any_repr_to_go_str(a)
-}
-
-type lar_go_intf_reprable interface {
-    lar_method_repr() *lar_cls_@<<String>>
-}
-
-type lar_go_intf_nil_reprable interface {
-    lar_method_nil_repr() *lar_cls_@<<String>>
-}
-
-func lar_go_func_any_repr_to_go_str(a lar_intf_@<<Any>>) string {
-    switch v := a.(type) {
-    case nil:
-        return "<nil>"
-    case bool:
-        return fmt.Sprintf("%t", v)
-    case int8, uint8, int16, uint16, int32, uint32, int64, uint64:
-        return fmt.Sprintf("%d", v)
-    case float32, float64:
-        return fmt.Sprintf("%g", v)
-    }
-
-    //检查是否larva对象
-    lri, ok := a.(lar_reflect_intf)
-    if !ok {
-        return "<go object>"
-    }
-
-    p := reflect.ValueOf(&lri).Elem().InterfaceData()[1]
-    if p == 0 {
-        //某类的nil指针
-        nil_reprable, ok := lri.(lar_go_intf_nil_reprable)
-        if ok {
-            //定义了nil_repr，使用
-            return lar_str_to_go_str(nil_reprable.lar_method_nil_repr())
-        }
-    } else {
-        //正常对象
-        reprable, ok := lri.(lar_go_intf_reprable)
-        if ok {
-            //定义了repr，使用
-            return lar_str_to_go_str(reprable.lar_method_repr())
-        }
-    }
-
-    //nil_repr和repr都没定义，输出对象信息即可
-    return fmt.Sprintf("<%s object at 0x%X>", lar_str_to_go_str(lri.lar_reflect_type_name()), p)
-}
-
-!>>
