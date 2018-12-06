@@ -422,6 +422,8 @@ def parse_token_list(src_file):
                 #整行都是字符串内容，追加
                 raw_str.value += line + "\n"
                 continue
+            if line[pos : pos + 3] == "```":
+                _syntax_err(src_file, line_no, pos, "native标记不能出现在原始字符串中")
             #在本行结束
             raw_str.value += line[: pos]
             token_list.append(_Token("literal_str", raw_str.value, raw_str.src_file, raw_str.line_no, raw_str.pos))
@@ -475,6 +477,8 @@ def parse_token_list(src_file):
                 pos += comment_end_pos + 2
                 continue
             if line[pos] == "`":
+                if line[pos : pos + 3] == "```":
+                    _syntax_err(src_file, line_no, pos, "native标记必须存在于独立的行")
                 #原始字符串
                 raw_str = _RawStr("", src_file, line_no, pos)
                 pos += 1
@@ -483,6 +487,8 @@ def parse_token_list(src_file):
                     #跨行了，追加内容并进行下一行
                     raw_str.value += line[pos :] + "\n"
                     break
+                if line[pos + raw_str_end_pos : pos + raw_str_end_pos + 3] == "```":
+                    _syntax_err(src_file, line_no, pos + raw_str_end_pos, "native标记不能出现在原始字符串中")
                 #在本行结束
                 raw_str.value += line[pos : pos + raw_str_end_pos]
                 token_list.append(_Token("literal_str", raw_str.value, raw_str.src_file, raw_str.line_no, raw_str.pos))
