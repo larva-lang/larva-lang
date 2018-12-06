@@ -1,41 +1,66 @@
 //String类的定义
 
-//String内部实现
-native class _String
-{
-    _String(char[] arr);
+!<<
 
-    public long len();
-    public char char_at(long idx);
-    public char[] to_char_array();
-    long hash();
-    public String repr();
+import (
+    "strings"
+    "strconv"
+    "fmt"
+    "reflect"
+)
 
-    public int cmp(String other);
-    public long index(String s);
-    public String concat(String s);
-    public String join(Iter<String> si);
-    public String[] split(String sep, long count);
-    public String sub_str(long begin, long end);
+!>>
 
-    public bool parse_bool();
-    public long parse_long(int base);
-    public ulong parse_ulong(int base);
-    public double parse_double();
-}
-
-//在内部实现基础上实现String
 public class String
 {
     public String(char[] arr)
     {
-        this.s = new _String(arr);
+        !<<
+        this.s = string(l_arr.arr)
+        !>>
         this.h = 0;
     }
 
     public String str()
     {
         return this;
+    }
+
+    public long len()
+    {
+        !<<
+        return int64(len(this.s))
+        !>>
+    }
+
+    public char char_at(long idx)
+    {
+        !<<
+        return this.s[l_idx]
+        !>>
+    }
+
+    public char[] to_char_array()
+    {
+        !<<
+        return &lar_arr_uint8_1{arr: []uint8(this.s)}
+        !>>
+    }
+
+    public String repr()
+    {
+        !<<
+        return &lar_cls_@<<String>>{
+            s: fmt.Sprintf("%q", this.s),
+        }
+        !>>
+    }
+
+    public int cmp(String other)
+    {
+        !<<
+        return int32(strings.Compare(this.s, l_other.s))
+        !>>
     }
 
     public bool eq(String other)
@@ -47,15 +72,242 @@ public class String
     {
         if (this.h == 0)
         {
-            this.h = this.s.hash();
-            if (this.h == 0)
-            {
-                this.h = 1;
+            ulong h;
+            !<<
+            s := this.s
+            sl := len(s)
+            for i := 0; i < sl; i ++ {
+                l_h = (l_h + uint64(s[i])) * 1000003
             }
+            !>>
+            if (h == 0)
+            {
+                h = 1;
+            }
+            this.h = (long)h;
         }
         return this.h;
     }
 
-    _String s usemethod; //内部实现
+    public long index(String s)
+    {
+        !<<
+        return int64(strings.Index(this.s, l_s.s))
+        !>>
+    }
+
+    public String concat(String s)
+    {
+        !<<
+        return &lar_cls_@<<String>>{
+            s: this.s + l_s.s,
+        }
+        !>>
+    }
+
+    public String join(Iter<String> si)
+    {
+        !<<
+        sl := make([]string, 0, 16)
+        for ; !l_si.lar_method_after_end(); l_si.lar_method_inc() {
+            sl = append(sl, lar_str_to_go_str(l_si.lar_method_get()))
+        }
+        return lar_str_from_go_str(strings.Join(sl, this.s))
+        !>>
+    }
+
+    public String[] split(String sep, long count)
+    {
+        !<<
+        var sl []string
+        if l_sep == nil {
+            sl = strings.Fields(this.s)
+        } else if len(l_sep.s) == 0 {
+            s_len := len(this.s)
+            sl = make([]string, 0, s_len)
+            for i := 0; i < s_len; i ++ {
+                sl = append(sl, this.s[i : i + 1])
+            }
+        } else {
+            sl = strings.SplitN(this.s, l_sep.s, int(l_count))
+        }
+        a := make([]*lar_cls_@<<String>>, 0, len(sl))
+        for _, s := range sl {
+            a = append(a, lar_str_from_go_str(s))
+        }
+        return &lar_arr_lar_cls_@<<String>>_1{
+            arr: a,
+        }
+        !>>
+    }
+
+    public String sub_str(long begin, long end)
+    {
+        !<<
+        return lar_str_from_go_str(this.s[l_begin : l_end])
+        !>>
+    }
+
+    public bool parse_bool()
+    {
+        bool r, ok;
+        !<<
+        var err error
+        l_r, err = strconv.ParseBool(this.s)
+        l_ok = err == nil
+        !>>
+        if (!ok)
+        {
+            throw(new ValueError("无效的bool字面量：'%s'".(this)));
+        }
+        return r;
+    }
+
+    public long parse_long(int base)
+    {
+        long r;
+        bool ok;
+        !<<
+        var err error
+        l_r, err = strconv.ParseInt(this.s, int(l_base), 64)
+        l_ok = err == nil
+        !>>
+        if (!ok)
+        {
+            String err_info;
+            if (base == 0)
+            {
+                err_info = "无效的long字面量：'%s'".(this);
+            }
+            else
+            {
+                err_info = "无效的%s进制long字面量：'%s'".(base, this);
+            }
+            throw(new ValueError(err_info));
+        }
+        return r;
+    }
+
+    public ulong parse_ulong(int base)
+    {
+        ulong r;
+        bool ok;
+        !<<
+        var err error
+        l_r, err = strconv.ParseUint(this.s, int(l_base), 64)
+        l_ok = err == nil
+        !>>
+        if (!ok)
+        {
+            String err_info;
+            if (base == 0)
+            {
+                err_info = "无效的ulong字面量：'%s'".(this);
+            }
+            else
+            {
+                err_info = "无效的%s进制ulong字面量：'%s'".(base, this);
+            }
+            throw(new ValueError(err_info));
+        }
+        return r;
+    }
+
+    public double parse_double()
+    {
+        double r;
+        bool ok;
+        !<<
+        var err error
+        l_r, err = strconv.ParseFloat(this.s, 64)
+        l_ok = err == nil
+        !>>
+        if (!ok)
+        {
+            throw(new ValueError("无效的double字面量：'%s'".(this)));
+        }
+        return r;
+    }
+
+    !<<
+    s string;
+    !>>
     long h; //缓存的hash值，为0表示还没有计算
 }
+
+!<<
+
+func lar_str_from_go_str(s string) *lar_cls_@<<String>> {
+    return &lar_cls_@<<String>>{
+        s: s,
+    }
+}
+
+func lar_str_to_go_str(ls *lar_cls_@<<String>>) string {
+    return ls.s
+}
+
+func lar_str_fmt(format string, a ...interface{}) *lar_cls_@<<String>> {
+    return lar_str_from_go_str(fmt.Sprintf(format, a...))
+}
+
+type lar_go_intf_strable interface {
+    lar_method_str() *lar_cls_@<<String>>
+}
+
+func lar_go_func_any_to_go_str(a lar_intf_@<<Any>>) string {
+    strable, ok := a.(lar_go_intf_strable)
+    if ok {
+        return lar_str_to_go_str(strable.lar_method_str())
+    }
+    return lar_go_func_any_repr_to_go_str(a)
+}
+
+type lar_go_intf_reprable interface {
+    lar_method_repr() *lar_cls_@<<String>>
+}
+
+type lar_go_intf_nil_reprable interface {
+    lar_method_nil_repr() *lar_cls_@<<String>>
+}
+
+func lar_go_func_any_repr_to_go_str(a lar_intf_@<<Any>>) string {
+    switch v := a.(type) {
+    case nil:
+        return "<nil>"
+    case bool:
+        return fmt.Sprintf("%t", v)
+    case int8, uint8, int16, uint16, int32, uint32, int64, uint64:
+        return fmt.Sprintf("%d", v)
+    case float32, float64:
+        return fmt.Sprintf("%g", v)
+    }
+
+    //检查是否larva对象
+    lri, ok := a.(lar_reflect_intf)
+    if !ok {
+        return "<go object>"
+    }
+
+    p := reflect.ValueOf(&lri).Elem().InterfaceData()[1]
+    if p == 0 {
+        //某类的nil指针
+        nil_reprable, ok := lri.(lar_go_intf_nil_reprable)
+        if ok {
+            //定义了nil_repr，使用
+            return lar_str_to_go_str(nil_reprable.lar_method_nil_repr())
+        }
+    } else {
+        //正常对象
+        reprable, ok := lri.(lar_go_intf_reprable)
+        if ok {
+            //定义了repr，使用
+            return lar_str_to_go_str(reprable.lar_method_repr())
+        }
+    }
+
+    //nil_repr和repr都没定义，输出对象信息即可
+    return fmt.Sprintf("<%s object at 0x%X>", lar_str_to_go_str(lri.lar_reflect_type_name()), p)
+}
+
+!>>
