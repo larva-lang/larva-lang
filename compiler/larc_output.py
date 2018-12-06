@@ -666,6 +666,8 @@ def _output_module():
             if "native" in cls.decr_set:
                 continue
             with code.new_blk("type %s struct" % (lar_cls_name)):
+                for native_code in cls.native_code_list:
+                    _output_native_code(code, native_code, "<module>")
                 for attr in cls.attr_map.itervalues():
                     code += "m_%s %s" % (attr.name, _gen_type_name_code(attr.type))
             with code.new_blk("func lar_new_obj_%s(%s) *%s" % (lar_cls_name, _gen_arg_def(cls.construct_method.arg_map), lar_cls_name)):

@@ -280,6 +280,8 @@ class _ClsBase(_CoiBase):
     def get_initable_attr_map(self, t):
         if "native" in self.decr_set:
             t.syntax_err("类'%s'不能按属性初始化：是native类" % self)
+        if self.native_code_list:
+            t.syntax_err("类'%s'不能按属性初始化：包含native字段定义" % self)
         attr_map = larc_common.OrderedDict()
         for attr in self.attr_map.itervalues():
             if "public" not in attr.decr_set:
@@ -384,6 +386,8 @@ class _Cls(_ClsBase):
         self.gtp_name_t_list = gtp_name_t_list
         self.gtp_name_list = gtp_name_list
         self.construct_method = None
+        self.native_code_token_list = []
+        self.native_code_list = []
         self.attr_map = larc_common.OrderedDict()
         self.method_map = larc_common.OrderedDict()
         self.usemethod_stat = None
@@ -395,6 +399,11 @@ class _Cls(_ClsBase):
             t = token_list.peek()
             if t.is_sym("}"):
                 break
+
+            if t.is_native_code:
+                token_list.pop()
+                self.native_code_token_list.append(t)
+                continue
 
             #解析修饰
             decr_set = _parse_decr_set(token_list)
@@ -496,6 +505,12 @@ class _Cls(_ClsBase):
 
     def check_type(self):
         assert not self.gtp_name_list
+
+        #check_type和native_code的建立有类似之处，插在这里好了
+        assert not self.native_code_list
+        for t in self.native_code_token_list:
+            self.native_code_list.append(NativeCode(self.module, self.file_name, None, t))
+
         for attr in self.attr_map.itervalues():
             attr.check_type()
         self.construct_method.check_type()
@@ -581,6 +596,7 @@ class _GclsInst(_ClsBase):
         self.decr_set = gcls.decr_set
         self.name = gcls.name
         self.file_name = gcls.file_name
+        self.native_code_list = []
         self._init_attr_and_method()
         self.type_checked = False
         self.usemethod_stat = "to_expand"
@@ -601,6 +617,12 @@ class _GclsInst(_ClsBase):
     def check_type(self):
         if self.type_checked:
             return False
+
+        #check_type和native_code的建立有类似之处，插在这里好了
+        assert not self.native_code_list
+        for t in self.gcls.native_code_token_list:
+            self.native_code_list.append(NativeCode(self.module, self.file_name, self.gtp_map, t))
+
         for attr in self.attr_map.itervalues():
             attr.check_type()
         self.construct_method.check_type()
