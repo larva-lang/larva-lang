@@ -1102,12 +1102,13 @@ class _NativeFile:
             result.append((module_name, name))
 
 class NativeCode:
-    def __init__(self, module, file_name, t):
+    def __init__(self, module, file_name, gtp_map, t, is_global = False):
         self.module = module
         self.file_name = os.path.join(module.dir, file_name)
+        self.gtp_map = gtp_map
         self.t = t
+        self.is_global = is_global
         self.line_list = t.value[:]
-        self.dep_module_set = set()
         self._parse()
 
     def _parse(self):
@@ -1139,6 +1140,18 @@ class NativeCode:
             macro = line[pos + 3 : end_pos]
             idx = end_pos + 2
             #开始分析macro
+            if macro.startswith("{") and macro.endswith("}"):
+                #泛型类型
+                gtp_name = macro[1 : -1]
+                if not larc_token.is_valid_name(gtp_name):
+                    token.syntax_err("非法的标识符宏：非法的泛型类型名")
+                if self.gtp_map is None:
+                    token.syntax_err("非法的标识符宏：无效的泛型，不在泛型类或泛型函数的代码块中")
+                if gtp_name not in self.gtp_map:
+                    token.syntax_err("非法的标识符宏：找不到泛型类型")
+                gtp = self.gtp_map[gtp_name]
+                result.append(gtp)
+                continue
             if "." in macro:
                 #带模块的macro
                 relative_deep = None
@@ -1156,9 +1169,14 @@ class NativeCode:
                     token.syntax_err("非法的标识符宏")
                 if not all([larc_token.is_valid_name(p) for p in module_name.split("/")]):
                     token.syntax_err("非法的标识符宏")
-                #module_name相当于匿名导入了一个模块，按import流程处理：修正module_name后加入dep_module_set
+                #module_name相当于匿名导入了一个模块，若是global域的native_code则按import流程处理：修正module_name后加入dep_module_set
                 module_name = self.module.fix_module_name(relative_deep, token, module_name)
-                self.dep_module_set.add(module_name)
+                if self.is_global:
+                    self.module.dep_module_set_of_global_native_code.add(module_name)
+                else:
+                    if module_name not in module_map:
+                        #处于代码块中的native_code引用了一个没有被预处理导入的模块，报错
+                        token.syntax_err("模块'%s'需要显式导入" % module_name)
             elif macro.startswith(":"):
                 #__builtin模块name简写形式
                 module_name = "__builtins"
@@ -1194,6 +1212,7 @@ class Module:
         self.literal_number_list = []
         self.native_file_map = {}
         self.global_native_code_map = {}
+        self.dep_module_set_of_global_native_code = set()
         for file_name in file_name_list:
             self._precompile(file_name)
         for file_name in native_file_name_list:
@@ -1262,7 +1281,7 @@ class Module:
             #解析global域的native_code
             if t.is_native_code:
                 token_list.pop()
-                native_code_list.append(NativeCode(self, file_name, t))
+                native_code_list.append(NativeCode(self, file_name, None, t, is_global = True))
                 continue
 
             #解析修饰
@@ -1689,6 +1708,7 @@ class Module:
             dep_module_set |= set(m.itervalues())
         for nf in self.native_file_map.itervalues():
             dep_module_set |= nf.dep_module_set
+        dep_module_set |= self.dep_module_set_of_global_native_code
         return dep_module_set
 
     def get_dep_module_map(self, file_name):

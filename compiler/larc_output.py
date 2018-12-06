@@ -47,6 +47,22 @@ class _Code:
             self.code.indent = self.code.indent[: -4]
             self.code += self.end_line
 
+    class _NativeCode:
+        def __init__(self, code):
+            self.code = code
+
+        def __enter__(self):
+            self.code += "//native_code start"
+            self.save_indent = self.code.indent
+            self.code.indent = ""
+            return self
+
+        def __exit__(self, exc_type, exc_value, traceback):
+            if exc_type is not None:
+                return
+            self.code.indent = self.save_indent
+            self.code += "//native_code end"
+
     def __init__(self, file_path_name, pkg_name = None):
         assert file_path_name.endswith(".go")
         self.file_path_name_base = file_path_name[: -3]
@@ -104,6 +120,9 @@ class _Code:
             self += "{"
         self.indent += " " * 4
         return self._CodeBlk(self, end_line)
+
+    def new_native_code(self):
+        return self._NativeCode(self)
 
     #记录tb映射的信息，本code当前位置到输入的pos信息，在输出代码之前使用，adjust为代码行数修正值
     def record_tb_info(self, pos_info, adjust = 0):
@@ -456,17 +475,20 @@ def _output_native_code(code, native_code, fom):
             self.src_file = native_code.file_name
             self.line_no = native_code.t.line_no + line_no
 
-    for line_idx, line in enumerate(native_code.line_list):
-        s = ""
-        for i in line:
-            if isinstance(i, str):
-                s += i
-            else:
-                assert isinstance(i, tuple)
-                module_name, name = i
-                s += "%s_%d_%s" % (_gen_module_name_code(larc_module.module_map[module_name]), len(name), name)
-        code.record_tb_info((FakeToken(line_idx + 1), fom))
-        code += s
+    with code.new_native_code():
+        for line_idx, line in enumerate(native_code.line_list):
+            s = ""
+            for i in line:
+                if isinstance(i, str):
+                    s += i
+                elif larc_type.is_type(i):
+                    s += _gen_type_name_code(i)
+                else:
+                    assert isinstance(i, tuple)
+                    module_name, name = i
+                    s += "%s_%d_%s" % (_gen_module_name_code(larc_module.module_map[module_name]), len(name), name)
+            code.record_tb_info((FakeToken(line_idx + 1), fom))
+            code += s
 
 def _output_stmt_list(code, stmt_list):
     for stmt in stmt_list:

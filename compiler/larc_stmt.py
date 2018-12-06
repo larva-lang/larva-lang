@@ -209,7 +209,8 @@ class Parser:
                     stmt_list.append(_Stmt("defer_expr", expr = expr))
                 continue
             if t.is_native_code:
-                stmt_list.append(_Stmt("native_code", native_code = larc_module.NativeCode(self.module, self.file_name, t), fom = self.fom))
+                stmt_list.append(_Stmt("native_code", native_code = larc_module.NativeCode(self.module, self.file_name, self.gtp_map, t),
+                                       fom = self.fom))
                 continue
 
             self.token_list.revert()

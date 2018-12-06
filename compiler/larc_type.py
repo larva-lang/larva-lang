@@ -283,6 +283,9 @@ for _tp in "short", "int", "long":
     VALID_ARRAY_IDX_TYPES.append(eval("U%s_TYPE" % _tp.upper()))
 del _tp
 
+def is_type(tp):
+    return isinstance(tp, _Type)
+
 def parse_type(token_list, dep_module_map, is_ref = False, non_array = False):
     if is_ref:
         assert not non_array #ref只出现在函数参数，所以必然是要完整parse的
