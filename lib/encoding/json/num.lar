@@ -30,7 +30,7 @@ public class JsonNum
     public long as_long()
     {
         ulong n;
-        if (try_cast<ulong>(this.v, ref n) && n < (1UL << 63))
+        if (try_cast(this.v, ref n) && n < (1UL << 63))
         {
             return (long)n;
         }
@@ -40,7 +40,7 @@ public class JsonNum
     public ulong as_ulong()
     {
         long n;
-        if (try_cast<long>(this.v, ref n) && n >= 0)
+        if (try_cast(this.v, ref n) && n >= 0)
         {
             return (ulong)n;
         }
@@ -50,12 +50,12 @@ public class JsonNum
     public double as_double()
     {
         long n;
-        if (try_cast<long>(this.v, ref n))
+        if (try_cast(this.v, ref n))
         {
             return (double)n;
         }
         ulong un;
-        if (try_cast<ulong>(this.v, ref un))
+        if (try_cast(this.v, ref un))
         {
             return (double)un;
         }

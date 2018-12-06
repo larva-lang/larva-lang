@@ -1,9 +1,28 @@
+!<<
+
+import (
+    "fmt"
+)
+
+!>>
+
 public interface Any
 {
 }
 
-public native void print(Any a);
-public native void println(Any a);
+public void print(Any a)
+{
+    !<<
+    fmt.Print(lar_go_func_any_to_go_str(l_a))
+    !>>
+}
+
+public void println(Any a)
+{
+    !<<
+    fmt.Println(lar_go_func_any_to_go_str(l_a))
+    !>>
+}
 
 public T zero_value<T>()
 {
@@ -13,10 +32,9 @@ public T zero_value<T>()
 
 public bool try_cast<T>(Any a, ref T t)
 {
-    //考虑到效率，这里的代码由编译器生成，等价go代码如下：
-    /*
-    var ok bool
-    t, ok = a.(T)
-    return ok
-    */
+    bool ok;
+    !<<
+    *l_t, l_ok = l_a.(@<<{T}>>)
+    !>>
+    return ok;
 }

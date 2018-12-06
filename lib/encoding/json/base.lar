@@ -13,7 +13,7 @@ class JsonBase
     public bool is_null()
     {
         JsonNull n;
-        return try_cast<JsonNull>(this.me, ref n);
+        return try_cast(this.me, ref n);
     }
 
     public bool as_bool()
