@@ -3,4 +3,9 @@ public interface Coroutine
     public void run();
 }
 
-public native void start_coroutine(Coroutine co);
+public void start_coroutine(Coroutine co)
+{
+    !<<
+    go lar_booter_start_co(l_co)
+    !>>
+}
