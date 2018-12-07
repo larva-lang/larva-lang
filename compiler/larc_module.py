@@ -1311,6 +1311,19 @@ class Module:
 
             module_name = self.fix_module_name(relative_deep, module_name_token, module_name)
 
+            #分析模块路径中含有internal的情况，internal目录下的模块只允许其上层目录下的模块访问
+            importer = "/" + self.name + "/"
+            importee = "/" + module_name + "/"
+            idx = 0
+            while True:
+                pos = importee.find("/internal/", idx)
+                if pos < 0:
+                    break
+                idx = pos + 1
+                root = importee[: pos]
+                if not importer.startswith(root):
+                    module_name_token.syntax_err("模块'%s'不能引用模块'%s'" % (self.name, module_name))
+
             #检查是否设置别名，没设置则采用module name最后一个域作为名字
             if token_list.peek().is_reserved("as"):
                 token_list.pop()
