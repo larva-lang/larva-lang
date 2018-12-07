@@ -1,4 +1,4 @@
-import time;
+import os, time;
 
 class Record
 {
@@ -259,16 +259,15 @@ void Proc0()
     }
 }
 
-public int main(String[] args)
+public void main()
 {
-    if (args.size() > 1)
+    if (os.args.size() > 1)
     {
-        loops = (int)args[1].parse_long(0);
+        loops = (int)os.args[1].parse_long(0);
     }
     double ts = time.time();
     Proc0();
     double tm = time.time() - ts;
     println("Time used: %f sec".(tm));
     println("This machine benchmarks at %f LarStones/second".((double)loops / tm));
-    return 0;
 }
