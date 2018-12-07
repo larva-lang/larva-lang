@@ -60,7 +60,7 @@ public class HashMap<K, V>
     long find_node(HashMapNode<K, V>[] tbl, K k)
     {
         long mask = tbl.size() - 1; //用位运算代替取余
-        long h = hash<K>(k);
+        long h = hash(k);
         long idx = h & mask;
         /*
         表大小为2的幂，因此探测步长为奇数即可遍历整张表，证明：
@@ -91,7 +91,7 @@ public class HashMap<K, V>
                 continue;
             }
             //当前位置有数据，比对k
-            if (eq<K>(node.k, k))
+            if (eq(node.k, k))
             {
                 //找到了
                 return idx;

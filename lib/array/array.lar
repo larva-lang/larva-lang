@@ -31,7 +31,7 @@ public long index<E>(E[] a, E e)
     long sz = a.size();
     for (long i = 0; i < sz; ++ i)
     {
-        if (util.eq<E>(a[i], e))
+        if (util.eq(a[i], e))
         {
             return i;
         }

@@ -67,7 +67,7 @@ public class Reader
                 }
                 return "".join(sl.iter());
             }
-            long idx = array.index<char>(this.buf_data, '\n');
+            long idx = array.index(this.buf_data, '\n');
             if (idx >= 0)
             {
                 //找到换行符了
