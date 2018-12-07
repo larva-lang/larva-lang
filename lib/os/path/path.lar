@@ -1,2 +1,21 @@
-public native String base_name(String path);
-public native String dir_name(String path);
+!<<
+
+import (
+    "path/filepath"
+)
+
+!>>
+
+public String base_name(String path)
+{
+    !<<
+    return lar_str_from_go_str(filepath.Base(lar_str_to_go_str(l_path)))
+    !>>
+}
+
+public String dir_name(String path)
+{
+    !<<
+    return lar_str_from_go_str(filepath.Dir(lar_str_to_go_str(l_path)))
+    !>>
+}

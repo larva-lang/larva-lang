@@ -1,3 +1,11 @@
+!<<
+
+import (
+    "os"
+)
+
+!>>
+
 public final int
     O_RDONLY,
     O_WRONLY,
@@ -13,23 +21,75 @@ public final int
     SEEK_CUR = 1,
     SEEK_END = 2;
 
-native class _File
-{
-    _File(String file_name, int flag, uint perm);
+!<<
 
-    public long seek(long offset, int whence);
-    public long read(char[] buf);
-    public void write(char[] buf);
-    public void write_str(String s);
-    public void close();
+func init() {
+    lar_gv_@<<O_RDONLY>>    = int32(os.O_RDONLY)
+    lar_gv_@<<O_WRONLY>>    = int32(os.O_WRONLY)
+    lar_gv_@<<O_RDWR>>      = int32(os.O_RDWR)
+    lar_gv_@<<O_APPEND>>    = int32(os.O_APPEND)
+    lar_gv_@<<O_CREAT>>     = int32(os.O_CREATE)
+    lar_gv_@<<O_EXCL>>      = int32(os.O_EXCL)
+    lar_gv_@<<O_SYNC>>      = int32(os.O_SYNC)
+    lar_gv_@<<O_TRUNC>>     = int32(os.O_TRUNC)
 }
+
+!>>
 
 public class File
 {
     public File(String file_name, int flag, uint perm)
     {
-        this.f = new _File(file_name, flag, perm);
+        !<<
+        f, err := os.OpenFile(lar_str_to_go_str(l_file_name), int(l_flag), os.FileMode(l_perm))
+        lar_go_func_@<<throw_on_go_err>>(err)
+        this.f = f
+        !>>
     }
 
-    _File f usemethod;
+    public long seek(long offset, int whence)
+    {
+        !<<
+        new_offset, err := this.f.Seek(l_offset, int(l_whence))
+        lar_go_func_@<<throw_on_go_err>>(err)
+        return new_offset
+        !>>
+    }
+
+    public long read(char[] buf)
+    {
+        !<<
+        n, err := lar_go_func_@<<io.read>>(this.f, l_buf.arr)
+        lar_go_func_@<<throw_on_go_err>>(err)
+        return int64(n)
+        !>>
+    }
+
+    public void write(char[] buf)
+    {
+        !<<
+        _, err := this.f.Write(l_buf.arr)
+        lar_go_func_@<<throw_on_go_err>>(err)
+        !>>
+    }
+
+    public void write_str(String s)
+    {
+        !<<
+        _, err := this.f.WriteString(lar_str_to_go_str(l_s))
+        lar_go_func_@<<throw_on_go_err>>(err)
+        !>>
+    }
+
+    public void close()
+    {
+        !<<
+        err := this.f.Close()
+        lar_go_func_@<<throw_on_go_err>>(err)
+        !>>
+    }
+
+    !<<
+    f *os.File
+    !>>
 }

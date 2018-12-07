@@ -1,3 +1,18 @@
 //os模块，系统相关接口
 
-public native String cwd();
+!<<
+
+import (
+    "os"
+)
+
+!>>
+
+public String cwd()
+{
+    !<<
+    cwd, err := os.Getwd()
+    lar_go_func_@<<throw_on_go_err>>(err)
+    return lar_str_from_go_str(cwd)
+    !>>
+}
