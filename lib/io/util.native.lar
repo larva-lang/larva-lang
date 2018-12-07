@@ -1,4 +1,4 @@
-package LARVA_NATIVE
+!<<
 
 import (
     "io"
@@ -27,3 +27,5 @@ func lar_go_func_@<<io.read>>(r io.Reader, buf []byte) (int, error) {
     }
     panic("unreachable")
 }
+
+!>>
