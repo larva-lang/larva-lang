@@ -466,7 +466,7 @@ def _output_booter():
 def _output_native_code(code, native_code, fom):
     class FakeToken:
         def __init__(self, line_no):
-            self.src_file = native_code.file_name
+            self.src_file = os.path.join(native_code.module.dir, native_code.file_name)
             self.line_no = native_code.t.line_no + line_no
 
     with code.new_native_code():

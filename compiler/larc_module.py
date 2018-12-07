@@ -1037,12 +1037,11 @@ class _GlobalVar:
             module_map[used_dep_module].check_cycle_import_for_gv_init(self, [used_dep_module])
 
 class NativeCode:
-    def __init__(self, module, file_name, gtp_map, t, is_global = False):
+    def __init__(self, module, file_name, gtp_map, t):
         self.module = module
-        self.file_name = os.path.join(module.dir, file_name)
+        self.file_name = file_name
         self.gtp_map = gtp_map
         self.t = t
-        self.is_global = is_global
         self.line_list = t.value[:]
         self._parse()
 
@@ -1106,12 +1105,9 @@ class NativeCode:
                     token.syntax_err("非法的标识符宏")
                 #module_name相当于匿名导入了一个模块，若是global域的native_code则按import流程处理：修正module_name后加入dep_module_set
                 module_name = self.module.fix_module_name(relative_deep, token, module_name)
-                if self.is_global:
-                    self.module.dep_module_set_of_global_native_code.add(module_name)
-                else:
-                    if module_name not in module_map:
-                        #处于代码块中的native_code引用了一个没有被预处理导入的模块，报错
-                        token.syntax_err("模块'%s'需要显式导入" % module_name)
+                if module_name not in self.module.get_dep_module_map(self.file_name).itervalues():
+                    #处于代码块中的native_code引用了一个没有被预处理导入的模块，报错
+                    token.syntax_err("模块'%s'需要显式导入" % module_name)
             elif macro.startswith(":"):
                 #__builtin模块name简写形式
                 module_name = "__builtins"
@@ -1145,7 +1141,6 @@ class Module:
         self.literal_str_list = []
         self.literal_number_list = []
         self.global_native_code_map = {}
-        self.dep_module_set_of_global_native_code = set()
         for file_name in file_name_list:
             self._precompile(file_name)
         self._check_name_conflict()
@@ -1204,7 +1199,7 @@ class Module:
             #解析global域的native_code
             if t.is_native_code:
                 token_list.pop()
-                native_code_list.append(NativeCode(self, file_name, None, t, is_global = True))
+                native_code_list.append(NativeCode(self, file_name, None, t))
                 continue
 
             #解析修饰
@@ -1608,7 +1603,6 @@ class Module:
         dep_module_set = set()
         for m in self.file_dep_module_map_map.itervalues():
             dep_module_set |= set(m.itervalues())
-        dep_module_set |= self.dep_module_set_of_global_native_code
         return dep_module_set
 
     def get_dep_module_map(self, file_name):
