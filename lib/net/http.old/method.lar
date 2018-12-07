@@ -1,2 +1,0 @@
-public final String METHOD_GET  = "GET",
-                    METHOD_POST = "POST";
