@@ -1,4 +1,4 @@
-import time, net, random;
+import time, net, math/rand;
 
 void log(String msg)
 {
@@ -17,7 +17,7 @@ class Client
         bool[] selected = new bool[10];
         for (int i = 0; i < 4; )
         {
-            char c = (char)(random.random() * 10.0);
+            char c = (char)rand.rand_n(10);
             if (selected[c])
             {
                 continue;

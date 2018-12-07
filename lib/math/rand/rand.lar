@@ -1,0 +1,47 @@
+!<<
+
+import (
+    "math/rand"
+    "time"
+)
+
+func init() {
+    t := uint64(time.Now().UnixNano())
+    rand.Seed(int64(t * t))
+}
+
+!>>
+
+//生成一个[0.0, 1.0)的随机数
+public double random()
+{
+    !<<
+    return rand.Float64()
+    !>>
+}
+
+//生成一个[0, n)的随机数，n必须大于0
+public long rand_n(long n)
+{
+    if (n <= 0)
+    {
+        throw(new ValueError("无效的rand_n参数'%s'".(n)));
+    }
+    !<<
+    return rand.Int63n(l_n)
+    !>>
+}
+
+//将给定的数组随机打乱顺序
+public void shuffle<T>(T[] arr)
+{
+    //sz从大到小，循环arr[: sz]区间，每次将最后一个元素和随机元素交换位置
+    for (long sz = arr.size(); sz > 1; -- sz)
+    {
+        long last_i = sz - 1;
+        long rand_i = rand_n(sz);
+        T tmp = arr[last_i];
+        arr[last_i] = arr[rand_i];
+        arr[rand_i] = tmp;
+    }
+}
