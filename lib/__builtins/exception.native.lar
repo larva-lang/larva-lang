@@ -1,4 +1,4 @@
-package LARVA_NATIVE
+!<<
 
 import (
     "runtime"
@@ -7,31 +7,6 @@ import (
     "reflect"
     "errors"
 )
-
-func lar_func_@<<throw>>(t lar_intf_@<<Throwable>>) {
-    panic(lar_exc_create_catched_throwable(t, 2))
-}
-
-func lar_func_@<<_rethrow_catched>>(c *lar_gcls_inst_@<<Catched>>_1_lar_intf_@<<Throwable>>) {
-    panic(c)
-}
-
-func lar_func_@<<_go_recovered_to_catched>>(r interface{}) *lar_gcls_inst_@<<Catched>>_1_lar_intf_@<<Throwable>> {
-    if r == nil {
-        return nil
-    }
-    c, ok := r.(*lar_gcls_inst_@<<Catched>>_1_lar_intf_@<<Throwable>>)
-    if ok {
-        return c
-    }
-    //不是larva自己的异常，检查下是否需要转换
-    c = lar_exc_convert_go_recovered_to_lar_throwed(r)
-    if c == nil {
-        //转换失败
-        panic(r)
-    }
-    return c
-}
 
 /*
 tb信息格式：
@@ -138,18 +113,6 @@ func lar_exc_convert_go_recovered_to_lar_throwed(r interface{}) *lar_gcls_inst_@
     return nil
 }
 
-type lar_cls_@<<GoError>> struct {
-    err error
-}
-
-func (this *lar_cls_@<<GoError>>) lar_method_str() *lar_cls_@<<String>> {
-    return lar_str_from_go_str("[GoError]" + this.err.Error())
-}
-
-func (this *lar_cls_@<<GoError>>) lar_method_go_err() *lar_cls_@<<GoError>> {
-    return this
-}
-
 //捕获的异常转换为go的error
 func (this *lar_gcls_inst_@<<Catched>>_1_lar_intf_@<<Throwable>>) lar_go_method_to_go_err() error {
     //若本身包含go的异常，直接返回即可
@@ -181,3 +144,5 @@ func lar_go_func_@<<catch_go_err>>(err_ptr *error) {
         *err_ptr = c.lar_go_method_to_go_err()
     }
 }
+
+!>>

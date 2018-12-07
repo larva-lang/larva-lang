@@ -5,7 +5,12 @@ public interface Throwable
 }
 
 //抛出异常
-public native void throw(Throwable t);
+public void throw(Throwable t)
+{
+    !<<
+    panic(lar_exc_create_catched_throwable(l_t, 2))
+    !>>
+}
 
 //捕获语法返回的对象：抛出的对象+traceback的组合
 //定义：Catched<Throwable>是所有Catched对象的base
@@ -19,7 +24,10 @@ public class Catched<T>
 
     public void rethrow()
     {
-        _rethrow_catched(new Catched<Throwable>(this.t, this.tb));
+        var c = new Catched<Throwable>(this.t, this.tb);
+        !<<
+        panic(l_c)
+        !>>
     }
 
     public T throwed()
@@ -36,9 +44,6 @@ public class Catched<T>
     String tb;
 }
 
-//继续往上抛当前Catched对象，维持对象不变，即和再次throw的区别在于traceback可以保持不变
-native void _rethrow_catched(Catched<Throwable> c);
-
 //assert函数
 public void assert(bool b, String s)
 {
@@ -54,36 +59,61 @@ public void assert(bool b, String s)
 下面的catch相关的代码较为特殊，编译器会在代码生成阶段做一些特殊修改
 主要原因在于：go规定recover必须在defer func中直接执行，即直接defer recover()或在defer func中调用的函数里用recover都无法捕获panic
 因此必须在larva调用下面两个catch函数的时候，同时调用recover并将结果传进来，但语法上让程序员无感知
-编译器的大致处理步骤就是在代码生成部分对这两个catch增加参数（定义和调用都需要调整），为了对代码实现影响最小，用了一个假的全局变量欺骗语法检查
-相关trick代码元素都以下划线开头，以示区别
+编译器的大致处理步骤就是在代码生成部分对这两个catch增加参数（定义和调用都需要调整），在代码实现中用native_code处理额外增加的参数
 */
 
-Any _go_recovered;
-
-native Catched<Throwable> _go_recovered_to_catched(Any _r);
+//将recover捕获的go的异常（直接作为Any）转为larva的Catched对象
+Catched<Throwable> _go_recovered_to_catched(Any r)
+{
+    if (r == nil) {
+        return nil;
+    }
+    Catched<Throwable> c;
+    if (try_cast(r, ref c))
+    {
+        return c;
+    }
+    !<<
+    //不是larva自己的异常，检查下是否需要转换
+    l_c = lar_exc_convert_go_recovered_to_lar_throwed(l_r)
+    if l_c == nil {
+        //转换失败
+        panic(l_r)
+    }
+    !>>
+    return c;
+}
 
 //捕获base
 public Catched<Throwable> catch_base(/*Any _go_recovered*/)
 {
-    return _go_recovered_to_catched(_go_recovered);
+    Any r;
+    !<<
+    l_r = _go_recovered
+    !>>
+    return _go_recovered_to_catched(r);
 }
 
 //捕获指定类型的异常
 public Catched<T> catch<T>(/*Any _go_recovered*/)
 {
-    var c = _go_recovered_to_catched(_go_recovered);
+    Any r;
+    !<<
+    l_r = _go_recovered
+    !>>
+    var c = _go_recovered_to_catched(r);
     if (c == nil)
     {
         //无异常
         return nil;
     }
     T throwed;
-    if (!try_cast(c.throwed(), ref throwed))
+    if (try_cast(c.throwed(), ref throwed))
     {
-        //不是当前需要的类型，继续往上抛
-        c.rethrow();
+        return new Catched<T>(throwed, c.traceback());
     }
-    return new Catched<T>(throwed, c.traceback());
+    //不是当前需要的类型，继续往上抛
+    c.rethrow();
 }
 
 //---------------------------------------------------------------------
@@ -223,10 +253,23 @@ public class TimeoutError
 }
 
 //go的error类型的一个port，用于一些native代码从error到异常的转换
-public native class GoError
+public class GoError
 {
-    public String str();
-    public GoError go_err();
+    public String str()
+    {
+        !<<
+        return lar_str_from_go_str("[GoError]" + this.err.Error())
+        !>>
+    }
+
+    public GoError go_err()
+    {
+        return this;
+    }
+
+    !<<
+    err error
+    !>>
 }
 
 public interface GoErrorPorter

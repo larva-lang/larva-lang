@@ -699,7 +699,7 @@ def _output_module():
                 continue
             if module.name == "__builtins" and func.name in ("catch_base", "catch"):
                 assert not func.arg_map
-                arg_def = "%s interface{}" % _gen_gv_name(module.global_var_map["_go_recovered"])
+                arg_def = "_go_recovered interface{}"
             else:
                 arg_def = _gen_arg_def(func.arg_map)
             with code.new_blk("func %s(%s) %s" % (_gen_func_name(func), arg_def, _gen_type_name_code(func.type))):
