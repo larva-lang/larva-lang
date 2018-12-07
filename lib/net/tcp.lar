@@ -1,32 +1,99 @@
-native class _TcpListener
-{
-    _TcpListener(String addr);
+import io;
 
-    public String addr();
-    public TcpConn accept();
-    public void close();
-}
+!<<
+
+import (
+    "net"
+)
+
+!>>
 
 public class TcpListener
 {
     public TcpListener(String addr)
     {
-        this.tl = new _TcpListener(addr);
+        !<<
+        tcp_addr, err := net.ResolveTCPAddr("tcp", lar_str_to_go_str(l_addr))
+        lar_go_func_@<<throw_on_go_err>>(err)
+        ntl, err := net.ListenTCP("tcp", tcp_addr)
+        lar_go_func_@<<throw_on_go_err>>(err)
+        this.ntl = ntl
+        !>>
     }
 
-    _TcpListener tl usemethod;
-}
+    public String addr()
+    {
+        !<<
+        return lar_str_from_go_str(this.ntl.Addr().String())
+        !>>
+    }
 
-native class _TcpConn
-{
-    public String local_addr();
-    public String remote_addr();
-    public long read(char[] buf);
-    public void write(char[] buf);
-    public void close();
+    public TcpConn accept()
+    {
+        !<<
+        ntc, err := this.ntl.AcceptTCP()
+        lar_go_func_@<<throw_on_go_err>>(err)
+        return &lar_cls_@<<TcpConn>>{
+            ntc: ntc,
+        }
+        !>>
+    }
+
+    public void close()
+    {
+        !<<
+        err := this.ntl.Close()
+        lar_go_func_@<<throw_on_go_err>>(err)
+        !>>
+    }
+
+    !<<
+    ntl *net.TCPListener
+    !>>
 }
 
 public class TcpConn
 {
-    _TcpConn tc usemethod;
+    public String local_addr()
+    {
+        !<<
+        return lar_str_from_go_str(this.ntc.LocalAddr().String())
+        !>>
+    }
+
+    public String remote_addr()
+    {
+        !<<
+        return lar_str_from_go_str(this.ntc.RemoteAddr().String())
+        !>>
+    }
+
+    public long read(char[] buf)
+    {
+        !<<
+        n, err := lar_go_func_@<<io.read>>(this.ntc, l_buf.arr)
+        lar_go_func_@<<throw_on_go_err>>(err)
+        return int64(n)
+        !>>
+    }
+
+    public void write(char[] buf)
+    {
+        !<<
+        _, err := this.ntc.Write(l_buf.arr)
+        lar_go_func_@<<throw_on_go_err>>(err)
+        !>>
+    }
+
+    public void close()
+    {
+        !<<
+        err := this.ntc.Close()
+        lar_go_func_@<<throw_on_go_err>>(err)
+        !>>
+    }
+
+    !<<
+    ntc *net.TCPConn
+    !>>
 }

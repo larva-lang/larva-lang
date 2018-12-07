@@ -1,3 +1,13 @@
+!<<
+
+import (
+    "net"
+    "os"
+    "syscall"
+)
+
+!>>
+
 public class Error
 {
     public bool is_timeout()
@@ -20,3 +30,33 @@ public class Error
     bool _is_temporary;
     int _errno;
 }
+
+!<<
+
+func lar_go_func_@<<new_Error>>(e error) *lar_cls_@<<Error>> {
+    le := &lar_cls_@<<Error>>{
+        m_e: &lar_cls_@<<:GoError>>{
+            err: e,
+        },
+    }
+    if ne, ok := e.(net.Error); ok {
+        le.m__is_timeout = ne.Timeout()
+        le.m__is_temporary = ne.Temporary()
+    }
+    if op_err, ok := e.(*net.OpError); ok {
+        if syscall_err, ok := op_err.Err.(*os.SyscallError); ok {
+            if errno_err, ok := syscall_err.Err.(syscall.Errno); ok {
+                le.m__errno = int32(errno_err)
+            }
+        }
+    }
+    return le
+}
+
+func lar_go_func_@<<throw_on_go_err>>(err error) {
+    if err != nil {
+        lar_func_@<<:throw>>(lar_go_func_@<<new_Error>>(err))
+    }
+}
+
+!>>
