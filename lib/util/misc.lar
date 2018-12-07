@@ -1,7 +1,32 @@
 import reflect;
 
-native long hash_float(float n);
-native long hash_double(double n);
+!<<
+
+import (
+    "unsafe"
+)
+
+!>>
+
+long hash_float(float n)
+{
+    if (n == 0.0f || n == -0.0f) {
+        return 0;
+    }
+    !<<
+    return int64(*(*uint32)(unsafe.Pointer(&l_n)))
+    !>>
+}
+
+long hash_double(double n)
+{
+    if (n == 0.0 || n == -0.0) {
+        return 0;
+    }
+    !<<
+    return *(*int64)(unsafe.Pointer(&l_n))
+    !>>
+}
 
 //通用的计算hash的方法，保证返回非负
 public long hash<T>(T t)
