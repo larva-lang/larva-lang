@@ -28,11 +28,7 @@ type lar_util_lar_tb struct {
 func lar_util_convert_go_tb_to_lar_tb(file string, line int, func_name string) (string, int, string, bool) {
     lar_tb, ok := lar_util_tb_map[lar_util_go_tb{file: file, line: line}]
     if !ok {
-        //没找到对应的，再尝试转换一下native file name，抹掉func_name
-        fn, ok := lar_util_native_file_name_map[file]
-        if ok {
-            file = fn
-        }
+        //没找到对应的，抹掉函数名后返回
         return file, line, "", true
     }
     if lar_tb == nil {

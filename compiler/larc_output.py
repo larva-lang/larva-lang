@@ -609,7 +609,6 @@ def _output_stmt_list(code, stmt_list):
 
 _literal_token_id_set = set()
 
-_native_file_name_map = {}
 
 _curr_module = None
 def _output_module():
@@ -663,8 +662,6 @@ def _output_module():
             code.switch_file(cls.file_name)
             lar_cls_name = _gen_coi_name(cls)
             output_reflect_method(code)
-            if "native" in cls.decr_set:
-                continue
             with code.new_blk("type %s struct" % (lar_cls_name)):
                 for native_code in cls.native_code_list:
                     _output_native_code(code, native_code, "<module>")
@@ -695,8 +692,6 @@ def _output_module():
 
         for func in [i for i in module.func_map.itervalues() if not i.gtp_name_list] + list(module.gfunc_inst_map.itervalues()):
             code.switch_file(func.file_name)
-            if "native" in func.decr_set:
-                continue
             if module.name == "__builtins" and func.name in ("catch_base", "catch"):
                 assert not func.arg_map
                 arg_def = "_go_recovered interface{}"
@@ -705,24 +700,6 @@ def _output_module():
             with code.new_blk("func %s(%s) %s" % (_gen_func_name(func), arg_def, _gen_type_name_code(func.type))):
                 _output_stmt_list(code, func.stmt_list)
                 code += "return %s" % _gen_default_value_code(func.type)
-
-    #输出native实现
-    for sub_mod_name, nf in module.native_file_map.iteritems():
-        nf.line_list[0] = ["package %s" % _prog_module_name]
-        nfn = "%s/%s.mod.%s.native.%s.N.go" % (_out_prog_dir, _prog_module_name, _gen_module_name_code(module), sub_mod_name)
-        f = open(nfn, "w")
-        for line in nf.line_list:
-            s = ""
-            for i in line:
-                if isinstance(i, str):
-                    s += i
-                else:
-                    assert isinstance(i, tuple)
-                    module_name, name = i
-                    s += "%s_%d_%s" % (_gen_module_name_code(larc_module.module_map[module_name]), len(name), name)
-            print >> f, s.rstrip()
-        f.close()
-        _native_file_name_map[nfn] = nf.file_path_name
 
 def _output_util():
     #拷贝runtime中固定的util代码
@@ -829,11 +806,6 @@ def _output_util():
                     code += ("lar_util_go_tb{file: %s, line: %d}: &lar_util_lar_tb{file: %s, line: %d, fom_name: %s}," %
                              (_gen_str_literal(go_file_name), go_line_no, _gen_str_literal(lar_file_name), lar_line_no,
                               _gen_str_literal(lar_fom_name)))
-
-        #native文件名映射信息
-        with code.new_blk("var lar_util_native_file_name_map = map[string]string"):
-            for out_nfn, in_nfn in _native_file_name_map.iteritems():
-                code += "%s: %s," % (_gen_str_literal(out_nfn), _gen_str_literal(in_nfn))
 
 def _make_prog():
     if platform.system() in ("Darwin", "Linux"):
