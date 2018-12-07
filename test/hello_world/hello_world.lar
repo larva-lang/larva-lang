@@ -1,5 +1,4 @@
-public int main(String[] args)
+public void main()
 {
     println("hello world");
-    return 0;
 }

@@ -137,7 +137,7 @@ class Client
     }
 }
 
-public int main(String[] args)
+public void main()
 {
     net.TcpListener listener = new net.TcpListener(":9999");
     defer listener.close();
@@ -159,5 +159,4 @@ public int main(String[] args)
 
         start_coroutine(new Client(new_client));
     }
-    return 0;
 }

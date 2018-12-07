@@ -1438,13 +1438,10 @@ class Module:
         main_func = self.func_map["main"]
         if main_func.gtp_name_list:
             larc_common.exit("主模块[%s]的main函数不能是泛型函数" % self)
-        if main_func.type != larc_type.INT_TYPE:
-            larc_common.exit("主模块[%s]的main函数返回类型必须为int" % self)
-        if len(main_func.arg_map) != 1:
-            larc_common.exit("主模块[%s]的main函数只能有一个类型为'__builtins.String[]'的参数" % self)
-        tp = main_func.arg_map.value_at(0)
-        if tp.array_dim_count != 1 or tp.is_ref or tp.to_elem_type() != larc_type.STR_TYPE:
-            larc_common.exit("主模块[%s]的main函数的参数类型必须为'__builtins.String[]'" % self)
+        if main_func.type != larc_type.VOID_TYPE:
+            larc_common.exit("主模块[%s]的main函数的返回类型应为'void'" % self)
+        if len(main_func.arg_map) != 0:
+            larc_common.exit("主模块[%s]的main函数不能有参数" % self)
         if "public" not in main_func.decr_set:
             larc_common.exit("主模块[%s]的main函数必须是public的" % self)
 

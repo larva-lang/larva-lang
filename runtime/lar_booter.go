@@ -17,8 +17,7 @@ func lar_booter_check_go_panic() {
     }
 }
 
-func lar_booter_start_prog(main_mod_init_func func (), main_func func (*lar_arr_lar_cls_10___builtins_6_String_1) int32,
-                           argv *lar_arr_lar_cls_10___builtins_6_String_1) int {
+func lar_booter_start_prog(main_mod_init_func func (), main_func func ()) {
     defer lar_booter_check_go_panic()
     defer func () {
         c := lar_func_10___builtins_10_catch_base(recover())
@@ -28,7 +27,7 @@ func lar_booter_start_prog(main_mod_init_func func (), main_func func (*lar_arr_
     }()
     lar_env_init_mod_10___builtins()
     main_mod_init_func()
-    return int(main_func(argv))
+    main_func()
 }
 
 func lar_booter_start_co(co lar_intf_10___builtins_9_Coroutine) {
