@@ -123,9 +123,10 @@ class _CoiBase:
         self.id = larc_common.new_id()
         self.is_cls = isinstance(self, _Cls)
         self.is_gcls_inst = isinstance(self, _GclsInst)
+        self.is_closure = isinstance(self, _Closure)
         self.is_intf = isinstance(self, _Intf)
         self.is_gintf_inst = isinstance(self, _GintfInst)
-        assert [self.is_cls, self.is_gcls_inst, self.is_intf, self.is_gintf_inst].count(True) == 1
+        assert [self.is_cls, self.is_gcls_inst, self.is_closure, self.is_intf, self.is_gintf_inst].count(True) == 1
 
     def is_intf_any(self):
         return (self.is_intf or self.is_gintf_inst) and not self.method_map
@@ -266,9 +267,6 @@ class _ClsBase(_CoiBase):
             self.method_map[method.name] = method
 
         self.usemethod_stat = "expanded"
-
-    def has_method_or_attr(self, name):
-        return name in self.attr_map or name in self.method_map
 
     def get_method_or_attr(self, name, token):
         if name in self.method_map:
@@ -484,7 +482,7 @@ class _Cls(_ClsBase):
         for name_t, name in zip(self.gtp_name_t_list, self.gtp_name_list):
             for m in self.module, builtins_module:
                 if m is not None:
-                    elem = self.module.get_elem(name, public_only = m is builtins_module)
+                    elem = m.get_elem(name, public_only = m is builtins_module)
                     if elem is not None:
                         name_t.syntax_err("泛型参数'%s'和'%s'名字冲突" % (name, elem))
         self.construct_method.check_name_conflict()
@@ -629,6 +627,87 @@ class _GclsInst(_ClsBase):
             method.compile()
         self.compiled = True
         return True
+
+class _ClosureMethod:
+    def __init__(self, closure, token_list):
+        self.closure = closure
+
+        self.module = closure.module
+        self.file_name = closure.file_name
+        self.cls = closure.cls
+
+        self.decr_set = None
+        self.type = None
+        self.name = None
+        self.arg_name_t_list = None
+        self.arg_map = None
+        self.stmt_list = None
+
+        self._parse(token_list)
+
+    __repr__ = __str__ = lambda self: "%s.%s" % (self.closure, self.name)
+
+    def _parse(self, token_list):
+        dep_module_map = self.module.get_dep_module_map(self.file_name)
+
+        #解析修饰
+        t = token_list.peek()
+        self.decr_set = _parse_decr_set(token_list)
+        if set(["final"]) & self.decr_set:
+            t.syntax_err("方法不能用final修饰")
+
+        self.type = larc_type.parse_type(token_list, dep_module_map)
+        t, self.name = token_list.pop_name()
+        if self.name in self.closure.method_map:
+            t.syntax_err("方法名重定义")
+        token_list.pop_sym("(")
+        self.arg_name_t_list, self.arg_map = _parse_arg_map(token_list, dep_module_map,
+                                                            [] if self.closure.gtp_map is None else list(self.closure.gtp_map))
+        token_list.pop_sym(")")
+        for arg_name_t, arg_name in zip(self.arg_name_t_list, self.arg_map):
+            #对每个arg看做是一个新的stmt块定义的变量来做检查，其中arg_map的内部名字冲突已经检查过了，var_map_stk追加一个空dict即可
+            larc_stmt.check_var_redefine(arg_name_t, arg_name, self.closure.var_map_stk + (larc_common.OrderedDict(),), self.module,
+                                         dep_module_map, self.closure.gtp_map, is_arg = True)
+
+        token_list.pop_sym("{")
+        self.stmt_list = larc_stmt.Parser(token_list, self.module, dep_module_map, self.cls, self.closure.gtp_map,
+                                          self).parse(self.closure.var_map_stk + (self.arg_map.copy(),), 0, 0)
+        token_list.pop_sym("}")
+
+#闭包，相当于一个没有attr的匿名类，各闭包根据id区分，这里只记录method的接口形式，具体代码由闭包对象对应代码的expr本身记录
+class _Closure(_CoiBase):
+    def __init__(self, module, file_name, closure_token, cls, gtp_map, var_map_stk):
+        _CoiBase.__init__(self)
+        self.module = module
+        self.file_name = file_name
+        self.closure_token = closure_token
+        self.cls = cls
+        self.gtp_map = gtp_map
+        self.var_map_stk = copy.deepcopy(var_map_stk) #copy下来，保持闭包所在位置的变量栈原始状况
+        #closure本身不算正式的模块元素，所以这个名字就算刚好和其他定义重名了也没关系，
+        #closure_map在get_coi使用时候会根据type的is_closure属性来区分
+        self.name = "closure_%d" % self.id
+        self.method_map = larc_common.OrderedDict()
+
+    __repr__ = __str__ = (
+        lambda self: ("closure[%s:%s:%s:%s]%s" %
+                      (self.module, self.file_name, self.closure_token.line_no, self.closure_token.pos + 1,
+                       "" if self.gtp_map is None else "<%s>" % ", ".join([str(tp) for tp in self.gtp_map.itervalues()]))))
+
+    def get_method_or_attr(self, name, token):
+        if name in self.method_map:
+            return self.method_map[name], None
+        token.syntax_err("闭包'%s'没有方法'%s'" % (self, name))
+
+    def parse(self, token_list):
+        token_list.pop_sym("{")
+        while True:
+            if token_list.peek().is_sym("}"):
+                token_list.pop_sym("}")
+                return
+
+            method = _ClosureMethod(self, token_list)
+            self.method_map[method.name] = method
 
 #下面_Intf和_GintfInst的基类，只用于定义一些通用属性和方法
 class _IntfBase(_CoiBase):
@@ -815,7 +894,7 @@ class _Intf(_IntfBase):
         for name_t, name in zip(self.gtp_name_t_list, self.gtp_name_list):
             for m in self.module, builtins_module:
                 if m is not None:
-                    elem = self.module.get_elem(name, public_only = m is builtins_module)
+                    elem = m.get_elem(name, public_only = m is builtins_module)
                     if elem is not None:
                         name_t.syntax_err("泛型参数'%s'和'%s'名字冲突" % (name, elem))
         for method in self.method_map.itervalues():
@@ -924,7 +1003,7 @@ class _Func(_FuncBase):
         for name_t, name in zip(self.gtp_name_t_list, self.gtp_name_list):
             for m in self.module, builtins_module:
                 if m is not None:
-                    elem = self.module.get_elem(name, public_only = m is builtins_module)
+                    elem = m.get_elem(name, public_only = m is builtins_module)
                     if elem is not None:
                         name_t.syntax_err("泛型参数'%s'和'%s'名字冲突" % (name, elem))
         for name_t, name in zip(self.arg_name_t_list, self.arg_map):
@@ -1025,8 +1104,8 @@ class _GlobalVar:
         if self.expr_token_list is None:
             self.expr = None
         else:
-            self.expr = larc_expr.Parser(self.expr_token_list, self.module, self.module.get_dep_module_map(self.file_name), None,
-                                         None, None, self.used_dep_module_set).parse((), self.type)
+            self.expr = larc_expr.Parser(self.expr_token_list, self.module, self.file_name, self.module.get_dep_module_map(self.file_name),
+                                         None, None, None, used_dep_module_set = self.used_dep_module_set).parse((), self.type)
             t, sym = self.expr_token_list.pop_sym()
             assert not self.expr_token_list and sym in (";", ",")
         del self.expr_token_list
@@ -1133,6 +1212,7 @@ class Module:
         self.file_dep_module_map_map = {}
         self.cls_map = larc_common.OrderedDict()
         self.gcls_inst_map = larc_common.OrderedDict()
+        self.closure_map = larc_common.OrderedDict()
         self.intf_map = larc_common.OrderedDict()
         self.gintf_inst_map = larc_common.OrderedDict()
         self.func_map = larc_common.OrderedDict()
@@ -1496,6 +1576,10 @@ class Module:
         return self.intf_map[name]
 
     def get_coi(self, type):
+        #closure特殊处理
+        if type.is_closure:
+            return self.closure_map[type.name]
+
         is_cls = is_intf = False
         if type.name in self.cls_map:
             is_cls = True
@@ -1620,6 +1704,11 @@ class Module:
 
     def get_dep_module_map(self, file_name):
         return self.file_dep_module_map_map[file_name]
+
+    def new_closure(self, file_name, closure_token, cls, gtp_map, var_map_stk):
+        closure = _Closure(self, file_name, closure_token, cls, gtp_map, var_map_stk)
+        self.closure_map[closure.name] = closure
+        return closure
 
 #反复对所有新增的ginst进行check type，直到完成
 def check_type_for_ginst():

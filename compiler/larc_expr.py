@@ -246,9 +246,10 @@ def _is_expr_end(t):
     return False
 
 class Parser:
-    def __init__(self, token_list, curr_module, dep_module_map, cls, gtp_map, fom, used_dep_module_set = None):
+    def __init__(self, token_list, curr_module, file_name, dep_module_map, cls, gtp_map, fom, used_dep_module_set = None):
         self.token_list = token_list
         self.curr_module = curr_module
+        self.file_name = file_name
         self.dep_module_map = dep_module_map
         self.cls = cls
         self.gtp_map = gtp_map
@@ -296,7 +297,11 @@ class Parser:
                     for var_map in reversed(var_map_stk):
                         if t.value in var_map:
                             #局部变量
-                            parse_stk.push_expr(_Expr("local_var", t.value, var_map[t.value]))
+                            tp = var_map[t.value]
+                            if tp is None:
+                                #初始化变量的时候引用了变量本身
+                                t.syntax_err("变量'%s'在初始化前使用" % (t.value))
+                            parse_stk.push_expr(_Expr("local_var", t.value, tp))
                             break
                     else:
                         #当前模块或builtin模块
@@ -427,6 +432,13 @@ class Parser:
                 if self.cls is None:
                     t.syntax_err("'this'只能用于方法中")
                 parse_stk.push_expr(_Expr("this", t, larc_type.gen_type_from_cls(self.cls)))
+            elif t.is_sym("["):
+                #闭包对象
+                self.token_list.pop_sym("]")
+                closure_token = larc_token.make_fake_token_name("closure").copy_on_pos(t)
+                closure = self.curr_module.new_closure(self.file_name, closure_token, self.cls, self.gtp_map, var_map_stk)
+                closure.parse(self.token_list)
+                parse_stk.push_expr(_Expr("closure", closure, larc_type.gen_closure_type(closure)))
             else:
                 t.syntax_err("非法的表达式")
 

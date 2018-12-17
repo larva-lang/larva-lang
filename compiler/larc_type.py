@@ -13,7 +13,8 @@ import larc_token
 _BASE_TYPE_LIST = ("void", "bool", "schar", "char", "short", "ushort", "int", "uint", "long", "ulong", "float", "double")
 
 class _Type:
-    def __init__(self, (name_token, name), token_list, dep_module_map, module_name = None, non_array = False, is_ref = False):
+    def __init__(self, (name_token, name), token_list, dep_module_map, module_name = None, non_array = False, is_ref = False,
+                 is_closure = False):
         self.token = name_token
         self.name = name
         self.module_name = module_name
@@ -33,6 +34,7 @@ class _Type:
                 token_list.pop_sym("]")
                 self.array_dim_count += 1
         self.is_ref = is_ref
+        self.is_closure = is_closure
         self._set_is_XXX()
         self.is_checked = False
         self.is_freezed = False
@@ -91,6 +93,7 @@ class _Type:
         tp = _Type((self.token, self.name), None, None, module_name = self.module_name)
         tp.gtp_list = self.gtp_list
         tp.array_dim_count = self.array_dim_count + array_dim_count
+        tp.is_closure = self.is_closure
         tp._set_is_XXX()
         tp._set_is_checked()
         return tp
@@ -100,6 +103,7 @@ class _Type:
         tp = _Type((self.token, self.name), None, None, module_name = self.module_name)
         tp.gtp_list = self.gtp_list
         tp.array_dim_count = self.array_dim_count - 1
+        tp.is_closure = self.is_closure
         tp._set_is_XXX()
         tp._set_is_checked()
         return tp
@@ -187,6 +191,7 @@ class _Type:
                 self.module_name = tp.module_name
                 self.gtp_list = tp.gtp_list
                 self.array_dim_count += tp.array_dim_count #数组维度是累加的
+                self.is_closure = tp.is_closure
                 self._set_is_XXX()
                 if used_dep_module_set is not None:
                     used_dep_module_set.add(self.module_name)
@@ -383,6 +388,14 @@ def gen_type_from_cls(cls):
     #这个类型没必要check了，校验一下get_coi正常就直接返回
     tp._set_is_checked()
     assert tp.get_coi() is cls
+    return tp
+
+#构建一个闭包的类型，用于闭包表达式
+def gen_closure_type(closure):
+    tp = _Type((larc_token.make_fake_token_name(closure.name), closure.name), None, None, module_name = closure.module.name, is_closure = True)
+    #这个类型没必要check了，校验一下get_coi正常就直接返回
+    tp._set_is_checked()
+    assert tp.get_coi() is closure
     return tp
 
 #构建一个_Iter<E>的type，方便foreach语法检查

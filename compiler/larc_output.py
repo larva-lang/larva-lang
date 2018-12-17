@@ -429,6 +429,10 @@ def _gen_expr_code_ex(expr):
             expr_list_code = _gen_expr_list_code(expr_list)
         return "%s(%s)" % (_gen_func_name(func), expr_list_code)
 
+    if expr.op == "closure":
+        closure = expr.arg
+        raise
+
     raise Exception("Bug")
 
 def _gen_arg_def(arg_map):

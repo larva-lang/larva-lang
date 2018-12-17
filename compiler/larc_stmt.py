@@ -47,7 +47,7 @@ class Parser:
         self.gtp_map = gtp_map
         self.fom = fom
         self.file_name = self.fom.file_name if self.cls is None else self.cls.file_name
-        self.expr_parser = larc_expr.Parser(token_list, module, dep_module_map, cls, gtp_map, fom)
+        self.expr_parser = larc_expr.Parser(token_list, module, self.file_name, dep_module_map, cls, gtp_map, fom)
         self.ccc_use_deep = 0
 
     def parse(self, var_map_stk, loop_deep, defer_deep):
@@ -237,6 +237,7 @@ class Parser:
     def _parse_var(self, var_tp, var_map_stk):
         t, name = self.token_list.pop_name()
         self._check_var_redefine(t, name, var_map_stk)
+        var_map_stk[-1][name] = None #先将其设置到var_map，因为下面解析初始化的表达式流程可能需要用到
         if var_tp is None:
             #var语法
             self.token_list.pop_sym("=")
@@ -277,19 +278,7 @@ class Parser:
             t.syntax_err("表达式求值后未使用")
 
     def _check_var_redefine(self, t, name, var_map_stk):
-        if name in self.dep_module_map:
-            t.syntax_err("变量名和导入模块重名")
-        if name in var_map_stk[-1]:
-            t.syntax_err("变量名重定义")
-        for var_map in var_map_stk[: -1]:
-            if name in var_map:
-                t.syntax_err("与上层的变量名冲突")
-        if self.gtp_map is not None and name in self.gtp_map:
-            t.syntax_err("变量名与泛型参数名冲突")
-        for m in self.module, larc_module.builtins_module:
-            elem = m.get_elem(name, public_only = m is larc_module.builtins_module)
-            if elem is not None:
-                t.syntax_err("变量名与'%s'名字冲突" % elem)
+        check_var_redefine(t, name, var_map_stk, self.module, self.dep_module_map, self.gtp_map)
 
     def _parse_return(self, var_map_stk):
         if self.fom.type.is_void:
@@ -466,3 +455,18 @@ class Parser:
             if not self.token_list.peek().is_sym(","):
                 return expr_list
             self.token_list.pop_sym(",")
+
+def check_var_redefine(t, name, var_map_stk, module, dep_module_map, gtp_map, is_arg = False):
+    if name in dep_module_map:
+        t.syntax_err("变量名和导入模块重名")
+    if name in var_map_stk[-1]:
+        t.syntax_err("变量名重定义")
+    for var_map in var_map_stk[: -1]:
+        if name in var_map:
+            t.syntax_err("与上层的变量名冲突")
+    if gtp_map is not None and name in gtp_map:
+        t.syntax_err("变量名与泛型参数名冲突")
+    for m in module, larc_module.builtins_module:
+        elem = m.get_elem(name, public_only = m is not module and m is larc_module.builtins_module)
+        if elem is not None:
+            t.syntax_err("%s名与'%s'名字冲突" % ("参数" if is_arg else "变量", elem))
