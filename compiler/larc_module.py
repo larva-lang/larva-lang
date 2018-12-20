@@ -669,6 +669,9 @@ class _ClosureMethod:
             larc_stmt.check_var_redefine(arg_name_t, arg_name, self.closure.var_map_stk + (larc_common.OrderedDict(),), self.module,
                                          dep_module_map, self.closure.gtp_map, is_arg = True)
 
+        for tp in [self.type] + list(self.arg_map.itervalues()):
+            tp.check(self.module, gtp_map = self.closure.gtp_map)
+
         token_list.pop_sym("{")
         self.stmt_list = larc_stmt.Parser(token_list, self.module, dep_module_map, self.cls, self.closure.gtp_map,
                                           self).parse(self.closure.var_map_stk + (self.arg_map.copy(),), 0, 0)
