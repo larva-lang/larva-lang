@@ -256,6 +256,14 @@ class Parser:
         self.fom = fom
         self.used_dep_module_set = used_dep_module_set
 
+        self.new_closure_hook_stk = []
+
+    def push_new_closure_hook(self, new_closure_hook):
+        self.new_closure_hook_stk.append(new_closure_hook)
+
+    def pop_new_closure_hook(self):
+        self.new_closure_hook_stk.pop()
+
     def parse(self, var_map_stk, need_type):
         start_token = self.token_list.peek()
         parse_stk = _ParseStk(start_token, self.curr_module, self.cls, self.fom)
@@ -434,10 +442,13 @@ class Parser:
                 parse_stk.push_expr(_Expr("this", t, larc_type.gen_type_from_cls(self.cls)))
             elif t.is_sym("["):
                 #闭包对象
+                if self.fom is None:
+                    t.syntax_err("闭包只能用于函数或方法中")
                 self.token_list.pop_sym("]")
                 closure_token = larc_token.make_fake_token_name("closure").copy_on_pos(t)
                 closure = self.curr_module.new_closure(self.file_name, closure_token, self.cls, self.gtp_map, var_map_stk)
                 closure.parse(self.token_list)
+                self.new_closure_hook_stk[-1](closure)
                 parse_stk.push_expr(_Expr("closure", closure, larc_type.gen_closure_type(closure)))
             else:
                 t.syntax_err("非法的表达式")

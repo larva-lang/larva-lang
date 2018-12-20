@@ -53,6 +53,14 @@ class Parser:
     def parse(self, var_map_stk, loop_deep, defer_deep):
         assert var_map_stk
         stmt_list = _StmtList(var_map_stk[-1])
+        def new_closure_hook(closure):
+            stmt_list.append(_Stmt("def_closure_method", closure = closure))
+        self.expr_parser.push_new_closure_hook(new_closure_hook)
+        self._parse(var_map_stk, loop_deep, defer_deep, stmt_list)
+        self.expr_parser.pop_new_closure_hook()
+        return stmt_list
+
+    def _parse(self, var_map_stk, loop_deep, defer_deep, stmt_list):
         top_ccc_use_deep = self.ccc_use_deep
         while True:
             if self.token_list.peek().is_sym("}"):
@@ -134,12 +142,12 @@ class Parser:
                 stmt_list.append(_Stmt("return", expr = self._parse_return(var_map_stk)))
                 continue
             if t.is_reserved("for"):
-                for_var_map, init_expr_list, judge_expr, loop_expr_list = self._parse_for_prefix(var_map_stk)
+                for_var_map, init_expr_list, judge_expr, loop_expr_list, closure_def_map = self._parse_for_prefix(var_map_stk)
                 self.token_list.pop_sym("{")
                 for_stmt_list = self.parse(var_map_stk + (for_var_map.copy(),), loop_deep + 1, defer_deep)
                 self.token_list.pop_sym("}")
                 stmt_list.append(_Stmt("for", for_var_map = for_var_map, init_expr_list = init_expr_list, judge_expr = judge_expr,
-                                       loop_expr_list = loop_expr_list, stmt_list = for_stmt_list))
+                                       loop_expr_list = loop_expr_list, closure_def_map = closure_def_map, stmt_list = for_stmt_list))
                 continue
             if t.is_reserved("foreach"):
                 var_tp, var_name, iter_expr = self._parse_foreach_prefix(var_map_stk)
@@ -231,8 +239,6 @@ class Parser:
             stmt_list.append(_Stmt("expr", expr = expr))
             self.token_list.pop_sym(";")
             continue
-
-        return stmt_list
 
     def _parse_var(self, var_tp, var_map_stk):
         t, name = self.token_list.pop_name()
@@ -342,12 +348,20 @@ class Parser:
 
         for_var_map = larc_common.OrderedDict()
         init_expr_list = []
+        closure_def_pos = 0
+        closure_def_map = {} #记录解析过程中遇到的closure的定义，{pos: [closure, ...]}
+        def new_closure_hook(closure):
+            if closure_def_pos not in closure_def_map:
+                closure_def_map[closure_def_pos] = []
+            closure_def_map[closure_def_pos].append(closure)
+        self.expr_parser.push_new_closure_hook(new_closure_hook)
         if self.token_list.peek().is_reserved("var"):
             #第一部分为var变量定义
             self.token_list.pop()
             while True:
                 _, _, expr, end_sym = self._parse_var(None, var_map_stk + (for_var_map,))
                 init_expr_list.append(expr)
+                closure_def_pos += 1
                 if end_sym == ";":
                     break
                 assert end_sym == ","
@@ -363,6 +377,7 @@ class Parser:
                 while True:
                     _, _, expr, end_sym = self._parse_var(tp, var_map_stk + (for_var_map,))
                     init_expr_list.append(expr)
+                    closure_def_pos += 1
                     if end_sym == ";":
                         break
                     assert end_sym == ","
@@ -380,7 +395,9 @@ class Parser:
 
         self.token_list.pop_sym(")")
 
-        return for_var_map, init_expr_list, judge_expr, loop_expr_list
+        self.expr_parser.pop_new_closure_hook()
+
+        return for_var_map, init_expr_list, judge_expr, loop_expr_list, closure_def_map
 
     def _parse_expr_with_se(self, var_map_stk):
         def check_lvalue(lvalue):

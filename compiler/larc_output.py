@@ -147,6 +147,9 @@ def _gen_module_name_code(module):
     return "%d_%s" % (len(pl), "_".join(["%d_%s" % (len(p), p) for p in pl]))
 
 def _gen_coi_name(coi):
+    if coi.is_closure:
+        return "lar_%s" % coi.name
+
     for i in "cls", "gcls_inst", "intf", "gintf_inst":
         if eval("coi.is_" + i):
             coi_name = "lar_" + i
@@ -200,7 +203,7 @@ def _gen_type_name_code_without_star(tp):
     return c
 
 def _gen_tp_name_code_from_tp_name(tp_name):
-    if tp_name.startswith("lar_cls") or tp_name.startswith("lar_gcls"):
+    if tp_name.startswith("lar_cls") or tp_name.startswith("lar_gcls") or tp_name.startswith("lar_closure"):
         return "*" + tp_name
     return tp_name
 
@@ -431,7 +434,9 @@ def _gen_expr_code_ex(expr):
 
     if expr.op == "closure":
         closure = expr.arg
-        raise
+        coi_name = _gen_coi_name(closure)
+        return "&%s{%s}" % (coi_name, ", ".join(["cm_%s: %s_method_%s" % (method.name, coi_name, method.name)
+                                                 for method in closure.method_map.itervalues()]))
 
     raise Exception("Bug")
 
@@ -488,6 +493,14 @@ def _output_native_code(code, native_code, fom):
             code.record_tb_info((FakeToken(line_idx + 1), fom))
             code += s
 
+def _output_closure_method(code, closure):
+    coi_name = _gen_coi_name(closure)
+    for method in closure.method_map.itervalues():
+        with code.new_blk("var %s_method_%s = func (%s) %s" %
+                          (coi_name, method.name, _gen_arg_def(method.arg_map), _gen_type_name_code(method.type))):
+            _output_stmt_list(code, method.stmt_list)
+            code += "return %s" % _gen_default_value_code(method.type)
+
 def _output_stmt_list(code, stmt_list):
     for stmt in stmt_list:
         if stmt.type == "block":
@@ -514,12 +527,21 @@ def _output_stmt_list(code, stmt_list):
                         code += _gen_expr_code(expr)
                 else:
                     assert len(stmt.for_var_map) == len(stmt.init_expr_list)
+                    pos = 0
                     for (name, tp), expr in zip(stmt.for_var_map.iteritems(), stmt.init_expr_list):
+                        if pos in stmt.closure_def_map:
+                            for closure in stmt.closure_def_map[pos]:
+                                _output_closure_method(code, closure)
                         if expr is not None:
                             code.record_tb_info(expr.pos_info)
                         code += "var l_%s %s = (%s)" % (name, _gen_type_name_code(tp),
                                                         _gen_default_value_code(tp) if expr is None else _gen_expr_code(expr))
                         code += "_ = l_%s" % name
+                        pos += 1
+                    else:
+                        if pos in stmt.closure_def_map:
+                            for closure in stmt.closure_def_map[pos]:
+                                _output_closure_method(code, closure)
                 if stmt.judge_expr is None:
                     code += "for ; ;"
                 else:
@@ -603,6 +625,10 @@ def _output_stmt_list(code, stmt_list):
             _output_native_code(code, stmt.native_code, stmt.fom)
             continue
 
+        if stmt.type == "def_closure_method":
+            _output_closure_method(code, stmt.closure)
+            continue
+
         raise Exception("Bug")
 
 _literal_token_id_set = set()
@@ -646,6 +672,21 @@ def _output_module():
             with code.new_blk("type %s interface" % (_gen_coi_name(intf))):
                 for method in intf.method_map.itervalues():
                     code += "%s(%s) %s" % (_gen_method_name_code(method), _gen_arg_def(method.arg_map), _gen_type_name_code(method.type))
+
+        for closure in module.closure_map.itervalues():
+            coi_name = _gen_coi_name(closure)
+            with code.new_blk("type %s struct" % coi_name):
+                for method in closure.method_map.itervalues():
+                    code += "cm_%s func (%s) %s" % (method.name, _gen_arg_def(method.arg_map), _gen_type_name_code(method.type))
+            for method in closure.method_map.itervalues():
+                with code.new_blk("func (this *%s) %s(%s) %s" %
+                                  (coi_name, _gen_method_name_code(method), _gen_arg_def(method.arg_map), _gen_type_name_code(method.type))):
+                    code.record_tb_info(_POS_INFO_IGNORE)
+                    code += ("%sthis.cm_%s(%s)" %
+                             ("" if method.type.is_void else "return ", method.name, ", ".join(["l_%s" % name for name in method.arg_map])))
+            code += "var lar_reflect_type_name_%s = lar_str_from_go_str(%s)" % (coi_name, _gen_str_literal("<%s>" % closure))
+            with code.new_blk("func (this *%s) lar_reflect_type_name() %s" % (coi_name, _STR_TYPE_NAME_CODE)):
+                code += "return lar_reflect_type_name_%s" % coi_name
 
         for file_name, native_code_list in module.global_native_code_map.iteritems():
             code.switch_file(file_name)
