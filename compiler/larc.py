@@ -60,6 +60,15 @@ def main():
     module_path_list = [lib_dir] + module_path_list
     larc_module.find_module_file = lambda mn: _find_module_file(module_path_list, mn)
 
+    #larva对标准库第一级模块有一些命名要求，虽然内建模块不会被一般用户修改，但为了稳妥还是检查下，免得开发者不小心弄了个非法名字
+    for fn in os.listdir(lib_dir):
+        #略过内建模块
+        if fn == "__builtins":
+            continue
+        #第一级模块名不能有下划线
+        if os.path.isdir(os.path.join(lib_dir, fn)) and "_" in fn:
+            larc_common.exit("环境检查失败：内建模块[%s]名字含有下划线" % fn)
+
     #预处理builtins模块
     larc_module.builtins_module = larc_module.module_map["__builtins"] = larc_module.Module("__builtins")
 
