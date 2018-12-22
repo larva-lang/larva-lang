@@ -243,7 +243,7 @@ class _Type:
                 return True
             if type.is_array:
                 #数组可以赋值给实现了数组内建方法的接口
-                return coi.can_convert_from_array(type)
+                return coi.can_convert_from(gen_arr_type(type).get_coi())
             if type.is_obj_type:
                 from_coi = type.get_coi()
                 #若self是接口，则检查其他对象或接口到接口的转换
@@ -410,87 +410,33 @@ def gen_internal_iter_type(elem_tp, t):
 
 #数组类型相关 ------------------------------------------------------
 
-#类型占位标记，具体生成时候替换
-_ARRAY_TYPE         = object()
-_ARRAY_ELEM_TYPE    = object()
-_ARRAY_ITER_TYPE    = object()
-
-#数组方法表
-_ARRAY_METHOD_MAP = {"size":        (LONG_TYPE, []),
-                     "cap":         (LONG_TYPE, []),
-                     "repr":        (STR_TYPE, []),
-                     "get":         (_ARRAY_ELEM_TYPE, [("idx", LONG_TYPE)]),
-                     "set":         (VOID_TYPE, [("idx", LONG_TYPE), ("elem", _ARRAY_ELEM_TYPE)]),
-                     "iter":        (_ARRAY_ITER_TYPE, []),
-                     "copy_from":   (LONG_TYPE, [("src", _ARRAY_TYPE)])}
-
-def _gen_array_iter_type(elem_tp):
-    t = larc_token.make_fake_token_name("ArrayIter").copy_on_pos(elem_tp.token) #在当前位置弄个假token
-    iter_tp = _Type((t, t.value), None, None, module_name = "__builtins")
-    iter_tp.gtp_list = [elem_tp] #设置elem_tp为泛型参数
-    iter_tp.get_coi() #触发一下，这里也是check里面做的流程
-    iter_tp._set_is_checked() #锁住
-    #这里暂时不需要check_new_ginst_during_compile，因为调用这个函数的时候要么array_iter已经存在了，要么是在其他type的check流程中
-    return iter_tp
-
-def _replace_array_type_tag(tp, arr_tp):
-    assert arr_tp.is_array
-    if tp is _ARRAY_TYPE:
-        return arr_tp
-    if tp is _ARRAY_ELEM_TYPE:
-        return arr_tp.to_elem_type()
-    if tp is _ARRAY_ITER_TYPE:
-        return _gen_array_iter_type(arr_tp.to_elem_type())
-    return tp
-
-#判断数组是否包含指定方法，用于数组和接口类型转换时
-def array_has_method(tp, method):
+def gen_arr_type(tp):
     assert tp.is_array
-    #必须是public方法
-    if "public" not in method.decr_set:
-        return False
-    #查找方法
-    try:
-        ret_type, arg_list = _ARRAY_METHOD_MAP[method.name]
-    except KeyError:
-        return False
-    #检查参数个数
-    if len(arg_list) != len(method.arg_map):
-        return False
-    #检查类型匹配情况
-    for tp_want, tp_given in zip([ret_type] + [arg_type for arg_name, arg_type in arg_list], [method.type] + list(method.arg_map.itervalues())):
-        tp_want = _replace_array_type_tag(tp_want, tp)
-        #需要考虑ref修饰
-        if tp_want != tp_given or tp_want.is_ref != tp_given.is_ref:
-            return False
-    return True
+    return _gen_arr_type(tp.to_elem_type())
 
-class _ArrayMethod:
-    def __init__(self, array_type, name):
-        assert array_type.is_array
-        ret_type, arg_list = _ARRAY_METHOD_MAP[name]
-        ret_type = _replace_array_type_tag(ret_type, array_type)
-
-        self.decr_set = set(["public"])
-        self.name = name
-        self.type = ret_type
-        self.arg_map = larc_common.OrderedDict()
-        for arg_name, arg_type in arg_list:
-            assert arg_name not in self.arg_map
-            arg_type = _replace_array_type_tag(arg_type, array_type)
-            self.arg_map[arg_name] = arg_type
+def _gen_arr_type(elem_tp):
+    t = larc_token.make_fake_token_name("Arr").copy_on_pos(elem_tp.token) #在当前位置弄个假token
+    arr_tp = _Type((t, t.value), None, None, module_name = "__builtins/__array")
+    arr_tp.gtp_list = [elem_tp] #设置elem_tp为泛型参数
+    arr_tp.get_coi() #触发一下，这里也是check里面做的流程
+    arr_tp._set_is_checked() #锁住
+    #这里暂时不需要check_new_ginst_during_compile，因为调用这个函数的时候要么arr已经存在了，要么是在其他type的check流程中
+    return arr_tp
 
 def iter_array_method_list(tp):
-    for name in _ARRAY_METHOD_MAP:
-        yield _ArrayMethod(tp, name)
+    arr_coi = gen_arr_type(tp).get_coi()
+    for method in arr_coi.method_map.itervalues():
+        if "public" not in method.decr_set:
+            continue
+        yield method
 
 def get_array_method(tp, name):
-    return _ArrayMethod(tp, name) if name in _ARRAY_METHOD_MAP else None
-
-def get_array_construct_arg_map():
-    arg_map = larc_common.OrderedDict()
-    arg_map["size"] = LONG_TYPE
-    return arg_map
+    arr_coi = gen_arr_type(tp).get_coi()
+    if name in arr_coi.method_map:
+        method = arr_coi.method_map[name]
+        if "public" in method.decr_set:
+            return method
+    return None
 
 array_type_set = set()
 def _reg_array(tp):
@@ -498,8 +444,8 @@ def _reg_array(tp):
     while tp.is_array and tp not in array_type_set:
         array_type_set.add(tp)
         tp = tp.to_elem_type()
-        #注册了一个新的数组，且tp是其元素，用tp构建一个ArrayIter的instance
-        _gen_array_iter_type(tp)
+        #注册了一个新的数组，且tp是其元素，用tp构建一个数组泛型类Arr的instance
+        _gen_arr_type(tp)
 
 #gtp类型推导 ----------------------------------------
 

@@ -1,0 +1,231 @@
+/*
+数组对象的实际实现，由编译器直接使用，不对外
+代码中的数组E[]在编译器内部分几种情况处理：
+1 语法层面，作为数组处理
+2 当数组作为对象使用的时候（调用其方法或赋值给接口），会视为Arr<E>来处理
+3 代码输出的时候，采用Arr的代码，而不是编译器内部写死
+这样做是为了避免数组的对象化机制对编译器实现的侵入性
+
+本模块定义的类型不应以任何形式对外，而且尽量用native code实现，代码中不能直接出现Arr对象，应在native code层面将其转为数组类型
+简化起见，多维数组嵌套的类型是Arr<E[]>而不是Arr<Arr<E>>
+*/
+
+import reflect, util;
+
+!<<
+
+import (
+    "strings"
+    "fmt"
+)
+
+!>>
+
+//用于标识数组对象，并包含几个数组特有的运行时需要的接口
+interface IsArr
+{
+    void _is_arr();
+    GoAny _new_arr(GoAny size_list);
+    GoAny _simple_arr_repr();
+}
+
+//利用larva泛型编程实现多维数组深拷贝
+T[] deep_copy<T>(T[] a)
+{
+    long sz = a.size();
+    var b = new T[sz];
+    for (long i = 0; i < sz; ++ i)
+    {
+#use
+        b[i] = deep_copy(a[i]);
+#oruse
+        b[i] = a[i];
+#enduse
+    }
+    return b;
+}
+
+class Arr<E>
+{
+    //标识数组对象
+    void _is_arr()
+    {
+    }
+
+    //创建本类型的新数组，因为代码中要动态判定类型，不能直接new，通过调用方法来进行
+    GoAny _new_arr(GoAny size_list)
+    {
+        return this.new_arr(size_list);
+    }
+
+    /*
+    编译器保证：
+    1 size_list的类型是go的[]int64，且len大于0
+    2 size_list的len不会超出数组维度数量
+    */
+    Arr<E> new_arr(GoAny size_list)
+    {
+        long sz;
+        !<<
+        szl, ok := l_size_list.([]int64)
+        if !ok {
+            panic("larva内部错误：创建数组：size_list类型不是'[]int64'")
+        }
+        if len(szl) <= 0 {
+            panic("larva内部错误: 创建数组：size_list为空")
+        }
+        l_sz = szl[0]
+        !>>
+
+        if (sz < 0)
+        {
+            throw(new ValueError("%d".(sz)));
+        }
+
+        var arr = new Arr<E>();
+
+        !<<
+        l_arr.arr = make([]@<<{E}>>, l_sz)
+        if len(szl) > 1 {
+            //除非是编译器bug或用户不按规范写的native，否则这里E一定是Arr类型，检查一下并获取到一个子数组类型的nil指针的IsArr接口
+            var elem_zero_value @<<{E}>>
+            sub_arr_nil, ok := ((interface{})(elem_zero_value)).(lar_intf_@<<IsArr>>)
+            if !ok {
+                panic("larva内部错误：创建数组：size_list长度超过数组维度")
+            }
+
+            //递归生成多维数组
+            for i := int64(0); i < l_sz; i ++ {
+                l_arr.arr[i] = sub_arr_nil.lar_method_@<<_new_arr>>(szl[1 :]).(@<<{E}>>)
+            }
+        }
+        !>>
+
+        return arr;
+    }
+
+    public long size()
+    {
+        !<<
+        return int64(len(this.arr))
+        !>>
+    }
+
+    public long cap()
+    {
+        !<<
+        return int64(cap(this.arr))
+        !>>
+    }
+
+    //数组的repr结果不是简单的嵌套为每个元素的repr，因为在多维数组下结果会很臃肿，多维数组采用简化的方式返回
+    public String repr()
+    {
+        var type_name = reflect.type_name(this);
+        !<<
+        sl := []string{"<", lar_str_to_go_str(l_type_name), " ", this.lar_method_@<<_simple_arr_repr>>().(string), ">"}
+        return lar_str_from_go_str(strings.Join(sl, ""))
+        !>>
+    }
+
+    //构建简化版的数组表示，返回一个go的str
+    GoAny _simple_arr_repr()
+    {
+        !<<
+
+        //nil数组也返回一个正常的表示
+        if this == nil {
+            return "<nil>"
+        }
+
+        //若是char数组则用字符串repr方式返回
+        b, ok := ((interface{})(this.arr)).([]uint8)
+        if ok {
+            return fmt.Sprintf("%q", string(b))
+        }
+
+        //其余情况，用中括号列表的方式返回，若元素类型E为数组，则递归调用simple_arr_repr，否则直接用元素的repr形式
+        sl := make([]string, 0, len(this.arr) * 2 + 2)
+        sl = append(sl, "[")
+        for i, elem := range this.arr {
+            if i != 0 {
+                sl = append(sl, ", ")
+            }
+            sub_arr, elem_is_arr := ((interface{})(elem)).(lar_intf_@<<IsArr>>)
+            if elem_is_arr {
+                sl = append(sl, sub_arr.lar_method_@<<_simple_arr_repr>>().(string))
+            } else {
+                sl = append(sl, lar_go_func_any_repr_to_go_str(elem))
+            }
+        }
+        sl = append(sl, "]")
+        return strings.Join(sl, "")
+
+        !>>
+    }
+
+    public E get(long idx)
+    {
+        !<<
+        return this.arr[l_idx]
+        !>>
+    }
+
+    public void set(long idx, E elem)
+    {
+        !<<
+        this.arr[l_idx] = l_elem;
+        !>>
+    }
+
+    public ArrayIter<E> iter()
+    {
+        E[] this_arr;
+        !<<
+        l_this_arr = this;
+        !>>
+        return new ArrayIter<E>(this_arr, 0);
+    }
+
+    public long copy_from(E[] other)
+    {
+        !<<
+        return int64(copy(this.arr, l_other.arr))
+        !>>
+    }
+
+    public E[] copy()
+    {
+        var a = new E[this.size()];
+        !<<
+        copy(l_a.arr, this.arr)
+        !>>
+        return a;
+    }
+
+    public E[] deep_copy()
+    {
+        E[] this_arr;
+        !<<
+        l_this_arr = this;
+        !>>
+        return deep_copy(this_arr);
+    }
+
+    public long index(E e)
+    {
+        long sz = this.size();
+        for (long i = 0; i < sz; ++ i)
+        {
+            if (util.eq(this.get(i), e))
+            {
+                return i;
+            }
+        }
+        return -1L;
+    }
+
+    !<<
+    arr []@<<{E}>>
+    !>>
+}

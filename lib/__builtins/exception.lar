@@ -62,8 +62,8 @@ public void assert(bool b, String s)
 编译器的大致处理步骤就是在代码生成部分对这两个catch增加参数（定义和调用都需要调整），在代码实现中用native_code处理额外增加的参数
 */
 
-//将recover捕获的go的异常（直接作为Any）转为larva的Catched对象
-Catched<Throwable> _go_recovered_to_catched(Any r)
+//将recover捕获的go的异常转为larva的Catched对象
+Catched<Throwable> _go_recovered_to_catched(GoAny r)
 {
     if (r == nil) {
         return nil;
@@ -85,9 +85,9 @@ Catched<Throwable> _go_recovered_to_catched(Any r)
 }
 
 //捕获base
-public Catched<Throwable> catch_base(/*Any _go_recovered*/)
+public Catched<Throwable> catch_base(/*GoAny _go_recovered*/)
 {
-    Any r;
+    GoAny r;
     !<<
     l_r = _go_recovered
     !>>
@@ -95,9 +95,9 @@ public Catched<Throwable> catch_base(/*Any _go_recovered*/)
 }
 
 //捕获指定类型的异常
-public Catched<T> catch<T>(/*Any _go_recovered*/)
+public Catched<T> catch<T>(/*GoAny _go_recovered*/)
 {
-    Any r;
+    GoAny r;
     !<<
     l_r = _go_recovered
     !>>

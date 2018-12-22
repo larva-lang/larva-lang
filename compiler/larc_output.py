@@ -358,8 +358,10 @@ def _gen_expr_code_ex(expr):
         except ValueError:
             new_dim_count = len(size_list)
         assert new_dim_count > 0
-        return "%s(%s)" % (_gen_new_arr_func_name(tp, len(size_list), new_dim_count),
-                           ", ".join(["int64(%s)" % _gen_expr_code(e) for e in size_list[: new_dim_count]]))
+        new_arr_method = larc_type.gen_arr_type(tp.to_array_type(len(size_list))).get_coi().method_map["new_arr"]
+        return ("((%s)(nil)).%s([]int64{%s})" %
+                (_gen_arr_tp_name_code(_gen_non_array_type_name(tp), len(size_list)), _gen_method_name_code(new_arr_method),
+                 ", ".join(["int64(%s)" % _gen_expr_code(e) for e in size_list[: new_dim_count]])))
 
     if expr.op == "new_array_by_init_list":
         expr_list = expr.arg
@@ -694,7 +696,13 @@ def _output_module():
                 _output_native_code(code, native_code, "<module>")
 
         def output_reflect_method(code):
-            code += "var lar_reflect_type_name_%s = lar_str_from_go_str(%s)" % (lar_cls_name, _gen_str_literal(str(cls)))
+            if cls.module is larc_module.builtins_array_module and cls.name == "Arr":
+                #数组对象的类型名要处理一下
+                assert len(cls.gtp_map) == 1
+                cls_type_name = str(cls.gtp_map.value_at(0)) + "[]"
+            else:
+                cls_type_name = str(cls)
+            code += "var lar_reflect_type_name_%s = lar_str_from_go_str(%s)" % (lar_cls_name, _gen_str_literal(cls_type_name))
             with code.new_blk("func (this *%s) lar_reflect_type_name() %s" % (lar_cls_name, _STR_TYPE_NAME_CODE)):
                 code += "return lar_reflect_type_name_%s" % lar_cls_name
         for cls in [i for i in module.cls_map.itervalues() if not i.gtp_name_list] + list(module.gcls_inst_map.itervalues()):
@@ -753,87 +761,17 @@ def _output_util():
 
     #生成util代码
     with _Code("%s/%s.util.go" % (_out_prog_dir, _prog_module_name)) as code:
-        with code.new_blk("import"):
-            code += '"fmt"'
-            code += '"strings"'
         #生成数组相关代码
         for tp in larc_type.array_type_set:
             assert tp.is_array
+            arr_type = larc_type.gen_arr_type(tp)
             dim_count = tp.array_dim_count
             while tp.is_array:
                 tp = tp.to_elem_type()
             tp_name = _gen_non_array_type_name(tp)
             #数组结构体名和元素类型的code
             arr_tp_name = _gen_arr_tp_name(tp_name, dim_count)
-            if dim_count == 1:
-                elem_tp_name_code = _gen_tp_name_code_from_tp_name(tp_name)
-            else:
-                elem_tp_name_code = _gen_arr_tp_name_code(tp_name, dim_count - 1)
-            #数组结构体定义：元素的slice
-            with code.new_blk("type %s struct" % arr_tp_name):
-                code += "arr []%s" % elem_tp_name_code
-            #数组的方法
-            with code.new_blk("func (la *%s) lar_method_size() int64" % arr_tp_name):
-                code += "return int64(len(la.arr))"
-            with code.new_blk("func (la *%s) lar_method_cap() int64" % arr_tp_name):
-                code += "return int64(cap(la.arr))"
-            with code.new_blk("func (la *%s) lar_method_repr() %s" % (arr_tp_name, _STR_TYPE_NAME_CODE)):
-                code += 'sl := []string{%s, "", ">"}' % _gen_str_literal("<%s " % (str(tp) + "[]" * dim_count))
-                code += "sl[1] = la.sub_arr_repr()"
-                code += 'return lar_str_from_go_str(strings.Join(sl, ""))'
-            with code.new_blk("func (la *%s) sub_arr_repr() string" % arr_tp_name):
-                with code.new_blk("if la == nil"):
-                    code += 'return "<nil>"'
-                if tp == larc_type.CHAR_TYPE and dim_count == 1:
-                    code += 'return fmt.Sprintf("%q", string(la.arr))'
-                else:
-                    code += "sl := make([]string, 0, len(la.arr) + 2)"
-                    code += 'sl = append(sl, "[")'
-                    with code.new_blk("for i, elem := range la.arr"):
-                        if dim_count == 1:
-                            elem_repr_code = "lar_go_func_any_repr_to_go_str(elem)"
-                        else:
-                            assert dim_count > 1
-                            elem_repr_code = "elem.sub_arr_repr()"
-                        with code.new_blk("if i == 0"):
-                            code += "sl = append(sl, %s)" % elem_repr_code
-                        with code.new_blk("else"):
-                            code += 'sl = append(sl, ", " + %s)' % elem_repr_code
-                    code += 'sl = append(sl, "]")'
-                    code += 'return strings.Join(sl, "")'
-            with code.new_blk("func (la *%s) lar_method_get(idx int64) %s" % (arr_tp_name, elem_tp_name_code)):
-                code += "return la.arr[idx]"
-            with code.new_blk("func (la *%s) lar_method_set(idx int64, elem %s)" % (arr_tp_name, elem_tp_name_code)):
-                code += "la.arr[idx] = elem"
-            with code.new_blk("func (la *%s) lar_method_iter() *lar_gcls_inst_10___builtins_9_ArrayIter_1_%s" %
-                              (arr_tp_name, elem_tp_name_code.lstrip("*"))):
-                code += "return lar_new_obj_lar_gcls_inst_10___builtins_9_ArrayIter_1_%s(la, 0)" % elem_tp_name_code.lstrip("*")
-            with code.new_blk("func (la *%s) lar_method_copy_from(src *%s) int64" % (arr_tp_name, arr_tp_name)):
-                code += "return int64(copy(la.arr, src.arr))"
-            #输出数组的反射接口
-            code += "var lar_reflect_type_name_%s = lar_str_from_go_str(%s)" % (arr_tp_name, _gen_str_literal(str(tp) + "[]" * dim_count))
-            with code.new_blk("func (la *%s) lar_reflect_type_name() %s" % (arr_tp_name, _STR_TYPE_NAME_CODE)):
-                code += "return lar_reflect_type_name_%s" % arr_tp_name
-            #new数组的函数
-            for new_dim_count in xrange(1, dim_count + 1):
-                new_arr_func_name = _gen_new_arr_func_name_by_tp_name(tp_name, dim_count, new_dim_count)
-                arg_code = ", ".join(["d%d_size" % i for i in xrange(new_dim_count)]) + " int64"
-                if new_dim_count == 1:
-                    if elem_tp_name_code[0] == "*" or elem_tp_name_code.startswith("lar_intf") or elem_tp_name_code.startswith("lar_gintf"):
-                        elem_code = "nil"
-                    elif elem_tp_name_code == "bool":
-                        elem_code = "false"
-                    else:
-                        elem_code = "0"
-                else:
-                    assert new_dim_count > 1
-                    elem_code = "%s(%s)" % (_gen_new_arr_func_name_by_tp_name(tp_name, dim_count - 1, new_dim_count - 1), 
-                                            ", ".join(["d%d_size" % i for i in xrange(1, new_dim_count)]))
-                with code.new_blk("func %s(%s) *%s" % (new_arr_func_name, arg_code, arr_tp_name)):
-                    code += "la := &%s{arr: make([]%s, d0_size)}" % (arr_tp_name, elem_tp_name_code)
-                    with code.new_blk("for i := int64(0); i < d0_size; i ++"):
-                        code += "la.arr[i] = %s" % elem_code
-                    code += "return la"
+            code += "type %s = %s" % (arr_tp_name, _gen_type_name_code_without_star(arr_type))
 
         #traceback信息
         with code.new_blk("var lar_util_tb_map = map[lar_util_go_tb]*lar_util_lar_tb"):

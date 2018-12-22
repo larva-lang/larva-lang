@@ -15,6 +15,7 @@ import larc_expr
 find_module_file = None
 
 builtins_module = None
+builtins_array_module = None
 module_map = larc_common.OrderedDict()
 
 ginst_being_processed = [None] #用栈记录正在处理的ginst，放一个None在栈底可以简化代码
@@ -130,16 +131,6 @@ class _CoiBase:
 
     def is_intf_any(self):
         return (self.is_intf or self.is_gintf_inst) and not self.method_map
-
-    def can_convert_from_array(self, tp):
-        if self.is_cls or self.is_gcls_inst:
-            #只能是到接口的转换
-            return False
-        #检查self接口的每个方法是否都符合此数组的内建方法格式
-        for method in self.method_map.itervalues():
-            if not larc_type.array_has_method(tp, method):
-                return False
-        return True
 
     def can_convert_from(self, other):
         assert isinstance(other, _CoiBase) and self is not other

@@ -21,7 +21,7 @@ def _show_usage_and_exit():
 def _find_module_file(module_path_list, module_name):
     #按模块查找路径逐个目录找
     assert module_path_list
-    if module_name == "__builtins":
+    if module_name.split("/")[0] == "__builtins":
         mpl = [module_path_list[0]] #__builtins比较特殊，只从lib_dir找
     else:
         mpl = module_path_list
@@ -69,8 +69,9 @@ def main():
         if os.path.isdir(os.path.join(lib_dir, fn)) and "_" in fn:
             larc_common.exit("环境检查失败：内建模块[%s]名字含有下划线" % fn)
 
-    #预处理builtins模块
+    #预处理内建模块族
     larc_module.builtins_module = larc_module.module_map["__builtins"] = larc_module.Module("__builtins")
+    larc_module.builtins_array_module = larc_module.module_map["__builtins/__array"] = larc_module.Module("__builtins/__array")
 
     #预处理主模块
     if not (all([larc_token.is_valid_name(p) for p in main_module_name.split("/")]) and main_module_name != "__builtins"):
@@ -78,7 +79,8 @@ def main():
     larc_module.module_map[main_module_name] = main_module = larc_module.Module(main_module_name)
 
     #预处理所有涉及到的模块
-    compiling_set = larc_module.builtins_module.get_dep_module_set() | main_module.get_dep_module_set() #需要预处理的模块名集合
+    compiling_set = (larc_module.builtins_module.get_dep_module_set() | larc_module.builtins_array_module.get_dep_module_set() |
+                     main_module.get_dep_module_set()) #需要预处理的模块名集合
     while compiling_set:
         new_compiling_set = set()
         for module_name in compiling_set:

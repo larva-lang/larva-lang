@@ -23,7 +23,7 @@ type lar_go_intf_strable interface {
     lar_method_str() *lar_cls_@<<String>>
 }
 
-func lar_go_func_any_to_go_str(a lar_intf_@<<Any>>) string {
+func lar_go_func_any_to_go_str(a lar_intf_@<<GoAny>>) string {
     strable, ok := a.(lar_go_intf_strable)
     if ok {
         return lar_str_to_go_str(strable.lar_method_str())
@@ -39,7 +39,7 @@ type lar_go_intf_nil_reprable interface {
     lar_method_nil_repr() *lar_cls_@<<String>>
 }
 
-func lar_go_func_any_repr_to_go_str(a lar_intf_@<<Any>>) string {
+func lar_go_func_any_repr_to_go_str(a lar_intf_@<<GoAny>>) string {
     switch v := a.(type) {
     case nil:
         return "<nil>"

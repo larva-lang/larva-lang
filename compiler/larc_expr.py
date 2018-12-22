@@ -342,28 +342,18 @@ class Parser:
                 if t.is_sym("("):
                     t = self.token_list.peek()
                     expr_list = self._parse_expr_list(var_map_stk)
-                    if base_type.is_array:
-                        arg_map = larc_type.get_array_construct_arg_map()
-                        self._make_expr_list_match_arg_map(t, expr_list, arg_map)
-                        size_list = [expr_list[0]]
-                        array_base_type = base_type.to_elem_type()
-                        while array_base_type.is_array:
-                            size_list.append(None)
-                            array_base_type = array_base_type.to_elem_type()
-                        parse_stk.push_expr(_Expr("new_array", (array_base_type, size_list), base_type))
-                    else:
-                        is_new_cls = False
-                        if not base_type.token.is_reserved:
-                            new_coi = base_type.get_coi()
-                            if new_coi.is_cls or new_coi.is_gcls_inst:
-                                if new_coi.module is not self.curr_module and "public" not in new_coi.construct_method.decr_set:
-                                    base_type.token.syntax_err("无法创建'%s'的实例：对构造方法无访问权限" % new_coi)
-                                self._make_expr_list_match_arg_map(t, expr_list, new_coi.construct_method.arg_map)
-                                parse_stk.push_expr(_Expr("new", expr_list, base_type))
-                                is_new_cls = True
-                        if not is_new_cls:
-                            #对基础类型或接口使用new语法
-                            new_token.syntax_err("不能对类型'%s'使用new语法" % base_type)
+                    is_new_cls = False
+                    if not (base_type.is_array or base_type.token.is_reserved):
+                        new_coi = base_type.get_coi()
+                        if new_coi.is_cls or new_coi.is_gcls_inst:
+                            if new_coi.module is not self.curr_module and "public" not in new_coi.construct_method.decr_set:
+                                base_type.token.syntax_err("无法创建'%s'的实例：对构造方法无访问权限" % new_coi)
+                            self._make_expr_list_match_arg_map(t, expr_list, new_coi.construct_method.arg_map)
+                            parse_stk.push_expr(_Expr("new", expr_list, base_type))
+                            is_new_cls = True
+                    if not is_new_cls:
+                        #对数组、基础类型或接口使用new语法
+                        new_token.syntax_err("不能对类型'%s'使用new语法" % base_type)
                 elif t.is_sym("["):
                     if base_type.is_void:
                         t.syntax_err("无法创建void数组")
