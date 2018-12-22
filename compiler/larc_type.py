@@ -416,7 +416,7 @@ def gen_arr_type(tp):
 
 def _gen_arr_type(elem_tp):
     t = larc_token.make_fake_token_name("Arr").copy_on_pos(elem_tp.token) #在当前位置弄个假token
-    arr_tp = _Type((t, t.value), None, None, module_name = "__builtins/__array")
+    arr_tp = _Type((t, t.value), None, None, module_name = "__builtins/internal/__array")
     arr_tp.gtp_list = [elem_tp] #设置elem_tp为泛型参数
     arr_tp.get_coi() #触发一下，这里也是check里面做的流程
     arr_tp._set_is_checked() #锁住

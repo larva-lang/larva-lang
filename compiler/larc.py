@@ -71,7 +71,6 @@ def main():
 
     #预处理内建模块族
     larc_module.builtins_module = larc_module.module_map["__builtins"] = larc_module.Module("__builtins")
-    larc_module.builtins_array_module = larc_module.module_map["__builtins/__array"] = larc_module.Module("__builtins/__array")
 
     #预处理主模块
     if not (all([larc_token.is_valid_name(p) for p in main_module_name.split("/")]) and main_module_name != "__builtins"):
@@ -79,8 +78,7 @@ def main():
     larc_module.module_map[main_module_name] = main_module = larc_module.Module(main_module_name)
 
     #预处理所有涉及到的模块
-    compiling_set = (larc_module.builtins_module.get_dep_module_set() | larc_module.builtins_array_module.get_dep_module_set() |
-                     main_module.get_dep_module_set()) #需要预处理的模块名集合
+    compiling_set = larc_module.builtins_module.get_dep_module_set() | main_module.get_dep_module_set() #需要预处理的模块名集合
     while compiling_set:
         new_compiling_set = set()
         for module_name in compiling_set:

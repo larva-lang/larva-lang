@@ -15,7 +15,6 @@ import larc_expr
 find_module_file = None
 
 builtins_module = None
-builtins_array_module = None
 module_map = larc_common.OrderedDict()
 
 ginst_being_processed = [None] #用栈记录正在处理的ginst，放一个None在栈底可以简化代码
