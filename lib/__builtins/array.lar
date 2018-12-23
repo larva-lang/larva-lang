@@ -1,4 +1,4 @@
-import ./internal/__array; //将数组实现的内部模块import一下，保证编译进来
+import ./__array; //将数组实现的内部模块import一下，保证编译进来
 
 //数组的迭代器
 public class ArrayIter<E>

@@ -696,7 +696,7 @@ def _output_module():
                 _output_native_code(code, native_code, "<module>")
 
         def output_reflect_method(code):
-            if cls.module is larc_module.module_map["__builtins/internal/__array"] and cls.name == "Arr":
+            if cls.module is larc_module.module_map["__builtins/__array"] and cls.name == "Arr":
                 #数组对象的类型名要处理一下
                 assert len(cls.gtp_map) == 1
                 cls_type_name = str(cls.gtp_map.value_at(0)) + "[]"

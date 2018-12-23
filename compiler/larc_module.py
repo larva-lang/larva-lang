@@ -1384,12 +1384,12 @@ class Module:
 
             module_name = self.fix_module_name(relative_deep, module_name_token, module_name)
 
-            #分析模块路径中含有internal的情况，internal目录下的模块只允许其上层目录下的模块访问
-            importer = "/" + self.name + "/"
-            importee = "/" + module_name + "/"
+            #分析模块路径中含有私有模块的情况，私有模块目录下的模块只允许其上层目录下的模块访问
+            importer = self.name
+            importee = module_name
             idx = 0
             while True:
-                pos = importee.find("/internal/", idx)
+                pos = importee.find("/__", idx)
                 if pos < 0:
                     break
                 idx = pos + 1
