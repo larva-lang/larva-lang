@@ -147,6 +147,18 @@ public class String
         !>>
     }
 
+    public String repeat(long count)
+    {
+        long s_len = this.len();
+        if (count < 0 || (count > 0 && s_len * count / count != s_len))
+        {
+            throw(new ValueError("String.repeat参数错误，count=%d，字符串长度=%d".(count, s_len)));
+        }
+        !<<
+        return lar_str_from_go_str(strings.Repeat(this.s, int(l_count)));
+        !>>
+    }
+
     public bool parse_bool()
     {
         bool r, ok;

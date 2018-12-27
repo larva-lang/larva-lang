@@ -1,0 +1,30 @@
+!<<
+
+import (
+    "math"
+)
+
+!>>
+
+public double abs(double v)
+{
+    !<<
+    return math.Abs(l_v)
+    !>>
+}
+
+public long abs_long(long v)
+{
+    if (v < 0)
+    {
+        return -v;
+    }
+    return v;
+}
+
+public double pow(double x, double y)
+{
+    !<<
+    return math.Pow(l_x, l_y)
+    !>>
+}

@@ -71,11 +71,6 @@ public class Vector<E>
         this.arr = new_arr[: this.arr.size()];
     }
 
-    public E[] array()
-    {
-        return this.arr;
-    }
-
     public VectorIter<E> iter()
     {
         return new VectorIter<E>(this, 0);
@@ -89,6 +84,41 @@ public class Vector<E>
     public void set(long idx, E e)
     {
         this.arr[idx] = e;
+    }
+
+    public E pop(long idx)
+    {
+        //弹出idx位置的元素，其后的元素往前移动
+        E e = this.arr[idx];
+
+        long last_idx = this.size() - 1;
+        while (idx < last_idx)
+        {
+            this.arr[idx] = this.arr[idx + 1];
+        }
+        this.arr[last_idx] = zero_value<E>();
+        this.arr = this.arr[: last_idx];
+
+        return e;
+    }
+
+    public void resize(long sz)
+    {
+        if (sz < 0)
+        {
+            throw(new ValueError("%d".(sz)));
+        }
+        this.reserve(sz);
+
+        long curr_sz = this.size();
+        //如果是缩小，则将缩小的区间的元素置空
+        E zv = zero_value<E>();
+        for (long i = sz; i < curr_sz; ++ i)
+        {
+            this.arr[i] = zv;
+        }
+
+        this.arr = this.arr[: sz];
     }
 
     E[] arr;
