@@ -1,4 +1,4 @@
-import reflect;
+import math/rand;
 
 !<<
 
@@ -28,6 +28,10 @@ long hash_double(double n)
     !>>
 }
 
+//一个随机的hash因子，主要用于每个进程计算hash值的随机化
+//为避免初始化依赖引起问题，这个的赋值用native code在第一次用到的时候进行
+final ulong rand_hash_factor = 0;
+
 //通用的计算hash的方法，保证返回非负
 public long hash<T>(T t)
 {
@@ -44,7 +48,14 @@ public long hash<T>(T t)
 #enduse
 
     ulong uh = (ulong)h * 2862933555777941757UL;
-    return (long)((uh >> 32) ^ uh) & LONG_MAX;
+    while (rand_hash_factor == 0)
+    {
+        var rhf = (ulong)rand.rand_n(LONG_MAX) * (ulong)rand.rand_n(LONG_MAX);
+        !<<
+        lar_gv_@<<rand_hash_factor>> = l_rhf;
+        !>>
+    }
+    return (long)((uh >> 32) ^ uh ^ rand_hash_factor) & LONG_MAX;
 }
 
 public int cmp<T>(T a, T b)
