@@ -1,0 +1,11 @@
+public interface Runnable
+{
+    public void run();
+}
+
+public void start_fiber(Runnable r)
+{
+    !<<
+    go lar_booter_start_co(l_r)
+    !>>
+}

@@ -30,7 +30,7 @@ func lar_booter_start_prog(main_mod_init_func func (), main_func func ()) {
     main_func()
 }
 
-func lar_booter_start_co(co lar_intf_10___builtins_9_Coroutine) {
+func lar_booter_start_co(co lar_intf_10___builtins_8_Runnable) {
     defer lar_booter_check_go_panic()
     defer func () {
         c := lar_func_10___builtins_10_catch_base(recover())

@@ -157,6 +157,6 @@ public void main()
         net.TcpConn new_client = listener.accept();
         log("accept success, new client [%s]".(new_client.remote_addr()));
 
-        start_coroutine(new Client(new_client));
+        start_fiber(new Client(new_client));
     }
 }
