@@ -25,10 +25,10 @@ def _find_module_file(module_path_list, module_name):
         mpl = [module_path_list[0]] #__builtins比较特殊，只从lib_dir找
     else:
         mpl = module_path_list
-    for module_dir in mpl:
+    for i, module_dir in enumerate(mpl):
         module_path = os.path.join(module_dir, *module_name.split("/"))
         if os.path.isdir(module_path):
-            return module_path
+            return module_path, i == 0
     t = larc_module.dep_module_token_map.get(module_name)
     if t is None:
         larc_common.exit("找不到模块：%s" % module_name)

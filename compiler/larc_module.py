@@ -1175,10 +1175,10 @@ class NativeCode:
                     token.syntax_err("非法的标识符宏")
                 if not all([larc_token.is_valid_name(p) for p in module_name.split("/")]):
                     token.syntax_err("非法的标识符宏")
-                #module_name相当于匿名导入了一个模块，若是global域的native_code则按import流程处理：修正module_name后加入dep_module_set
+
                 module_name = self.module.fix_module_name(relative_deep, token, module_name)
                 if module_name not in self.module.get_dep_module_map(self.file_name).itervalues():
-                    #处于代码块中的native_code引用了一个没有被预处理导入的模块，报错
+                    #native_code引用了一个没有被预处理导入的模块，报错
                     token.syntax_err("模块'%s'需要显式导入" % module_name)
             elif macro.startswith(":"):
                 #__builtin模块name简写形式
@@ -1195,10 +1195,11 @@ class NativeCode:
 dep_module_token_map = {}
 class Module:
     def __init__(self, name):
-        file_path_name = find_module_file(name)
+        file_path_name, is_std_lib_module = find_module_file(name)
         assert os.path.isdir(file_path_name)
         assert file_path_name.endswith(os.path.join(*name.split("/")))
         self.dir = file_path_name
+        self.is_std_lib_module = is_std_lib_module
         self.name = name
         file_name_list = [fn for fn in os.listdir(self.dir) if fn.endswith(".lar")]
 
@@ -1348,7 +1349,7 @@ class Module:
                 os.path.abspath(os.path.join(self.dir, *([".."] * relative_deep + module_name.split("/"))))) #期望目录是相对当前模块路径的位置
             module_name = "/".join(pl[: len(pl) - relative_deep] + [module_name]) #修正module_name
             dep_module_token_map[module_name] = module_name_token #修正后立即记录token，下面find时候马上可能用到
-            module_dir = find_module_file(module_name) #试着找一下模块目录
+            module_dir, _ = find_module_file(module_name) #试着找一下模块目录
             if module_dir != expect_module_dir:
                 #找到了但是和期望不符，也报错
                 module_name_token.syntax_err("模块[%s]存在于其他module_path[%s]" % (module_name, module_dir))
@@ -1385,8 +1386,12 @@ class Module:
             module_name = self.fix_module_name(relative_deep, module_name_token, module_name)
 
             #分析模块路径中含有私有模块的情况，私有模块目录下的模块只允许其上层目录下的模块访问
-            importer = self.name
-            importee = module_name
+            #标准库和非标准库视为两个根目录
+            def get_prefix(is_std_lib_module):
+                return "STD/" if is_std_lib_module else "NON_STD/"
+            importer = get_prefix(self.is_std_lib_module) + self.name
+            _, importee_is_std_lib_module = find_module_file(module_name)
+            importee = get_prefix(importee_is_std_lib_module) + module_name
             idx = 0
             while True:
                 pos = importee.find("/__", idx)
