@@ -21,8 +21,8 @@ def _show_usage_and_exit():
 def _find_module_file(module_path_list, module_name):
     #按模块查找路径逐个目录找
     assert module_path_list
-    if module_name.split("/")[0] == "__builtins":
-        mpl = [module_path_list[0]] #__builtins比较特殊，只从lib_dir找
+    if module_name.split("/")[0] in ("__builtins", "__internal", "__array"):
+        mpl = [module_path_list[0]] #这几个模块比较特殊，只从lib_dir找
     else:
         mpl = module_path_list
     for i, module_dir in enumerate(mpl):
@@ -62,15 +62,19 @@ def main():
 
     #larva对标准库第一级模块有一些命名要求，虽然内建模块不会被一般用户修改，但为了稳妥还是检查下，免得开发者不小心弄了个非法名字
     for fn in os.listdir(lib_dir):
-        #略过内建模块
-        if fn == "__builtins":
-            continue
+        #若为私有模块则忽略掉前缀
+        if fn[: 2] == "__":
+            fn = fn[2 :]
         #第一级模块名不能有下划线
         if os.path.isdir(os.path.join(lib_dir, fn)) and "_" in fn:
             larc_common.exit("环境检查失败：内建模块[%s]名字含有下划线" % fn)
 
     #预处理内建模块族
     larc_module.builtins_module = larc_module.module_map["__builtins"] = larc_module.Module("__builtins")
+    assert larc_module.builtins_module.get_dep_module_set() == set(["__internal"]) #内建模块只能而且必须导入__internal模块
+    internal_module = larc_module.module_map["__internal"] = larc_module.Module("__internal")
+    assert not internal_module.get_dep_module_set() #__internal模块不能导入其他模块
+    larc_module.array_module = larc_module.module_map["__array"] = larc_module.Module("__array")
 
     #预处理主模块
     if not (all([larc_token.is_valid_name(p) for p in main_module_name.split("/")]) and main_module_name != "__builtins"):
@@ -78,7 +82,8 @@ def main():
     larc_module.module_map[main_module_name] = main_module = larc_module.Module(main_module_name)
 
     #预处理所有涉及到的模块
-    compiling_set = larc_module.builtins_module.get_dep_module_set() | main_module.get_dep_module_set() #需要预处理的模块名集合
+    compiling_set = (larc_module.builtins_module.get_dep_module_set() | larc_module.array_module.get_dep_module_set() |
+                     main_module.get_dep_module_set()) #需要预处理的模块名集合
     while compiling_set:
         new_compiling_set = set()
         for module_name in compiling_set:
@@ -89,6 +94,10 @@ def main():
             new_compiling_set |= m.get_dep_module_set()
         compiling_set = new_compiling_set
     assert larc_module.module_map.value_at(0) is larc_module.builtins_module
+
+    #检查循环import
+    for m in larc_module.module_map.itervalues():
+        m.check_cycle_import()
 
     #模块元素级别的check_type，先对非泛型元素做check，然后对泛型实例采用类似深度优先的方式，直到没有ginst生成
     for m in larc_module.module_map.itervalues():

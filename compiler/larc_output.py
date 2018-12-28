@@ -413,6 +413,10 @@ def _gen_expr_code_ex(expr):
         e = expr.arg
         return "lar_go_func_any_repr_to_go_str(%s)" % _gen_expr_code(e)
 
+    if expr.op == "type_name_to_go_str":
+        e = expr.arg
+        return "lar_go_func_any_type_name_to_go_str(%s)" % _gen_expr_code(e)
+
     if expr.op == "call_method":
         e, method, expr_list = expr.arg
         return "(%s).%s(%s)" % (_gen_expr_code(e), _gen_method_name_code(method), _gen_expr_list_code(expr_list))
@@ -696,7 +700,7 @@ def _output_module():
                 _output_native_code(code, native_code, "<module>")
 
         def output_reflect_method(code):
-            if cls.module is larc_module.module_map["__builtins/__array"] and cls.name == "Arr":
+            if cls.module is larc_module.array_module and cls.name == "Arr":
                 #数组对象的类型名要处理一下
                 assert len(cls.gtp_map) == 1
                 cls_type_name = str(cls.gtp_map.value_at(0)) + "[]"

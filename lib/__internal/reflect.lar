@@ -1,0 +1,65 @@
+!<<
+
+//larva反射接口，所有被编译的larva class都要实现这个接口，由编译器保证
+//native class的对应方法的代码也由编译器生成，lar_native代码中不需要自己实现
+//没有体现在larva代码中的元素（如native类的成员属性、native类没有暴露的方法等）
+//reflect模块中传入的Any对象若不是larva基础类型或对象，则视为非法输入，会抛出NotLarvaObjectError
+type lar_reflect_intf interface {
+    lar_reflect_type_name() *lar_cls_@<<:String>>
+}
+
+var (
+    lar_reflect_type_name_nil_intf  = lar_str_from_go_str("<nil interface>")
+    lar_reflect_type_name_bool      = lar_str_from_go_str("bool")
+    lar_reflect_type_name_schar     = lar_str_from_go_str("schar")
+    lar_reflect_type_name_char      = lar_str_from_go_str("char")
+    lar_reflect_type_name_short     = lar_str_from_go_str("short")
+    lar_reflect_type_name_ushort    = lar_str_from_go_str("ushort")
+    lar_reflect_type_name_int       = lar_str_from_go_str("int")
+    lar_reflect_type_name_uint      = lar_str_from_go_str("uint")
+    lar_reflect_type_name_long      = lar_str_from_go_str("long")
+    lar_reflect_type_name_ulong     = lar_str_from_go_str("ulong")
+    lar_reflect_type_name_float     = lar_str_from_go_str("float")
+    lar_reflect_type_name_double    = lar_str_from_go_str("double")
+)
+
+!>>
+
+public final String REFLECT_TYPE_NAME_GO_TYPE = "<go type>";
+
+public String reflect_type_name(GoAny a)
+{
+    !<<
+    switch l_a.(type) {
+    case nil:
+        return lar_reflect_type_name_nil_intf
+    case bool:
+        return lar_reflect_type_name_bool
+    case int8:
+        return lar_reflect_type_name_schar
+    case uint8:
+        return lar_reflect_type_name_char
+    case int16:
+        return lar_reflect_type_name_short
+    case uint16:
+        return lar_reflect_type_name_ushort
+    case int32:
+        return lar_reflect_type_name_int
+    case uint32:
+        return lar_reflect_type_name_uint
+    case int64:
+        return lar_reflect_type_name_long
+    case uint64:
+        return lar_reflect_type_name_ulong
+    case float32:
+        return lar_reflect_type_name_float
+    case float64:
+        return lar_reflect_type_name_double
+    }
+    lri, ok := l_a.(lar_reflect_intf)
+    if ok {
+        return lri.lar_reflect_type_name()
+    }
+    !>>
+    return REFLECT_TYPE_NAME_GO_TYPE;
+}

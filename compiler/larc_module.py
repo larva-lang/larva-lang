@@ -15,6 +15,7 @@ import larc_expr
 find_module_file = None
 
 builtins_module = None
+array_module = None
 module_map = larc_common.OrderedDict()
 
 ginst_being_processed = [None] #用栈记录正在处理的ginst，放一个None在栈底可以简化代码
@@ -1476,6 +1477,18 @@ class Module:
 
         self.func_map[name] = _Func(self, file_name, decr_set, type, name_t, name, gtp_name_t_list, gtp_name_list, arg_name_t_list, arg_map,
                                     block_token_list)
+
+    def check_cycle_import(self):
+        self._check_cycle_import([self.name])
+
+    def _check_cycle_import(self, stk):
+        assert stk and stk[-1] == self.name
+        for dep_module in self.get_dep_module_set():
+            if dep_module in stk:
+                larc_common.exit("模块循环import：%s" % "->".join(stk[stk.index(dep_module) :] + [dep_module]))
+            stk.append(dep_module)
+            module_map[dep_module]._check_cycle_import(stk)
+            stk.pop()
 
     def check_type_for_non_ginst(self):
         for map in self.cls_map, self.intf_map, self.func_map:

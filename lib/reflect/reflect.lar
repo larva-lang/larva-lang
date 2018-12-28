@@ -1,66 +1,17 @@
+import __internal;
+
 //无效larva对象
 public class NotLarvaObject
 {
     EmptyException e usemethod;
 }
 
-!<<
-
-//type lar_reflect_intf interface
-//lar_reflect_intf的定义放在__builtin的util.lar_native中，因为比较基础，runtime和__builtins可能需要
-
-var (
-    lar_reflect_type_name_nil_intf  = lar_str_from_go_str("<nil interface>")
-    lar_reflect_type_name_bool      = lar_str_from_go_str("bool")
-    lar_reflect_type_name_schar     = lar_str_from_go_str("schar")
-    lar_reflect_type_name_char      = lar_str_from_go_str("char")
-    lar_reflect_type_name_short     = lar_str_from_go_str("short")
-    lar_reflect_type_name_ushort    = lar_str_from_go_str("ushort")
-    lar_reflect_type_name_int       = lar_str_from_go_str("int")
-    lar_reflect_type_name_uint      = lar_str_from_go_str("uint")
-    lar_reflect_type_name_long      = lar_str_from_go_str("long")
-    lar_reflect_type_name_ulong     = lar_str_from_go_str("ulong")
-    lar_reflect_type_name_float     = lar_str_from_go_str("float")
-    lar_reflect_type_name_double    = lar_str_from_go_str("double")
-)
-
-var lar_reflect_not_lar_obj_err = lar_new_obj_lar_cls_@<<NotLarvaObject>>()
-
-!>>
-
 public String type_name(Any a)
 {
-    !<<
-    switch l_a.(type) {
-    case nil:
-        return lar_reflect_type_name_nil_intf
-    case bool:
-        return lar_reflect_type_name_bool
-    case int8:
-        return lar_reflect_type_name_schar
-    case uint8:
-        return lar_reflect_type_name_char
-    case int16:
-        return lar_reflect_type_name_short
-    case uint16:
-        return lar_reflect_type_name_ushort
-    case int32:
-        return lar_reflect_type_name_int
-    case uint32:
-        return lar_reflect_type_name_uint
-    case int64:
-        return lar_reflect_type_name_long
-    case uint64:
-        return lar_reflect_type_name_ulong
-    case float32:
-        return lar_reflect_type_name_float
-    case float64:
-        return lar_reflect_type_name_double
+    String name = __internal.reflect_type_name(a);
+    if (name == __internal.REFLECT_TYPE_NAME_GO_TYPE)
+    {
+        throw(new NotLarvaObject());
     }
-    lri, ok := l_a.(lar_reflect_intf)
-    if !ok {
-        lar_func_@<<:throw>>(lar_reflect_not_lar_obj_err)
-    }
-    return lri.lar_reflect_type_name()
-    !>>
+    return name;
 }
