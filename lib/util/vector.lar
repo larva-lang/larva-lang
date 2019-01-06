@@ -5,11 +5,11 @@ public class Vector<E>
         this.arr = (new E[8])[: 0];
         if (data_iter != nil)
         {
-            this.update(data_iter);
+            this.extend(data_iter);
         }
     }
 
-    public void update(Iter<E> data_iter)
+    public void extend(Iter<E> data_iter)
     {
         foreach (var e : data_iter)
         {
@@ -117,6 +117,13 @@ public class Vector<E>
         }
 
         this.arr = this.arr[: sz];
+    }
+
+    public E[] to_array()
+    {
+        var arr = new E[this.size()];
+        arr.copy_from(this.arr);
+        return arr;
     }
 
     E[] arr;
