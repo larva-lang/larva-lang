@@ -106,3 +106,21 @@ public void swap<T>(ref T a, ref T b)
     a = b;
     b = tmp;
 }
+
+public T min<T>(T a, T b)
+{
+    if (cmp(a, b) < 0)
+    {
+        return a;
+    }
+    return b;
+}
+
+public T max<T>(T a, T b)
+{
+    if (cmp(a, b) > 0)
+    {
+        return a;
+    }
+    return b;
+}
