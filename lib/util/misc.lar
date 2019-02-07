@@ -68,6 +68,12 @@ public long hash<T>(T t)
     h = t.hash();
 #enduse
 
+    /*
+    这个算法是为了防止hash冲突序列的重复攻击
+    即攻击者若找到了针对某个rhf（rand_hash_factor）的hash冲突列表h1，h2……，使得它们的hash值的末x位相同，这个序列对于其他rhf则不起效
+    关注末x位是因为本模块下的hash_map实现用的表大小是2的幂
+    其他一些语言，例如python是在特定对象，例如字符串的hash算法中增加随机种子来防攻击，larva则统一在这里进行
+    */
     ulong uh = (ulong)h * (rand_hash_factor | 1);
     return (long)((uh >> 32) ^ uh) & LONG_MAX;
 }
