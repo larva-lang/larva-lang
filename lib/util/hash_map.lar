@@ -170,6 +170,11 @@ public class HashMap<K, V>
         return new HashMapIter<K, V>(this, idx);
     }
 
+    public bool contains_key(K k)
+    {
+        return this.tbl[this.find_node(this.tbl, k)] != nil;
+    }
+
     HashMapNode<K, V>[] tbl;
     HashMapNode<K, V> dummy;
     long sz;

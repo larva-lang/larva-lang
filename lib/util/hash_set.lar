@@ -51,7 +51,7 @@ public class HashSet<E>
 
     public bool contains(E e)
     {
-        return this.hm.find(e) != nil;
+        return this.hm.contains_key(e);
     }
 
     HashMap<E, bool> hm usemethod(size);
