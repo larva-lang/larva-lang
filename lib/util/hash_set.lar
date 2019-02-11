@@ -44,6 +44,11 @@ public class HashSet<E>
         this.hm.set(e, true);
     }
 
+    public void remove(E e)
+    {
+        this.hm.pop(e);
+    }
+
     public HashSetIter<E> iter()
     {
         return new HashSetIter<E>(this.hm.iter());

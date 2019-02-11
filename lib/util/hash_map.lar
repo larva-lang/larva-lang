@@ -124,7 +124,7 @@ public class HashMap<K, V>
         ++ this.dirty;
     }
 
-    public V get(K k)
+    V get_or_pop(K k, bool need_pop)
     {
         long idx = this.find_node(this.tbl, k);
         var node = this.tbl[idx];
@@ -132,7 +132,23 @@ public class HashMap<K, V>
         {
             throw(new KeyError("%s".(k)));
         }
+        if (need_pop)
+        {
+            this.tbl[idx] = this.dummy;
+            -- this.sz;
+            ++ this.dirty;
+        }
         return node.v;
+    }
+
+    public V get(K k)
+    {
+        return this.get_or_pop(k, false);
+    }
+
+    public V pop(K k)
+    {
+        return this.get_or_pop(k, true);
     }
 
     public void set(K k, V v)
