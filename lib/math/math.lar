@@ -28,3 +28,10 @@ public double pow(double x, double y)
     return math.Pow(l_x, l_y)
     !>>
 }
+
+public double exp(double x)
+{
+    !<<
+    return math.Exp(l_x)
+    !>>
+}
