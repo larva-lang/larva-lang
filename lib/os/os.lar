@@ -34,3 +34,10 @@ public String cwd()
     return lar_str_from_go_str(cwd)
     !>>
 }
+
+public long pid()
+{
+    !<<
+    return int64(os.Getpid())
+    !>>
+}
