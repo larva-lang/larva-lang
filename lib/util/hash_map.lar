@@ -168,7 +168,7 @@ public class HashMap<K, V>
 
     public HashMapIter<K, V> iter()
     {
-        return new HashMapIter<K, V>(this, -1L, nil);
+        return new HashMapIter<K, V>(this, 0, this.tbl[0]);
     }
 
     public HashMapIter<K, V> find(K k)
@@ -185,7 +185,8 @@ public class HashMap<K, V>
     public bool contains_key(K k)
     {
         HashMapNode<K, V> node;
-        return this.tbl[this.find_node(this.tbl, k, ref node)] != nil;
+        this.find_node(this.tbl, k, ref node);
+        return node != nil;
     }
 
     HashMapNode<K, V>[] tbl;
