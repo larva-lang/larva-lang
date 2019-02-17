@@ -76,7 +76,7 @@ public long hash<T>(T t)
     严格来说具体对象也应按实际情况来进行一些防攻击策略，例如如果攻击者找到了一堆字符串s1，s2……，其hash方法返回都相同，那么这个hash返回也是一样的
     */
     ulong uh = (ulong)h * (rand_hash_factor | 1);
-    return (long)((uh >> 32) ^ uh) & LONG_MAX;
+    return (long)(((uh >> 32) ^ uh) + rand_hash_factor) & LONG_MAX;
 }
 
 public int cmp<T>(T a, T b)
