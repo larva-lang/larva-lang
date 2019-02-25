@@ -67,28 +67,28 @@ public class HashMap<K, V>
         return idx;
     }
 
-    void rehash(bool is_shrinking)
+    void rehash_if_necessary()
     {
+        long tbl_size = this.tbl.size();
         long new_size;
-        if (is_shrinking)
+        if (tbl_size > 1L << 10 && this.sz < tbl_size * 15 / 100)
         {
-            //若表过大则缩小一半
-            new_size = this.tbl.size();
-            if (new_size < 1L << 10)
+            //表比较大且装载率太低，缩容，缩小一半
+            new_size = tbl_size >> 1;
+        }
+        else if (this.sz > tbl_size * 7 / 10)
+        {
+            //装载率过高，扩容，若表比较大则扩大2倍，否则扩大4倍
+            new_size = tbl_size << 1;
+            if (new_size < 1L << 16)
             {
-                //表太小了，不做缩容
-                return;
+                new_size <<= 1;
             }
-            new_size >>= 1;
         }
         else
         {
-            //若表比较大则扩大2倍，否则扩大8倍
-            new_size = this.tbl.size() << 1;
-            if (new_size < 1L << 24)
-            {
-                new_size <<= 2;
-            }
+            //装载率正常，不做调整
+            return;
         }
         assert(new_size > 0, "bug");
 
@@ -110,7 +110,6 @@ public class HashMap<K, V>
         }
         this.tbl = new_tbl;
         ++ this.dirty;
-println("shrink to size [%s]".(this.tbl.size()));
     }
 
     V get_or_pop(K k, bool need_pop)
@@ -143,10 +142,7 @@ println("shrink to size [%s]".(this.tbl.size()));
             }
             -- this.sz;
             ++ this.dirty;
-            if (this.sz < this.tbl.size() * 2 / 10) //装载率太低，缩小表
-            {
-                this.rehash(true);
-            }
+            this.rehash_if_necessary();
         }
         return node.v;
     }
@@ -163,10 +159,7 @@ println("shrink to size [%s]".(this.tbl.size()));
 
     public void set(K k, V v)
     {
-        if (this.sz > this.tbl.size() * 7 / 10) //装载率太高，扩大表
-        {
-            this.rehash(false);
-        }
+        this.rehash_if_necessary();
 
         HashMapNode<K, V> node;
         long idx = this.find_node(this.tbl, k, ref node);
