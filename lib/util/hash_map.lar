@@ -55,7 +55,7 @@ public class HashMap<K, V>
         return this.sz;
     }
 
-    //查找k，返回找到的idx位置以及node，若node为nil则表示不存在，算法：链表法
+    //查找k，返回找到的idx位置以及node，若node为nil则表示不存在，冲突解决方式：链表法
     long find_node(HashMapNode<K, V>[] tbl, K k, ref HashMapNode<K, V> node)
     {
         long idx = hash(k) & (tbl.size() - 1); //用位运算代替取余;
@@ -67,15 +67,30 @@ public class HashMap<K, V>
         return idx;
     }
 
-    void rehash()
+    void rehash(bool is_shrinking)
     {
-        //若表比较大则扩大2倍，否则扩大8倍
-        long new_size = this.tbl.size() << 1;
-        assert(new_size > 0, "bug");
-        if (new_size < 1L << 24)
+        long new_size;
+        if (is_shrinking)
         {
-            new_size <<= 2;
+            //若表过大则缩小一半
+            new_size = this.tbl.size();
+            if (new_size < 1L << 10)
+            {
+                //表太小了，不做缩容
+                return;
+            }
+            new_size >>= 1;
         }
+        else
+        {
+            //若表比较大则扩大2倍，否则扩大8倍
+            new_size = this.tbl.size() << 1;
+            if (new_size < 1L << 24)
+            {
+                new_size <<= 2;
+            }
+        }
+        assert(new_size > 0, "bug");
 
         //创建新表并迁移旧表数据，这个过程将来可以改成渐进式
         var new_tbl = new HashMapNode<K, V>[new_size];
@@ -95,6 +110,7 @@ public class HashMap<K, V>
         }
         this.tbl = new_tbl;
         ++ this.dirty;
+println("shrink to size [%s]".(this.tbl.size()));
     }
 
     V get_or_pop(K k, bool need_pop)
@@ -127,6 +143,10 @@ public class HashMap<K, V>
             }
             -- this.sz;
             ++ this.dirty;
+            if (this.sz < this.tbl.size() * 2 / 10) //装载率太低，缩小表
+            {
+                this.rehash(true);
+            }
         }
         return node.v;
     }
@@ -143,9 +163,9 @@ public class HashMap<K, V>
 
     public void set(K k, V v)
     {
-        if (this.sz > this.tbl.size() * 7 / 10) //限制装载率0.7
+        if (this.sz > this.tbl.size() * 7 / 10) //装载率太高，扩大表
         {
-            this.rehash();
+            this.rehash(false);
         }
 
         HashMapNode<K, V> node;

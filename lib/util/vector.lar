@@ -62,7 +62,15 @@ public class Vector<E>
         }
         while (new_cap < sz)
         {
-            new_cap += new_cap >> 1;
+            //若空间小则先快速增长
+            if (new_cap < 1L << 15)
+            {
+                new_cap *= 3;
+            }
+            else
+            {
+                new_cap += new_cap / 2;
+            }
         }
         var new_arr = new E[new_cap];
         new_arr.copy_from(this.arr);
@@ -84,18 +92,33 @@ public class Vector<E>
         this.arr[idx] = e;
     }
 
+    void shrink()
+    {
+        long sz = this.size(), cap = this.arr.cap();
+        //缩容时机：空间占用太大且元素数量过少
+        if (cap > 1L << 10 && sz < cap / 4)
+        {
+            //缩容策略：缩到sz的双倍大小
+            long new_cap = sz * 2;
+            var new_arr = new E[new_cap];
+            new_arr.copy_from(this.arr);
+            this.arr = new_arr[: this.arr.size()];
+        }
+    }
+
     public E pop(long idx)
     {
         //弹出idx位置的元素，其后的元素往前移动
         E e = this.arr[idx];
 
         long last_idx = this.size() - 1;
-        while (idx < last_idx)
+        for (; idx < last_idx; ++ idx)
         {
             this.arr[idx] = this.arr[idx + 1];
         }
         this.arr[last_idx] = zero_value<E>();
         this.arr = this.arr[: last_idx];
+        this.shrink();
 
         return e;
     }
@@ -117,6 +140,7 @@ public class Vector<E>
         }
 
         this.arr = this.arr[: sz];
+        this.shrink();
     }
 
     public E[] to_array()

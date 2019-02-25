@@ -74,5 +74,5 @@ public class HashSetIter<E>
         return this.hm_it.key();
     }
 
-    HashMapIter<E, bool> hm_it usemethod(before_begin, after_end, inc, dec);
+    HashMapIter<E, bool> hm_it usemethod(after_end, inc);
 }
