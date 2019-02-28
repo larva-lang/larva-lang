@@ -1400,7 +1400,7 @@ class Module:
                     break
                 idx = pos + 1
                 root = importee[: pos]
-                if not importer.startswith(root):
+                if not importer.startswith(root + "/"):
                     module_name_token.syntax_err("模块'%s'不能引用模块'%s'" % (self.name, module_name))
 
             #检查是否设置别名，没设置则采用module name最后一个域作为名字
