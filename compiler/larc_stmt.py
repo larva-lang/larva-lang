@@ -135,6 +135,7 @@ class Parser:
                     else:
                         t.syntax_err("不允许从defer代码中向外部%s" % t.value)
                 stmt_list.append(_Stmt(t.value))
+                self.token_list.pop_sym(";")
                 continue
             if t.is_reserved("return"):
                 if defer_deep > 0:
