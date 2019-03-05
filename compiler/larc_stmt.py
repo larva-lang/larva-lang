@@ -221,6 +221,8 @@ class Parser:
                 stmt_list.append(_Stmt("native_code", native_code = larc_module.NativeCode(self.module, self.file_name, self.gtp_map, t),
                                        fom = self.fom))
                 continue
+            if t.is_reserved("else"):
+                t.syntax_err("未匹配if的else")
 
             self.token_list.revert()
             tp = larc_type.try_parse_type(self.token_list, self.module, self.dep_module_map, self.gtp_map, var_map_stk)
