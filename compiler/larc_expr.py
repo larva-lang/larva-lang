@@ -20,7 +20,7 @@ _OP_PRIORITY_LIST = [["||"],
                      ["|"],
                      ["^"],
                      ["&"],
-                     ["==", "!="],
+                     ["===", "!==", "==", "!="],
                      ["<", "<=", ">", ">="],
                      ["<<", ">>"],
                      ["+", "-"],
@@ -163,7 +163,7 @@ class _ParseStk:
                     if not ea.type.is_bool_type or not eb.type.is_bool_type:
                         self.start_token.syntax_err("非法的表达式：运算'%s'的左右分量必须是bool型" % op)
                     tp = larc_type.BOOL_TYPE
-                elif op in ("==", "!="):
+                elif op in ("===", "!=="):
                     if ea.type.is_obj_type and eb.type.is_obj_type:
                         #是否为同一个对象
                         if ea.type != eb.type:
@@ -177,7 +177,11 @@ class _ParseStk:
                         eb = _Expr("force_convert", (ea.type, eb), ea.type)
                     elif eb.type.is_obj_type and eb.type.can_convert_from(ea.type):
                         ea = _Expr("force_convert", (eb.type, ea), eb.type)
-                    elif ea.type.is_bool_type and eb.type.is_bool_type:
+                    else:
+                        raise _InvalidBinocularOp()
+                    tp = larc_type.BOOL_TYPE
+                elif op in ("==", "!="):
+                    if ea.type.is_bool_type and eb.type.is_bool_type:
                         pass #bool类型也可直接比较
                     elif ea.type.is_number_type and eb.type.is_number_type:
                         normal_binocular_op = True

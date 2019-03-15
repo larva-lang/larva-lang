@@ -65,7 +65,7 @@ public void assert(bool b, String s)
 //将recover捕获的go的异常转为larva的Catched对象
 Catched<Throwable> _go_recovered_to_catched(GoAny r)
 {
-    if (r == nil) {
+    if (r === nil) {
         return nil;
     }
     Catched<Throwable> c;
@@ -102,7 +102,7 @@ public Catched<T> catch<T>(/*GoAny _go_recovered*/)
     l_r = _go_recovered
     !>>
     var c = _go_recovered_to_catched(r);
-    if (c == nil)
+    if (c === nil)
     {
         //无异常
         return nil;

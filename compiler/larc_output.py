@@ -315,7 +315,10 @@ def _gen_expr_code_ex(expr):
         if expr.op == "%" and ea.type.is_float_type:
             assert eb.type.is_float_type
             return "lar_util_fmod_%s((%s), (%s))" % (ea.type.name, ea_code, eb_code)
-        return "(%s) %s (%s)" % (ea_code, expr.op, eb_code)
+        op = expr.op
+        if op in ("===", "!=="):
+            op = op[: -1]
+        return "(%s) %s (%s)" % (ea_code, op, eb_code)
 
     if expr.op == "local_var":
         name = expr.arg

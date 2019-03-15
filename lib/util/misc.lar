@@ -103,6 +103,8 @@ public bool eq<T>(T a, T b)
 #oruse
     return a.cmp(b) == 0;
 #oruse
+    return a === b;
+#oruse
     return a == b;
 #enduse
 }

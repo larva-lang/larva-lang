@@ -61,7 +61,7 @@ public class Reader
             if (buf_data_size == 0)
             {
                 //读到末尾了
-                if (sl == nil)
+                if (sl === nil)
                 {
                     return nil;
                 }
@@ -74,7 +74,7 @@ public class Reader
                 long line_len = idx + 1;
                 var s = new String(this.buf_data[: line_len]);
                 this.buf_data = this.buf_data[line_len :];
-                if (sl == nil)
+                if (sl === nil)
                 {
                     return s;
                 }
@@ -82,7 +82,7 @@ public class Reader
                 return "".join(sl.iter());
             }
             //一行太长了还没读完，加入sl后继续读
-            if (sl == nil)
+            if (sl === nil)
             {
                 sl = new util.Vector<String>(nil);
             }

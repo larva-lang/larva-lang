@@ -161,7 +161,7 @@ void Proc4()
 
 Record Proc3(Record PtrParOut)
 {
-    if (PtrGlb != nil)
+    if (PtrGlb !== nil)
     {
         PtrParOut = PtrGlb.PtrComp;
     }

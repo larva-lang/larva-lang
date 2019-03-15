@@ -14,7 +14,7 @@ class Client
         defer
         {
             var c = catch_base();
-            if (c != nil)
+            if (c !== nil)
             {
                 println("client ends with exception [%s], traceback[%s]".(c.throwed().str(), c.traceback()));
             }
@@ -48,7 +48,7 @@ public void main()
         defer
         {
             var c = catch_base();
-            if (c != nil)
+            if (c !== nil)
             {
                 println("accept new client failed [%s][%s]".(c.throwed().str(), c.traceback()));
             }

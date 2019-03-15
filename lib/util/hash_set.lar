@@ -3,7 +3,7 @@ public class HashSet<E>
     public HashSet(Iter<E> data_iter)
     {
         this.hm = new HashMap<E, bool>(nil);
-        if (data_iter != nil)
+        if (data_iter !== nil)
         {
             this.update(data_iter);
         }

@@ -3,7 +3,7 @@ public class Vector<E>
     public Vector(Iter<E> data_iter)
     {
         this.arr = (new E[8])[: 0];
-        if (data_iter != nil)
+        if (data_iter !== nil)
         {
             this.extend(data_iter);
         }

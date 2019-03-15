@@ -9,7 +9,7 @@ public class NotLarvaObject
 public String type_name(Any a)
 {
     String name = __internal.reflect_type_name(a);
-    if (name == __internal.REFLECT_TYPE_NAME_GO_TYPE)
+    if (name === __internal.REFLECT_TYPE_NAME_GO_TYPE)
     {
         throw(new NotLarvaObject());
     }

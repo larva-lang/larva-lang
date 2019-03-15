@@ -14,7 +14,7 @@ public class HashMap<K, V>
         this.sz = 0;
         this.dirty = 0;
 
-        if (data_iter != nil)
+        if (data_iter !== nil)
         {
             this.update(data_iter);
         }
@@ -60,7 +60,7 @@ public class HashMap<K, V>
     {
         long idx = hash(k) & (tbl.size() - 1); //用位运算代替取余;
 
-        for (node = tbl[idx]; node != nil && !eq(node.k, k); node = node.next)
+        for (node = tbl[idx]; node !== nil && !eq(node.k, k); node = node.next)
         {
         }
 
@@ -96,11 +96,11 @@ public class HashMap<K, V>
         var new_tbl = new HashMapNode<K, V>[new_size];
         for (var i = this.tbl.size() - 1; i >= 0; -- i)
         {
-            for (var node = this.tbl[i]; node != nil; node = node.next)
+            for (var node = this.tbl[i]; node !== nil; node = node.next)
             {
                 HashMapNode<K, V> new_node;
                 long idx = this.find_node(new_tbl, node.k, ref new_node);
-                assert(new_node == nil, "bug"); //在新表插入node肯定找不到的
+                assert(new_node === nil, "bug"); //在新表插入node肯定找不到的
                 new_node = new HashMapNode<K, V>();
                 new_node.k = node.k;
                 new_node.v = node.v;
@@ -116,13 +116,13 @@ public class HashMap<K, V>
     {
         HashMapNode<K, V> node;
         long idx = this.find_node(this.tbl, k, ref node);
-        if (node == nil)
+        if (node === nil)
         {
             throw(new KeyError("%s".(k)));
         }
         if (need_pop)
         {
-            if (this.tbl[idx] == node)
+            if (this.tbl[idx] === node)
             {
                 //第一个节点就是，直接删掉
                 this.tbl[idx] = node.next;
@@ -132,8 +132,8 @@ public class HashMap<K, V>
                 //在链表中找到节点的前驱，通过修改其next属性来删掉节点
                 for (var nd = this.tbl[idx]; ; nd = nd.next)
                 {
-                    assert(nd != nil, "bug");
-                    if (nd.next == node)
+                    assert(nd !== nil, "bug");
+                    if (nd.next === node)
                     {
                         nd.next = node.next;
                         break;
@@ -163,7 +163,7 @@ public class HashMap<K, V>
 
         HashMapNode<K, V> node;
         long idx = this.find_node(this.tbl, k, ref node);
-        if (node == nil)
+        if (node === nil)
         {
             //新增节点，插到链表头部
             node = new HashMapNode<K, V>();
@@ -188,7 +188,7 @@ public class HashMap<K, V>
     {
         HashMapNode<K, V> node;
         long idx = this.find_node(this.tbl, k, ref node);
-        if (node == nil)
+        if (node === nil)
         {
             return nil;
         }
@@ -199,7 +199,7 @@ public class HashMap<K, V>
     {
         HashMapNode<K, V> node;
         this.find_node(this.tbl, k, ref node);
-        return node != nil;
+        return node !== nil;
     }
 
     HashMapNode<K, V>[] tbl;
@@ -226,7 +226,7 @@ public class HashMapIter<K, V>
         var node = this.nd;
 
         //若node为nil，则向后找最近一个合法的数据
-        while (node == nil)
+        while (node === nil)
         {
             ++ idx;
             if (idx >= tbl_size)
@@ -265,7 +265,7 @@ public class HashMapIter<K, V>
         {
             throw(new IterOutOfRange());
         }
-        assert(this.nd != nil, "bug");
+        assert(this.nd !== nil, "bug");
         return this.nd;
     }
 
@@ -297,7 +297,7 @@ public class HashMapIter<K, V>
         {
             throw(new IterOutOfRange());
         }
-        assert(this.nd != nil, "bug");
+        assert(this.nd !== nil, "bug");
         this.nd = this.nd.next;
         this.skip_nil();
     }
