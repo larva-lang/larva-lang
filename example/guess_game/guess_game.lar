@@ -145,18 +145,23 @@ public void main()
     log("game start!");
     while (true)
     {
-        defer
-        {
-            var c = catch_base();
-            if (c !== nil)
+        []{
+            void call()
             {
-                log("accept new client failed [%s][%s]".(c.throwed().str(), c.traceback()));
+                defer
+                {
+                    var c = catch_base();
+                    if (c !== nil)
+                    {
+                        log("accept new client failed [%s][%s]".(c.throwed().str(), c.traceback()));
+                    }
+                }
+
+                net.TcpConn new_client = listener.accept();
+                log("accept success, new client [%s]".(new_client.remote_addr()));
+
+                start_fiber(new Client(new_client));
             }
-        }
-
-        net.TcpConn new_client = listener.accept();
-        log("accept success, new client [%s]".(new_client.remote_addr()));
-
-        start_fiber(new Client(new_client));
+        }.call();
     }
 }

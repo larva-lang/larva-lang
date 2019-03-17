@@ -45,16 +45,21 @@ public void main()
     println("server start");
     while (true)
     {
-        defer
-        {
-            var c = catch_base();
-            if (c !== nil)
+        []{
+            void call()
             {
-                println("accept new client failed [%s][%s]".(c.throwed().str(), c.traceback()));
-            }
-        }
+                defer
+                {
+                    var c = catch_base();
+                    if (c !== nil)
+                    {
+                        println("accept new client failed [%s][%s]".(c.throwed().str(), c.traceback()));
+                    }
+                }
 
-        net.TcpConn new_client = listener.accept();
-        start_fiber(new Client(new_client));
+                net.TcpConn new_client = listener.accept();
+                start_fiber(new Client(new_client));
+            }
+        }.call();
     }
 }
