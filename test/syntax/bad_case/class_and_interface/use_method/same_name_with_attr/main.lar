@@ -1,0 +1,16 @@
+class A
+{
+    void f()
+    {
+    }
+}
+
+class B
+{
+    A a usemethod;
+    float f;
+}
+
+public void main()
+{
+}

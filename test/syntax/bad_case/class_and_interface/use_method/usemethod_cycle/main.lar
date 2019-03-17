@@ -1,0 +1,13 @@
+class A
+{
+    B b usemethod;
+}
+
+class B
+{
+    A a usemethod;
+}
+
+public void main()
+{
+}

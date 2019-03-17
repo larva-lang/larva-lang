@@ -1,0 +1,9 @@
+class A<T>
+{
+    A<A<T>> a;
+}
+
+public void main()
+{
+    A<int> a;
+}

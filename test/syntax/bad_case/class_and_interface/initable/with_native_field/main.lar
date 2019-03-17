@@ -1,0 +1,11 @@
+class A
+{
+    !<<
+    a int
+    !>>
+}
+
+public void main()
+{
+    new A{};
+}

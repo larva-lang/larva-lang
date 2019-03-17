@@ -1,0 +1,19 @@
+interface A
+{
+    void f();
+}
+
+interface B
+{
+    int f();
+}
+
+interface C
+{
+    A usemethod;
+    B usemethod;
+}
+
+public void main()
+{
+}

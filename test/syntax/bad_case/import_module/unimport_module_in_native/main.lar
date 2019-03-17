@@ -1,0 +1,8 @@
+import os;
+
+public void main()
+{
+    !<<
+    println(lar_gv_@<<os.args>>)
+    !>>
+}

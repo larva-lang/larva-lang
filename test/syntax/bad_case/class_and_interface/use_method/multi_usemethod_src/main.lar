@@ -1,0 +1,23 @@
+class A
+{
+    void f()
+    {
+    }
+}
+
+class B
+{
+    void f()
+    {
+    }
+}
+
+class C
+{
+    A a usemethod;
+    B b usemethod;
+}
+
+public void main()
+{
+}

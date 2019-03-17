@@ -1,0 +1,5 @@
+import ../../no_such_module;
+
+public void main()
+{
+}

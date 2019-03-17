@@ -1,0 +1,10 @@
+import ./a;
+
+interface A
+{
+    a.A usemethod(f);
+}
+
+public void main()
+{
+}

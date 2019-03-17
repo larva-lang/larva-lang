@@ -1386,7 +1386,9 @@ class Module:
 
             module_name = self.fix_module_name(relative_deep, module_name_token, module_name)
 
-            #分析模块路径中含有私有模块的情况，私有模块目录下的模块只允许其上层目录下的模块访问
+            #分析模块路径中含有私有模块的情况，私有模块及其下层的模块只允许其上层模块及上层模块之下的模块访问
+            #简单说就是：a/b/c/__x及其下的模块只允许在a/b/c目录下的larva代码文件中import
+            #若模块路径中有多个私有，则import它的文件对每个私有模块都要符合条件才行
             #标准库和非标准库视为两个根目录
             def get_prefix(is_std_lib_module):
                 return "STD/" if is_std_lib_module else "NON_STD/"
