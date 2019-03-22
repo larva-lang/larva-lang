@@ -646,7 +646,14 @@ _literal_token_id_set = set()
 _curr_module = None
 def _output_module():
     module = _curr_module
-    module_file_name = "%s/%s.mod.%s.mod.go" % (_out_prog_dir, _prog_module_name, _gen_module_name_code(module))
+    '''
+    因为go编译器一个坑爹的type alias的bug：https://github.com/golang/go/issues/25838
+    这个bug简单说就是，如果代码有type alias，那么对应的type定义应该出现在go代码中使用alias的位置（例如函数定义等）之前，否则编译时无法解析
+    go在编译代码的时候，对于每个package的目录，是按照文件名字典序排序的顺序进行，因此通过PROG_NAME.-.XXX的命名来强制一些文件被优先编译
+    这里用到type alias的只有数组，所以数组相关代码会被这样特殊处理
+    '''
+    is_array_mod = module is larc_module.array_module #数组模块特殊处理的原因见本文件末尾的注释#1
+    module_file_name = "%s/%s.%smod.%s.mod.go" % (_out_prog_dir, _prog_module_name, "-." if is_array_mod else "", _gen_module_name_code(module))
     with _Code(module_file_name) as code:
         code += ""
         for t in module.literal_str_list:
@@ -766,9 +773,9 @@ def _output_util():
     f.write(larc_common.open_src_file(util_fix_file_path_name).read())
     f.close()
 
-    #生成util代码
+    #生成普通util代码
     with _Code("%s/%s.util.go" % (_out_prog_dir, _prog_module_name)) as code:
-        #生成数组相关代码
+        #生成数组alias代码
         for tp in larc_type.array_type_set:
             assert tp.is_array
             arr_type = larc_type.gen_arr_type(tp)
