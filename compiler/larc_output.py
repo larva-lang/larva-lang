@@ -652,7 +652,7 @@ def _output_module():
     go在编译代码的时候，对于每个package的目录，是按照文件名字典序排序的顺序进行，因此通过PROG_NAME.-.XXX的命名来强制一些文件被优先编译
     这里用到type alias的只有数组，所以数组相关代码会被这样特殊处理
     '''
-    is_array_mod = module is larc_module.array_module #数组模块特殊处理的原因见本文件末尾的注释#1
+    is_array_mod = module is larc_module.array_module
     module_file_name = "%s/%s.%smod.%s.mod.go" % (_out_prog_dir, _prog_module_name, "-." if is_array_mod else "", _gen_module_name_code(module))
     with _Code(module_file_name) as code:
         code += ""
