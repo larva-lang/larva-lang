@@ -272,7 +272,7 @@ public class HashMapIter<K, V>
     public Pair<K, V> get()
     {
         var nd = this.node();
-        return new Pair<K, V>(nd.k, nd.v);
+        return make_pair(nd.k, nd.v);
     }
 
     public K key()
