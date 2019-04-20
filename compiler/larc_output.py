@@ -713,9 +713,9 @@ def _output_module():
             if cls.module is larc_module.array_module and cls.name == "Arr":
                 #数组对象的类型名要处理一下
                 assert len(cls.gtp_map) == 1
-                cls_type_name = str(cls.gtp_map.value_at(0)) + "[]"
+                cls_type_name = cls.gtp_map.value_at(0).to_str(ignore_builtins_module_prefix = True)
             else:
-                cls_type_name = str(cls)
+                cls_type_name = larc_type.gen_type_from_cls(cls).to_str(ignore_builtins_module_prefix = True)
             code += "var lar_reflect_type_name_%s = lar_str_from_go_str(%s)" % (lar_cls_name, _gen_str_literal(cls_type_name))
             with code.new_blk("func (this *%s) lar_reflect_type_name() %s" % (lar_cls_name, _STR_TYPE_NAME_CODE)):
                 code += "return lar_reflect_type_name_%s" % lar_cls_name

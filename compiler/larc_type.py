@@ -58,15 +58,20 @@ class _Type:
         self.is_number_type = self.is_integer_type or self.is_float_type
         self.can_inc_dec = self.is_integer_type
 
-    def __repr__(self):
+    #转为字符串，ignore_builtins_module_prefix表示是否忽略掉“__builtins.”模块前缀
+    def to_str(self, ignore_builtins_module_prefix):
         s = self.name
         if self.module_name is not None:
-            s = self.module_name + "." + s
+            if ignore_builtins_module_prefix and self.module_name == "__builtins":
+                pass
+            else:
+                s = self.module_name + "." + s
         if self.gtp_list:
-            s += "<%s>" % ", ".join([str(tp) for tp in self.gtp_list])
+            s += "<%s>" % ", ".join([tp.to_str(ignore_builtins_module_prefix = ignore_builtins_module_prefix) for tp in self.gtp_list])
         s += "[]" * self.array_dim_count
         return s
-    __str__ = __repr__
+
+    __str__ = __repr__ = lambda self: self.to_str(ignore_builtins_module_prefix = False)
 
     def __setattr__(self, name, value):
         if self.__dict__.get("is_freezed", False):
