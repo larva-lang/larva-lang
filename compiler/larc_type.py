@@ -140,6 +140,8 @@ class _Type:
         #构建find_path并查找类型
         if self.module_name is None:
             if self.name in gtp_name_set:
+                if self.gtp_list:
+                    self.token.syntax_err("泛型参数不可作为泛型类型使用")
                 #忽略泛型类型
                 return
             find_path = curr_module, larc_module.builtins_module
