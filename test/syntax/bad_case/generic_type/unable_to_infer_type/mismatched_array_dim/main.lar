@@ -1,0 +1,8 @@
+void f<T>(T[][] t)
+{
+}
+
+public void main()
+{
+    f(new int[1]);
+}

@@ -1,0 +1,9 @@
+void f<T>(ref T t)
+{
+}
+
+public void main()
+{
+    String s;
+    f(s);
+}

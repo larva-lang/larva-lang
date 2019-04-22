@@ -1,0 +1,20 @@
+interface I<T>
+{
+    T f();
+}
+
+class A
+{
+    public int f()
+    {
+    }
+}
+
+void f<T>(I<T> i)
+{
+}
+
+public void main()
+{
+    f(new A());
+}

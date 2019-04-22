@@ -1,0 +1,10 @@
+void f<T>(ref T a, T b)
+{
+}
+
+public void main()
+{
+    int i;
+    Any a;
+    f(ref i, a);
+}

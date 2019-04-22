@@ -1,0 +1,8 @@
+void f<T>(T t)
+{
+}
+
+public void main()
+{
+    f(1);
+}

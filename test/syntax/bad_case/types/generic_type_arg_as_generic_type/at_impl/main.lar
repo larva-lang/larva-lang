@@ -1,0 +1,11 @@
+import util;
+
+void f<T>()
+{
+    T<int> t;
+}
+
+public void main()
+{
+    f<int>();
+}
