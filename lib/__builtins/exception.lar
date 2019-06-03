@@ -84,8 +84,8 @@ Catched<Throwable> _go_recovered_to_catched(GoAny r)
     return c;
 }
 
-//捕获base
-public Catched<Throwable> catch_base(/*GoAny _go_recovered*/)
+//捕获Throwable对象
+public Catched<Throwable> catch_throwable(/*GoAny _go_recovered*/)
 {
     GoAny r;
     !<<
@@ -114,6 +114,30 @@ public Catched<T> catch<T>(/*GoAny _go_recovered*/)
     }
     //不是当前需要的类型，继续往上抛
     c.rethrow();
+}
+
+//---------------------------------------------------------------------
+
+//另一种捕获异常的编码形式，传入一个NothrowCallable接口的对象（一般是闭包），会调用它并将捕获的异常返回
+public interface NothrowCallable
+{
+    public void call();
+}
+
+void _nothrow_call(NothrowCallable callee, ref Catched<Throwable> c)
+{
+    defer
+    {
+        c = catch_throwable();
+    }
+    callee.call();
+}
+
+public Catched<Throwable> nothrow_call(NothrowCallable callee)
+{
+    Catched<Throwable> c;
+    _nothrow_call(callee, ref c);
+    return c;
 }
 
 //---------------------------------------------------------------------

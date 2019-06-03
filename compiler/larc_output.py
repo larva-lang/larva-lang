@@ -434,7 +434,7 @@ def _gen_expr_code_ex(expr):
 
     if expr.op == "call_func":
         func, expr_list = expr.arg
-        if func.module.name == "__builtins" and func.name in ("catch_base", "catch"):
+        if func.module.name == "__builtins" and func.name in ("catch_throwable", "catch"):
             assert not expr_list
             expr_list_code = "recover()"
         else:
@@ -753,7 +753,7 @@ def _output_module():
 
         for func in [i for i in module.func_map.itervalues() if not i.gtp_name_list] + list(module.gfunc_inst_map.itervalues()):
             code.switch_file(func.file_name)
-            if module.name == "__builtins" and func.name in ("catch_base", "catch"):
+            if module.name == "__builtins" and func.name in ("catch_throwable", "catch"):
                 assert not func.arg_map
                 arg_def = "_go_recovered interface{}"
             else:

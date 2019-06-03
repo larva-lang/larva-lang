@@ -11,29 +11,30 @@ class Client
 
     public void run()
     {
-        defer
-        {
-            var c = catch_base();
-            if (c !== nil)
+        var c = nothrow_call([]{
+            public void call()
             {
-                println("client ends with exception [%s], traceback[%s]".(c.throwed().str(), c.traceback()));
-            }
-            else
-            {
-                println("client ends");
-            }
-        }
-        defer this.sock.close();
+                defer this.sock.close();
 
-        var buf = new char[10000];
-        while (true)
-        {
-            long recved_size = this.sock.read(buf);
-            if (recved_size == 0)
-            {
-                return;
+                var buf = new char[10000];
+                while (true)
+                {
+                    long recved_size = this.sock.read(buf);
+                    if (recved_size == 0)
+                    {
+                        return;
+                    }
+                    this.sock.write(buf[: recved_size]);
+                }
             }
-            this.sock.write(buf);
+        });
+        if (c !== nil)
+        {
+            println("client ends with exception [%s], traceback[%s]".(c.throwed().str(), c.traceback()));
+        }
+        else
+        {
+            println("client ends");
         }
     }
 }
@@ -45,21 +46,16 @@ public void main()
     println("server start");
     while (true)
     {
-        []{
-            void call()
+        var c = nothrow_call([]{
+            public void call()
             {
-                defer
-                {
-                    var c = catch_base();
-                    if (c !== nil)
-                    {
-                        println("accept new client failed [%s][%s]".(c.throwed().str(), c.traceback()));
-                    }
-                }
-
                 net.TcpConn new_client = listener.accept();
                 start_fiber(new Client(new_client));
             }
-        }.call();
+        });
+        if (c !== nil)
+        {
+            println("accept new client failed [%s][%s]".(c.throwed().str(), c.traceback()));
+        }
     }
 }

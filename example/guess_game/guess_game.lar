@@ -123,17 +123,17 @@ class Client
 
     public void run()
     {
-        defer
-        {
-            var c = catch_base();
-            if (c !== nil)
+        var c = nothrow_call([]{
+            public void call()
             {
-                this.client_log("client ends with exception [%s], traceback[%s]".(c.throwed().str(), c.traceback()));
+                defer this.sock.close();
+                this._run();
             }
+        });
+        if (c !== nil)
+        {
+            this.client_log("client ends with exception [%s], traceback[%s]".(c.throwed().str(), c.traceback()));
         }
-        defer this.sock.close();
-
-        this._run();
     }
 }
 
@@ -145,23 +145,18 @@ public void main()
     log("game start!");
     while (true)
     {
-        []{
-            void call()
+        var c = nothrow_call([]{
+            public void call()
             {
-                defer
-                {
-                    var c = catch_base();
-                    if (c !== nil)
-                    {
-                        log("accept new client failed [%s][%s]".(c.throwed().str(), c.traceback()));
-                    }
-                }
-
                 net.TcpConn new_client = listener.accept();
                 log("accept success, new client [%s]".(new_client.remote_addr()));
 
                 start_fiber(new Client(new_client));
             }
-        }.call();
+        });
+        if (c !== nil)
+        {
+            log("accept new client failed [%s][%s]".(c.throwed().str(), c.traceback()));
+        }
     }
 }
