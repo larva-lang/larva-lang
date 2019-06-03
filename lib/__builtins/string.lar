@@ -58,13 +58,21 @@ public class String
     public int cmp(String other)
     {
         !<<
-        return int32(strings.Compare(this.s, l_other.s))
+        if this.s < l_other.s {
+            return int32(-1)
+        }
+        if this.s > l_other.s {
+            return int32(1)
+        }
+        return int32(0)
         !>>
     }
 
     public bool eq(String other)
     {
-        return this.cmp(other) == 0;
+        !<<
+        return this.s == l_other.s;
+        !>>
     }
 
     public long hash()
@@ -169,7 +177,7 @@ public class String
         !>>
         if (!ok)
         {
-            throw(new ValueError("无效的bool字面量：'%s'".(this)));
+            throw(new ValueError("无效的bool字面量：%r".(this)));
         }
         return r;
     }
@@ -188,11 +196,11 @@ public class String
             String err_info;
             if (base == 0)
             {
-                err_info = "无效的long字面量：'%s'".(this);
+                err_info = "无效的long字面量：%r".(this);
             }
             else
             {
-                err_info = "无效的%s进制long字面量：'%s'".(base, this);
+                err_info = "无效的%s进制long字面量：%r".(base, this);
             }
             throw(new ValueError(err_info));
         }
@@ -213,11 +221,11 @@ public class String
             String err_info;
             if (base == 0)
             {
-                err_info = "无效的ulong字面量：'%s'".(this);
+                err_info = "无效的ulong字面量：%r".(this);
             }
             else
             {
-                err_info = "无效的%s进制ulong字面量：'%s'".(base, this);
+                err_info = "无效的%s进制ulong字面量：%r".(base, this);
             }
             throw(new ValueError(err_info));
         }
@@ -235,7 +243,7 @@ public class String
         !>>
         if (!ok)
         {
-            throw(new ValueError("无效的double字面量：'%s'".(this)));
+            throw(new ValueError("无效的double字面量：%r".(this)));
         }
         return r;
     }
