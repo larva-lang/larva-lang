@@ -1406,7 +1406,7 @@ class Module:
                     module_name_token.syntax_err("模块'%s'不能引用模块'%s'" % (self.name, module_name))
 
             #检查是否设置别名，没设置则采用module name最后一个域作为名字
-            if token_list.peek().is_reserved("as"):
+            if token_list.peek().is_sym(":"):
                 token_list.pop()
                 t, module_name_alias = token_list.pop_name()
             else:
