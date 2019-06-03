@@ -32,23 +32,15 @@ public long rand_n(long n)
     !>>
 }
 
-//Shufflable接口，对应的类需要实现按下标索引随机存取，例如数组和util.Vector均实现这个接口
-interface Shufflable<E>
-{
-    public long size();
-    public E get(long idx);
-    public void set(long idx, E e);
-}
-
-//将给定的容器随机打乱顺序，容器只要实现了Shufflable接口即可
-public void shuffle<E>(Shufflable<E> s)
+//将给定的容器随机打乱顺序
+public void shuffle<S>(S s)
 {
     //sz从大到小，循环s[: sz]区间，每次将最后一个元素和随机元素交换位置
     for (long sz = s.size(); sz > 1; -- sz)
     {
         long last_i = sz - 1;
         long rand_i = rand_n(sz);
-        E tmp = s.get(last_i);
+        var tmp = s.get(last_i);
         s.set(last_i, s.get(rand_i));
         s.set(rand_i, tmp);
     }
