@@ -75,7 +75,7 @@ public class File
         {
             mode = mode.concat("+");
         }
-        throw(new ValueError("无效的文件打开模式[%s]".(mode)));
+        throw(new ValueError("无效的文件打开模式%r".(mode)));
     }
 
     bool allow_read()
@@ -87,7 +87,7 @@ public class File
     {
         if (!this.allow_read())
         {
-            throw("文件以模式[%s]打开，不可读".(this.md));
+            throw("文件以模式%r打开，不可读".(this.md));
         }
     }
 
@@ -100,7 +100,7 @@ public class File
     {
         if (!this.allow_write())
         {
-            throw("文件以模式[%s]打开，不可写".(this.md));
+            throw("文件以模式%r打开，不可写".(this.md));
         }
     }
 
@@ -200,7 +200,7 @@ public class File
     {
         if (this.stat == STAT_CLOSED)
         {
-            throw(new Error("文件[%s]已被关闭".(this.fn)));
+            throw(new Error("文件%r已被关闭".(this.fn)));
         }
     }
 
