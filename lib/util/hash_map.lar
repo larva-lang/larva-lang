@@ -118,7 +118,7 @@ public class HashMap<K, V>
         long idx = this.find_node(this.tbl, k, ref node);
         if (node === nil)
         {
-            throw(new KeyError("%s".(k)));
+            throw(new KeyError("%r".(k)));
         }
         if (need_pop)
         {

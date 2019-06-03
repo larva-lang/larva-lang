@@ -63,7 +63,7 @@ func lar_exc_create_catched_throwable(t lar_intf_@<<Throwable>>, skip int) *lar_
                 //追溯到了模块初始化代码，且不是larva层面的代码行，则停止
                 break
             }
-            tb_line := fmt.Sprintf("  File '%s', line %d", file, line)
+            tb_line := fmt.Sprintf("  File %q, line %d", file, line)
             if func_name != "" {
                 tb_line += ", in " + func_name
             }

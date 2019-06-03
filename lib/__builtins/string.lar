@@ -200,7 +200,7 @@ public class String
             }
             else
             {
-                err_info = "无效的%s进制long字面量：%r".(base, this);
+                err_info = "无效的%d进制long字面量：%r".(base, this);
             }
             throw(new ValueError(err_info));
         }
@@ -225,7 +225,7 @@ public class String
             }
             else
             {
-                err_info = "无效的%s进制ulong字面量：%r".(base, this);
+                err_info = "无效的%d进制ulong字面量：%r".(base, this);
             }
             throw(new ValueError(err_info));
         }

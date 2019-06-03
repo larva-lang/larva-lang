@@ -25,7 +25,7 @@ public long rand_n(long n)
 {
     if (n <= 0)
     {
-        throw(new ValueError("无效的rand_n参数'%s'".(n)));
+        throw(new ValueError("无效的rand_n参数'%d'".(n)));
     }
     !<<
     return rand.Int63n(l_n)
