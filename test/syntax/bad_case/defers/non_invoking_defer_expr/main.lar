@@ -1,0 +1,4 @@
+public void main()
+{
+    defer 123 + 456;
+}

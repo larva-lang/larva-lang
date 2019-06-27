@@ -1,0 +1,8 @@
+public void main()
+{
+    var a = new int[10];
+    int i;
+    foreach (i: a.iter())
+    {
+    }
+}

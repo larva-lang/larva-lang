@@ -1,0 +1,6 @@
+import os;
+
+public void main()
+{
+    int os;
+}

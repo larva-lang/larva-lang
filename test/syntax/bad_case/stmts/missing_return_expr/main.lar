@@ -1,0 +1,8 @@
+int f()
+{
+    return;
+}
+
+public void main()
+{
+}

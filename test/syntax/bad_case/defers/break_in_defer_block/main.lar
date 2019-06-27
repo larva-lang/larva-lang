@@ -1,0 +1,10 @@
+public void main()
+{
+    while (true)
+    {
+        defer
+        {
+            break; //or continue
+        }
+    }
+}
