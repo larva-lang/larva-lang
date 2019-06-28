@@ -39,7 +39,14 @@ public T zero_value<T>()
     return t;
 }
 
-public bool try_cast<T>(GoAny a, ref T t)
+public T assert_type<T>(GoAny a)
+{
+    !<<
+    return l_a.(@<<{T}>>)
+    !>>
+}
+
+public bool try_assert_type<T>(GoAny a, ref T t)
 {
     bool ok;
     !<<

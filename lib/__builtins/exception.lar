@@ -69,7 +69,7 @@ Catched<Throwable> _go_recovered_to_catched(GoAny r)
         return nil;
     }
     Catched<Throwable> c;
-    if (try_cast(r, ref c))
+    if (try_assert_type(r, ref c))
     {
         return c;
     }
@@ -108,7 +108,7 @@ public Catched<T> catch<T>(/*GoAny _go_recovered*/)
         return nil;
     }
     T throwed;
-    if (try_cast(c.throwed(), ref throwed))
+    if (try_assert_type(c.throwed(), ref throwed))
     {
         return new Catched<T>(throwed, c.traceback());
     }
@@ -176,7 +176,7 @@ public class AssertError
 }
 
 //运行时类型转换（从接口到类型或其他接口）失败的错误
-public class CastError
+public class TypeAssertionError
 {
     EmptyException e usemethod;
 }

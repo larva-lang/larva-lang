@@ -61,7 +61,7 @@ public long hash<T>(T t)
     h = hash_float(t);
 #oruse
     Any[] _assert_T_is_Any = (T[])nil;
-    h = ((Hashable)t).hash();
+    h = assert_type<Hashable>(t).hash();
 #oruse
     h = (long)t;
 #oruse
