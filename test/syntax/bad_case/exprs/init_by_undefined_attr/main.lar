@@ -1,0 +1,12 @@
+class A
+{
+    public int a;
+}
+
+public void main()
+{
+    println(new A{
+        a: 123,
+        b: 456,
+    });
+}

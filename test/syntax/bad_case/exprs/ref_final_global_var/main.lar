@@ -1,0 +1,10 @@
+final int a = 123;
+
+void f(ref int x)
+{
+}
+
+public void main()
+{
+    f(ref a);
+}

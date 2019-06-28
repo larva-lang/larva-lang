@@ -1,0 +1,10 @@
+class A
+{
+    !<<
+    !>>
+}
+
+public void main()
+{
+    println(new A{});
+}
