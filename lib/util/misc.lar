@@ -78,6 +78,8 @@ public long hash<T>(T t)
     h = t.hash();
 #oruse
     h = assert_type<Hashable>(t).hash(); //其他对象不做区分，动态检测解决
+#oruse
+    #error 未知错误，请检查代码实现
 #enduse
 
     /*
@@ -105,6 +107,8 @@ public int cmp<T>(T a, T b)
         return 1;
     }
     return 0;
+#oruse
+    #error 类型不可做比较操作
 #enduse
 }
 
@@ -118,6 +122,8 @@ public bool eq<T>(T a, T b)
     return a === b;
 #oruse
     return a == b;
+#oruse
+    #error 类型不可做判等操作
 #enduse
 }
 

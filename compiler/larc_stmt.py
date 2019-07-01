@@ -120,6 +120,11 @@ class Parser:
                     pass
                 self.ccc_use_deep -= 1
                 continue
+            if t.is_ccc("error"):
+                ccc_err_msg_t = self.token_list.pop()
+                assert ccc_err_msg_t.type == "ccc_err_msg"
+                ccc_err_msg = ccc_err_msg_t.value
+                t.syntax_err(ccc_err_msg)
 
             if t.is_sym(";"):
                 continue

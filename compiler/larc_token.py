@@ -37,7 +37,7 @@ _RESERVED_WORD_SET = set(["import", "class", "void", "bool", "schar", "char", "s
                           "public", "interface", "new", "usemethod", "var", "defer", "final", "foreach"])
 
 #编译控制命令集
-_COMPILING_CTRL_CMD_SET = set(["use", "oruse", "enduse"])
+_COMPILING_CTRL_CMD_SET = set(["use", "oruse", "enduse", "error"])
 
 class _Token:
     def __init__(self, type, value, src_file, line_no, pos):
@@ -445,9 +445,14 @@ def parse_token_list(src_file):
                 pos = line.find("#")
                 assert pos >= 0
                 ccc = line[pos + 1 :].strip("\t\x20")
+                if ccc == "error" or ccc.startswith("error\t") or ccc.startswith("error\x20"):
+                    ccc_err_msg = ccc[5 :].strip()
+                    ccc = "error"
                 if ccc not in _COMPILING_CTRL_CMD_SET:
                     _syntax_err(src_file, line_no, pos, "非法的编译控制命令'%s'" % ccc)
                 token_list.append(_Token("ccc", ccc, src_file, line_no, pos))
+                if ccc == "error":
+                    token_list.append(_Token("ccc_err_msg", ccc_err_msg, src_file, line_no, pos))
                 continue
             if line.strip() == "!<<":
                 #native code开始
