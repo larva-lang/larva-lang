@@ -1174,13 +1174,14 @@ class NativeCode:
                     module_name, name = macro.split(".")
                 except ValueError:
                     token.syntax_err("非法的标识符宏")
-                if not all([larc_token.is_valid_name(p) for p in module_name.split("/")]):
+                if not larc_token.is_valid_name(module_name):
                     token.syntax_err("非法的标识符宏")
 
-                module_name = self.module.fix_module_name(relative_deep, token, module_name)
-                if module_name not in self.module.get_dep_module_map(self.file_name).itervalues():
+                dep_module_map = self.module.get_dep_module_map(self.file_name)
+                if module_name not in dep_module_map:
                     #native_code引用了一个没有被预处理导入的模块，报错
                     token.syntax_err("模块'%s'需要显式导入" % module_name)
+                module_name = dep_module_map[module_name] #转成标准模块名
             elif macro.startswith(":"):
                 #__builtin模块name简写形式
                 module_name = "__builtins"
