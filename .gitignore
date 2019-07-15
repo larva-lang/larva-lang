@@ -3,3 +3,4 @@
 *.lar_out
 /test/test
 .vscode
+*.class
