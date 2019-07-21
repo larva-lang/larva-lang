@@ -14,9 +14,10 @@ import larc_type
 import larc_output
 
 def _show_usage_and_exit():
-    larc_common.exit("使用方法：\n"
-                     "\t%s --module_path=MODULE_PATH_LIST MAIN_MODULE\n"
-                     "\t%s --module_path=MODULE_PATH_LIST --run MAIN_MODULE ARGS" % (sys.argv[0], sys.argv[0]))
+    print >> sys.stderr, ("使用方法：\n"
+                          "\tpython %s --module_path=MODULE_PATH_LIST MAIN_MODULE\n"
+                          "\tpython %s --module_path=MODULE_PATH_LIST --run MAIN_MODULE ARGS\n" % (sys.argv[0], sys.argv[0]))
+    sys.exit(1)
 
 def _find_module_file(module_path_list, module_name):
     #按模块查找路径逐个目录找
