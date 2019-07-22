@@ -21,7 +21,6 @@ _POS_INFO_IGNORE = object()
 
 main_module_name = None
 out_dir = None
-runtime_dir = None
 
 _out_prog_dir = None
 _prog_module_name = None
@@ -466,19 +465,11 @@ def _output_main_pkg():
             code += "%s.%s()" % (_prog_module_name, _BOOTER_START_PROC_FUNC_NAME)
 
 def _output_booter():
-    booter_fix_file_path_name = runtime_dir + "/lar_booter.go"
-    if not os.path.exists(booter_fix_file_path_name):
-        larc_common.exit("runtime文件缺失，请检查编译器环境：[%s]" % booter_fix_file_path_name)
-    f = open("%s/%s.booter_fix.go" % (_out_prog_dir, _prog_module_name), "w")
-    print >> f, "package %s" % _prog_module_name
-    print >> f
-    f.write(larc_common.open_src_file(booter_fix_file_path_name).read())
-    f.close()
-
     with _Code("%s/%s.booter.go" % (_out_prog_dir, _prog_module_name)) as code:
         with code.new_blk("func %s()" % _BOOTER_START_PROC_FUNC_NAME):
-            code += ("lar_booter_start_prog(%s, %s)" %
-                     (_gen_init_mod_func_name(larc_module.module_map[main_module_name]),
+            code += ("lar_booter_start_prog(%s, %s, %s)" %
+                     (_gen_init_mod_func_name(larc_module.builtins_module),
+                      _gen_init_mod_func_name(larc_module.module_map[main_module_name]),
                       _gen_func_name(larc_module.module_map[main_module_name].get_main_func())))
 
 def _output_native_code(code, native_code, fom):
@@ -763,16 +754,6 @@ def _output_module():
                 code += "return %s" % _gen_default_value_code(func.type)
 
 def _output_util():
-    #拷贝runtime中固定的util代码
-    util_fix_file_path_name = runtime_dir + "/lar_util.go"
-    if not os.path.exists(util_fix_file_path_name):
-        larc_common.exit("runtime文件缺失，请检查编译器环境：[%s]" % util_fix_file_path_name)
-    f = open("%s/%s.util_fix.go" % (_out_prog_dir, _prog_module_name), "w")
-    print >> f, "package %s" % _prog_module_name
-    print >> f
-    f.write(larc_common.open_src_file(util_fix_file_path_name).read())
-    f.close()
-
     #生成普通util代码
     with _Code("%s/%s.util.go" % (_out_prog_dir, _prog_module_name)) as code:
         #生成数组alias代码

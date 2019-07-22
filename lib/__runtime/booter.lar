@@ -1,9 +1,11 @@
+!<<
+
 import (
     "fmt"
     "os"
 )
 
-func lar_booter_exit_with_catched(c *lar_gcls_inst_10___builtins_7_Catched_1_lar_intf_10___builtins_9_Throwable) {
+func lar_booter_exit_with_catched(c *lar_gcls_inst_@<<:Catched>>_1_lar_intf_@<<:Throwable>>) {
     fmt.Fprintln(os.Stderr, lar_str_to_go_str(c.m_tb))
     os.Exit(2)
 }
@@ -17,26 +19,28 @@ func lar_booter_check_go_panic() {
     }
 }
 
-func lar_booter_start_prog(main_mod_init_func func (), main_func func ()) {
+func lar_booter_start_prog(builtins_mod_init_func func (), main_mod_init_func func (), main_func func ()) {
     defer lar_booter_check_go_panic()
     defer func () {
-        c := lar_func_10___builtins_15_catch_throwable(recover())
+        c := lar_func_@<<:catch_throwable>>(recover())
         if c != nil {
             lar_booter_exit_with_catched(c)
         }
     }()
-    lar_env_init_mod_10___builtins()
+    builtins_mod_init_func()
     main_mod_init_func()
     main_func()
 }
 
-func lar_booter_start_co(co lar_intf_10___builtins_8_Runnable) {
+func lar_booter_start_co(co lar_intf_@<<:Runnable>>) {
     defer lar_booter_check_go_panic()
     defer func () {
-        c := lar_func_10___builtins_15_catch_throwable(recover())
+        c := lar_func_@<<:catch_throwable>>(recover())
         if c != nil {
             lar_booter_exit_with_catched(c)
         }
     }()
     co.lar_method_run()
 }
+
+!>>

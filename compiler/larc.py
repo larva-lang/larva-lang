@@ -22,7 +22,7 @@ def _show_usage_and_exit():
 def _find_module_file(module_path_list, module_name):
     #按模块查找路径逐个目录找
     assert module_path_list
-    if module_name.split("/")[0] in ("__builtins", "__internal", "__array"):
+    if module_name.split("/")[0] in ("__builtins", "__internal", "__array", "__runtime"):
         mpl = [module_path_list[0]] #这几个模块比较特殊，只从lib_dir找
     else:
         mpl = module_path_list
@@ -76,6 +76,7 @@ def main():
     internal_module = larc_module.module_map["__internal"] = larc_module.Module("__internal")
     assert not internal_module.get_dep_module_set() #__internal模块不能导入其他模块
     larc_module.array_module = larc_module.module_map["__array"] = larc_module.Module("__array")
+    larc_module.module_map["__runtime"] = larc_module.Module("__runtime")
 
     #预处理主模块
     if not (all([larc_token.is_valid_name(p) for p in main_module_name.split("/")]) and main_module_name != "__builtins"):
@@ -131,7 +132,6 @@ def main():
     #输出目标代码
     larc_output.main_module_name = main_module.name
     larc_output.out_dir = main_module.dir + ".lar_out"
-    larc_output.runtime_dir = os.path.join(os.path.dirname(lib_dir), "runtime")
     larc_output.output(need_run, args_for_run)
 
 if __name__ == "__main__":
