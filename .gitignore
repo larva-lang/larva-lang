@@ -1,7 +1,7 @@
 .DS_Store
 *.pyc
 *.lar_out
-/test/test
+/lib/test/test
 .vscode
 *.class
 *.tmp
