@@ -132,3 +132,12 @@ def open_src_file(fn):
         exit("源代码文件[%s]不是utf8编码" % fn)
     f.seek(0, os.SEEK_SET)
     return f
+
+#自定义的abs_path，扩展了一些功能
+def abs_path(path):
+    if path.startswith("~/"):
+        #将~/开头的路径转为对应的HOME路径
+        home_path = os.getenv("HOME")
+        assert home_path
+        path = home_path + path[1 :]
+    return os.path.abspath(path)

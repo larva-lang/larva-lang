@@ -15,60 +15,92 @@ import larc_output
 
 def _show_usage_and_exit():
     print >> sys.stderr, ("使用方法：\n"
-                          "\tpython %s --module_path=MODULE_PATH_LIST MAIN_MODULE\n"
-                          "\tpython %s --module_path=MODULE_PATH_LIST --run MAIN_MODULE ARGS\n" % (sys.argv[0], sys.argv[0]))
+                          "\tpython %s MAIN_MODULE_PATH\n"
+                          "\tpython %s --run MAIN_MODULE_PATH ARGS\n" % (sys.argv[0], sys.argv[0]))
     sys.exit(1)
-
-def _find_module_file(module_path_list, module_name):
-    #按模块查找路径逐个目录找
-    assert module_path_list
-    if module_name.split("/")[0] in ("__builtins", "__internal", "__array", "__runtime"):
-        mpl = [module_path_list[0]] #这几个模块比较特殊，只从lib_dir找
-    else:
-        mpl = module_path_list
-    for i, module_dir in enumerate(mpl):
-        module_path = os.path.join(module_dir, *module_name.split("/"))
-        if os.path.isdir(module_path):
-            return module_path, i == 0
-    t = larc_module.dep_module_token_map.get(module_name)
-    if t is None:
-        larc_common.exit("找不到模块：%s" % module_name)
-    else:
-        t.syntax_err("找不到模块：%s" % module_name)
 
 def main():
     #解析命令行参数
     try:
-        opt_list, args = getopt.getopt(sys.argv[1 :], "", ["module_path=", "run"])
+        opt_list, args = getopt.getopt(sys.argv[1 :], "", ["run"])
     except getopt.GetoptError:
         _show_usage_and_exit()
     opt_map = dict(opt_list)
-    if "--module_path" not in opt_map:
-        _show_usage_and_exit()
-    module_path_list = [os.path.abspath(p) for p in opt_map["--module_path"].split(":") if p]
     need_run = "--run" in opt_map
 
     if len(args) < 1:
         _show_usage_and_exit()
-    main_module_name = args[0]
+    main_module_path = larc_common.abs_path(args[0])
+    if not os.path.isdir(main_module_path):
+        larc_common.exit("无效的主模块路径[%s]：不存在或不是目录" % main_module_path)
     args_for_run = args[1 :]
     if not need_run and args_for_run:
         _show_usage_and_exit()
 
-    #通用目录
-    compiler_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
-    lib_dir = os.path.join(os.path.dirname(compiler_dir), "lib")
-    module_path_list = [lib_dir] + module_path_list
-    larc_module.find_module_file = lambda mn: _find_module_file(module_path_list, mn)
+    #获取标准库和用户库的路径，并做检查
+    compiler_dir = os.path.dirname(larc_common.abs_path(sys.argv[0]))
+    std_lib_dir = os.path.dirname(compiler_dir) + "/lib"
+    assert os.path.isdir(std_lib_dir)
+    usr_lib_dir_original = os.getenv("LARVA_USR_LIB_PATH", "~/larva")
+    usr_lib_dir = larc_common.abs_path(usr_lib_dir_original)
+    if not os.path.isdir(usr_lib_dir):
+        larc_common.exit("无效的用户库路径：[%s]不存在或不是一个目录" % usr_lib_dir_original)
+
+    if std_lib_dir.startswith(usr_lib_dir) or usr_lib_dir.startswith(std_lib_dir):
+        larc_common.exit("环境检查失败：标准库和用户库路径存在包含关系：[%s] & [%s]" % (std_lib_dir, usr_lib_dir))
 
     #larva对标准库第一级模块有一些命名要求，虽然内建模块不会被一般用户修改，但为了稳妥还是检查下，免得开发者不小心弄了个非法名字
-    for fn in os.listdir(lib_dir):
-        #若为私有模块则忽略掉前缀
-        if fn[: 2] == "__":
-            fn = fn[2 :]
-        #第一级模块名不能有下划线
-        if os.path.isdir(os.path.join(lib_dir, fn)) and "_" in fn:
-            larc_common.exit("环境检查失败：内建模块[%s]名字含有下划线" % fn)
+    first_level_std_module_set = set()
+    for fn in os.listdir(std_lib_dir):
+        if os.path.isdir(std_lib_dir + "/" + fn):
+            if not larc_token.is_valid_name(fn):
+                larc_common.exit("环境检查失败：标准库模块[%s]名字不是合法的标识符" % fn)
+            #第一级模块名不能有除了私有模块前导之外的下划线
+            if fn.count("_") != (2 if fn.startswith("__") else 0):
+                larc_common.exit("环境检查失败：标准库模块[%s]名字含有非法的下划线" % fn)
+            first_level_std_module_set.add(fn)
+
+    std_lib_internal_module_list = "__builtins", "__internal", "__array", "__runtime"
+
+    #检查一下几个特殊的标准库模块，必须有
+    for mn in std_lib_internal_module_list:
+        if mn not in first_level_std_module_set:
+            larc_common.exit("环境检查失败：标准库模块[%s]缺失" % mn)
+
+    #对于用户库中的模块，如果不是git地址，则也要满足合法标识符条件，且不能和标准库的冲突
+    for fn in os.listdir(usr_lib_dir):
+        if os.path.isdir(usr_lib_dir + "/" + fn):
+            if "." not in fn:
+                if not larc_token.is_valid_name(fn):
+                    larc_common.exit("环境检查失败：用户库模块[%s]名字不是合法的标识符" % fn)
+                if fn in first_level_std_module_set:
+                    larc_common.exit("环境检查失败：用户库模块[%s]和标准库同名模块冲突" % fn)
+
+    #校验通过，设置到module模块中
+    larc_module.std_lib_dir = std_lib_dir
+    larc_module.usr_lib_dir = usr_lib_dir
+
+    #处理main_module_path，提取main_module_name
+    if main_module_path.startswith(std_lib_dir + "/"):
+        main_module_name = main_module_path[len(std_lib_dir) + 1 :]
+        if main_module_name in std_lib_internal_module_list:
+            larc_common.exit("不能以'%s'作为主模块" % main_module_name)
+    elif main_module_path.startswith(usr_lib_dir + "/"):
+        main_module_name = main_module_path[len(usr_lib_dir) + 1 :]
+        parts = main_module_name.split("/")
+        if len(parts) > 3 and "." in parts[0]:
+            #git目录
+            git_repo = "/".join(parts[: 3])
+            module_name_of_repo = "/".join(parts[3 :])
+            if '"' not in git_repo:
+                #不能含有双引号
+                main_module_name = '"%s"/%s' % (git_repo, module_name_of_repo) #其实弄成结构化的更好些，但要动老代码，所以选择了这么个方式
+    else:
+        larc_common.exit("主模块路径不存在于标准库或用户库[%s]" % main_module_path)
+
+    #检查
+    if not larc_module.is_valid_module_name(main_module_name):
+        larc_common.exit("非法的主模块名'%s'" % main_module_name)
 
     #预处理内建模块族
     larc_module.builtins_module = larc_module.module_map["__builtins"] = larc_module.Module("__builtins")
@@ -79,8 +111,6 @@ def main():
     larc_module.module_map["__runtime"] = larc_module.Module("__runtime")
 
     #预处理主模块
-    if not (all([larc_token.is_valid_name(p) for p in main_module_name.split("/")]) and main_module_name != "__builtins"):
-        larc_common.exit("非法的主模块名[%s]" % main_module_name)
     larc_module.module_map[main_module_name] = main_module = larc_module.Module(main_module_name)
 
     #预处理所有涉及到的模块

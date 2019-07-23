@@ -4,15 +4,72 @@
 编译larva模块
 """
 
-import copy
-import os
+import copy, os, subprocess, shutil
+
 import larc_common
 import larc_token
 import larc_type
 import larc_stmt
 import larc_expr
 
-find_module_file = None
+#处理模块名的各种函数--------------------------------------------------------------
+
+#实际上模块名应该做出一个object，但因为是后改的，就采用改动相对小点的做法
+
+def is_valid_module_name(module_name):
+    if module_name.startswith('"'):
+        if module_name.count('"') != 2:
+            return False
+        git_repo, module_name = module_name[1 :].split('"')
+        git_repo_parts = git_repo.split("/")
+        if not (len(git_repo_parts) == 3 and "." in git_repo_parts[0]):
+            return False
+    return module_name and all([larc_token.is_valid_name(part) for part in module_name.split("/")])
+
+def split_module_name(module_name):
+    assert is_valid_module_name(module_name)
+    if module_name.startswith('"'):
+        return module_name[1 :].split('"')
+    return None, module_name
+
+#--------------------------------------------------------------------------------------------------
+
+std_lib_dir = None
+usr_lib_dir = None
+
+def find_module_file(module_name):
+    t = dep_module_token_map.get(module_name)
+    if t is None:
+        err_exit = larc_common.exit
+    else:
+        err_exit = t.syntax_err
+
+    git_repo, module_name_of_repo = split_module_name(module_name)
+    if git_repo is None:
+        #非git模块，简单查找
+        for d in std_lib_dir, usr_lib_dir:
+            module_path = d + "/" + module_name
+            if os.path.isdir(module_path):
+                return module_path, d == std_lib_dir
+    else:
+        #git模块，若repo不存在则先clone，然后再找
+        git_repo_path = usr_lib_dir + "/" + git_repo
+        if not os.path.exists(git_repo_path):
+            os.makedirs(git_repo_path)
+            try:
+                p = subprocess.Popen(["git", "clone", "https://" + git_repo, git_repo_path], stdout = subprocess.PIPE)
+            except OSError:
+                shutil.rmtree(git_repo_path, True)
+                larc_common.exit("无法执行git命令")
+            rc = p.wait()
+            if rc != 0:
+                shutil.rmtree(git_repo_path, True)
+                err_exit("通过git clone获取repo'%s'失败" % git_repo)
+        module_path = git_repo_path + "/" + module_name_of_repo
+        if os.path.isdir(module_path):
+            return module_path, False
+
+    err_exit("找不到模块：%s" % module_name)
 
 builtins_module = None
 array_module = None
@@ -1199,7 +1256,7 @@ class Module:
     def __init__(self, name):
         file_path_name, is_std_lib_module = find_module_file(name)
         assert os.path.isdir(file_path_name)
-        assert file_path_name.endswith(os.path.join(*name.split("/")))
+        assert file_path_name.endswith(name)
         self.dir = file_path_name
         self.is_std_lib_module = is_std_lib_module
         self.name = name
@@ -1247,7 +1304,7 @@ class Module:
 
     def _precompile(self, file_name):
         #解析token列表，解析正文
-        file_path_name = os.path.join(self.dir, file_name)
+        file_path_name = self.dir + "/" + file_name
         if not os.path.isfile(file_path_name):
             larc_common.exit("[%s]需要是一个文件" % file_path_name)
         token_list = larc_token.parse_token_list(file_path_name)
@@ -1348,7 +1405,7 @@ class Module:
                 #相对路径超过了当前模块层级
                 module_name_token.syntax_err("非法的相对路径模块[%s/%s%s]" % (self.name, "../" * relative_deep, module_name))
             expect_module_dir = (
-                os.path.abspath(os.path.join(self.dir, *([".."] * relative_deep + module_name.split("/"))))) #期望目录是相对当前模块路径的位置
+                os.path.abspath("/".join([self.dir] + [".."] * relative_deep + module_name.split("/")))) #期望目录是相对当前模块路径的位置
             module_name = "/".join(pl[: len(pl) - relative_deep] + [module_name]) #修正module_name
             dep_module_token_map[module_name] = module_name_token #修正后立即记录token，下面find时候马上可能用到
             module_dir, _ = find_module_file(module_name) #试着找一下模块目录
