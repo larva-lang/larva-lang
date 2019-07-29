@@ -356,7 +356,7 @@ class Parser:
                             parse_stk.push_expr(_Expr("new", expr_list, base_type))
                             is_new_cls = True
                     if not is_new_cls:
-                        #对数组、基础类型或接口使用new语法
+                        #对数组、基础类型、闭包或接口使用new语法
                         new_token.syntax_err("不能对类型'%s'使用new语法" % base_type)
                 elif t.is_sym("["):
                     if base_type.is_void:

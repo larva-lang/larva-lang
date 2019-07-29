@@ -16,21 +16,36 @@ import larc_expr
 
 #实际上模块名应该做出一个object，但因为是后改的，就采用改动相对小点的做法
 
+def _is_valid_git_repo(git_repo):
+    if '"' in git_repo:
+        return False
+    git_repo_parts = git_repo.split("/")
+    return len(git_repo_parts) == 3 and all(git_repo_parts) and "." in git_repo_parts[0]
+
 def is_valid_module_name(module_name):
     if module_name.startswith('"'):
         if module_name.count('"') != 2:
             return False
         git_repo, module_name = module_name[1 :].split('"')
-        git_repo_parts = git_repo.split("/")
-        if not (len(git_repo_parts) == 3 and "." in git_repo_parts[0]):
+        if not _is_valid_git_repo(git_repo):
             return False
+        if not module_name.startswith("/"):
+            return False
+        module_name = module_name[1 :]
     return module_name and all([larc_token.is_valid_name(part) for part in module_name.split("/")])
 
 def split_module_name(module_name):
     assert is_valid_module_name(module_name)
     if module_name.startswith('"'):
-        return module_name[1 :].split('"')
-    return None, module_name
+        git_repo, module_name = module_name[1 :].split('"/')
+    else:
+        git_repo = None
+    return git_repo, module_name.split("/")
+
+def join_module_name(git_repo, mnpl):
+    module_name = '"' + git_repo + '"/' + "/".join(mnpl)
+    assert is_valid_module_name(module_name)
+    return module_name
 
 #--------------------------------------------------------------------------------------------------
 
@@ -44,7 +59,7 @@ def find_module_file(module_name):
     else:
         err_exit = t.syntax_err
 
-    git_repo, module_name_of_repo = split_module_name(module_name)
+    git_repo, mnpl = split_module_name(module_name)
     if git_repo is None:
         #非git模块，简单查找
         for d in std_lib_dir, usr_lib_dir:
@@ -65,7 +80,7 @@ def find_module_file(module_name):
             if rc != 0:
                 shutil.rmtree(git_repo_path, True)
                 err_exit("通过git clone获取repo'%s'失败" % git_repo)
-        module_path = git_repo_path + "/" + module_name_of_repo
+        module_path = git_repo_path + "/" + "/".join(mnpl)
         if os.path.isdir(module_path):
             return module_path, False
 
@@ -1399,21 +1414,24 @@ class Module:
 
     def fix_module_name(self, relative_deep, module_name_token, module_name):
         #若为相对路径导入，则修正为普通module_name并做路径一致性检查
-        if relative_deep is not None:
-            pl = self.name.split("/")
-            if relative_deep > len(pl):
+        if relative_deep is None:
+            dep_module_token_map[module_name] = module_name_token
+        else:
+            #todo
+            git_repo, mnpl = split_module_name(self.name)
+            if relative_deep > len(mnpl):
                 #相对路径超过了当前模块层级
                 module_name_token.syntax_err("非法的相对路径模块[%s/%s%s]" % (self.name, "../" * relative_deep, module_name))
-            expect_module_dir = (
-                os.path.abspath("/".join([self.dir] + [".."] * relative_deep + module_name.split("/")))) #期望目录是相对当前模块路径的位置
-            module_name = "/".join(pl[: len(pl) - relative_deep] + [module_name]) #修正module_name
+            importee_mnpl = module_name.split("/")
+            expect_module_dir = os.path.abspath("/".join([self.dir] + [".."] * relative_deep + importee_mnpl)) #期望目录是相对当前模块路径的位置
+            mnpl = mnpl[: len(mnpl) - relative_deep] + importee_mnpl #修正
+            module_name = join_module_name(git_repo, mnpl)
             dep_module_token_map[module_name] = module_name_token #修正后立即记录token，下面find时候马上可能用到
             module_dir, _ = find_module_file(module_name) #试着找一下模块目录
             if module_dir != expect_module_dir:
                 #找到了但是和期望不符，也报错
                 module_name_token.syntax_err("模块[%s]存在于其他module_path[%s]" % (module_name, module_dir))
-        else:
-            dep_module_token_map[module_name] = module_name_token
+
         return module_name
 
     def _parse_import(self, token_list, dep_module_map):
@@ -1423,6 +1441,7 @@ class Module:
             #获取module_name全名
             module_name_token = token_list.peek()
             relative_deep = None
+            module_name = ""
             if token_list.peek().is_sym("."):
                 relative_deep = 0
                 token_list.pop_sym(".")
@@ -1433,7 +1452,13 @@ class Module:
                     token_list.pop_sym("..")
                     token_list.pop_sym("/")
                     relative_deep += 1
-            module_name = ""
+            elif token_list.peek().is_literal("str"):
+                t = token_list.pop()
+                git_repo = t.value
+                token_list.pop_sym("/")
+                if not _is_valid_git_repo(git_repo):
+                    t.syntax_err("非法的git repo名称")
+                module_name = '"' + git_repo + '"/'
             while True:
                 t, name = token_list.pop_name()
                 module_name += name
