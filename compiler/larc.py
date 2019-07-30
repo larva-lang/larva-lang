@@ -52,7 +52,7 @@ def main():
     #larva对标准库第一级模块有一些命名要求，虽然内建模块不会被一般用户修改，但为了稳妥还是检查下，免得开发者不小心弄了个非法名字
     first_level_std_module_set = set()
     for fn in os.listdir(std_lib_dir):
-        if os.path.isdir(std_lib_dir + "/" + fn):
+        if os.path.isdir(std_lib_dir + "/" + fn) and fn != ".lar_out":
             if not larc_token.is_valid_name(fn):
                 larc_common.exit("环境检查失败：标准库模块[%s]名字不是合法的标识符" % fn)
             #第一级模块名不能有除了私有模块前导之外的下划线
@@ -69,7 +69,7 @@ def main():
 
     #对于用户库中的模块，如果不是git地址，则也要满足合法标识符条件，且不能和标准库的冲突
     for fn in os.listdir(usr_lib_dir):
-        if os.path.isdir(usr_lib_dir + "/" + fn):
+        if os.path.isdir(usr_lib_dir + "/" + fn) and fn != ".lar_out":
             if "." not in fn:
                 if not larc_token.is_valid_name(fn):
                     larc_common.exit("环境检查失败：用户库模块[%s]名字不是合法的标识符" % fn)
