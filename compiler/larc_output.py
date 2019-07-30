@@ -25,7 +25,6 @@ out_dir = None
 _out_prog_dir = None
 _prog_module_name = None
 
-_prog_name = None
 _exe_file = None
 
 _tb_map = {}
@@ -814,19 +813,21 @@ def output(need_run_prog, args_for_run):
     _ANY_INTF_TYPE_NAME_CODE = _gen_type_name_code(larc_type.ANY_INTF_TYPE)
     _STR_TYPE_NAME_CODE = _gen_type_name_code(larc_type.STR_TYPE)
 
-    global _out_prog_dir, _prog_module_name, _prog_name, _exe_file, _main_pkg_file, _curr_module
+    global _out_prog_dir, _prog_module_name, _exe_file, _main_pkg_file, _curr_module
 
-    _out_prog_dir = "%s/src/lar_prog_%s" % (out_dir, _gen_module_name_code(larc_module.module_map[main_module_name]))
+    main_module = larc_module.module_map[main_module_name]
+    main_module_name_code = _gen_module_name_code(main_module)
+
+    _out_prog_dir = "%s/src/lar_prog_%s" % (out_dir, main_module_name_code)
 
     shutil.rmtree(out_dir, True)
     os.makedirs(_out_prog_dir)
 
-    _prog_module_name = "lar_prog_" + _gen_module_name_code(larc_module.module_map[main_module_name])
+    _prog_module_name = "lar_prog_" + main_module_name_code
 
-    _prog_name = main_module_name.split("/")[-1]
-    _exe_file = "%s/%s" % (out_dir, _prog_name)
+    _exe_file = "%s/%s" % (out_dir, main_module_name_code)
 
-    _main_pkg_file = "%s/src/lar_prog.%s.P.go" % (out_dir, _prog_name)
+    _main_pkg_file = "%s/src/lar_prog.%s.P.go" % (out_dir, main_module_name_code)
 
     _output_main_pkg()
     _output_booter()

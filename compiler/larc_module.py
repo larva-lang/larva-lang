@@ -1422,7 +1422,8 @@ class Module:
             if relative_deep > len(mnpl):
                 #相对路径超过了当前模块层级
                 module_name_token.syntax_err("非法的相对路径模块[%s/%s%s]" % (self.name, "../" * relative_deep, module_name))
-            importee_mnpl = module_name.split("/")
+            gr, importee_mnpl = split_module_name(module_name)
+            assert gr is None
             expect_module_dir = os.path.abspath("/".join([self.dir] + [".."] * relative_deep + importee_mnpl)) #期望目录是相对当前模块路径的位置
             mnpl = mnpl[: len(mnpl) - relative_deep] + importee_mnpl #修正
             module_name = join_module_name(git_repo, mnpl)
