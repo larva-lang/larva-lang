@@ -101,6 +101,9 @@ def main():
     #检查
     if not larc_module.is_valid_module_name(main_module_name):
         larc_common.exit("非法的主模块名'%s'" % main_module_name)
+    git_repo, mnpl = larc_module.split_module_name(main_module_name)
+    if any([mnp.startswith("__") for mnp in mnpl]):
+        larc_common.exit("不能使用私有模块作为主模块'%s'" % main_module_name)
 
     #预处理内建模块族
     larc_module.builtins_module = larc_module.module_map["__builtins"] = larc_module.Module("__builtins")

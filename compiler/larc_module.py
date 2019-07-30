@@ -1472,20 +1472,22 @@ class Module:
             #分析模块路径中含有私有模块的情况，私有模块及其下层的模块只允许其上层模块及上层模块之下的模块访问
             #简单说就是：a/b/c/__x及其下的模块只允许在a/b/c目录下的larva代码文件中import
             #若模块路径中有多个私有，则import它的文件对每个私有模块都要符合条件才行
-            #标准库和非标准库视为两个根目录
-            def get_prefix(is_std_lib_module):
-                return "STD/" if is_std_lib_module else "NON_STD/"
-            importer = get_prefix(self.is_std_lib_module) + self.name
+            #标准库和用户库视为两个根目录，这也意味着这俩库下的第一级私有模块只能从对应的库的代码中导入
+
+            #先构造prefix，即“（标准库or用户库，git_repo）”这样一个元组
+            git_repo, mnpl = split_module_name(self.name)
+            importer_prefix = self.is_std_lib_module, git_repo
+            importer_mnpl = mnpl
+            git_repo, mnpl = split_module_name(module_name)
             _, importee_is_std_lib_module = find_module_file(module_name)
-            importee = get_prefix(importee_is_std_lib_module) + module_name
-            idx = 0
-            while True:
-                pos = importee.find("/__", idx)
-                if pos < 0:
-                    break
-                idx = pos + 1
-                root = importee[: pos]
-                if not (importer.startswith(root + "/") or importer == root):
+            importee_prefix = importee_is_std_lib_module, git_repo
+            importee_mnpl = mnpl
+            internal_mnp_idx_list = [i for i in xrange(len(importee_mnpl)) if importee_mnpl[i].startswith("__")]
+            if internal_mnp_idx_list:
+                #存在私有模块导入的情况才进行检查，只需要检查最后一个私有模块名是否合法导入即可
+                last_internal_mnp_idx = internal_mnp_idx_list[-1]
+                ok = importer_prefix == importee_prefix and importer_mnpl[: last_internal_mnp_idx] == importee_mnpl[: last_internal_mnp_idx]
+                if not ok:
                     module_name_token.syntax_err("模块'%s'不能引用模块'%s'" % (self.name, module_name))
 
             #检查是否设置别名，没设置则采用module name最后一个域作为名字
@@ -1493,7 +1495,8 @@ class Module:
                 token_list.pop()
                 t, module_name_alias = token_list.pop_name()
             else:
-                module_name_alias = module_name.split("/")[-1]
+                _, mnpl = split_module_name(module_name)
+                module_name_alias = mnpl[-1]
             if module_name_alias in dep_module_map:
                 t.syntax_err("存在重名的模块")
             dep_module_map[module_name_alias] = module_name
