@@ -16,9 +16,10 @@ import larc_expr
 
 #实际上模块名应该做出一个object，但因为是后改的，就采用改动相对小点的做法
 
-def _is_valid_git_repo(git_repo):
-    if '"' in git_repo:
-        return False
+def is_valid_git_repo(git_repo):
+    for q in '"', "'", "`":
+        if q in git_repo:
+            return False
     git_repo_parts = git_repo.split("/")
     return len(git_repo_parts) == 3 and all(git_repo_parts) and "." in git_repo_parts[0]
 
@@ -27,7 +28,7 @@ def is_valid_module_name(module_name):
         if module_name.count('"') != 2:
             return False
         git_repo, module_name = module_name[1 :].split('"')
-        if not _is_valid_git_repo(git_repo):
+        if not is_valid_git_repo(git_repo):
             return False
         if not module_name.startswith("/"):
             return False
@@ -1269,9 +1270,10 @@ class NativeCode:
 dep_module_token_map = {}
 class Module:
     def __init__(self, name):
+        assert is_valid_module_name(name)
         file_path_name, is_std_lib_module = find_module_file(name)
         assert os.path.isdir(file_path_name)
-        assert file_path_name.endswith(name)
+        assert file_path_name.endswith(name.replace('"', ""))
         self.dir = file_path_name
         self.is_std_lib_module = is_std_lib_module
         self.name = name
@@ -1457,7 +1459,7 @@ class Module:
                 t = token_list.pop()
                 git_repo = t.value
                 token_list.pop_sym("/")
-                if not _is_valid_git_repo(git_repo):
+                if not is_valid_git_repo(git_repo):
                     t.syntax_err("非法的git repo名称")
                 module_name = '"' + git_repo + '"/'
             while True:

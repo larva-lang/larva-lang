@@ -98,8 +98,7 @@ def main():
             #git目录
             git_repo = "/".join(parts[: 3])
             module_name_of_repo = "/".join(parts[3 :])
-            if '"' not in git_repo:
-                #不能含有双引号
+            if larc_module.is_valid_git_repo(git_repo):
                 main_module_name = '"%s"/%s' % (git_repo, module_name_of_repo) #其实弄成结构化的更好些，但要动老代码，所以选择了这么个方式
     else:
         larc_common.exit("主模块路径不存在于标准库或用户库[%s]" % main_module_path)
