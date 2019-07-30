@@ -43,7 +43,7 @@ def split_module_name(module_name):
     return git_repo, module_name.split("/")
 
 def join_module_name(git_repo, mnpl):
-    module_name = '"' + git_repo + '"/' + "/".join(mnpl)
+    module_name = ("" if git_repo is None else '"' + git_repo + '"/') + "/".join(mnpl)
     assert is_valid_module_name(module_name)
     return module_name
 
