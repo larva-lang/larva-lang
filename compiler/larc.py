@@ -83,10 +83,16 @@ def main():
     #处理main_module_path，提取main_module_name
     if main_module_path.startswith(std_lib_dir + "/"):
         main_module_name = main_module_path[len(std_lib_dir) + 1 :]
+        if main_module_name.startswith(".lar_out/"):
+            larc_common.exit("目录[.lar_out]不能作为模块")
+        lar_out_path = std_lib_dir + "/.lar_out/" + main_module_name
         if main_module_name in std_lib_internal_module_list:
             larc_common.exit("不能以'%s'作为主模块" % main_module_name)
     elif main_module_path.startswith(usr_lib_dir + "/"):
         main_module_name = main_module_path[len(usr_lib_dir) + 1 :]
+        if main_module_name.startswith(".lar_out/"):
+            larc_common.exit("目录[.lar_out]不能作为模块")
+        lar_out_path = usr_lib_dir + "/.lar_out/" + main_module_name
         parts = main_module_name.split("/")
         if len(parts) > 3 and "." in parts[0]:
             #git目录
@@ -164,7 +170,7 @@ def main():
 
     #输出目标代码
     larc_output.main_module_name = main_module.name
-    larc_output.out_dir = main_module.dir + ".lar_out"
+    larc_output.out_dir = lar_out_path
     larc_output.output(need_run, args_for_run)
 
 if __name__ == "__main__":
