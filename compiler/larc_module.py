@@ -73,7 +73,7 @@ def find_module_file(module_name):
         if not os.path.exists(git_repo_path):
             os.makedirs(git_repo_path)
             try:
-                p = subprocess.Popen(["git", "clone", "https://" + git_repo, git_repo_path], stdout = subprocess.PIPE)
+                p = subprocess.Popen(["git", "clone", "https://" + git_repo, git_repo_path], stdout = subprocess.PIPE, stderr = subprocess.PIPE)
             except OSError:
                 shutil.rmtree(git_repo_path, True)
                 larc_common.exit("无法执行git命令")
@@ -1338,7 +1338,7 @@ class Module:
         while token_list:
             #解析import
             t = token_list.peek()
-            if t.is_reserved("import"):
+            if t.is_reserved("import") or t.is_reserved("from"):
                 #import
                 if import_end:
                     t.syntax_err("import必须在模块代码最前面")
@@ -1438,39 +1438,61 @@ class Module:
         return module_name
 
     def _parse_import(self, token_list, dep_module_map):
-        t = token_list.pop()
-        assert t.is_reserved("import")
-        while True:
-            #获取module_name全名
-            module_name_token = token_list.peek()
+        def parse_import_item():
+            start_token = token_list.peek()
+            git_repo = None
             relative_deep = None
-            module_name = ""
+            mnpl = []
             if token_list.peek().is_sym("."):
                 relative_deep = 0
                 token_list.pop_sym(".")
+                if not token_list.peek().is_sym("/"):
+                    return start_token, git_repo, relative_deep, mnpl
                 token_list.pop_sym("/")
             elif token_list.peek().is_sym(".."):
                 relative_deep = 0
                 while token_list.peek().is_sym(".."):
                     token_list.pop_sym("..")
-                    token_list.pop_sym("/")
                     relative_deep += 1
+                    if not token_list.peek().is_sym("/"):
+                        return start_token, git_repo, relative_deep, mnpl
+                    token_list.pop_sym("/")
             elif token_list.peek().is_literal("str"):
                 t = token_list.pop()
                 git_repo = t.value
-                token_list.pop_sym("/")
                 if not is_valid_git_repo(git_repo):
                     t.syntax_err("非法的git repo名称")
-                module_name = '"' + git_repo + '"/'
+                if not token_list.peek().is_sym("/"):
+                    return start_token, git_repo, relative_deep, mnpl
+                token_list.pop_sym("/")
             while True:
                 t, name = token_list.pop_name()
-                module_name += name
+                mnpl.append(name)
                 if not token_list.peek().is_sym("/"):
-                    break
+                    return start_token, git_repo, relative_deep, mnpl
                 token_list.pop_sym("/")
-                module_name += "/"
 
-            module_name = self.fix_module_name(relative_deep, module_name_token, module_name)
+        t = token_list.pop()
+        if t.is_reserved("from"):
+            _, git_repo, relative_deep, mnpl = parse_import_item()
+            from_prefix = git_repo, relative_deep, mnpl
+            t = token_list.pop()
+            if not t.is_reserved("import"):
+                t.syntax_err("需要'import'")
+        else:
+            from_prefix = None
+        assert t.is_reserved("import")
+        while True:
+            start_token, git_repo, relative_deep, mnpl = parse_import_item()
+            if from_prefix is not None:
+                if not (git_repo is None and relative_deep is None):
+                    start_token.syntax_err("需要标识符")
+                git_repo, relative_deep, from_mnpl = from_prefix
+                mnpl = from_mnpl + mnpl
+            assert git_repo is None or relative_deep is None
+            module_name = join_module_name(git_repo, mnpl)
+
+            module_name = self.fix_module_name(relative_deep, start_token, module_name)
 
             #分析模块路径中含有私有模块的情况，私有模块及其下层的模块只允许其上层模块及上层模块之下的模块访问
             #简单说就是：a/b/c/__x及其下的模块只允许在a/b/c目录下的larva代码文件中import

@@ -34,7 +34,7 @@ _SYM_SET = (set("""~!%^&*()-+|{}[]:;"'<,>./""") | set(["!=", "==", "!==", "===",
 #保留字集
 _RESERVED_WORD_SET = set(["import", "class", "void", "bool", "schar", "char", "short", "ushort", "int", "uint", "long", "ulong", "float",
                           "double", "ref", "for", "while", "if", "else", "return", "nil", "true", "false", "break", "continue", "this",
-                          "public", "interface", "new", "usemethod", "var", "defer", "final", "foreach"])
+                          "public", "interface", "new", "usemethod", "var", "defer", "final", "foreach", "from"])
 
 #编译控制命令集
 _COMPILING_CTRL_CMD_SET = set(["use", "oruse", "enduse", "error"])
