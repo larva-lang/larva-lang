@@ -10,6 +10,7 @@ import sys
 import platform
 import subprocess
 import re
+import hashlib
 
 import larc_common
 import larc_module
@@ -135,14 +136,30 @@ class _Code:
 
 #gen funcs -----------------------------------------------------------------------------------------------
 
+#对所有模块按照hash来做输出的code
+_module_name_code_map = {}
+
+def _gen_all_module_name_code_map():
+    for hash_prefix_len in xrange(4, 33):
+        hm = {}
+        for name in larc_module.module_map:
+            hm[name] = hashlib.md5(name).hexdigest().upper()[: hash_prefix_len]
+        if len(hm) == len(set(hm.itervalues())):
+            break
+    else:
+        rhm = {}
+        for name, h in hm.iteritems():
+            if h in rhm:
+                larc_common.exit("恭喜你找到了两个md5一样的字符串：'%s'和'%s'" % (rhm[h], name))
+        raise Exception("Bug")
+
+    for name in larc_module.module_map:
+        last_name = name.split("/")[-1]
+        assert larc_token.is_valid_name(last_name)
+        _module_name_code_map[name] = "mod%s_%d_%s" % (hm[name], len(last_name), last_name)
+
 def _gen_module_name_code(module):
-    #模块名的代码，分两种情况
-    if "/" not in module.name:
-        #单模块名直接用长度+名字
-        return "%d_%s" % (len(module.name), module.name)
-    #多级模块名需要增加级数
-    pl = module.name.split("/")
-    return "%d_%s" % (len(pl), "_".join(["%d_%s" % (len(p), p) for p in pl]))
+    return _module_name_code_map[module.name]
 
 def _gen_coi_name(coi):
     if coi.is_closure:
@@ -778,6 +795,12 @@ def _output_util():
                              (_gen_str_literal(go_file_name), go_line_no, _gen_str_literal(lar_file_name), lar_line_no,
                               _gen_str_literal(lar_fom_name)))
 
+        #模块输出名和实际名字的映射信息
+        assert len(_module_name_code_map) == len(set(_module_name_code_map.itervalues()))
+        with code.new_blk("var lar_util_module_name_map = map[string]string"):
+            for name, name_code in _module_name_code_map.iteritems():
+                code += "`%s`: `%s`," % (name_code, name)
+
 def _make_prog():
     if platform.system() in ("Darwin", "Linux"):
         try:
@@ -809,6 +832,8 @@ _ANY_INTF_TYPE_NAME_CODE = None
 _STR_TYPE_NAME_CODE = None
 
 def output(need_run_prog, args_for_run):
+    _gen_all_module_name_code_map()
+
     global _ANY_INTF_TYPE_NAME_CODE, _STR_TYPE_NAME_CODE
     _ANY_INTF_TYPE_NAME_CODE = _gen_type_name_code(larc_type.ANY_INTF_TYPE)
     _STR_TYPE_NAME_CODE = _gen_type_name_code(larc_type.STR_TYPE)
