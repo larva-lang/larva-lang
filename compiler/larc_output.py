@@ -819,12 +819,14 @@ def _make_prog():
         larc_common.exit("不支持在平台'%s'生成可执行程序" % platform.system())
 
 def _make_out_bin(out_bin):
+    global _exe_file
     if platform.system() in ("Darwin", "Linux"):
         pass
     else:
         raise Exception("Bug")
     if os.path.exists(_exe_file):
         shutil.copy(_exe_file, out_bin)
+        _exe_file = out_bin #用于后面可能的run过程
     else:
         larc_common.exit("找不到可执行文件[%s]" % _exe_file)
 
