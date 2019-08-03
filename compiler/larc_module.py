@@ -1485,9 +1485,18 @@ class Module:
         while True:
             start_token, git_repo, relative_deep, mnpl = parse_import_item()
             if from_prefix is not None:
-                if not (git_repo is None and relative_deep is None):
+                from_git_repo, from_relative_deep, from_mnpl = from_prefix
+                if git_repo is not None:
                     start_token.syntax_err("需要标识符")
-                git_repo, relative_deep, from_mnpl = from_prefix
+                git_repo = from_git_repo
+                if relative_deep is not None:
+                    if relative_deep > 0 and from_relative_deep is not None and from_relative_deep > 0 and not from_mnpl:
+                        #from ../[[../]...] import ../[[../]...]x[/...]，即向上多层相对路径被分开的情况
+                        relative_deep = from_relative_deep + relative_deep
+                    else:
+                        start_token.syntax_err("需要标识符")
+                else:
+                    relative_deep = from_relative_deep
                 mnpl = from_mnpl + mnpl
             assert git_repo is None or relative_deep is None
             module_name = join_module_name(git_repo, mnpl)
