@@ -99,6 +99,15 @@ def main():
     larc_module.std_lib_dir = std_lib_dir
     larc_module.usr_lib_dir = usr_lib_dir
 
+    def fix_git_module_name(mn):
+        parts = mn.split("/")
+        if len(parts) > 3 and "." in parts[0]:
+            git_repo = "/".join(parts[: 3])
+            mn_of_repo = "/".join(parts[3 :])
+            if larc_module.is_valid_git_repo(git_repo):
+                mn = '"%s"/%s' % (git_repo, mn_of_repo)
+        return mn
+
     if main_module_path is not None:
         #处理main_module_path，提取main_module_name
         if main_module_path.startswith(std_lib_dir + "/"):
@@ -106,16 +115,12 @@ def main():
             if main_module_name in std_lib_internal_module_list:
                 larc_common.exit("不能以'%s'作为主模块" % main_module_name)
         elif main_module_path.startswith(usr_lib_dir + "/"):
-            main_module_name = main_module_path[len(usr_lib_dir) + 1 :]
-            parts = main_module_name.split("/")
-            if len(parts) > 3 and "." in parts[0]:
-                #git目录
-                git_repo = "/".join(parts[: 3])
-                module_name_of_repo = "/".join(parts[3 :])
-                if larc_module.is_valid_git_repo(git_repo):
-                    main_module_name = '"%s"/%s' % (git_repo, module_name_of_repo) #其实弄成结构化的更好些，但要动老代码，所以选择了这么个方式
+            main_module_name = fix_git_module_name(main_module_path[len(usr_lib_dir) + 1 :])
         else:
             larc_common.exit("主模块路径不存在于标准库或用户库[%s]" % main_module_path)
+    else:
+        #如果module_name是不带引号的git路径，则像上面一样修正一下
+        main_module_name = fix_git_module_name(main_module_name)
 
     #检查
     if not larc_module.is_valid_module_name(main_module_name):
