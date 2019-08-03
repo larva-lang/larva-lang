@@ -51,10 +51,11 @@ Larva编译器
 
     #解析命令行参数
     try:
-        opt_list, args = getopt.getopt(sys.argv[1 :], "o:m:", ["run"])
+        opt_list, args = getopt.getopt(sys.argv[1 :], "uo:m:", ["run"])
     except getopt.GetoptError:
         _show_usage_and_exit()
     opt_map = dict(opt_list)
+    larc_module.need_update_git = "-u" in opt_map
     out_bin = opt_map.get("-o")
     if out_bin is not None:
         if os.path.exists(out_bin) and not os.path.isfile(out_bin):

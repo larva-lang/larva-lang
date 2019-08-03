@@ -5,7 +5,7 @@
 带--run选项的larc.py调用的一个快捷实现
 '''
 
-import sys, os, getopt, subprocess
+import sys, os, getopt
 
 def main():
     #定位目录
@@ -37,23 +37,27 @@ def main():
 """.format(**eval(open(larva_dir + "/compiler/help").read()))
         sys.exit(1)
 
+    larc_args = ["python", larc_script_name, "--run"]
+
     #解析命令行参数
     try:
-        opt_list, args = getopt.getopt(sys.argv[1 :], "m:")
+        opt_list, args = getopt.getopt(sys.argv[1 :], "um:")
     except getopt.GetoptError:
         _show_usage_and_exit()
     opt_map = dict(opt_list)
+    if "-u" in opt_map:
+        larc_args.append("-u")
     if "-m" in opt_map:
-        main_module_args = ["-m", opt_map["-m"]]
+        larc_args.extend(["-m", opt_map["-m"]])
     else:
         if len(args) < 1:
             _show_usage_and_exit()
-        main_module_args = [args[0]]
+        larc_args.append(args[0])
         args = args[1 :]
+    larc_args.extend(args)
 
     #调用larc.py执行
-    p = subprocess.Popen(["python", larc_script_name, "--run"] + main_module_args + ["--"] + args)
-    sys.exit(p.wait())
+    os.execvp(larc_args[0], larc_args)
 
 if __name__ == "__main__":
     main()

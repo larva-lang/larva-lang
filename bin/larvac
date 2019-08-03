@@ -5,7 +5,7 @@
 使用-o选项进行larc.py调用的一个快捷实现
 '''
 
-import sys, os, getopt, subprocess
+import sys, os, getopt
 
 def main():
     #定位目录
@@ -35,27 +35,30 @@ def main():
 """.format(**eval(open(larva_dir + "/compiler/help").read()))
         sys.exit(1)
 
+    larc_args = ["python", larc_script_name]
+
     #解析命令行参数
     try:
-        opt_list, args = getopt.getopt(sys.argv[1 :], "o:m:")
+        opt_list, args = getopt.getopt(sys.argv[1 :], "uo:m:")
     except getopt.GetoptError:
         _show_usage_and_exit()
     opt_map = dict(opt_list)
+    if "-u" in opt_map:
+        larc_args.append("-u")
     if "-o" not in opt_map:
         _show_usage_and_exit()
-    out_bin = opt_map["-o"]
+    larc_args.extend(["-o", opt_map["-o"]])
     if "-m" in opt_map:
         if len(args) != 0:
             _show_usage_and_exit()
-        main_module_args = ["-m", opt_map["-m"]]
+        larc_args.extend(["-m", opt_map["-m"]])
     else:
         if len(args) != 1:
             _show_usage_and_exit()
-        main_module_args = args
+        larc_args.append(args[0])
 
     #调用larc.py执行
-    p = subprocess.Popen(["python", larc_script_name, "-o", out_bin] + main_module_args)
-    sys.exit(p.wait())
+    os.execvp(larc_args[0], larc_args)
 
 if __name__ == "__main__":
     main()

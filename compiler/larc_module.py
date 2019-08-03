@@ -50,6 +50,8 @@ def join_module_name(git_repo, mnpl):
 
 #--------------------------------------------------------------------------------------------------
 
+need_update_git = False
+
 std_lib_dir = None
 usr_lib_dir = None
 
@@ -68,9 +70,18 @@ def find_module_file(module_name):
             if os.path.isdir(module_path):
                 return module_path, d == std_lib_dir
     else:
-        #git模块，若repo不存在则先clone，然后再找
+        #git模块，若repo不存在则先clone，然后再找，若存在并指定了-u选项，则pull
         git_repo_path = usr_lib_dir + "/" + git_repo
-        if not os.path.exists(git_repo_path):
+        if os.path.exists(git_repo_path):
+            if need_update_git:
+                try:
+                    p = subprocess.Popen(["git", "pull"], stdout = subprocess.PIPE, stderr = subprocess.PIPE, cwd = git_repo_path)
+                except OSError:
+                    larc_common.exit("无法执行git命令")
+                rc = p.wait()
+                if rc != 0:
+                    err_exit("通过git pull更新repo'%s'失败" % git_repo)
+        else:
             os.makedirs(git_repo_path)
             try:
                 p = subprocess.Popen(["git", "clone", "https://" + git_repo, git_repo_path], stdout = subprocess.PIPE, stderr = subprocess.PIPE)
