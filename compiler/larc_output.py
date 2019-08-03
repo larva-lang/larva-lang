@@ -818,6 +818,16 @@ def _make_prog():
     else:
         larc_common.exit("不支持在平台'%s'生成可执行程序" % platform.system())
 
+def _make_out_bin(out_bin):
+    if platform.system() in ("Darwin", "Linux"):
+        pass
+    else:
+        raise Exception("Bug")
+    if os.path.exists(_exe_file):
+        shutil.copy(_exe_file, out_bin)
+    else:
+        larc_common.exit("找不到可执行文件[%s]" % _exe_file)
+
 def _run_prog(args_for_run):
     if platform.system() in ("Darwin", "Linux"):
         pass
@@ -831,7 +841,7 @@ def _run_prog(args_for_run):
 _ANY_INTF_TYPE_NAME_CODE = None
 _STR_TYPE_NAME_CODE = None
 
-def output(need_run_prog, args_for_run):
+def output(out_bin, need_run_prog, args_for_run):
     _gen_all_module_name_code_map()
 
     global _ANY_INTF_TYPE_NAME_CODE, _STR_TYPE_NAME_CODE
@@ -860,5 +870,7 @@ def output(need_run_prog, args_for_run):
         _output_module()
     _output_util()
     _make_prog()
+    if out_bin is not None:
+        _make_out_bin(out_bin)
     if need_run_prog:
         _run_prog(args_for_run)
