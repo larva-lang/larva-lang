@@ -1,0 +1,28 @@
+dict([(k, v.strip("\n")) for k, v in {
+    "u": """
+        -u
+            若指定，则会对涉及到的本地已有的git项目做git pull操作
+""",
+    "o": """
+        -o OUT_BIN
+            指定输出编译后的可执行文件名
+""",
+    "MAIN_MODULE_SPEC": """
+    MAIN_MODULE_SPEC: {-m MAIN_MODULE | MAIN_MODULE_PATH}
+
+        -m MAIN_MODULE
+            通过模块名的方式指定主模块，git模块名可省略引号
+            例：
+                -m a/b
+                -m '"github.com/x/y"/a/b'
+                -m github.com/x/y/a/b
+
+        MAIN_MODULE_PATH
+            通过模块的本地目录指定主模块，支持绝对路径、相对路径、用“~”表示HOME目录
+            模块目录必须存在且必须在标准库或用户库下
+            例：
+                /home/me/git/larva-lang/lib/test/test/
+                ~/larva/a/b
+                ../x/./y
+""",
+}.iteritems()])

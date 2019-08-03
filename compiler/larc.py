@@ -13,20 +13,49 @@ import larc_module
 import larc_type
 import larc_output
 
-def _show_usage_and_exit():
-    print >> sys.stderr, ("使用方法：\n"
-                          "\tpython %s --out OUT_BIN {--mod MAIN_MODULE | MAIN_MODULE_PATH}\n"
-                          "\tpython %s --run {--mod MAIN_MODULE | MAIN_MODULE_PATH} ARGS\n" % (sys.argv[0], sys.argv[0]))
-    sys.exit(1)
-
 def main():
+    #定位目录
+    THIS_SCRIPT_NAME_SUFFIX = "/compiler/larc.py"
+    this_script_name = os.path.realpath(sys.argv[0])
+    assert this_script_name.endswith(THIS_SCRIPT_NAME_SUFFIX)
+    larva_dir = this_script_name[: -len(THIS_SCRIPT_NAME_SUFFIX)]
+
+    def _show_usage_and_exit():
+        print >> sys.stderr, """
+Larva编译器
+
+使用方法
+
+    python larc.py OPTIONS MAIN_MODULE_SPEC [ARGS]
+
+各参数说明
+
+    OPTIONS: [-u] [-o OUT_BIN] [--run]
+
+{u}
+
+{o}
+
+        --run
+            编译后立即执行
+
+        -o和--run至少要指定一个，若都指定，则先输出为可执行程序然后执行
+
+{MAIN_MODULE_SPEC}
+
+    ARGS
+
+        运行模块时的命令行参数，指定--run选项的时候有效，如未指定--run，则不能指定ARGS
+""".format(**eval(open(larva_dir + "/compiler/help").read()))
+        sys.exit(1)
+
     #解析命令行参数
     try:
-        opt_list, args = getopt.getopt(sys.argv[1 :], "", ["out=", "run", "mod="])
+        opt_list, args = getopt.getopt(sys.argv[1 :], "o:m:", ["run"])
     except getopt.GetoptError:
         _show_usage_and_exit()
     opt_map = dict(opt_list)
-    out_bin = opt_map.get("--out")
+    out_bin = opt_map.get("-o")
     if out_bin is not None:
         if os.path.exists(out_bin) and not os.path.isfile(out_bin):
             larc_common.exit("[%s]不是一个常规文件" % out_bin)
@@ -34,7 +63,7 @@ def main():
     if out_bin is None and not need_run: #至少要指定一种行为
         _show_usage_and_exit()
 
-    main_module_name = opt_map.get("--mod")
+    main_module_name = opt_map.get("-m")
     if main_module_name is None:
         if len(args) < 1:
             _show_usage_and_exit()
@@ -49,8 +78,8 @@ def main():
         _show_usage_and_exit()
 
     #获取标准库、用户库和临时输出的目录，并做检查
-    compiler_dir = os.path.dirname(larc_common.abs_path(sys.argv[0]))
-    std_lib_dir = os.path.dirname(compiler_dir) + "/lib"
+    compiler_dir = larva_dir + "/compiler"
+    std_lib_dir = larva_dir + "/lib"
     assert os.path.isdir(std_lib_dir)
     usr_lib_dir_original = os.getenv("LARVA_USR_LIB_DIR", "~/larva")
     usr_lib_dir = larc_common.abs_path(usr_lib_dir_original)

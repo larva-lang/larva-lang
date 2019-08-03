@@ -2,15 +2,10 @@
 #coding=utf8
 
 '''
-使用--out选项进行larc.py调用的一个快捷实现
+使用-o选项进行larc.py调用的一个快捷实现
 '''
 
 import sys, os, getopt, subprocess
-
-def _show_usage_and_exit():
-    print >> sys.stderr, ("使用方法：\n"
-                          "\tlarvac -o 输出的可执行文件名 {-m 模块名 | 模块目录}\n")
-    sys.exit(1)
 
 def main():
     #定位目录
@@ -19,6 +14,26 @@ def main():
     assert this_script_name.endswith(THIS_SCRIPT_NAME_SUFFIX)
     larva_dir = this_script_name[: -len(THIS_SCRIPT_NAME_SUFFIX)]
     larc_script_name = larva_dir + "/compiler/larc.py"
+
+    def _show_usage_and_exit():
+        print >> sys.stderr, """
+编译Larva模块
+
+使用方法
+
+    larvac OPTIONS MAIN_MODULE_SPEC
+
+各参数说明
+
+    OPTIONS: [-u] -o OUT_BIN
+
+{u}
+
+{o}
+
+{MAIN_MODULE_SPEC}
+""".format(**eval(open(larva_dir + "/compiler/help").read()))
+        sys.exit(1)
 
     #解析命令行参数
     try:
@@ -32,14 +47,14 @@ def main():
     if "-m" in opt_map:
         if len(args) != 0:
             _show_usage_and_exit()
-        main_module_args = ["--mod", opt_map["-m"]]
+        main_module_args = ["-m", opt_map["-m"]]
     else:
         if len(args) != 1:
             _show_usage_and_exit()
         main_module_args = args
 
     #调用larc.py执行
-    p = subprocess.Popen(["python", larc_script_name, "--out", out_bin] + main_module_args)
+    p = subprocess.Popen(["python", larc_script_name, "-o", out_bin] + main_module_args)
     sys.exit(p.wait())
 
 if __name__ == "__main__":

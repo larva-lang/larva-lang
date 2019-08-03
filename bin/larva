@@ -7,11 +7,6 @@
 
 import sys, os, getopt, subprocess
 
-def _show_usage_and_exit():
-    print >> sys.stderr, ("使用方法：\n"
-                          "\tlarva {-m 模块名 | 模块目录} 运行参数\n")
-    sys.exit(1)
-
 def main():
     #定位目录
     THIS_SCRIPT_NAME_SUFFIX = "/bin/larva"
@@ -20,6 +15,28 @@ def main():
     larva_dir = this_script_name[: -len(THIS_SCRIPT_NAME_SUFFIX)]
     larc_script_name = larva_dir + "/compiler/larc.py"
 
+    def _show_usage_and_exit():
+        print >> sys.stderr, """
+编译并运行Larva模块
+
+使用方法
+
+    larva OPTIONS MAIN_MODULE_SPEC ARGS
+
+各参数说明
+
+    OPTIONS: [-u]
+
+{u}
+
+{MAIN_MODULE_SPEC}
+
+    ARGS
+
+        运行模块时的命令行参数
+""".format(**eval(open(larva_dir + "/compiler/help").read()))
+        sys.exit(1)
+
     #解析命令行参数
     try:
         opt_list, args = getopt.getopt(sys.argv[1 :], "m:")
@@ -27,7 +44,7 @@ def main():
         _show_usage_and_exit()
     opt_map = dict(opt_list)
     if "-m" in opt_map:
-        main_module_args = ["--mod", opt_map["-m"]]
+        main_module_args = ["-m", opt_map["-m"]]
     else:
         if len(args) < 1:
             _show_usage_and_exit()
