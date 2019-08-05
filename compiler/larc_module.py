@@ -80,7 +80,7 @@ def find_module_file(module_name):
                     larc_common.exit("无法执行git命令")
                 rc = p.wait()
                 if rc != 0:
-                    err_exit("通过git pull更新repo'%s'失败" % git_repo)
+                    err_exit("通过git pull更新repo '%s'失败" % git_repo)
         else:
             os.makedirs(git_repo_path)
             try:
@@ -91,7 +91,7 @@ def find_module_file(module_name):
             rc = p.wait()
             if rc != 0:
                 shutil.rmtree(git_repo_path, True)
-                err_exit("通过git clone获取repo'%s'失败" % git_repo)
+                err_exit("通过git clone获取repo '%s'失败" % git_repo)
         module_path = git_repo_path + "/" + "/".join(mnpl)
         if os.path.isdir(module_path):
             return module_path, False

@@ -1,0 +1,5 @@
+from "github.com/a/b"/x import ../y;
+
+public void main()
+{
+}

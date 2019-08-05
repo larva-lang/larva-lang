@@ -1,0 +1,5 @@
+from "invalid_git_repo_addr" import x
+
+public void main()
+{
+}

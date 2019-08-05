@@ -1,0 +1,5 @@
+import "github.com/maopao-691515082/non_existing_repo"/x;
+
+public void main()
+{
+}
