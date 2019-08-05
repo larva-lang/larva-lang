@@ -34,7 +34,7 @@ def main():
     ARGS
 
         运行模块时的命令行参数
-""".format(**eval(open(larva_dir + "/compiler/help").read()))
+""".format(**eval(open(larva_dir + "/compiler/help_dict").read()))
         sys.exit(1)
 
     larc_args = ["python", larc_script_name, "--run"]

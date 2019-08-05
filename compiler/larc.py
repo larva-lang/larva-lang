@@ -46,7 +46,7 @@ Larva编译器
     ARGS
 
         运行模块时的命令行参数，指定--run选项的时候有效，如未指定--run，则不能指定ARGS
-""".format(**eval(open(larva_dir + "/compiler/help").read()))
+""".format(**eval(open(larva_dir + "/compiler/help_dict").read()))
         sys.exit(1)
 
     #解析命令行参数

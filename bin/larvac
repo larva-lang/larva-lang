@@ -32,7 +32,7 @@ def main():
 {o}
 
 {MAIN_MODULE_SPEC}
-""".format(**eval(open(larva_dir + "/compiler/help").read()))
+""".format(**eval(open(larva_dir + "/compiler/help_dict").read()))
         sys.exit(1)
 
     larc_args = ["python", larc_script_name]
