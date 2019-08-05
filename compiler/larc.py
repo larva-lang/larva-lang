@@ -88,7 +88,7 @@ Larva编译器
         larc_common.exit("无效的用户库路径：[%s]不存在或不是一个目录" % usr_lib_dir_original)
     if usr_lib_dir in ("/tmp", "/usr", "/var", "/dev", "/root", "/etc", "/home", "/sbin"):
         larc_common.exit("请不要用[%s]作为用户库路径" % usr_lib_dir)
-    tmp_dir_original = os.getenv("LARVA_TMP_DIR", "/tmp")
+    tmp_dir_original = os.getenv("LARVA_TMP_DIR", "~/tmp")
     tmp_dir = larc_common.abs_path(tmp_dir_original)
     if not os.path.isdir(tmp_dir):
         larc_common.exit("无效的临时输出路径：[%s]不存在或不是一个目录" % tmp_dir_original)
