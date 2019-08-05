@@ -88,12 +88,16 @@ Larva编译器
         larc_common.exit("无效的用户库路径：[%s]不存在或不是一个目录" % usr_lib_dir_original)
     if usr_lib_dir in ("/tmp", "/usr", "/var", "/dev", "/root", "/etc", "/home", "/sbin"):
         larc_common.exit("请不要用[%s]作为用户库路径" % usr_lib_dir)
-    tmp_out_dir_original = os.getenv("LARVA_TMP_OUT_DIR", "/tmp/.larva_tmp_out")
-    tmp_out_dir = larc_common.abs_path(tmp_out_dir_original)
-    if not os.path.exists(tmp_out_dir):
-        os.makedirs(tmp_out_dir)
+    tmp_dir_original = os.getenv("LARVA_TMP_DIR", "/tmp")
+    tmp_dir = larc_common.abs_path(tmp_dir_original)
+    if not os.path.isdir(tmp_dir):
+        larc_common.exit("无效的临时输出路径：[%s]不存在或不是一个目录" % tmp_dir_original)
+    tmp_out_dir = tmp_dir + "/.larva_tmp_out"
     if not os.path.isdir(tmp_out_dir):
-        larc_common.exit("无效的临时输出路径：[%s]不存在或不是一个目录" % tmp_out_dir_original)
+        try:
+            os.makedirs(tmp_out_dir)
+        except OSError:
+            larc_common.exit("创建临时输出目录[%s]失败" % tmp_out_dir)
 
     if std_lib_dir.startswith(usr_lib_dir) or usr_lib_dir.startswith(std_lib_dir):
         larc_common.exit("环境检查失败：标准库和用户库路径存在包含关系：[%s] & [%s]" % (std_lib_dir, usr_lib_dir))
