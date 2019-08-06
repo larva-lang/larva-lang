@@ -7,6 +7,7 @@
 import sys
 import getopt
 import os
+import itertools
 import larc_common
 import larc_token
 import larc_module
@@ -83,15 +84,25 @@ Larva编译器
     std_lib_dir = larva_dir + "/lib"
     assert os.path.isdir(std_lib_dir)
     usr_lib_dir_original = os.getenv("LARVA_USR_LIB_DIR", "~/larva")
-    usr_lib_dir = larc_common.abs_path(usr_lib_dir_original)
+    usr_lib_dir = os.path.realpath(larc_common.abs_path(usr_lib_dir_original))
     if not os.path.isdir(usr_lib_dir):
         larc_common.exit("无效的用户库路径：[%s]不存在或不是一个目录" % usr_lib_dir_original)
-    if usr_lib_dir in ("/tmp", "/usr", "/var", "/dev", "/root", "/etc", "/home", "/sbin"):
-        larc_common.exit("请不要用[%s]作为用户库路径" % usr_lib_dir)
     tmp_dir_original = os.getenv("LARVA_TMP_DIR", "~/tmp")
-    tmp_dir = larc_common.abs_path(tmp_dir_original)
+    tmp_dir = os.path.realpath(larc_common.abs_path(tmp_dir_original))
     if not os.path.isdir(tmp_dir):
-        larc_common.exit("无效的临时输出路径：[%s]不存在或不是一个目录" % tmp_dir_original)
+        larc_common.exit("无效的临时工作目录：[%s]不存在或不是一个目录" % tmp_dir_original)
+
+    for (dn_1, d_1), (dn_2, d_2) in itertools.combinations({
+        "标准库目录": std_lib_dir,
+        "用户库目录": usr_lib_dir,
+        "临时工作目录": tmp_dir,
+    }.iteritems(), 2):
+        if d_1 == d_2:
+            larc_common.exit("环境检查失败：%s[%s]和%s[%s]是相同目录" % (dn_1, d_1, dn_2, d_2))
+        if d_1.startswith(d_2 + "/") or d_2.startswith(d_1 + "/"):
+            larc_common.exit("环境检查失败：%s[%s]和%s[%s]存在包含关系" % (dn_1, d_1, dn_2, d_2))
+
+    #建立临时输出目录
     tmp_out_dir = tmp_dir + "/.larva_tmp_out"
     if not os.path.isdir(tmp_out_dir):
         try:
