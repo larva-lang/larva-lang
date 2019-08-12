@@ -84,22 +84,17 @@ class Parser:
             if t.is_ccc("use"):
                 self.ccc_use_deep += 1
                 while True:
-                    fd_r, fd_w = os.pipe()
-                    pid = os.fork()
-                    if pid == 0:
-                        #子进程，注册管道fd后继续尝试编译
-                        os.close(fd_r)
-                        larc_common.reg_err_report_fd(fd_w)
+                    result = larc_common.fork()
+                    if result is None:
+                        #子进程
                         work_ccc_use_deep = self.ccc_use_deep #记录子进程工作的deep
                         break
-                    #父进程，等待子进程的编译结果，若失败则继续下一个use block
-                    os.close(fd_w)
-                    compile_result = os.read(fd_r, 1)
-                    assert compile_result in ("0", "1")
-                    if compile_result == "1":
+                    #父进程，根据子进程的编译结果，若失败则继续下一个use block
+                    if result == "1":
                         #成功，父进程在这个point继续编译
                         break
                     #失败了，跳过这个use block继续尝试下一个
+                    assert result == ""
                     revert_idx = self.token_list.i #用于最后一个use block的回滚
                     t = ccc_jmp()
                     if t.is_ccc("enduse"):
@@ -109,11 +104,9 @@ class Parser:
                 continue
             if t.is_ccc and t.value in ("oruse", "enduse"):
                 assert self.ccc_use_deep > top_ccc_use_deep
-                fd = larc_common.get_err_report_fd()
-                if fd >= 0 and self.ccc_use_deep == work_ccc_use_deep:
+                if larc_common.is_child() and self.ccc_use_deep == work_ccc_use_deep:
                     #子进程尝试成功，汇报给父进程
-                    os.write(fd, "1")
-                    sys.exit(0)
+                    larc_common.child_exit_succ("1")
                 #当前进程为一个父进程，成功选择了一个use block，跳到enduse继续编译
                 self.token_list.revert()
                 while not ccc_jmp().is_ccc("enduse"):

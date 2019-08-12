@@ -1302,8 +1302,7 @@ class Module:
         self.literal_str_list = []
         self.literal_number_list = []
         self.global_native_code_map = {}
-        for file_name in file_name_list:
-            self._precompile(file_name)
+        larc_common.try_tasks_and_do([(self._precompile, (file_name,), {}) for file_name in file_name_list])
         self._check_name_conflict()
 
     __repr__ = __str__ = lambda self : self.name
@@ -1624,16 +1623,18 @@ class Module:
             stk.pop()
 
     def check_type_for_non_ginst(self):
+        tasks = []
         for map in self.cls_map, self.intf_map, self.func_map:
             for i in map.itervalues():
                 if i.gtp_name_list:
                     #泛型元素做check type ignore gtp
-                    i.check_type_ignore_gtp()
+                    tasks.append((i.check_type_ignore_gtp, (), {}))
                 else:
                     #普通check type
-                    i.check_type()
+                    tasks.append((i.check_type, (), {}))
         for i in self.global_var_map.itervalues():
-            i.check_type()
+            tasks.append((i.check_type, (), {}))
+        larc_common.try_tasks_and_do(tasks)
 
     def check_type_for_ginst(self):
         for map in self.gcls_inst_map, self.gintf_inst_map, self.gfunc_inst_map:
@@ -1678,13 +1679,15 @@ class Module:
             larc_common.exit("主模块[%s]的main函数必须是public的" % self)
 
     def compile_non_ginst(self):
+        tasks = []
         for map in self.cls_map, self.func_map:
             for i in map.itervalues():
                 if i.gtp_name_list:
                     continue
-                i.compile()
+                tasks.append((i.compile, (), {}))
         for i in self.global_var_map.itervalues():
-            i.compile()
+            tasks.append((i.compile, (), {}))
+        larc_common.try_tasks_and_do(tasks)
 
     def compile_ginst(self):
         for map in self.gcls_inst_map, self.gfunc_inst_map:

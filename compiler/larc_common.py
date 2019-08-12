@@ -1,21 +1,61 @@
 #coding=utf8
 
 """
-编译器公共定义
+编译器公共定义和一些基础功能
 """
 
 import os
 import sys
 
-_err_report_fd = -1
+_ERR_EXIT_CODE = 157 #编译失败时的exit码
 
-def reg_err_report_fd(fd):
-    global _err_report_fd
-    assert fd >= 0
-    _err_report_fd = fd
+_child_report_fd          = -1         #子进程用来汇报信息的fd
+_show_msg_in_child        = False      #子进程出错退出的时候是否照流程显示错误信息
+_get_err_exit_report_info = lambda: "" #错误退出时若需要汇报信息，则通过这个注册的回调获取
 
-def get_err_report_fd():
-    return _err_report_fd
+#fork一个子进程继续执行编译操作，子进程可通过管道报结果，返回None表示为子进程，返回字符串表示为父进程等待到的子进程的结果
+def fork():
+    global _child_report_fd
+    fd_r, fd_w = os.pipe()
+    pid = os.fork()
+    if pid == 0:
+        #子进程，注册管道fd，重置子进程的信息上报配置后返回None
+        os.close(fd_r)
+        _child_report_fd = fd_w
+        set_show_msg_in_child(False)
+        reg_get_err_exit_report_info(lambda: "")
+        return None
+    #父进程，等待子进程的编译结果
+    os.close(fd_w)
+    result = ""
+    while True:
+        r = os.read(fd_r, 1024)
+        if r == "":
+            break
+        result += r
+    os.close(fd_r)
+    return result
+
+def _report_info(s):
+    while s:
+        sent_len = os.write(_child_report_fd, s)
+        assert 0 < sent_len <= len(s)
+        s = s[sent_len :]
+
+def child_exit_succ(s):
+    _report_info(s)
+    sys.exit(0)
+
+def reg_get_err_exit_report_info(get_err_exit_report_info):
+    global _get_err_exit_report_info
+    _get_err_exit_report_info = get_err_exit_report_info
+
+def set_show_msg_in_child(show_msg_in_child):
+    global _show_msg_in_child
+    _show_msg_in_child = show_msg_in_child
+
+def is_child():
+    return _child_report_fd >= 0
 
 def _output_ginst_create_chain():
     import larc_module
@@ -26,23 +66,53 @@ def _output_ginst_create_chain():
         ginst = ginst.ginst_creator
     if not ginst_create_chain:
         return
-    print "泛型实例构造链："
+    print >> sys.stderr, "泛型实例构造链："
     for ginst in reversed(ginst_create_chain):
-        print ginst.creator_token.pos_desc(), ginst
+        print >> sys.stderr, ginst.creator_token.pos_desc(), ginst
 
 def exit(msg):
-    if _err_report_fd >= 0:
-        os.write(_err_report_fd, "0")
-    else:
+    if _child_report_fd < 0 or _show_msg_in_child:
         print >> sys.stderr, u"错误：" + msg.decode("utf8")
         _output_ginst_create_chain()
-        print
-    sys.exit(1)
+        print >> sys.stderr
+    if _child_report_fd >= 0:
+        _report_info(_get_err_exit_report_info())
+    sys.exit(_ERR_EXIT_CODE)
 
 def warning(msg):
     print >> sys.stderr, u"警告：" + msg.decode("utf8")
     _output_ginst_create_chain()
-    print
+    print >> sys.stderr
+
+'''
+由于一开始设计的时候是遇到错误就退出，为支持监测多个错误但是又不想改动太大，就搞了这么个模式
+try_tasks_and_do会fork后尝试执行每个task（考虑到性能，是批量进行的），仅当尝试的task都成功的时候才真正执行
+由于是尝试后再在主进程执行，因此需要保证task不要有进程外的副作用
+'''
+def try_tasks_and_do(tasks):
+    ok = True
+    start_idx = 0
+    while start_idx < len(tasks):
+        if start_idx > 0:
+            ok = False #出现错误，断点重试了
+        result = fork()
+        if result is None:
+            #子进程，尝试编译剩下的task，直到遇到一个失败的或全部成功
+            set_show_msg_in_child(True)
+            i = start_idx
+            reg_get_err_exit_report_info(lambda: str(i))
+            while i < len(tasks):
+                f, arg, kwarg = tasks[i]
+                f(*arg, **kwarg)
+                i += 1
+            child_exit_succ(str(i))
+        assert result
+        start_idx = int(result) + 1
+    if not ok:
+        sys.exit(_ERR_EXIT_CODE)
+
+    for f, arg, kwarg in tasks:
+        f(*arg, **kwarg)
 
 class OrderedDict:
     def __init__(self):
@@ -123,7 +193,7 @@ def open_src_file(fn):
     f = open(fn)
     f.seek(0, os.SEEK_END)
     if f.tell() > 100 * 1024 ** 2:
-        larc_common.exit("源代码文件[%s]过大" % fn)
+        exit("源代码文件[%s]过大" % fn)
     f.seek(0, os.SEEK_SET)
     f_cont = f.read()
     try:
