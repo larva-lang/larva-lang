@@ -93,8 +93,6 @@ def try_tasks_and_do(tasks):
     ok = True
     start_idx = 0
     while start_idx < len(tasks):
-        if start_idx > 0:
-            ok = False #出现错误，断点重试了
         result = fork()
         if result is None:
             #子进程，尝试编译剩下的task，直到遇到一个失败的或全部成功
@@ -107,6 +105,9 @@ def try_tasks_and_do(tasks):
                 i += 1
             child_exit_succ(str(i))
         assert result
+        result = int(result)
+        if result < len(tasks):
+            ok = False #出现错误，断点重试了
         start_idx = int(result) + 1
     if not ok:
         sys.exit(_ERR_EXIT_CODE)
