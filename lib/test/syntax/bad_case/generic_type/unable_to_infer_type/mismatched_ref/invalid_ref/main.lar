@@ -1,9 +1,0 @@
-void f<T>(T t)
-{
-}
-
-public void main()
-{
-    String s;
-    f(ref s);
-}

@@ -1,8 +1,0 @@
-void f<T>(Catched<T> t)
-{
-}
-
-public void main()
-{
-    f("");
-}

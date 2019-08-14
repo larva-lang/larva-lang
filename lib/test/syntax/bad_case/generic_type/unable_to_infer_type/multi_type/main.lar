@@ -1,8 +1,0 @@
-void f<T>(T a, T b)
-{
-}
-
-public void main()
-{
-    f('a', "b");
-}

@@ -1,8 +1,0 @@
-void f<T>(T t)
-{
-}
-
-public void main()
-{
-    f(nil);
-}

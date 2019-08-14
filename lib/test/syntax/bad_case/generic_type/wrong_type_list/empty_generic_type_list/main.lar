@@ -1,8 +1,0 @@
-void f<T>()
-{
-}
-
-public void main()
-{
-    f<>();
-}

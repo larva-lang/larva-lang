@@ -1,8 +1,0 @@
-void f<T, U, V>(T t, U u, V v)
-{
-}
-
-public void main()
-{
-    f("", "");
-}
