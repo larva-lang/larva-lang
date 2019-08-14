@@ -1,9 +1,0 @@
-class A
-{
-    int a;
-}
-
-public void main()
-{
-    new A{};
-}

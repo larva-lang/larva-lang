@@ -1,9 +1,0 @@
-class A
-{
-    int a;
-}
-
-public void main()
-{
-    println(new A{});
-}

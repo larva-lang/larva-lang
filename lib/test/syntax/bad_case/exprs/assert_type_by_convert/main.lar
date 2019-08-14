@@ -1,5 +1,0 @@
-public void main()
-{
-    Any a = "hello";
-    println((String)a);
-}

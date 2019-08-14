@@ -1,7 +1,0 @@
-public void main()
-{
-    defer
-    {
-        return;
-    }
-}

@@ -1,0 +1,33 @@
+//case 1 ----------------------------
+
+void f1()
+{
+    while (true)
+    {
+        defer
+        {
+            break; //or continue
+        }
+    }
+}
+
+//case 2 ----------------------------
+
+void f2()
+{
+    defer 123 + 456;
+}
+
+//case 3 ----------------------------
+
+void f3()
+{
+    defer
+    {
+        return;
+    }
+}
+
+public void main()
+{
+}
