@@ -1,6 +1,0 @@
-import ./a;
-
-public void main()
-{
-    a.A obj;
-}
