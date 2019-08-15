@@ -1,0 +1,5 @@
+/*
+测试这个case的时候，需要在用户库下建立一个'a_valid_user_module'模块
+*/
+
+import ../../../../a_valid_user_module;

@@ -1,5 +1,1 @@
 import test/syntax/bad_case/import_module/no_such_module/non_existing_module;
-
-public void main()
-{
-}

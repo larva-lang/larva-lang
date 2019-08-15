@@ -1,8 +1,8 @@
-import ./a;
+import ./__a;
 
 interface A
 {
-    a.A usemethod(f);
+    __a.A usemethod(f);
 }
 
 public void main()

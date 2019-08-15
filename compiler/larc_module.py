@@ -82,16 +82,20 @@ def find_module_file(module_name):
                 if rc != 0:
                     err_exit("通过git pull更新项目'%s'失败" % git_repo)
         else:
-            os.makedirs(git_repo_path)
+            git_repo_tmp_path = git_repo_path + ".tmp"
+            shutil.rmtree(git_repo_tmp_path, True)
             try:
-                p = subprocess.Popen(["git", "clone", "https://" + git_repo, git_repo_path], stdout = subprocess.PIPE, stderr = subprocess.PIPE)
-            except OSError:
-                shutil.rmtree(git_repo_path, True)
-                larc_common.exit("无法执行git命令")
-            rc = p.wait()
-            if rc != 0:
-                shutil.rmtree(git_repo_path, True)
-                err_exit("通过git clone获取项目'%s'失败" % git_repo)
+                try:
+                    p = subprocess.Popen(["git", "clone", "https://" + git_repo, git_repo_tmp_path], stdout = subprocess.PIPE,
+                                         stderr = subprocess.PIPE)
+                except OSError:
+                    larc_common.exit("无法执行git命令")
+                rc = p.wait()
+                if rc != 0:
+                    err_exit("通过git clone获取项目'%s'失败" % git_repo)
+                shutil.move(git_repo_tmp_path, git_repo_path)
+            finally:
+                shutil.rmtree(git_repo_tmp_path, True)
         module_path = git_repo_path + "/" + "/".join(mnpl)
         if os.path.isdir(module_path):
             return module_path, False
@@ -1288,7 +1292,7 @@ class Module:
         self.dir = file_path_name
         self.is_std_lib_module = is_std_lib_module
         self.name = name
-        file_name_list = [fn for fn in os.listdir(self.dir) if fn.endswith(".lar")]
+        file_name_list = sorted([fn for fn in os.listdir(self.dir) if fn.endswith(".lar")])
 
         self.file_dep_module_map_map = {}
         self.cls_map = larc_common.OrderedDict()
@@ -1532,7 +1536,7 @@ class Module:
                 last_internal_mnp_idx = internal_mnp_idx_list[-1]
                 ok = importer_prefix == importee_prefix and importer_mnpl[: last_internal_mnp_idx] == importee_mnpl[: last_internal_mnp_idx]
                 if not ok:
-                    module_name_token.syntax_err("模块'%s'不能引用模块'%s'" % (self.name, module_name))
+                    start_token.syntax_err("模块'%s'不能引用模块'%s'" % (self.name, module_name))
 
             #检查是否设置别名，没设置则采用module name最后一个域作为名字
             if token_list.peek().is_sym(":"):
