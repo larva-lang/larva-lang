@@ -1,5 +1,0 @@
-public void main()
-{
-    var s = "abc";
-    s += "def";
-}

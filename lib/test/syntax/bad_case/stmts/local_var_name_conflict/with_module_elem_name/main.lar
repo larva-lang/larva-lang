@@ -1,8 +1,0 @@
-void a()
-{
-}
-
-public void main()
-{
-    int a;
-}

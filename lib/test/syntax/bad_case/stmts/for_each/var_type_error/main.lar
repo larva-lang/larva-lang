@@ -1,7 +1,0 @@
-public void main()
-{
-    var a = new int[10];
-    foreach (long i: a.iter())
-    {
-    }
-}

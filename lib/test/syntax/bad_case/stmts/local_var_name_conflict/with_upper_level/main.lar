@@ -1,7 +1,0 @@
-public void main()
-{
-    int a;
-    {
-        String a;
-    }
-}

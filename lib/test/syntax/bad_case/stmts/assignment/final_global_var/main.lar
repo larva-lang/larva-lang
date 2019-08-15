@@ -1,6 +1,0 @@
-final int A = 1;
-
-public void main()
-{
-    A = 2;
-}
