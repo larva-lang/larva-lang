@@ -118,26 +118,27 @@ public Catched<T> catch<T>(/*GoAny _go_recovered*/)
 
 //---------------------------------------------------------------------
 
-//另一种捕获异常的编码形式，传入一个NothrowCallable接口的对象（一般是闭包），会调用它并将捕获的异常返回
-public interface NothrowCallable
-{
-    public void call();
-}
+//另一种捕获异常的编码形式，传入一个Callable接口的对象（一般是闭包），会调用它并将捕获的异常返回
 
-void _nothrow_call(NothrowCallable callee, ref Catched<Throwable> c)
+void _call_and_catch<T>(Callable callee, ref Catched<T> c)
 {
     defer
     {
-        c = catch_throwable();
+        c = catch<T>();
     }
     callee.call();
 }
 
-public Catched<Throwable> nothrow_call(NothrowCallable callee)
+public Catched<T> call_and_catch<T>(Callable callee)
 {
-    Catched<Throwable> c;
-    _nothrow_call(callee, ref c);
+    Catched<T> c;
+    _call_and_catch(callee, ref c);
     return c;
+}
+
+public Catched<Throwable> nothrow_call(Callable callee)
+{
+    return call_and_catch<Throwable>(callee);
 }
 
 //---------------------------------------------------------------------

@@ -1,0 +1,11 @@
+final String LINE_SEP = "-".repeat(60);
+
+final int
+    TEXT_COLOR_RED    = 31,
+    TEXT_COLOR_GREEN  = 32,
+    TEXT_COLOR_YELLOW = 33;
+
+String color_text(int color, String s)
+{
+    return "\x1b[;%dm%s\x1b[0m".(color, s);
+}

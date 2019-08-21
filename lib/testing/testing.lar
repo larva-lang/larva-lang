@@ -1,0 +1,66 @@
+import time;
+
+public interface Case
+{
+    public void run();
+}
+
+public Case make_case(String name, Callable callee)
+{
+    return []{
+        public void run()
+        {
+            err_println(LINE_SEP);
+            err_println("开始测试[%s]".(name));
+            var c = call_and_catch<Fail>(callee);
+            if (c === nil)
+            {
+                err_println(color_text(TEXT_COLOR_GREEN, "测试成功"));
+            }
+            else
+            {
+                err_println(color_text(TEXT_COLOR_RED, "测试失败：%s".(c.throwed().str())));
+            }
+            err_println(LINE_SEP);
+        }
+    };
+}
+
+public Case make_benchmark_case(String name, Callable callee)
+{
+    return []{
+        public void run()
+        {
+            err_println(LINE_SEP);
+            err_println("开始Benchmark测试[%s]".(name));
+            var c = call_and_catch<Fail>([]{
+                public void call()
+                {
+                    for (ulong times = 1;; times <<= 1)
+                    {
+                        double start_time = time.time();
+                        for (ulong i = 0; i < times; ++ i)
+                        {
+                            callee.call();
+                        }
+                        double time_cost = time.time() - start_time;
+                        if (time_cost > 0.3)
+                        {
+                            err_println("性能：%.2f op/s".((double)times / time_cost));
+                            break;
+                        }
+                    }
+                }
+            });
+            if (c === nil)
+            {
+                err_println(color_text(TEXT_COLOR_GREEN, "测试成功"));
+            }
+            else
+            {
+                err_println(color_text(TEXT_COLOR_RED, "测试失败：%s".(c.throwed().str())));
+            }
+            err_println(LINE_SEP);
+        }
+    };
+}

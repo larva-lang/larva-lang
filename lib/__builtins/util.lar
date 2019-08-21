@@ -1,11 +1,3 @@
-!<<
-
-import (
-    "fmt"
-)
-
-!>>
-
 /*
 GoAny和Any一样，都对应的go层面的interface{}，用不同名字只是为了在逻辑上区分不同场景的不同用法
 显式用GoAny的代码表示对应类型可能为非larva类型
@@ -17,20 +9,6 @@ public interface GoAny
 
 public interface Any
 {
-}
-
-public void print(GoAny a)
-{
-    !<<
-    fmt.Print(lar_go_func_any_to_go_str(l_a))
-    !>>
-}
-
-public void println(GoAny a)
-{
-    !<<
-    fmt.Println(lar_go_func_any_to_go_str(l_a))
-    !>>
 }
 
 public T zero_value<T>()
@@ -53,4 +31,10 @@ public bool try_assert_type<T>(GoAny a, ref T t)
     *l_t, l_ok = l_a.(@<<{T}>>)
     !>>
     return ok;
+}
+
+//因为经常会有将闭包回调作为参数传入的情况，弄个通用的接口在这里
+public interface Callable
+{
+    public void call();
 }
