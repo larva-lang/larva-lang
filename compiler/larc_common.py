@@ -4,8 +4,9 @@
 编译器公共定义和一些基础功能
 """
 
-import os
-import sys
+import os, sys, time
+
+COMPILING_TIMESTAMP = int(time.time() * 1000)
 
 _ERR_EXIT_CODE = 157 #编译失败时的exit码
 

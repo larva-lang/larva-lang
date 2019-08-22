@@ -4,9 +4,7 @@
 将模块解析为token列表
 """
 
-import os
-import re
-import math
+import os, re, math, platform
 import larc_common
 
 #用于解析token的正则表达式
@@ -300,7 +298,7 @@ def _parse_str(s, src_file, line_no, pos):
     #返回字面量和消耗的源代码长度
     return "".join(l), s_len - len(s)
 
-def _parse_token(src_file, line_no, line, pos):
+def _parse_token(module_name, src_file, line_no, line, pos):
     s = line[pos :]
     m = _TOKEN_RE.match(s)
     if m is None:
@@ -382,6 +380,22 @@ def _parse_token(src_file, line_no, line, pos):
             return _Token("literal_bool", w, src_file, line_no, pos), len(w)
         if w == "nil":
             return _Token("literal_nil", w, src_file, line_no, pos), len(w)
+        if is_builtin_macro_like(w):
+            if w == "__PLATFORM__":
+                return _Token("literal_str", platform.platform(), src_file, line_no, pos), len(w)
+            if w == "__MACHINE__":
+                return _Token("literal_str", platform.machine(), src_file, line_no, pos), len(w)
+            if w == "__SYSTEM__":
+                return _Token("literal_str", platform.system(), src_file, line_no, pos), len(w)
+            if w == "__MODULE__":
+                return _Token("literal_str", module_name, src_file, line_no, pos), len(w)
+            if w == "__FILE__":
+                return _Token("literal_str", src_file, src_file, line_no, pos), len(w)
+            if w == "__LINE__":
+                return _Token("literal_int", line_no, src_file, line_no, pos), len(w)
+            if w == "__TIMESTAMP__":
+                return _Token("literal_long", larc_common.COMPILING_TIMESTAMP, src_file, line_no, pos), len(w)
+            _syntax_err(src_file, line_no, pos, "非法的内建宏'%s'" % w)
         return _Token("word", w, src_file, line_no, pos), len(w)
 
     raise Exception("Bug")
@@ -400,7 +414,7 @@ class _NativeCode:
         self.pos = pos
         self.line_list = []
 
-def parse_token_list(src_file):
+def parse_token_list(module_name, src_file):
     line_list = larc_common.open_src_file(src_file).read().splitlines()
 
     token_list = TokenList(src_file)
@@ -499,7 +513,7 @@ def parse_token_list(src_file):
                 continue
 
             #解析token
-            token, token_len = _parse_token(src_file, line_no, line, pos)
+            token, token_len = _parse_token(module_name, src_file, line_no, line, pos)
             token_list.append(token)
             pos += token_len
 
@@ -558,7 +572,10 @@ def gen_empty_token_list(end_sym):
     return token_list
 
 def is_valid_name(name):
-    return re.match("^[a-zA-Z_]\w*$", name) is not None and name not in ("nil", "true", "false")
+    return re.match("^[a-zA-Z_]\w*$", name) is not None and not (name in ("nil", "true", "false") or is_builtin_macro_like(name))
+
+def is_builtin_macro_like(name):
+    return name.startswith("__") and name.endswith("__")
 
 def make_fake_token_reserved(w):
     t = _Token("word", w, "<nil>", 0, -1)

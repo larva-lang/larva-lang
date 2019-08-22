@@ -1338,7 +1338,7 @@ class Module:
         file_path_name = self.dir + "/" + file_name
         if not os.path.isfile(file_path_name):
             larc_common.exit("[%s]需要是一个文件" % file_path_name)
-        token_list = larc_token.parse_token_list(file_path_name)
+        token_list = larc_token.parse_token_list(self.name, file_path_name)
         self._parse_text(file_name, token_list)
 
     def _parse_text(self, file_name, token_list):
