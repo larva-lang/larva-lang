@@ -2,12 +2,18 @@ import time;
 
 public interface Case
 {
+    void _private();
+
     public void run();
 }
 
 public Case make_case(String name, Callable callee)
 {
     return []{
+        void _private()
+        {
+        }
+
         public void run()
         {
             err_println(LINE_SEP);
@@ -29,6 +35,10 @@ public Case make_case(String name, Callable callee)
 public Case make_benchmark_case(String name, Callable callee)
 {
     return []{
+        void _private()
+        {
+        }
+
         public void run()
         {
             err_println(LINE_SEP);
