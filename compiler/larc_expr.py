@@ -402,7 +402,7 @@ class Parser:
                         if coi.is_cls or coi.is_gcls_inst:
                             new_coi = coi
                     if new_coi is None:
-                        base_type.token.syntax_err("'%s'不是类，不能按属性初始化")
+                        base_type.token.syntax_err("'%s'不是类，不能按属性初始化" % base_type)
                     attr_map = new_coi.get_initable_attr_map(base_type.token)
                     attr_init_map = larc_common.OrderedDict()
                     while True:
