@@ -405,18 +405,27 @@ class Parser:
                         base_type.token.syntax_err("'%s'不是类，不能按属性初始化" % base_type)
                     attr_map = new_coi.get_initable_attr_map(base_type.token)
                     attr_init_map = larc_common.OrderedDict()
+                    #根据下面两个token判定是否指定属性名来初始化
+                    revert_idx = self.token_list.i
+                    t1 = self.token_list.pop()
+                    t2 = self.token_list.pop()
+                    self.token_list.revert(revert_idx)
+                    is_initing_by_attr_name = t1.is_name and t2.is_sym(":")
                     while True:
                         t = self.token_list.peek()
                         if t.is_sym("}"):
                             self.token_list.pop_sym()
                             break
 
-                        t, name = self.token_list.pop_name()
-                        if name not in attr_map:
-                            t.syntax_err("类'%s'没有属性'%s'或不可初始化它" % (base_type, name))
-                        if name in attr_init_map:
-                            t.syntax_err("属性'%s'重复初始化" % (name))
-                        self.token_list.pop_sym(":")
+                        if is_initing_by_attr_name:
+                            t, name = self.token_list.pop_name()
+                            if name not in attr_map:
+                                t.syntax_err("类'%s'没有属性'%s'或不可初始化它" % (base_type, name))
+                            if name in attr_init_map:
+                                t.syntax_err("属性'%s'重复初始化" % (name))
+                            self.token_list.pop_sym(":")
+                        else:
+                            name = attr_map.key_at(len(attr_init_map))
                         attr_init_map[name] = self.parse(var_map_stk, attr_map[name])
 
                         t = self.token_list.peek()
