@@ -425,7 +425,10 @@ class Parser:
                                 t.syntax_err("属性'%s'重复初始化" % (name))
                             self.token_list.pop_sym(":")
                         else:
-                            name = attr_map.key_at(len(attr_init_map))
+                            key_idx = len(attr_init_map)
+                            if key_idx >= len(attr_map):
+                                t.syntax_err("过多的初始化值")
+                            name = attr_map.key_at(key_idx)
                         attr_init_map[name] = self.parse(var_map_stk, attr_map[name])
 
                         t = self.token_list.peek()
