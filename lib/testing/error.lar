@@ -1,28 +1,13 @@
 //测试案例抛出Fail异常来指示测试失败的情况
 class Fail
 {
-    Fail(String s)
+    public String s usemethod(str);
+}
+
+public void assert(bool cond, String s)
+{
+    if (!cond)
     {
-        this.e = new Exception(s);
+        throw(new Fail{s});
     }
-
-    Exception e usemethod;
-}
-
-interface CondCheck
-{
-    public void when(bool cond);
-}
-
-public CondCheck fail(String s)
-{
-    return []{
-        public void when(bool cond)
-        {
-            if (cond)
-            {
-                throw(new Fail(s));
-            }
-        }
-    };
 }

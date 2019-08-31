@@ -1,3 +1,5 @@
+import debug;
+
 class HashMapNode<K, V>
 {
     K k;
@@ -90,7 +92,7 @@ public class HashMap<K, V>
             //装载率正常，不做调整
             return;
         }
-        assert(new_size > 0, "bug");
+        debug.assert(new_size > 0, "bug");
 
         //创建新表并迁移旧表数据，这个过程将来可以改成渐进式
         var new_tbl = new HashMapNode<K, V>[new_size];
@@ -100,7 +102,7 @@ public class HashMap<K, V>
             {
                 HashMapNode<K, V> new_node;
                 long idx = this.find_node(new_tbl, node.k, ref new_node);
-                assert(new_node === nil, "bug"); //在新表插入node肯定找不到的
+                debug.assert(new_node === nil, "bug"); //在新表插入node肯定找不到的
                 new_node = new HashMapNode<K, V>();
                 new_node.k = node.k;
                 new_node.v = node.v;
@@ -132,7 +134,7 @@ public class HashMap<K, V>
                 //在链表中找到节点的前驱，通过修改其next属性来删掉节点
                 for (var nd = this.tbl[idx]; ; nd = nd.next)
                 {
-                    assert(nd !== nil, "bug");
+                    debug.assert(nd !== nil, "bug");
                     if (nd.next === node)
                     {
                         nd.next = node.next;
@@ -263,9 +265,9 @@ public class HashMapIter<K, V>
         this.check_dirty();
         if (this._after_end())
         {
-            throw(new IterOutOfRange());
+            throw(new IterOutOfRange{});
         }
-        assert(this.nd !== nil, "bug");
+        debug.assert(this.nd !== nil, "bug");
         return this.nd;
     }
 
@@ -295,9 +297,9 @@ public class HashMapIter<K, V>
         this.check_dirty();
         if (this._after_end())
         {
-            throw(new IterOutOfRange());
+            throw(new IterOutOfRange{});
         }
-        assert(this.nd !== nil, "bug");
+        debug.assert(this.nd !== nil, "bug");
         this.nd = this.nd.next;
         this.skip_nil();
     }

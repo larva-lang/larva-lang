@@ -35,30 +35,18 @@ public interface ReversibleIter<E>
 //迭代器超出范围，在开始结束边界执行get，或试图移出边界时可抛出此异常
 public class IterOutOfRange
 {
-    public IterOutOfRange()
-    {
-    }
-
-    EmptyException e usemethod;
+    public EmptyException e usemethod;
 }
 
 //被迭代对象在迭代过程中被修改从而导致迭代器不可再用，此时调用迭代器的方法时可抛出此异常
 //不一定每个被迭代对象被修改后都会抛出此异常，有的对象在修改后，迭代器可从有效状态转为边界状态（如Vector），具体看每个类型自己的实现
 public class IterDirty
 {
-    public IterDirty()
-    {
-    }
-
-    EmptyException e usemethod;
+    public EmptyException e usemethod;
 }
 
 //具体的迭代器不一定实现了所有的方法，对于没实现的可以抛这个异常
 public class UnsupportedIterOper
 {
-    public UnsupportedIterOper()
-    {
-    }
-
-    EmptyException e usemethod;
+    public EmptyException e usemethod;
 }

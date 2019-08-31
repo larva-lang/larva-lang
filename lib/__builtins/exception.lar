@@ -44,15 +44,6 @@ public class Catched<T>
     String tb;
 }
 
-//assert函数
-public void assert(bool b, String s)
-{
-    if (!b)
-    {
-        throw(new AssertError(s));
-    }
-}
-
 //--------------------------------------------------------------------
 
 /*
@@ -143,17 +134,6 @@ public Catched<Throwable> nothrow_call(Callable callee)
 
 //---------------------------------------------------------------------
 
-//一个基本的常用异常的实现：仅包含一个字符串info
-public class Exception
-{
-    public Exception(String s)
-    {
-        this.info = s;
-    }
-
-    String info usemethod(str);
-}
-
 //空异常，用于一些简单的不含信息的异常的base，异常区分只需要通过名字来识别
 public class EmptyException
 {
@@ -164,17 +144,6 @@ public class EmptyException
 }
 
 //这里是通用的一些内建异常类型
-
-//Assert错误，只用于assert
-public class AssertError
-{
-    public AssertError(String s)
-    {
-        this.e = new Exception(s);
-    }
-
-    Exception e usemethod;
-}
 
 //运行时类型转换（从接口到类型或其他接口）失败的错误
 public class TypeAssertionError
@@ -250,10 +219,10 @@ public class KeyError
 {
     public KeyError(String k)
     {
-        this.e = new Exception(k);
+        this.k = k;
     }
 
-    Exception e usemethod;
+    String e usemethod(str);
 }
 
 //值错误，用于根据值解析、查找等操作的地方，v为错误的值的字符串描述
@@ -261,20 +230,10 @@ public class ValueError
 {
     public ValueError(String v)
     {
-        this.e = new Exception(v);
+        this.v = v;
     }
 
-    Exception e usemethod;
-}
-
-//超时错误，用于操作超时时抛出
-public class TimeoutError
-{
-    public TimeoutError()
-    {
-    }
-
-    EmptyException e usemethod;
+    String v usemethod(str);
 }
 
 //go的error类型的一个port，用于一些native代码从error到异常的转换

@@ -36,7 +36,7 @@ public class ArrayIter<E>
         }
         if (this.after_end())
         {
-            throw(new IterOutOfRange());
+            throw(new IterOutOfRange{});
         }
         ++ this.idx;
     }
@@ -45,7 +45,7 @@ public class ArrayIter<E>
     {
         if (this.before_begin())
         {
-            throw(new IterOutOfRange());
+            throw(new IterOutOfRange{});
         }
         if (this.after_end())
         {
