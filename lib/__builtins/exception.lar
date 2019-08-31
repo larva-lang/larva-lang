@@ -222,7 +222,7 @@ public class KeyError
         this.k = k;
     }
 
-    String e usemethod(str);
+    String k usemethod(str);
 }
 
 //值错误，用于根据值解析、查找等操作的地方，v为错误的值的字符串描述
