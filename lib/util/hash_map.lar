@@ -265,7 +265,7 @@ public class HashMapIter<K, V>
         this.check_dirty();
         if (this._after_end())
         {
-            throw(new IterOutOfRange{});
+            throw(new IterOutOfRange());
         }
         debug.assert(this.nd !== nil, "bug");
         return this.nd;
@@ -297,7 +297,7 @@ public class HashMapIter<K, V>
         this.check_dirty();
         if (this._after_end())
         {
-            throw(new IterOutOfRange{});
+            throw(new IterOutOfRange());
         }
         debug.assert(this.nd !== nil, "bug");
         this.nd = this.nd.next;
