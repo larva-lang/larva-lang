@@ -29,6 +29,37 @@ C3 g3 = new C3{
     y: 123,
 };
 
+//case 4 ----------------------
+
+class C4
+{
+    public int x;
+}
+
+C4 g4 = new C4{
+    y: 123L,
+};
+
+//case 5 ----------------------
+
+class C5
+{
+    public int x;
+    public String y;
+}
+
+C5 g5 = new C5{"hello", 123};
+
+//case 6 ----------------------
+
+class C6
+{
+    public int x;
+    public String y;
+}
+
+C6 g6 = new C6{123, "hello", 123};
+
 public void main()
 {
 }
