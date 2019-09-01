@@ -354,13 +354,13 @@ class _ClsBase(_CoiBase):
             return None, self.attr_map[name]
         token.syntax_err("类'%s'没有方法或属性'%s'" % (self, name))
 
-    def get_initable_attr_map(self, t):
+    def get_initable_attr_map(self, t, from_module):
         if self.native_code_list:
             t.syntax_err("类'%s'不能按属性初始化：包含native字段定义" % self)
         attr_map = larc_common.OrderedDict()
         for attr in self.attr_map.itervalues():
-            if "public" not in attr.decr_set:
-                t.syntax_err("类'%s'不能按属性初始化：属性'%s'不是public" % (self, attr.name))
+            if "public" not in attr.decr_set and self.module is not from_module:
+                t.syntax_err("类'%s'不能在模块'%s'按属性初始化：对属性'%s'无访问权限" % (self, from_module, attr.name))
             attr_map[attr.name] = attr.type
         return attr_map
 

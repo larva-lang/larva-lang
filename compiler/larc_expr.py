@@ -403,7 +403,7 @@ class Parser:
                             new_coi = coi
                     if new_coi is None:
                         base_type.token.syntax_err("'%s'不是类，不能按属性初始化" % base_type)
-                    attr_map = new_coi.get_initable_attr_map(base_type.token)
+                    attr_map = new_coi.get_initable_attr_map(base_type.token, self.curr_module)
                     attr_init_map = larc_common.OrderedDict()
                     #根据下面两个token判定是否指定属性名来初始化
                     revert_idx = self.token_list.i

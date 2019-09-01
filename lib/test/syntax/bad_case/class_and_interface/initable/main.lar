@@ -1,3 +1,5 @@
+from . import __a;
+
 //case 1 ----------------------
 
 class C1
@@ -11,18 +13,13 @@ C1 g1 = new C1{};
 
 //case 2 ----------------------
 
-class C2
-{
-    int x;
-}
-
-C2 g2 = new C2{};
+C2 g2 = new __a.C2{};
 
 //case 3 ----------------------
 
 class C3
 {
-    public int x;
+    int x;
 }
 
 C3 g3 = new C3{
@@ -33,7 +30,7 @@ C3 g3 = new C3{
 
 class C4
 {
-    public int x;
+    int x;
 }
 
 C4 g4 = new C4{
@@ -44,8 +41,8 @@ C4 g4 = new C4{
 
 class C5
 {
-    public int x;
-    public String y;
+    int x;
+    String y;
 }
 
 C5 g5 = new C5{"hello", 123};
@@ -54,8 +51,8 @@ C5 g5 = new C5{"hello", 123};
 
 class C6
 {
-    public int x;
-    public String y;
+    int x;
+    String y;
 }
 
 C6 g6 = new C6{123, "hello", 123};

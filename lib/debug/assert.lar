@@ -1,7 +1,7 @@
 //Assert错误，只用于assert，这个错误是不推荐被catch的，因为assert一般用于bug检查，不过依然可以通过Throwable来catch到
 class AssertError
 {
-    public String s usemethod(str);
+    String s usemethod(str);
 }
 
 public void assert(bool b, String s)
