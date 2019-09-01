@@ -2,14 +2,23 @@ public class Pair<F, S>
 {
     public String repr()
     {
-        return "%T{%r, %r}".(this, this.first, this.second);
+        return "%T{%r, %r}".(this, this.f, this.s);
     }
 
-    public F first;
-    public S second;
+    public F first()
+    {
+        return this.f;
+    }
+
+    public S second()
+    {
+        return this.s;
+    }
+
+    F f;
+    S s;
 }
 
-//一个比直接new简单点的写法，因为可以用到类型推导
 public Pair<F, S> make_pair<F, S>(F f, S s)
 {
     return new Pair<F, S>{f, s};

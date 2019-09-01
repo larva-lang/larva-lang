@@ -31,11 +31,11 @@ public class HashMap<K, V>
         {
             if (i == 1)
             {
-                sl[i] = "%r: %r".(p.first, p.second);
+                sl[i] = "%r: %r".(p.first(), p.second());
             }
             else
             {
-                sl[i] = ", %r: %r".(p.first, p.second);
+                sl[i] = ", %r: %r".(p.first(), p.second());
             }
             ++ i;
         }
@@ -48,7 +48,7 @@ public class HashMap<K, V>
     {
         foreach (var p : data_iter)
         {
-            this.set(p.first, p.second);
+            this.set(p.first(), p.second());
         }
     }
 
