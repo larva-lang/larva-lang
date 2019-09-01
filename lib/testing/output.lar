@@ -1,5 +1,3 @@
-final String LINE_SEP = "-".repeat(60);
-
 final int
     TEXT_COLOR_RED    = 31,
     TEXT_COLOR_GREEN  = 32,

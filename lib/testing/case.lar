@@ -1,0 +1,64 @@
+import time;
+
+public interface Case
+{
+    String title();
+    String run();
+}
+
+public class TestCase
+{
+    public TestCase(String name, Callable callee)
+    {
+        this.name = name;
+        this.callee = callee;
+    }
+
+    String title()
+    {
+        return "TestCase[%s]".(this.name);
+    }
+
+    String run()
+    {
+        this.callee.call();
+        return "";
+    }
+
+    String name;
+    Callable callee;
+}
+
+public class BenchmarkCase
+{
+    public BenchmarkCase(String name, Callable callee)
+    {
+        this.name = name;
+        this.callee = callee;
+    }
+
+    String title()
+    {
+        return "BenchmarkCase[%s]".(this.name);
+    }
+
+    String run()
+    {
+        for (ulong times = 1; ; times <<= 1)
+        {
+            double start_time = time.time();
+            for (ulong i = 0; i < times; ++ i)
+            {
+                this.callee.call();
+            }
+            double time_cost = time.time() - start_time;
+            if (time_cost > 0.3)
+            {
+                return "性能：%.2f op/s".((double)times / time_cost);
+            }
+        }
+    }
+
+    String name;
+    Callable callee;
+}

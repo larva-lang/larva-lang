@@ -1,0 +1,30 @@
+import testing;
+
+public void main()
+{
+    testing.run_cases(new testing.Case[]{
+        new testing.TestCase("tc_ok", []{
+            public void call()
+            {
+            }
+        }),
+        new testing.TestCase("tc_fail", []{
+            public void call()
+            {
+                testing.fail("tc_fail");
+            }
+        }),
+        new testing.BenchmarkCase("bc_ok", []{
+            public void call()
+            {
+                "-".repeat(1000);
+            }
+        }),
+        new testing.BenchmarkCase("bc_fail", []{
+            public void call()
+            {
+                testing.fail("bc_fail");
+            }
+        }),
+    }.iter());
+}
