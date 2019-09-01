@@ -1,4 +1,4 @@
-class C2
+public class C2
 {
     int x;
 }
