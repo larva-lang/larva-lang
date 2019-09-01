@@ -7,3 +7,7 @@ String color_text(int color, String s)
 {
     return "\x1b[;%dm%s\x1b[0m".(color, s);
 }
+
+final String
+    RESULT_TEXT_OK   = "[%s]".(color_text(TEXT_COLOR_GREEN, "OK")),
+    RESULT_TEXT_FAIL = "[%s]".(color_text(TEXT_COLOR_RED, "FAIL"));
