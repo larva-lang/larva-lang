@@ -54,7 +54,7 @@ public class BenchmarkCase
             double time_cost = time.time() - start_time;
             if (time_cost > 0.3)
             {
-                return "性能：%.2f op/s".((double)times / time_cost);
+                return "%.2f op/s".((double)times / time_cost);
             }
         }
     }

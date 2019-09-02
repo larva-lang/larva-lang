@@ -1,6 +1,6 @@
 void run_case(Case case)
 {
-    err_print("%-40s ".(case.title()));
+    err_print("%-60s ".(case.title()));
     String msg;
     var c = call_and_catch<Fail>([]{
         public void call()
@@ -14,17 +14,17 @@ void run_case(Case case)
     });
     if (c === nil)
     {
-        err_println("[%s] %s".(color_text(TEXT_COLOR_GREEN, "OK"), msg));
+        err_println("%-20s %s".("[%s]".(color_text(TEXT_COLOR_GREEN, "OK")), msg));
     }
     else
     {
-        err_println("[%s] %s".(color_text(TEXT_COLOR_RED, "FAIL"), c.throwed().str()));
+        err_println("%-20s %s".("[%s]".(color_text(TEXT_COLOR_RED, "FAIL")), color_text(TEXT_COLOR_RED, c.throwed().str())));
     }
 }
 
-public run_cases(Iter<Case> case_iter)
+public void run_cases(Iter<Case> case_iter)
 {
-    for (var case: case_iter)
+    foreach (var case: case_iter)
     {
         run_case(case);
     }

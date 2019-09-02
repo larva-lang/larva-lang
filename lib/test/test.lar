@@ -11,7 +11,7 @@ public void main()
         new testing.TestCase("tc_fail", []{
             public void call()
             {
-                testing.fail("tc_fail");
+                testing.assert(false, "tc_fail");
             }
         }),
         new testing.BenchmarkCase("bc_ok", []{
@@ -23,7 +23,7 @@ public void main()
         new testing.BenchmarkCase("bc_fail", []{
             public void call()
             {
-                testing.fail("bc_fail");
+                testing.assert(false, "bc_fail");
             }
         }),
     }.iter());
