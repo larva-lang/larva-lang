@@ -542,7 +542,7 @@ def parse_token_list_until_sym(token_list, end_sym_set):
             stk.append(t)
             in_top_level_new = False
         if t.is_sym and t.value in bracket_map.values():
-            if not (stk and stk[-1].is_sym and t.value == bracket_map[stk[-1].value]):
+            if not (stk and stk[-1].is_sym and t.value == bracket_map.get(stk[-1].value)):
                 t.syntax_err("未匹配的'%s'" % t.value)
             stk.pop()
         if t.is_ccc("use"):
