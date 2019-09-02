@@ -246,8 +246,8 @@ class _Type:
             #目标类型为接口或类，非数组，分几种情况检查
             coi = self.get_coi()
             if coi.is_intf_any():
-                #任何类型都能赋值给Any接口
-                return True
+                #void之外的任何类型都能赋值给Any接口
+                return not type.is_void
             if type.is_array:
                 #数组可以赋值给实现了数组内建方法的接口
                 return coi.can_convert_from(gen_arr_type(type).get_coi())
@@ -267,13 +267,6 @@ class _Type:
         if type.is_nil:
             #无法隐式从nil转换过来，则肯定不能强转
             return False
-
-        #禁止强制反向转换语法
-        '''
-        if not type.is_literal_int and type.can_convert_from(self):
-            #能反向隐式转换，则可以强转
-            return True
-        '''
 
         #接下来就是正反向都无法转换的情形，这时候还能强转的就只能是number类型之间的了
         if self.is_number_type and type.is_number_type:
