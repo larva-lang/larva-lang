@@ -27,6 +27,7 @@ public class CaseRunner
     public CaseRunner()
     {
         this.output_enabled = true;
+        this.case_names = new util.Vector<String)(nil);
         this.cases = new util.HashMap<String, Case>(nil);
         this.results = new util.HashMap<String, CaseResult>(nil);
     }
@@ -42,6 +43,7 @@ public class CaseRunner
         {
             throw("测试用例'%s'已存在".(name));
         }
+        this.case_names.add(name);
         this.cases.set(name, case);
     }
 
@@ -100,10 +102,9 @@ public class CaseRunner
 
     public void run()
     {
-        foreach (var p: this.cases.iter())
+        foreach (var case_name: this.case_names.iter())
         {
-            var case_name = p.first();
-            var case = p.second();
+            var case = this.cases.get(case_name);
 
             if (this.output_enabled)
             {
@@ -141,6 +142,7 @@ public class CaseRunner
     }
 
     bool output_enabled; //是否开启输出，默认开启
+    util.Vector<String> case_names;
     util.HashMap<String, Case> cases;
     util.HashMap<String, CaseResult> results;
 }
