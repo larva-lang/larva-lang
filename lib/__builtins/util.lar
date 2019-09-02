@@ -38,3 +38,18 @@ public interface Callable
 {
     public void call();
 }
+
+/*
+模拟C等语言中的‘?:’表达式，但采用函数的方式
+larva并没有直接支持‘?:’，主要是这个运算在和其他运算以及多个‘?:’使用的时候容易弄出一些混乱的代码，不推荐使用
+但是这个东东时常能让代码更明确简化，所以还是提供一个替代品
+需要注意的是，由于cond_expr是函数，所以a和b在传入的时候就已经求值了，而不像‘?:’那样根据cond判断结果再选择求值其中一个
+*/
+T cond_expr<T>(bool cond, T a, T b)
+{
+    if (cond)
+    {
+        return a;
+    }
+    return b;
+}

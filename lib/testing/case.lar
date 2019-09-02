@@ -1,64 +1,142 @@
-import time;
+import time, util;
 
-public interface Case
+interface Case
 {
     String title();
     String run();
 }
 
-public class TestCase
+public class CaseResult
 {
-    public TestCase(String name, Callable callee)
+    public bool ok()
     {
-        this.name = name;
-        this.callee = callee;
+        return this._ok;
     }
 
-    String title()
+    public String msg()
     {
-        return "TestCase[%s]".(this.name);
+        return this._msg;
     }
 
-    String run()
-    {
-        this.callee.call();
-        return "";
-    }
-
-    String name;
-    Callable callee;
+    bool _ok; //测试成功或失败
+    String _msg; //测试结果消息
 }
 
-public class BenchmarkCase
+public class CaseRunner
 {
-    public BenchmarkCase(String name, Callable callee)
+    public CaseRunner()
     {
-        this.name = name;
-        this.callee = callee;
+        this.output_enabled = true;
+        this.cases = new util.HashMap<String, Case>(nil);
+        this.results = new util.HashMap<String, CaseResult>(nil);
     }
 
-    String title()
+    public void disable_output()
     {
-        return "BenchmarkCase[%s]".(this.name);
+        this.output_enabled = false;
     }
 
-    String run()
+    void add_case(String name, Case case)
     {
-        for (ulong times = 1; ; times <<= 1)
+        if (this.cases.contains_key(name))
         {
-            double start_time = time.time();
-            for (ulong i = 0; i < times; ++ i)
+            throw("测试用例'%s'已存在".(name));
+        }
+        this.cases.set(name, case);
+    }
+
+    public void add_test_case(String name, Callable callee)
+    {
+        this.add_case(name, []{
+            String title()
             {
-                this.callee.call();
+                return "TestCase[%s]".(name);
             }
-            double time_cost = time.time() - start_time;
-            if (time_cost > 0.3)
+
+            String run()
             {
-                return "%.2f op/s".((double)times / time_cost);
+                callee.call();
+                return "";
+            }
+        });
+    }
+
+    public void add_benchmark_case(String name, Callable callee)
+    {
+        this.add_case(name, []{
+            String title()
+            {
+                return "BenchmarkCase[%s]".(name);
+            }
+
+            String run()
+            {
+                for (ulong times = 1; ; times <<= 1)
+                {
+                    double start_time = time.time();
+                    for (ulong i = 0; i < times; ++ i)
+                    {
+                        callee.call();
+                    }
+                    double time_cost = time.time() - start_time;
+                    if (time_cost > 0.3)
+                    {
+                        return "%.2f op/s".((double)times / time_cost);
+                    }
+                }
+            }
+        });
+    }
+
+    public CaseResult get_result(String name)
+    {
+        var iter = this.results.find(name);
+        if (iter === nil)
+        {
+            throw("测试用例'%s'不存在或还未测试".(name));
+        }
+        return iter.value();
+    }
+
+    public void run()
+    {
+        foreach (var p: this.cases.iter())
+        {
+            var case_name = p.first();
+            var case = p.second();
+
+            if (this.output_enabled)
+            {
+                err_print("%-60s ".(case.title()));
+            }
+
+            String msg;
+            var c = call_and_catch<Fail>([]{
+                public void call()
+                {
+                    msg = case.run();
+                    if (msg === nil)
+                    {
+                        msg = "";
+                    }
+                }
+            });
+
+            var result = new CaseResult{
+                _ok:  c === nil,
+                _msg: cond_expr(c === nil, msg, c.throwed().str()),
+            };
+            this.results.set(case_name, result);
+
+            if (this.output_enabled)
+            {
+                err_println("%-20s %s".(cond_expr(result.ok(), RESULT_TEXT_OK, RESULT_TEXT_FAIL),
+                                        cond_expr(result.ok(), result.msg(), color_text(TEXT_COLOR_RED, result.msg()))));
             }
         }
     }
 
-    String name;
-    Callable callee;
+    bool output_enabled; //是否开启输出，默认开启
+    util.HashMap<String, Case> cases;
+    util.HashMap<String, CaseResult> results;
 }
