@@ -15,7 +15,8 @@ import larc_type
 
 _UNARY_OP_SET = set(["~", "!", "neg", "pos", "force_convert"])
 _BINOCULAR_OP_SET = larc_token.BINOCULAR_OP_SYM_SET
-_OP_PRIORITY_LIST = [["||"],
+_OP_PRIORITY_LIST = [["if", "else", "if-else"],
+                     ["||"],
                      ["&&"],
                      ["|"],
                      ["^"],
@@ -112,12 +113,23 @@ class _ParseStk:
                 if op in _UNARY_OP_SET:
                     #单目运算符右结合
                     break
+                if op in ("if", "else"):
+                    assert self.op_stk[-1] in ("if", "if-else")
+                    if self.op_stk[-1] == "if" and op == "else":
+                        #匹配了三元运算符，在外面统一处理合并
+                        break
+                    self.start_token.syntax_err("禁止多个'if-else'表达式直接混合运算，请加括号")
                 self._pop_top_op()
         if op == "force_convert":
             #类型强转额外压入一个类型对象
             self.op_stk.append(force_convert_type)
             self.op_stk.append(op)
             return
+        if op == "else":
+            if self.op_stk and self.op_stk[-1] == "if":
+                self.op_stk[-1] = "if-else"
+                return
+            self.start_token.syntax_err("非法的表达式，存在未匹配'if'的'else'")
         self.op_stk.append(op)
 
     def _pop_top_op(self):
@@ -227,6 +239,26 @@ class _ParseStk:
 
             except _InvalidBinocularOp:
                 self.start_token.syntax_err("非法的表达式：类型'%s'和'%s'无法做'%s'运算" % (ea.type, eb.type, op))
+
+        elif op == "if":
+            self.start_token.syntax_err("非法的表达式，存在未匹配'else'的'if'")
+
+        elif op == "if-else":
+            #三元运算符
+            if len(self.stk) < 3:
+                self.start_token.syntax_err("非法的表达式")
+            eb = self.stk.pop()
+            e_cond = self.stk.pop()
+            ea = self.stk.pop()
+            if not e_cond.type.is_bool_type:
+                self.start_token.syntax_err("非法的表达式：'if-else'运算的条件运算分量类型需要是'bool'，不能是'%s'" % e_cond.type)
+            if ea.type != eb.type:
+                try:
+                    ea, eb = _make_number_type_same(ea, eb)
+                except _CantMakeNumberTypeSame:
+                    self.start_token.syntax_err("非法的表达式：'if-else'运算的两个结果运算分量类型不同：'%s'和'%s'" % (ea.type, eb.type))
+            tp = ea.type
+            self.stk.append(_Expr(op, (e_cond, ea, eb), tp))
 
         else:
             raise Exception("Bug")
@@ -528,11 +560,11 @@ class Parser:
 
             #状态：解析普通二元运算符
             t = self.token_list.pop()
-            if t.is_sym and t.value in _BINOCULAR_OP_SET:
-                #二元运算
+            if (t.is_sym and t.value in _BINOCULAR_OP_SET) or (t.is_reserved and t.value in ("if", "else")):
+                #二、三元运算
                 parse_stk.push_op(t.value)
             else:
-                t.syntax_err("需要二元运算符")
+                t.syntax_err("需要二元或三元运算符")
 
         expr = parse_stk.finish()
         expr_pos_info = expr.pos_info #保存一下pos info

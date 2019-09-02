@@ -125,18 +125,14 @@ public class CaseRunner
 
             var result = new CaseResult{
                 _ok:  c === nil,
-                _msg: msg,
+                _msg: msg if c === nil else c.throwed().str(),
             };
-            if (c !== nil)
-            {
-                result._msg = c.throwed().str();
-            }
             this.results.set(case_name, result);
 
             if (this.output_enabled)
             {
-                err_println("%-20s %s".(cond_expr(result.ok(), RESULT_TEXT_OK, RESULT_TEXT_FAIL),
-                                        cond_expr(result.ok(), result.msg(), color_text(TEXT_COLOR_RED, result.msg()))));
+                err_println("%-20s %s".(RESULT_TEXT_OK if result.ok() else RESULT_TEXT_FAIL,
+                                        result.msg() if result.ok() else color_text(TEXT_COLOR_RED, result.msg())));
             }
         }
     }
