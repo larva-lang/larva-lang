@@ -27,7 +27,7 @@ public class CaseRunner
     public CaseRunner()
     {
         this.output_enabled = true;
-        this.case_names = new util.Vector<String)(nil);
+        this.case_names = new util.Vector<String>(nil);
         this.cases = new util.HashMap<String, Case>(nil);
         this.results = new util.HashMap<String, CaseResult>(nil);
     }
