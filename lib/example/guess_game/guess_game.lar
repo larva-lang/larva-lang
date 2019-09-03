@@ -81,7 +81,7 @@ class Client
             char[] input = recv_buf[: recved_size];
             long input_size = input.size();
 
-            if (!(input_size >= 2 && input[input_size - 2 :].eq("\r\n")))
+            if (!(input_size >= 2 && input[input_size - 2] == '\r' && input[input_size - 1] == '\n'))
             {
                 throw("proto error");
             }
