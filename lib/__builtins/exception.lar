@@ -75,8 +75,13 @@ Catched<Throwable> _go_recovered_to_catched(GoAny r)
     return c;
 }
 
-//捕获Throwable对象
-public Catched<Throwable> catch_throwable(/*GoAny _go_recovered*/)
+/*
+捕获Throwable对象
+
+本质上这个等同于catch<Throwable>，但是由于catch是泛型函数，只有代码中遇到了才会编译生成，而这个函数在很多native代码和runtime中都有用到，
+所以单独实现一下
+*/
+Catched<Throwable> _catch_throwable(/*GoAny _go_recovered*/)
 {
     GoAny r;
     !<<
@@ -125,11 +130,6 @@ public Catched<T> call_and_catch<T>(Callable callee)
     Catched<T> c;
     _call_and_catch(callee, ref c);
     return c;
-}
-
-public Catched<Throwable> nothrow_call(Callable callee)
-{
-    return call_and_catch<Throwable>(callee);
 }
 
 //---------------------------------------------------------------------

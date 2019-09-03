@@ -22,7 +22,7 @@ func lar_booter_check_go_panic() {
 func lar_booter_start_prog(builtins_mod_init_func func (), main_mod_init_func func (), main_func func ()) {
     defer lar_booter_check_go_panic()
     defer func () {
-        c := lar_func_@<<:catch_throwable>>(recover())
+        c := lar_func_@<<:_catch_throwable>>(recover())
         if c != nil {
             lar_booter_exit_with_catched(c)
         }
@@ -35,7 +35,7 @@ func lar_booter_start_prog(builtins_mod_init_func func (), main_mod_init_func fu
 func lar_booter_start_co(co lar_intf_@<<:Runnable>>) {
     defer lar_booter_check_go_panic()
     defer func () {
-        c := lar_func_@<<:catch_throwable>>(recover())
+        c := lar_func_@<<:_catch_throwable>>(recover())
         if c != nil {
             lar_booter_exit_with_catched(c)
         }
