@@ -278,6 +278,9 @@ class Parser:
         return tp, name, expr, t.value
 
     def _is_valid_expr_stmt(self, expr):
+        if expr.op == "if-else":
+            e_cond, ea, eb = expr.arg
+            return self._is_valid_expr_stmt(ea) and self._is_valid_expr_stmt(eb)
         return isinstance(expr, _SeExpr) or expr.op in ("new", "call_array.method", "call_method", "call_func")
 
     def _check_valid_expr_stmt(self, t, expr):
