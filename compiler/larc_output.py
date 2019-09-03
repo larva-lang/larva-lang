@@ -464,8 +464,10 @@ def _gen_expr_code_ex(expr):
 
     if expr.op == "if-else":
         e_cond, ea, eb = expr.arg
-        return ("func () %s {if (%s) {return (%s)} else {return (%s)}}()" %
-                (_gen_type_name_code(expr.type), _gen_expr_code(e_cond), _gen_expr_code(ea), _gen_expr_code(eb)))
+        ret_stmt_prefix = "" if expr.type.is_void else "return"
+        return ("func () %s {if (%s) {%s (%s)} else {%s (%s)}}()" %
+                (_gen_type_name_code(expr.type), _gen_expr_code(e_cond), ret_stmt_prefix, _gen_expr_code(ea), ret_stmt_prefix,
+                 _gen_expr_code(eb)))
 
     raise Exception("Bug")
 
