@@ -2,60 +2,61 @@ import time, net, math/rand;
 
 void log(String msg)
 {
+    defer
+    {
+        catch<Throwable>();
+    }
+
     println("[%s] %s".(time.format_time("2006-01-02 15:04:05", time.time()), msg));
 }
 
 class Client
 {
-    net.TcpConn sock;
+    net.TcpConn conn;
     char[] result;
 
-    Client(net.TcpConn sock)
+    Client(net.TcpConn conn)
     {
-        this.sock = sock;
+        this.conn = conn;
+
         this.result = new char[4];
-        bool[] selected = new bool[10];
-        for (int i = 0; i < 4; )
+        for (long i = 0; i < 4; )
         {
-            char c = (char)rand.rand_n(10);
-            if (selected[c])
+            char c = '0' + (char)rand.rand_n(10);
+            if (this.result[: i].index(c) < 0)
             {
-                continue;
+                this.result[i] = c;
+                ++ i;
             }
-            selected[c] = true;
-            this.result[i] = '0' + c;
-            ++ i;
         }
         this.client_log("start with result [%s]".(new String(this.result)));
     }
 
     void client_log(String s)
     {
-        log("client [%s]: %s".(this.sock.remote_addr(), s));
+        log("client [%s]: %s".(this.conn.remote_addr(), s));
     }
 
-    bool is_valid_input(char[] s, long sz)
+    bool is_valid_input(char[] s)
     {
-        if (sz != 6)
+        if (s.size() != 6)
         {
             return false;
         }
-        bool[] selected = new bool[10];
-        for (uint i = 0; i < 4; ++ i)
+        for (long i = 0; i < 4; ++ i)
         {
             char c = s[i];
-            if (c < '0' || c > '9' || selected[c - '0'])
+            if (c < '0' || c > '9' || s[: i].index(c) >= 0)
             {
                 return false;
             }
-            selected[c - '0'] = true;
         }
         return true;
     }
 
     void send_str(String s)
     {
-        this.sock.write(s.to_char_array());
+        this.conn.write(s.to_char_array());
     }
     void send_line(String s)
     {
@@ -70,23 +71,26 @@ class Client
         {
             this.send_str("Guess a number, 4 different digits:");
 
-            long recved_size = this.sock.read(recv_buf);
+            long recved_size = this.conn.read(recv_buf);
             if (recved_size == 0)
             {
                 this.client_log("client over");
                 return;
             }
 
-            if (recved_size < 2 || recv_buf[recved_size - 1] != '\n' || recv_buf[recved_size - 2] != '\r')
+            char[] input = recv_buf[: recved_size];
+            long input_size = input.size();
+
+            if (!(input_size >= 2 && input[input_size - 2 :].eq("\r\n")))
             {
                 throw("proto error");
             }
-            if (recved_size == 2)
+            if (input_size == 2)
             {
                 continue;
             }
 
-            if (!this.is_valid_input(recv_buf, recved_size))
+            if (!this.is_valid_input(input))
             {
                 this.send_line("Invalid input");
                 continue;
@@ -100,14 +104,7 @@ class Client
                 {
                     if (this.result[i] == recv_buf[j])
                     {
-                        if (i == j)
-                        {
-                            ++ rsp[0];
-                        }
-                        else
-                        {
-                            ++ rsp[1];
-                        }
+                        ++ rsp[0 if i == j else 1];
                     }
                 }
             }
@@ -123,10 +120,15 @@ class Client
 
     public void run()
     {
-        var c = nothrow_call([]{
+        defer
+        {
+            catch<Throwable>();
+        }
+        defer this.conn.close();
+
+        var c = call_and_catch<Throwable>([]{
             public void call()
             {
-                defer this.sock.close();
                 this._run();
             }
         });
@@ -139,19 +141,19 @@ class Client
 
 public void main()
 {
-    net.TcpListener listener = new net.TcpListener(":9999");
+    var listener = new net.TcpListener(":9999");
     defer listener.close();
 
     log("game start!");
-    while (true)
+    for (;;)
     {
-        var c = nothrow_call([]{
+        var c = call_and_catch<Throwable>([]{
             public void call()
             {
-                net.TcpConn new_client = listener.accept();
-                log("accept success, new client [%s]".(new_client.remote_addr()));
+                var conn = listener.accept();
+                log("accept success, new client [%s]".(conn.remote_addr()));
 
-                start_fiber(new Client(new_client));
+                start_fiber(new Client(conn));
             }
         });
         if (c !== nil)

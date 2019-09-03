@@ -2,55 +2,54 @@ import net;
 
 class Client
 {
-    net.TcpConn sock;
-
-    Client(net.TcpConn sock)
-    {
-        this.sock = sock;
-    }
+    net.TcpConn conn;
 
     public void run()
     {
-        var c = nothrow_call([]{
+        defer
+        {
+            catch<Throwable>();
+        }
+        defer this.conn.close();
+
+        var c = call_and_catch<Throwable>([]{
             public void call()
             {
-                defer this.sock.close();
 
                 var buf = new char[10000];
-                while (true)
+                for (;;)
                 {
-                    long recved_size = this.sock.read(buf);
+                    long recved_size = this.conn.read(buf);
                     if (recved_size == 0)
                     {
                         return;
                     }
-                    this.sock.write(buf[: recved_size]);
+                    this.conn.write(buf[: recved_size]);
                 }
             }
         });
         if (c !== nil)
         {
             println("client ends with exception [%s], traceback[%s]".(c.throwed().str(), c.traceback()));
+            return;
         }
-        else
-        {
-            println("client ends");
-        }
+        println("client ends");
     }
 }
 
 public void main()
 {
-    net.TcpListener listener = new net.TcpListener(":9999");
+    var listener = new net.TcpListener(":9999");
     defer listener.close();
+
     println("server start");
-    while (true)
+    for (;;)
     {
-        var c = nothrow_call([]{
+        var c = call_and_catch<Throwable>([]{
             public void call()
             {
-                net.TcpConn new_client = listener.accept();
-                start_fiber(new Client(new_client));
+                var conn = listener.accept();
+                start_fiber(new Client{conn: conn});
             }
         });
         if (c !== nil)
