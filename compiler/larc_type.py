@@ -264,11 +264,7 @@ class _Type:
             #能隐式转换，则也能强制转换
             return True
 
-        if type.is_nil:
-            #无法隐式从nil转换过来，则肯定不能强转
-            return False
-
-        #接下来就是正反向都无法转换的情形，这时候还能强转的就只能是number类型之间的了
+        #number类型之间可以强转
         if self.is_number_type and type.is_number_type:
             return True
 
