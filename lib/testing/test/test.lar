@@ -87,6 +87,8 @@ Case[] prepare()
 
 public void main()
 {
+    //先通过禁用输出来执行一批case，然后再通过对case执行结果和期望结果的比较，确定testing模块的执行是否符合预期
+
     var prepare_cases = prepare();
     var prepare_runner = new testing.CaseRunner();
     prepare_runner.disable_output();
@@ -106,14 +108,16 @@ public void main()
     var r = new testing.CaseRunner();
     foreach (var _case: prepare_cases.iter())
     {
-        var case = _case; //将case作为for循环体的局部变量，这样下面add_test_case中的闭包就是绑定了循环中的不同case，因为_case是属于循环而非循环体的
+        //这里需要将case作为for循环体的局部变量，这样下面add_test_case中的闭包就是绑定了循环中的不同case，因为_case是属于循环而非循环体的
+        var case = _case;
+
         var case_result = prepare_runner.get_result(case.name);
         r.add_test_case(case.name.concat("-test"), []{
             public void call()
             {
                 if (case.expecting_ok != case_result.ok())
                 {
-                    testing.fail("");
+                    fail();
                 }
 
                 if (case.msg_checker === nil)
@@ -121,14 +125,14 @@ public void main()
                     var expecting_msg = "" if case.expecting_ok else FAIL_MSG;
                     if (!case_result.msg().eq(expecting_msg))
                     {
-                        testing.fail("");
+                        fail();
                     }
                 }
                 else
                 {
                     if (!case.msg_checker.is_valid(case_result.msg()))
                     {
-                        testing.fail("");
+                        fail();
                     }
                 }
             }
