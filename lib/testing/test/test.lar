@@ -19,7 +19,7 @@ class Case
     Callable callee;
     bool expecting_ok;
     CaseResultMsgChecker msg_checker; //若为nil，则检查的时候根据expecting_ok的值，和空串或FAIL_MSG比对
-};
+}
 
 Case[] prepare()
 {
@@ -104,32 +104,35 @@ public void main()
     prepare_runner.run();
 
     var r = new testing.CaseRunner();
-    foreach (var case: prepare_cases.iter())
+    foreach (var _case: prepare_cases.iter())
     {
+        var case = _case; //将case作为for循环体的局部变量，这样下面add_test_case中的闭包就是绑定了循环中的不同case，因为_case是属于循环而非循环体的
         var case_result = prepare_runner.get_result(case.name);
         r.add_test_case(case.name.concat("-test"), []{
             public void call()
             {
-                if ((case.expecting_ok && case_result.ok()) || (!case.expecting_ok && !case_result.ok()))
+                if (case.expecting_ok != case_result.ok())
                 {
-                    if (case.msg_checker === nil)
+                    testing.fail("");
+                }
+
+                if (case.msg_checker === nil)
+                {
+                    var expecting_msg = "" if case.expecting_ok else FAIL_MSG;
+                    if (!case_result.msg().eq(expecting_msg))
                     {
-                        var expecting_msg = "" if case.expecting_ok else FAIL_MSG;
-                        if (!case_result.msg().eq(expecting_msg))
-                        {
-                            testing.fail("");
-                        }
-                    }
-                    else
-                    {
-                        if (!case.msg_checker.is_valid(case_result.msg()))
-                        {
-                            testing.fail("");
-                        }
+                        testing.fail("");
                     }
                 }
-                testing.fail("");
+                else
+                {
+                    if (!case.msg_checker.is_valid(case_result.msg()))
+                    {
+                        testing.fail("");
+                    }
+                }
             }
         });
     }
+    r.run();
 }
