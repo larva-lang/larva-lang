@@ -112,6 +112,20 @@ public class String
         !>>
     }
 
+    public bool startswith(String s)
+    {
+        !<<
+        return strings.HasPrefix(this.s, l_s.s);
+        !>>
+    }
+
+    public bool endswith(String s)
+    {
+        !<<
+        return strings.HasSuffix(this.s, l_s.s);
+        !>>
+    }
+
     public String join(Iter<String> si)
     {
         !<<
@@ -150,6 +164,7 @@ public class String
 
     public String sub_str(long begin, long end)
     {
+        throw_on_range_error(this.len(), begin, end);
         !<<
         return lar_str_from_go_str(this.s[l_begin : l_end])
         !>>

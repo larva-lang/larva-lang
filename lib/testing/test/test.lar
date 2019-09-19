@@ -1,0 +1,135 @@
+import testing, util;
+
+interface CaseResultMsgChecker
+{
+    bool is_valid(String msg);
+}
+
+final String FAIL_MSG = "fail";
+
+void fail()
+{
+    testing.fail(FAIL_MSG);
+}
+
+class Case
+{
+    bool is_benchmark_case;
+    String name;
+    Callable callee;
+    bool expecting_ok;
+    CaseResultMsgChecker msg_checker; //若为nil，则检查的时候根据expecting_ok的值，和空串或FAIL_MSG比对
+};
+
+Case[] prepare()
+{
+    return new Case[]{
+        new Case{
+            name: "tc_ok",
+            callee: []{
+                public void call()
+                {
+                }
+            },
+            expecting_ok: true,
+        },
+        new Case{
+            name: "tc_fail",
+            callee: []{
+                public void call()
+                {
+                    fail();
+                }
+            },
+            expecting_ok: false,
+        },
+        new Case{
+            is_benchmark_case: true,
+            name: "bc_ok",
+            callee: []{
+                public void call()
+                {
+                    "-".repeat(1000);
+                }
+            },
+            expecting_ok: true,
+            msg_checker: []{
+                bool is_valid(String msg)
+                {
+                    var msg_suffix = " op/s";
+                    if (!msg.endswith(msg_suffix))
+                    {
+                        return false;
+                    }
+                    var c = call_and_catch<ValueError>([]{
+                        public void call()
+                        {
+                            msg.sub_str(0, msg.len() - msg_suffix.len()).parse_double();
+                        }
+                    });
+                    return c === nil;
+                }
+            },
+        },
+        new Case{
+            is_benchmark_case: true,
+            name: "bc_fail",
+            callee: []{
+                public void call()
+                {
+                    fail();
+                }
+            },
+            expecting_ok: false,
+        },
+    };
+}
+
+public void main()
+{
+    var prepare_cases = prepare();
+    var prepare_runner = new testing.CaseRunner();
+    prepare_runner.disable_output();
+    foreach (var case: prepare_cases.iter())
+    {
+        if (case.is_benchmark_case)
+        {
+            prepare_runner.add_benchmark_case(case.name, case.callee);
+        }
+        else
+        {
+            prepare_runner.add_test_case(case.name, case.callee);
+        }
+    }
+    prepare_runner.run();
+
+    var r = new testing.CaseRunner();
+    foreach (var case: prepare_cases.iter())
+    {
+        var case_result = prepare_runner.get_result(case.name);
+        r.add_test_case(case.name.concat("-test"), []{
+            public void call()
+            {
+                if ((case.expecting_ok && case_result.ok()) || (!case.expecting_ok && !case_result.ok()))
+                {
+                    if (case.msg_checker === nil)
+                    {
+                        var expecting_msg = "" if case.expecting_ok else FAIL_MSG;
+                        if (!case_result.msg().eq(expecting_msg))
+                        {
+                            testing.fail("");
+                        }
+                    }
+                    else
+                    {
+                        if (!case.msg_checker.is_valid(case_result.msg()))
+                        {
+                            testing.fail("");
+                        }
+                    }
+                }
+                testing.fail("");
+            }
+        });
+    }
+}
