@@ -84,11 +84,13 @@ public class Vector<E>
 
     public E get(long idx)
     {
+        throw_on_index_error(this.size(), idx);
         return this.arr[idx];
     }
 
     public void set(long idx, E e)
     {
+        throw_on_index_error(this.size(), idx);
         this.arr[idx] = e;
     }
 

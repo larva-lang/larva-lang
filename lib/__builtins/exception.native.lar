@@ -83,36 +83,6 @@ func lar_exc_create_catched_throwable(t lar_intf_@<<Throwable>>, skip int) *lar_
     return lar_new_obj_lar_gcls_inst_@<<Catched>>_1_lar_intf_@<<Throwable>>(t, tb)
 }
 
-//转换go的内置panic对象为larva的异常
-func lar_exc_convert_go_recovered_to_lar_throwed(r interface{}) *lar_gcls_inst_@<<Catched>>_1_lar_intf_@<<Throwable>> {
-    const skip int = 5
-
-    //对于可以拿到具体类型的，直接转
-    if _, ok := r.(*runtime.TypeAssertionError); ok {
-        return lar_exc_create_catched_throwable(lar_new_obj_lar_cls_@<<TypeAssertionError>>(), skip)
-    }
-
-    //go没有暴露一些常见panic的数据类型，用反射检查，但注意这个检查可能随着go的版本升级而无效
-    tp := reflect.TypeOf(r)
-    if tp.PkgPath() == "runtime" && tp.Name() == "errorString" {
-        e, ok := r.(error)
-        if ok {
-            switch e.Error() {
-            case "runtime error: index out of range":
-                t := lar_new_obj_lar_cls_@<<IndexError>>(0)
-                t.m_has_idx = false
-                return lar_exc_create_catched_throwable(t, skip)
-            case "runtime error: slice bounds out of range":
-                t := lar_new_obj_lar_cls_@<<RangeError>>(0, 0, 0)
-                t.m_has_range_info = false
-                return lar_exc_create_catched_throwable(t, skip)
-            }
-        }
-    }
-
-    return nil
-}
-
 //捕获的异常转换为go的error
 func (this *lar_gcls_inst_@<<Catched>>_1_lar_intf_@<<Throwable>>) lar_go_method_to_go_err() error {
     //若本身包含go的异常，直接返回即可

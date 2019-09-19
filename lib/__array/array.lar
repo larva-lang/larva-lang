@@ -166,6 +166,7 @@ class Arr<E>
 
     public E get(long idx)
     {
+        throw_on_index_error(this.size(), idx);
         !<<
         return this.arr[l_idx]
         !>>
@@ -173,9 +174,20 @@ class Arr<E>
 
     public void set(long idx, E elem)
     {
+        throw_on_index_error(this.size(), idx);
         !<<
         this.arr[l_idx] = l_elem;
         !>>
+    }
+
+    public E[] slice(long begin, long end)
+    {
+        throw_on_range_error(this.size(), begin, end);
+        E[] this_arr;
+        !<<
+        l_this_arr = this;
+        !>>
+        return this_arr[begin : end];
     }
 
     public ArrayIter<E> iter()

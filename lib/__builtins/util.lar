@@ -17,13 +17,6 @@ public T zero_value<T>()
     return t;
 }
 
-public T assert_type<T>(GoAny a)
-{
-    !<<
-    return l_a.(@<<{T}>>)
-    !>>
-}
-
 public bool try_assert_type<T>(GoAny a, ref T t)
 {
     bool ok;
@@ -31,6 +24,16 @@ public bool try_assert_type<T>(GoAny a, ref T t)
     *l_t, l_ok = l_a.(@<<{T}>>)
     !>>
     return ok;
+}
+
+public T assert_type<T>(GoAny a)
+{
+    T t;
+    if (!try_assert_type(a, ref t))
+    {
+        throw(new TypeAssertionError());
+    }
+    return t;
 }
 
 //因为经常会有将闭包回调作为参数传入的情况，弄个通用的接口在这里

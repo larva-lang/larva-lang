@@ -65,14 +65,9 @@ Catched<Throwable> _go_recovered_to_catched(GoAny r)
         return c;
     }
     !<<
-    //不是larva自己的异常，检查下是否需要转换
-    l_c = lar_exc_convert_go_recovered_to_lar_throwed(l_r)
-    if l_c == nil {
-        //转换失败
-        panic(l_r)
-    }
+    //不是larva自己的异常，重新panic
+    panic(l_r)
     !>>
-    return c;
 }
 
 /*
@@ -176,6 +171,15 @@ public class IndexError
     long idx;
 }
 
+//通用的索引范围检查，用于切片类操作，检查不通过则抛出RangeError
+public void throw_on_index_error(long l, long i)
+{
+    if (l < 0 || i < 0 || i >= l)
+    {
+        throw(new IndexError(i));
+    }
+}
+
 //下标范围错误，用于slice、sub_str之类的取范围相关代码
 public class RangeError
 {
@@ -205,8 +209,8 @@ public class RangeError
     long end;
 }
 
-//通用的下标检查，检查不通过则抛出RangeError
-public void check_range(long l, long b, long e)
+//通用的下标范围检查，用于切片类操作，检查不通过则抛出RangeError
+public void throw_on_range_error(long l, long b, long e)
 {
     if (l < 0 || b < 0 || b > l || e < b || e > l)
     {
