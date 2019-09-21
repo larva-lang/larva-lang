@@ -5,7 +5,7 @@ interface CaseResultMsgChecker
     bool is_valid(String msg);
 }
 
-final String FAIL_MSG = "fail";
+final String FAIL_MSG = "fAiL败失"; //故意弄个不正常的失败信息，免得被调用的其他接口也抛出一个testing.Fail，虽然一般不太可能
 
 void fail()
 {
@@ -115,25 +115,19 @@ public void main()
         r.add_test_case(case.name.concat("-test"), []{
             public void call()
             {
-                if (case.expecting_ok != case_result.ok())
-                {
-                    fail();
-                }
+                testing.assert(case.expecting_ok == case_result.ok(),
+                               "子用例的测试应该执行%s，但是%s".("成功" if case.expecting_ok else "失败",
+                                                                 "成功" if case_result.ok() else "失败"));
 
                 if (case.msg_checker === nil)
                 {
                     var expecting_msg = "" if case.expecting_ok else FAIL_MSG;
-                    if (!case_result.msg().eq(expecting_msg))
-                    {
-                        fail();
-                    }
+                    testing.assert(case_result.msg().eq(expecting_msg),
+                                   "子用例测试结果消息错误，应为[%s]，实际为[%s]".(expecting_msg, case_result.msg()));
                 }
                 else
                 {
-                    if (!case.msg_checker.is_valid(case_result.msg()))
-                    {
-                        fail();
-                    }
+                    testing.assert(case.msg_checker.is_valid(case_result.msg()), "子用例测试结果消息[%s]不符合预期".(case_result.msg()));
                 }
             }
         });
