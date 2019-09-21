@@ -73,7 +73,7 @@ public class Vector<E>
             }
         }
         var new_arr = new E[new_cap];
-        new_arr.copy_from(this.arr);
+        new_arr.shallow_copy_from(this.arr);
         this.arr = new_arr[: this.arr.size()];
     }
 
@@ -103,7 +103,7 @@ public class Vector<E>
             //缩容策略：缩到sz的双倍大小
             long new_cap = sz * 2;
             var new_arr = new E[new_cap];
-            new_arr.copy_from(this.arr);
+            new_arr.shallow_copy_from(this.arr);
             this.arr = new_arr[: this.arr.size()];
         }
     }
@@ -147,9 +147,7 @@ public class Vector<E>
 
     public E[] to_array()
     {
-        var arr = new E[this.size()];
-        arr.copy_from(this.arr);
-        return arr;
+        return this.arr.shallow_copy();
     }
 
     E[] arr;

@@ -2,29 +2,6 @@ import testing;
 
 public void main()
 {
-    var r = new testing.CaseRunner();
-    r.add_test_case("tc_ok", []{
-        public void call()
-        {
-        }
-    });
-    r.add_test_case("tc_fail", []{
-        public void call()
-        {
-            testing.assert(false, "tc_fail");
-        }
-    });
-    r.add_benchmark_case("bc_ok", []{
-        public void call()
-        {
-            "-".repeat(1000);
-        }
-    });
-    r.add_benchmark_case("bc_fail", []{
-        public void call()
-        {
-            testing.assert(false, "bc_fail");
-        }
-    });
-    r.run();
+    err_print("测试数组：");
+    test_array();
 }

@@ -1433,7 +1433,6 @@ class Module:
         if relative_deep is None:
             dep_module_token_map[module_name] = module_name_token
         else:
-            #todo
             git_repo, mnpl = split_module_name(self.name)
             if relative_deep > len(mnpl):
                 #相对路径超过了当前模块层级

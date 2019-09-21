@@ -41,7 +41,7 @@ public class Writer
             {
                 //buf中可以放下，直接拷贝进来
                 this.buf_data = this.buf_data[: sz + bsz];
-                this.buf_data[sz :].copy_from(b);
+                this.buf_data[sz :].shallow_copy_from(b);
                 return;
             }
             if (sz == 0)
@@ -52,7 +52,7 @@ public class Writer
             }
             //把b前面部分内容拼接到buf中
             this.buf_data = this.buf_data[: sz + remain_sz];
-            this.buf_data[sz :].copy_from(b);
+            this.buf_data[sz :].shallow_copy_from(b);
             b = b[remain_sz :];
         }
     }

@@ -19,11 +19,19 @@ public class ArrayIter<E>
 
     public E get()
     {
+        if (this.before_begin() || this.after_end())
+        {
+            throw(new IterOutOfRange());
+        }
         return this.arr[this.idx];
     }
 
     public void set(E e)
     {
+        if (this.before_begin() || this.after_end())
+        {
+            throw(new IterOutOfRange());
+        }
         this.arr[this.idx] = e;
     }
 

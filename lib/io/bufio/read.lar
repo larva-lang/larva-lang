@@ -46,7 +46,7 @@ public class Reader
         }
 
         //buf有数据，拷贝过去
-        long copy_size = b.copy_from(this.buf_data);
+        long copy_size = b.shallow_copy_from(this.buf_data);
         this.buf_data = this.buf_data[copy_size :];
 
         return copy_size;

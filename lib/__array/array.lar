@@ -32,8 +32,14 @@ interface IsArr
 //利用larva泛型编程实现多维数组深拷贝
 T[] deep_copy<T>(T[] a)
 {
+    if (a === nil)
+    {
+        return a;
+    }
+
     long sz = a.size();
     var b = new T[sz];
+
     for (long i = 0; i < sz; ++ i)
     {
 #use
@@ -42,6 +48,7 @@ T[] deep_copy<T>(T[] a)
         b[i] = a[i];
 #enduse
     }
+
     return b;
 }
 
@@ -164,12 +171,17 @@ class Arr<E>
         !>>
     }
 
-    public E get(long idx)
+    E _get(long idx)
     {
-        throw_on_index_error(this.size(), idx);
         !<<
         return this.arr[l_idx]
         !>>
+    }
+
+    public E get(long idx)
+    {
+        throw_on_index_error(this.size(), idx);
+        return this._get(idx);
     }
 
     public void set(long idx, E elem)
@@ -199,19 +211,17 @@ class Arr<E>
         return new ArrayIter<E>(this_arr, 0);
     }
 
-    public long copy_from(E[] other)
+    public long shallow_copy_from(E[] other)
     {
         !<<
         return int64(copy(this.arr, l_other.arr))
         !>>
     }
 
-    public E[] copy()
+    public E[] shallow_copy()
     {
         var a = new E[this.size()];
-        !<<
-        copy(l_a.arr, this.arr)
-        !>>
+        a.shallow_copy_from(this);
         return a;
     }
 
@@ -229,12 +239,60 @@ class Arr<E>
         long sz = this.size();
         for (long i = 0; i < sz; ++ i)
         {
-            if (util.eq(this.get(i), e))
+            if (util.eq(this._get(i), e))
             {
                 return i;
             }
         }
         return -1L;
+    }
+
+    public bool shallow_eq(E[] other)
+    {
+        if (this === other)
+        {
+            return true;
+        }
+
+        long sz = this.size();
+        if (sz != other.size())
+        {
+            return false;
+        }
+
+        for (long i = 0; i < sz; ++ i)
+        {
+            if (!util.is_same(this._get(i), other._get(i)))
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    public bool eq(E[] other)
+    {
+        if (this === other)
+        {
+            return true;
+        }
+
+        long sz = this.size();
+        if (sz != other.size())
+        {
+            return false;
+        }
+
+        for (long i = 0; i < sz; ++ i)
+        {
+            if (!util.eq(this._get(i), other._get(i)))
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     !<<
