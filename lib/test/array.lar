@@ -26,20 +26,29 @@ void test_array()
 
             long invalid_idx = 10;
             var c = call_and_catch<IndexError>([]{
-                a.get(invalid_idx);
+                public void call()
+                {
+                    a.get(invalid_idx);
+                }
             });
             testing.assert(c !== nil && c.str().eq("%s".(invalid_idx)), "通过无效索引进行get未抛出正确的IndexError异常");
 
             long invalid_range_begin = -1, invalid_range_end = 10;
             var c = call_and_catch<RangeError>([]{
-                a.slice(invalid_range_begin, invalid_range_end);
+                public void call()
+                {
+                    a.slice(invalid_range_begin, invalid_range_end);
+                }
             });
             testing.assert(c !== nil && c.str().eq("[%s][%s:%s]".(a.size(), invalid_range_begin, invalid_range_end)),
                            "通过无效索引范围进行slice未抛出正确的RangeError异常");
 
             long invalid_arr_size = -157;
             var c = call_and_catch<ValueError>([]{
-                var invalid_arr = new int[invalid_arr_size];
+                public void call()
+                {
+                    var invalid_arr = new int[invalid_arr_size];
+                }
             });
             testing.assert(c !== nil && c.str().eq("%s".(invalid_arr_size)), "通过无效大小创建数组未抛出正确的ValueError异常");
         }
@@ -72,7 +81,10 @@ void test_array()
                 iter.inc();
             }
             var c = call_and_catch<IterOutOfRange>([]{
-                iter.get();
+                public void call()
+                {
+                    iter.get();
+                }
             });
             testing.assert(c !== nil, "对已经失效的迭代器做get操作未正确抛出IterOutOfRange异常");
         }
