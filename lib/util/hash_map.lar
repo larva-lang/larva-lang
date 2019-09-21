@@ -25,7 +25,7 @@ public class HashMap<K, V>
         this.elem_node_tail = new HashMapNode<K, V>{
             prev_elem_node: this.elem_node_head,
         };
-        this.elem_node_head.next_elem_node = this.elem_node_tail
+        this.elem_node_head.next_elem_node = this.elem_node_tail;
 
         this.sz = 0;
         this.dirty = 0;
