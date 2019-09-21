@@ -98,16 +98,24 @@ public class HashMap<K, V>
         var new_tbl = new HashMapNode<K, V>[new_size];
         for (var i = this.tbl.size() - 1; i >= 0; -- i)
         {
-            for (var node = this.tbl[i]; node !== nil; node = node.next)
+            //直接迁移node，而不是新建node迁数据
+            for (;;)
             {
-                HashMapNode<K, V> new_node;
-                long idx = this.find_node(new_tbl, node.k, ref new_node);
-                debug.assert(new_node === nil, "bug"); //在新表插入node肯定找不到的
-                new_node = new HashMapNode<K, V>();
-                new_node.k = node.k;
-                new_node.v = node.v;
-                new_node.next = new_tbl[idx];
-                new_tbl[idx] = new_node;
+                //拿出一个node
+                var node = this.tbl[i];
+                if (node === nil)
+                {
+                    //这个槽空了
+                    break;
+                }
+                this.tbl[i] = node.next;
+
+                //插入新表
+                HashMapNode<K, V> must_be_nil_node;
+                long idx = this.find_node(new_tbl, node.k, ref must_be_nil_node);
+                debug.assert(must_be_nil_node === nil, "bug"); //在新表插入node肯定找不到的
+                node.next = new_tbl[idx];
+                new_tbl[idx] = node;
             }
         }
         this.tbl = new_tbl;
