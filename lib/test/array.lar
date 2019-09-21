@@ -24,26 +24,30 @@ void test_array()
             s[1] = 9;
             testing.assert(a[2] == 9, "通过切片对元素赋值后，数组中对应元素值错误");
 
-            long invalid_idx = 10;
-            var c = call_and_catch<IndexError>([]{
-                public void call()
-                {
-                    a.get(invalid_idx);
-                }
-            });
-            testing.assert(c !== nil && c.throwed().str().eq("%s".(invalid_idx)), "通过无效索引进行get未抛出正确的IndexError异常");
+            {
+                long invalid_idx = 10;
+                var c = call_and_catch<IndexError>([]{
+                    public void call()
+                    {
+                        a.get(invalid_idx);
+                    }
+                });
+                testing.assert(c !== nil && c.throwed().str().eq("%s".(invalid_idx)), "通过无效索引进行get未抛出正确的IndexError异常");
+            }
 
-            long invalid_range_begin = -1, invalid_range_end = 10;
-            var c = call_and_catch<RangeError>([]{
-                public void call()
-                {
-                    a.slice(invalid_range_begin, invalid_range_end);
-                }
-            });
-            testing.assert(c !== nil && c.throwed().str().eq("[%s][%s:%s]".(a.size(), invalid_range_begin, invalid_range_end)),
-                           "通过无效索引范围进行slice未抛出正确的RangeError异常");
+            {
+                long invalid_range_begin = -1L, invalid_range_end = 10;
+                var c = call_and_catch<RangeError>([]{
+                    public void call()
+                    {
+                        a.slice(invalid_range_begin, invalid_range_end);
+                    }
+                });
+                testing.assert(c !== nil && c.throwed().str().eq("[%s][%s:%s]".(a.size(), invalid_range_begin, invalid_range_end)),
+                               "通过无效索引范围进行slice未抛出正确的RangeError异常");
+            }
 
-            long invalid_arr_size = -157;
+            long invalid_arr_size = -157L;
             var c = call_and_catch<ValueError>([]{
                 public void call()
                 {
@@ -99,7 +103,7 @@ void test_array()
             };
 
             a[0][1 :].shallow_copy_from(new int[]{7,8,9,0});
-            testing.assert(a[0].eq(new int[]{0,7,8}), "shallow_copy_from后的数组元素值错误");
+            testing.assert(a[0].eq(new int[]{1,7,8}), "shallow_copy_from后的数组元素值错误");
 
             var a_copy = a.shallow_copy();
             testing.assert(a !== a_copy && a.shallow_eq(a_copy), "shallow_copy返回的数组对象错误");

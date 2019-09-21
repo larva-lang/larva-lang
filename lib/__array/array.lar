@@ -171,17 +171,12 @@ class Arr<E>
         !>>
     }
 
-    E _get(long idx)
-    {
-        !<<
-        return this.arr[l_idx]
-        !>>
-    }
-
     public E get(long idx)
     {
         throw_on_index_error(this.size(), idx);
-        return this._get(idx);
+        !<<
+        return this.arr[l_idx]
+        !>>
     }
 
     public void set(long idx, E elem)
@@ -221,7 +216,9 @@ class Arr<E>
     public E[] shallow_copy()
     {
         var a = new E[this.size()];
-        a.shallow_copy_from(this);
+        !<<
+        copy(l_a.arr, this.arr)
+        !>>
         return a;
     }
 
@@ -236,10 +233,14 @@ class Arr<E>
 
     public long index(E e)
     {
+        E[] this_arr;
+        !<<
+        l_this_arr = this;
+        !>>
         long sz = this.size();
         for (long i = 0; i < sz; ++ i)
         {
-            if (util.eq(this._get(i), e))
+            if (util.eq(this_arr[i], e))
             {
                 return i;
             }
@@ -249,7 +250,11 @@ class Arr<E>
 
     public bool shallow_eq(E[] other)
     {
-        if (this === other)
+        E[] this_arr;
+        !<<
+        l_this_arr = this;
+        !>>
+        if (this_arr === other)
         {
             return true;
         }
@@ -262,7 +267,7 @@ class Arr<E>
 
         for (long i = 0; i < sz; ++ i)
         {
-            if (!util.is_same(this._get(i), other._get(i)))
+            if (!util.is_same(this_arr[i], other[i]))
             {
                 return false;
             }
@@ -273,7 +278,11 @@ class Arr<E>
 
     public bool eq(E[] other)
     {
-        if (this === other)
+        E[] this_arr;
+        !<<
+        l_this_arr = this;
+        !>>
+        if (this_arr === other)
         {
             return true;
         }
@@ -286,7 +295,7 @@ class Arr<E>
 
         for (long i = 0; i < sz; ++ i)
         {
-            if (!util.eq(this._get(i), other._get(i)))
+            if (!util.eq(this_arr[i], other[i]))
             {
                 return false;
             }

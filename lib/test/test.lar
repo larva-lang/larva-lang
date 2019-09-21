@@ -2,6 +2,6 @@ import testing;
 
 public void main()
 {
-    err_print("测试数组：");
+    err_println("测试数组：");
     test_array();
 }
