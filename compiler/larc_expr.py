@@ -662,14 +662,17 @@ class Parser:
                 is_ref = True
             else:
                 is_ref = False
-            expr = self.parse(var_map_stk, None)
-            if is_ref:
-                if not expr.is_lvalue:
-                    t.syntax_err("ref修饰的实参不是左值表达式")
-                if expr.op == "global_var":
-                    global_var = expr.arg
-                    if "final" in global_var.decr_set:
-                        t.syntax_err("ref修饰了带final属性的全局变量")
+            if is_ref and self.token_list.peek().is_reserved("_"):
+                expr = _Expr("nil_ref", None, larc_type.NIL_REF_TYPE)
+            else:
+                expr = self.parse(var_map_stk, None)
+                if is_ref:
+                    if not expr.is_lvalue:
+                        t.syntax_err("ref修饰的实参不是左值表达式")
+                    if expr.op == "global_var":
+                        global_var = expr.arg
+                        if "final" in global_var.decr_set:
+                            t.syntax_err("ref修饰了带final属性的全局变量")
             expr.is_ref = is_ref
             expr_list.append(expr)
 
@@ -691,6 +694,10 @@ class Parser:
                 t.syntax_err("参数#%d：形参不是ref，无效的实参ref修饰" % (i + 1))
             if not e.is_ref and tp.is_ref:
                 t.syntax_err("参数#%d：形参是ref，实参缺少ref修饰" % (i + 1))
+            if e.op == "nil_ref":
+                assert e.is_ref and tp.is_ref
+                assert e.type.is_nil_ref
+                e = _Expr("matched_nil_ref", None, tp)
             if e.op == "literal" and e.type == larc_type.LITERAL_INT_TYPE and tp.is_number_type:
                 e = _convert_literal_int_expr(e, tp)
             if e is None or not tp.can_convert_from(e.type):

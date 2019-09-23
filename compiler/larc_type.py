@@ -57,6 +57,7 @@ class _Type:
         self.is_float_type = self.token.is_reserved and self.name in ("float", "double") and not self.is_array
         self.is_number_type = self.is_integer_type or self.is_float_type
         self.can_inc_dec = self.is_integer_type
+        self.is_nil_ref = self.name == "nil_ref"
 
     #转为字符串，ignore_builtins_module_prefix表示是否忽略掉“__builtins.”模块前缀
     def to_str(self, ignore_builtins_module_prefix):
@@ -279,6 +280,8 @@ ANY_INTF_TYPE = _Type((larc_token.make_fake_token_name("Any"), "Any"), None, Non
 ANY_INTF_TYPE._set_is_checked()
 STR_TYPE = _Type((larc_token.make_fake_token_name("String"), "String"), None, None, module_name = "__builtins")
 STR_TYPE._set_is_checked()
+NIL_REF_TYPE = _Type((larc_token.make_fake_token_name("nil_ref"), "nil_ref"), None, None)
+NIL_REF_TYPE._set_is_checked()
 
 #所有整数类型都可以作为数组下标
 VALID_ARRAY_IDX_TYPES = [SCHAR_TYPE, CHAR_TYPE]
@@ -559,9 +562,12 @@ def infer_gtp(expr_list_start_token, gtp_name_list, arg_type_list, type_list, re
             expr_list_start_token.syntax_err("参数#%d存在无效的ref修饰" % (arg_idx + 1))
         if arg_type.is_ref:
             assert is_ref
+            if tp.is_nil_ref:
+                expr_list_start_token.syntax_err("参数#%d无法进行推导：实参类型不可为空ref，请指定ref的左值实参" % (arg_idx + 1))
             #带ref修饰的类型需要精确匹配
             match_type(arg_type, tp)
             continue
+        assert not is_ref and not tp.is_nil_ref
         #不带ref修饰的类型匹配，需要分几种情况
         if not arg_type.is_array:
             if arg_type.token.is_name:

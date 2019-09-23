@@ -459,6 +459,9 @@ def _gen_expr_code_ex(expr):
                 (_gen_type_name_code(expr.type), _gen_expr_code(e_cond), ret_stmt_prefix, _gen_expr_code(ea), ret_stmt_prefix,
                  _gen_expr_code(eb)))
 
+    if expr.op == "matched_nil_ref":
+        return "new(%s)" % (_gen_type_name_code(expr.type))
+
     raise Exception("Bug")
 
 def _gen_arg_def(arg_map):
