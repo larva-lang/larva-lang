@@ -663,6 +663,7 @@ class Parser:
             else:
                 is_ref = False
             if is_ref and self.token_list.peek().is_reserved("_"):
+                self.token_list.pop()
                 expr = _Expr("nil_ref", None, larc_type.NIL_REF_TYPE)
             else:
                 expr = self.parse(var_map_stk, None)
