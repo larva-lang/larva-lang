@@ -1,4 +1,4 @@
-import testing, time;
+import testing;
 
 T chan_elem_zero_value<T>(Chan<T> ch)
 {
@@ -74,8 +74,6 @@ void test_chan()
                             ch.close();
                         }
                     });
-
-                    time.sleep(0.05);
 
                     for (long i = 1; i <= data_count; ++ i)
                     {
