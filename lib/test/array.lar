@@ -78,7 +78,7 @@ void test_array()
             iter.set(old_x);
             iter.inc();
             iter.inc();
-            testing.assert(iter.get() == 3, "通过迭代器设置数组元素值失败");
+            testing.assert(iter.get() == 3, "通过迭代器获取数组元素值不符合预期");
 
             while (!iter.after_end())
             {
@@ -91,6 +91,10 @@ void test_array()
                 }
             });
             testing.assert(c !== nil, "对已经失效的迭代器做get操作未正确抛出IterOutOfRange异常");
+
+            iter.dec();
+            iter.dec();
+            testing.assert(iter.get() == 5, "通过迭代器获取数组元素值不符合预期");
         }
     });
     r.add_test_case("methods", []{
