@@ -2,17 +2,17 @@ import testing, time;
 
 T chan_elem_zero_value<T>(Chan<T> ch)
 {
-    return zero_value<T>;
+    return zero_value<T>();
 }
 
-void test_array()
+void test_chan()
 {
     var r = new testing.CaseRunner();
 
     r.add_test_case("general", []{
         public void call()
         {
-            long invalid_buf_size = -135;
+            long invalid_buf_size = -135L;
             var c = call_and_catch<ValueError>([]{
                 public void call()
                 {
@@ -43,7 +43,7 @@ void test_array()
             testing.assert(ch.size() == 1, "已关闭的Chan的size()错误");
             testing.assert(ch.buf_size() == 10, "已关闭的Chan的buf_size()错误");
             testing.assert(ch.recv(ref closed) == 56 && !closed, "获取有数据的已关闭Chan的数据，结果和预期不符");
-            testing.assert(ch.recv(ref closed) == chan_elem_zero_value(ch) && !closed, "获取无数据的已关闭Chan的数据，结果和预期不符");
+            testing.assert(ch.recv(ref closed) == chan_elem_zero_value(ch) && closed, "获取无数据的已关闭Chan的数据，结果和预期不符");
 
             ch = new Chan<int>(1);
             bool ok;
@@ -52,7 +52,6 @@ void test_array()
             testing.assert(!ch.try_send(34), "对没有缓冲空间的Chan做try_send没有返回false");
             ch.close();
             testing.assert(ch.try_recv(ref ok, ref closed) == 12 && ok && !closed, "对有数据的Chan做try_recv测试失败");
-            testing.assert(ch.try_recv(ref ok, ref closed) == 34 && ok && !closed, "对有数据的Chan做try_recv测试失败");
             testing.assert(ch.try_recv(ref ok, ref closed) == 0 && !ok && closed, "对无数据且已关闭的Chan做try_recv测试失败");
         }
     });
@@ -78,7 +77,7 @@ void test_array()
 
                     time.sleep(0.05);
 
-                    for (long i = 0; i < data_count; ++ i)
+                    for (long i = 1; i <= data_count; ++ i)
                     {
                         testing.assert(ch.recv(ref _) == i * i, "从Chan中接收到了错误数据（buf_size=%s）".(buf_size));
                     }
