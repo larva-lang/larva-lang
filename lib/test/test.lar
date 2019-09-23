@@ -4,4 +4,7 @@ public void main()
 {
     err_println("测试数组：");
     test_array();
+
+    err_println("测试Chan：");
+    test_chan();
 }

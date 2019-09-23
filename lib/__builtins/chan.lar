@@ -1,4 +1,7 @@
-//Channel通讯类
+/*
+Channel通讯类，用于fiber之间的通讯，实际就是go的chan的包装
+若Chan关闭，recv会返回T的zero_value并通过ref参数指示是否被关闭，send则会crash
+*/
 
 public class Chan<T>
 {
@@ -34,11 +37,49 @@ public class Chan<T>
         !>>
     }
 
-    public T recv()
+    public bool try_send(T data)
     {
         !<<
-        return <-this.ch
+        select {
+        case this.ch <- l_data:
+            return true
+        default:
+            return false
+        }
         !>>
+    }
+
+    public void close()
+    {
+        !<<
+        close(this.ch)
+        !>>
+    }
+
+    public T recv(ref bool closed)
+    {
+        T t;
+        bool ok;
+        !<<
+        l_t, l_ok = <-this.ch
+        !>>
+        closed = !ok;
+        return t;
+    }
+
+    public T try_recv(ref bool ok, ref bool closed)
+    {
+        T t;
+        !<<
+        select {
+        case l_t, *l_ok = <-this.ch:
+            *l_closed = !*l_ok
+        default:
+            *l_ok = false
+            *l_closed = false
+        }
+        !>>
+        return t;
     }
 
     !<<

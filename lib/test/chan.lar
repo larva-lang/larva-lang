@@ -1,0 +1,96 @@
+import testing, time;
+
+T chan_elem_zero_value<T>(Chan<T> ch)
+{
+    return zero_value<T>;
+}
+
+void test_array()
+{
+    var r = new testing.CaseRunner();
+
+    r.add_test_case("general", []{
+        public void call()
+        {
+            long invalid_buf_size = -135;
+            var c = call_and_catch<ValueError>([]{
+                public void call()
+                {
+                    new Chan<int>(invalid_buf_size);
+                }
+            });
+            testing.assert(c !== nil && c.throwed().str().eq("%s".(invalid_buf_size)), "通过无效大小创建Chan未抛出正确的ValueError异常");
+
+            var ch = new Chan<int>(100);
+            ch.send(12);
+            ch.send(34);
+            testing.assert(ch.size() == 2, "Chan.size()错误");
+            testing.assert(ch.buf_size() == 100, "Chan.buf_size()错误");
+
+            testing.assert(ch.recv(ref _) == 12, "Chan.recv获取到的值错误");
+            bool closed;
+            testing.assert(ch.recv(ref closed) == 34, "Chan.recv获取到的值错误");
+            testing.assert(!closed, "Chan.recv指示未关闭的Chan已关闭");
+
+            ch.close();
+            testing.assert(ch.recv(ref closed) == chan_elem_zero_value(ch), "Chan.recv获取已关闭Chan的数据不是零值");
+            testing.assert(closed, "Chan.recv指示已关闭的Chan未关闭");
+
+            //测试send+close后再recv的情况
+            ch = new Chan<int>(10);
+            ch.send(56);
+            ch.close();
+            testing.assert(ch.size() == 1, "已关闭的Chan的size()错误");
+            testing.assert(ch.buf_size() == 10, "已关闭的Chan的buf_size()错误");
+            testing.assert(ch.recv(ref closed) == 56 && !closed, "获取有数据的已关闭Chan的数据，结果和预期不符");
+            testing.assert(ch.recv(ref closed) == chan_elem_zero_value(ch) && !closed, "获取无数据的已关闭Chan的数据，结果和预期不符");
+
+            ch = new Chan<int>(1);
+            bool ok;
+            testing.assert(ch.try_recv(ref ok, ref closed) == 0 && !ok && !closed, "对空Chan做try_recv测试失败");
+            testing.assert(ch.try_send(12), "对还有缓冲空间的Chan做try_send失败");
+            testing.assert(!ch.try_send(34), "对没有缓冲空间的Chan做try_send没有返回false");
+            ch.close();
+            testing.assert(ch.try_recv(ref ok, ref closed) == 12 && ok && !closed, "对有数据的Chan做try_recv测试失败");
+            testing.assert(ch.try_recv(ref ok, ref closed) == 34 && ok && !closed, "对有数据的Chan做try_recv测试失败");
+            testing.assert(ch.try_recv(ref ok, ref closed) == 0 && !ok && closed, "对无数据且已关闭的Chan做try_recv测试失败");
+        }
+    });
+    r.add_test_case("interfiber_communication", []{
+        public void call()
+        {
+            var tester = []{
+                void test(long buf_size)
+                {
+                    long data_count = 20;
+
+                    var ch = new Chan<long>(buf_size);
+                    start_fiber([]{
+                        public void run()
+                        {
+                            for (long i = 1; i <= data_count; ++ i)
+                            {
+                                ch.send(i * i);
+                            }
+                            ch.close();
+                        }
+                    });
+
+                    time.sleep(0.05);
+
+                    for (long i = 0; i < data_count; ++ i)
+                    {
+                        testing.assert(ch.recv(ref _) == i * i, "从Chan中接收到了错误数据（buf_size=%s）".(buf_size));
+                    }
+                    bool closed;
+                    testing.assert(ch.recv(ref closed) == chan_elem_zero_value(ch) && closed,
+                                   "测试Chan的关闭状态出错（buf_size=%s）".(buf_size));
+                }
+            };
+            tester.test(0); //无buffer Chan测试
+            tester.test(10); //带buffer Chan测试
+        }
+    });
+
+    r.run();
+}
