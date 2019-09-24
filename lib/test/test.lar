@@ -1,3 +1,7 @@
+/*
+一些语法和内建库的测试
+*/
+
 import testing;
 
 public void main()
@@ -7,4 +11,7 @@ public void main()
 
     err_println("测试Chan：");
     test_chan();
+
+    err_println("测试String：");
+    test_string();
 }

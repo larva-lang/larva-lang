@@ -1,0 +1,48 @@
+import testing;
+
+void test_string()
+{
+    var r = new testing.CaseRunner();
+
+    r.add_test_case("general", []{
+        public void call()
+        {
+            var v = "hello";
+            var b = new char[]{'h', 'e', 'l', 'l', 'o'};
+            var s = new String(b);
+            testing.assert(s.eq(v), "通过char数组创建String错误");
+            testing.assert(s.len() == b.size(), "String.len()错误");
+            testing.assert(s.hash() == v.hash(), "String.hash()错误");
+            for (long i = s.len() - 1; i >= 0; -- i)
+            {
+                testing.assert(s.char_at(i) == b[i], "String.char_at()错误");
+            }
+            testing.assert(s.to_char_array().eq(b), "String.to_char_array()错误");
+
+            s.to_char_array()[0] = '0';
+            testing.assert(s.eq(v), "修改to_char_array返回的数组内容影响了String值");
+
+            v = "\r\n\t\a\b\v\00\012\x001";
+            b = new char[]{'\r', '\n', '\t', '\a', '\b', '\v', '\0', '\12', '\0', '1'};
+            var s = new String(b);
+            testing.assert(v.eq(s), "转义字符测试失败");
+
+            testing.assert("1".eq("1") && !"1".eq("2"), "String.eq()测试失败");
+            testing.assert("1".cmp("1") == 0 && "1".cmp("2") < 0 && "1".cmp("") > 0 && "1".cmp("1\0") < 0, "String.cmp()测试失败");
+        }
+    });
+    r.add_test_case("format", []{
+        public void call()
+        {
+            //todo
+        }
+    });
+    r.add_test_case("methods", []{
+        public void call()
+        {
+            //todo
+        }
+    });
+
+    r.run();
+}

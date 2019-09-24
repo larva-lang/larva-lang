@@ -103,6 +103,13 @@ public class String
         !>>
     }
 
+    public long index_char(char c)
+    {
+        !<<
+        return int64(strings.IndexByte(this.s, l_c))
+        !>>
+    }
+
     public String concat(String s)
     {
         !<<
