@@ -24,7 +24,7 @@ void test_string()
 
             v = "\r\n\t\a\b\v\00\012\x001";
             b = new char[]{'\r', '\n', '\t', '\a', '\b', '\v', '\0', '\12', '\0', '1'};
-            var s = new String(b);
+            s = new String(b);
             testing.assert(v.eq(s), "转义字符测试失败");
 
             testing.assert("1".eq("1") && !"1".eq("2"), "String.eq()测试失败");

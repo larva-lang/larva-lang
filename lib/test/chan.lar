@@ -15,7 +15,7 @@ void test_chan()
             var c = call_and_catch<ValueError>([]{
                 public void call()
                 {
-                    new Chan<int>(-1);
+                    new Chan<int>(-1L);
                 }
             });
             testing.assert(c !== nil, "通过无效大小创建Chan未抛出正确的ValueError异常");
