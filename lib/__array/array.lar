@@ -86,7 +86,7 @@ class Arr<E>
 
         if (sz < 0)
         {
-            throw(new ValueError("%d".(sz)));
+            throw(new ValueError("无效的数组大小：%d".(sz)));
         }
 
         var arr = new Arr<E>();

@@ -129,7 +129,7 @@ public class Vector<E>
     {
         if (sz < 0)
         {
-            throw(new ValueError("%d".(sz)));
+            throw(new ValueError("无效的size值：%d".(sz)));
         }
         this.reserve(sz);
 

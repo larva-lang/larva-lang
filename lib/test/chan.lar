@@ -12,14 +12,13 @@ void test_chan()
     r.add_test_case("general", []{
         public void call()
         {
-            long invalid_buf_size = -135L;
             var c = call_and_catch<ValueError>([]{
                 public void call()
                 {
-                    new Chan<int>(invalid_buf_size);
+                    new Chan<int>(-1);
                 }
             });
-            testing.assert(c !== nil && c.throwed().str().eq("%s".(invalid_buf_size)), "通过无效大小创建Chan未抛出正确的ValueError异常");
+            testing.assert(c !== nil, "通过无效大小创建Chan未抛出正确的ValueError异常");
 
             var ch = new Chan<int>(100);
             ch.send(12);

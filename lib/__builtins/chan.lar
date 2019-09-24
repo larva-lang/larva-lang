@@ -9,7 +9,7 @@ public class Chan<T>
     {
         if (buf_size < 0)
         {
-            throw(new ValueError("%d".(buf_size)));
+            throw(new ValueError("无效的缓冲大小：%d".(buf_size)));
         }
         !<<
         this.ch = make(chan @<<{T}>>, l_buf_size)
