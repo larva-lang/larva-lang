@@ -764,21 +764,14 @@ class Parser:
                     if not expr.type.is_float_type:
                         raise ExprTypeError("浮点数")
                 elif verb in ("r", "s"):
-                    if expr.type.is_bool_type:
-                        verb = "t"
-                    elif expr.type.is_integer_type:
-                        verb = "d"
-                    elif expr.type.is_float_type:
-                        verb = "g"
+                    #这两个特殊expr实际类型是go的string，这里用STR_TYPE只是方便编译检查
+                    if verb == "s":
+                        expr_list[expr_idx - 1] = _Expr("to_go_str", expr, larc_type.STR_TYPE)
+                    elif verb == "r":
+                        expr_list[expr_idx - 1] = _Expr("repr_to_go_str", expr, larc_type.STR_TYPE)
+                        verb = "s"
                     else:
-                        #这两个特殊expr实际类型是go的string，这里用STR_TYPE只是方便编译检查
-                        if verb == "s":
-                            expr_list[expr_idx - 1] = _Expr("to_go_str", expr, larc_type.STR_TYPE)
-                        elif verb == "r":
-                            expr_list[expr_idx - 1] = _Expr("repr_to_go_str", expr, larc_type.STR_TYPE)
-                            verb = "s"
-                        else:
-                            raise Exception("Bug")
+                        raise Exception("Bug")
                 elif verb == "T":
                     expr_list[expr_idx - 1] = _Expr("type_name_to_go_str", expr, larc_type.STR_TYPE)
                     verb = "s"
