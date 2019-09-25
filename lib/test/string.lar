@@ -53,7 +53,7 @@ void test_string()
                         "8690539905941504p-46, +123.50,1.2350E+02 ,1.2e+02;");
             tester.test("字符串特殊格式输出", "%X,%r;".("abcd", "1\t2\r\x00\n"), `61626364,"1\t2\r\x00\n";`);
             tester.test("repr输出数组", "%r,%r;".(new char[]{'h', 'e', 'l', 'l', 'o'}, new int[]{2,3,5,7}),
-                        `<char[] "hello">,<int[] {2,3,5,7}>;`);
+                        `<char[] "hello">,<int[] [2, 3, 5, 7]>;`);
             tester.test("输出类型名", "%T,%T,%T,%T;".(r, "", "".to_char_array(), "".to_char_array().iter()),
                         "testing.CaseRunner,String,char[],ArrayIter<char>;");
         }
