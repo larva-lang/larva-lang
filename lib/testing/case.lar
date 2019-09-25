@@ -107,7 +107,7 @@ public class CaseRunner
 
             if (this.output_enabled)
             {
-                err_print("%-60s ".(case.title()));
+                output_with_pos(case.title(), TAB_COUNT_TITLE);
             }
 
             String msg;
@@ -130,8 +130,9 @@ public class CaseRunner
 
             if (this.output_enabled)
             {
-                err_println("%-20s %s".(RESULT_TEXT_OK if result.ok() else RESULT_TEXT_FAIL,
-                                        result.msg() if result.ok() else color_text(TEXT_COLOR_RED, result.msg())));
+                output_with_pos(RESULT_TEXT_OK if result.ok() else RESULT_TEXT_FAIL, TAB_COUNT_RESULT);
+                output_with_pos(result.msg() if result.ok() else color_text(TEXT_COLOR_RED, result.msg()), TAB_COUNT_MSG);
+                output_with_pos("\n", 0);
             }
         }
     }

@@ -1,13 +1,26 @@
 final int
     TEXT_COLOR_RED    = 31,
     TEXT_COLOR_GREEN  = 32,
-    TEXT_COLOR_YELLOW = 33;
+    TEXT_COLOR_YELLOW = 33,
+;
 
 String color_text(int color, String s)
 {
     return "\x1b[;%dm%s\x1b[0m".(color, s);
 }
 
+final long
+    TAB_COUNT_TITLE  = 0,
+    TAB_COUNT_RESULT = 6,
+    TAB_COUNT_MSG    = 8,
+;
+
+void output_with_pos(String s, long tab_count)
+{
+    err_print("\r%s%s".("\t".repeat(tab_count), s));
+}
+
 final String
     RESULT_TEXT_OK   = "[%s]".(color_text(TEXT_COLOR_GREEN, "OK")),
-    RESULT_TEXT_FAIL = "[%s]".(color_text(TEXT_COLOR_RED, "FAIL"));
+    RESULT_TEXT_FAIL = "[%s]".(color_text(TEXT_COLOR_RED, "FAIL")),
+;
