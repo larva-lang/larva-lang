@@ -25,7 +25,7 @@ Case[] prepare()
 {
     return new Case[]{
         new Case{
-            name: "tc_ok",
+            name: "普通测试用例-成功",
             callee: []{
                 public void call()
                 {
@@ -34,7 +34,7 @@ Case[] prepare()
             expecting_ok: true,
         },
         new Case{
-            name: "tc_fail",
+            name: "普通测试用例-失败",
             callee: []{
                 public void call()
                 {
@@ -45,7 +45,7 @@ Case[] prepare()
         },
         new Case{
             is_benchmark_case: true,
-            name: "bc_ok",
+            name: "性能测试用例-成功",
             callee: []{
                 public void call()
                 {
@@ -73,7 +73,7 @@ Case[] prepare()
         },
         new Case{
             is_benchmark_case: true,
-            name: "bc_fail",
+            name: "性能测试用例-失败",
             callee: []{
                 public void call()
                 {
@@ -112,7 +112,7 @@ public void main()
         var case = _case;
 
         var case_result = prepare_runner.get_result(case.name);
-        r.add_test_case(case.name.concat("-test"), []{
+        r.add_test_case("测试“".concat(case.name).concat("”"), []{
             public void call()
             {
                 testing.assert(case.expecting_ok == case_result.ok(),

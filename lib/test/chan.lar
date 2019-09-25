@@ -9,7 +9,7 @@ void test_chan()
 {
     var r = new testing.CaseRunner();
 
-    r.add_test_case("general", []{
+    r.add_test_case("常规测试", []{
         public void call()
         {
             var c = call_and_catch<ValueError>([]{
@@ -54,7 +54,7 @@ void test_chan()
             testing.assert(ch.try_recv(ref ok, ref closed) == 0 && !ok && closed, "对无数据且已关闭的Chan做try_recv测试失败");
         }
     });
-    r.add_test_case("interfiber_communication", []{
+    r.add_test_case("fiber间通讯", []{
         public void call()
         {
             var tester = []{

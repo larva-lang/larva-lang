@@ -3,7 +3,7 @@ import testing, time, math;
 public void main()
 {
     var r = new testing.CaseRunner();
-    r.add_test_case("unix timestamp and sleep", []{
+    r.add_test_case("unix时间和sleep", []{
         public void call()
         {
             double sleep_time = 0.3;
@@ -16,7 +16,7 @@ public void main()
             }
         }
     });
-    r.add_test_case("format_time", []{
+    r.add_test_case("格式化时间", []{
         public void call()
         {
             double t = 1234567890.625;
