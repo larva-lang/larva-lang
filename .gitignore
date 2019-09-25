@@ -1,6 +1,6 @@
 .DS_Store
-*.pyc
-/lib/test/test
 .vscode
+*.pyc
 *.class
 *.tmp
+tmp
