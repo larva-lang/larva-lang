@@ -45,12 +45,11 @@ void test_string()
                     testing.assert(a.eq(b), "String格式化语法测试用例[%s]失败：%r!=%r".(name, a, b));
                 }
             };
-
             tester.test("百分号", "%%".(), "%");
             tester.test("宽度、精度和左右对齐", "%10t,%-20.4s;".(true, false),
-                        "".join(new String[]{"\x20".repeat(6), "true,fals", "\x20".repeat(16), ";"}.iter());
+                        "".join(new String[]{"\x20".repeat(6), "true,fals", "\x20".repeat(16), ";"}.iter()));
             tester.test("整数格式输出", "%+d,%X,%b,%o;".(123, -123, 123, -123), "+123,-7B,1111011,-173;");
-            tester.test("浮点数格式输出", "%b,%+8.2f,%-11.2E,%.2g;".(123.5, 123.5, 123.5, 123.5),
+            tester.test("浮点数格式输出", "%b,%+8.2f,%-11.4E,%.2g;".(123.5, 123.5, 123.5, 123.5),
                         "8690539905941504p-46, +123.50,1.2350E+02 ,1.2e+02;");
             tester.test("字符串特殊格式输出", "%X,%r;".("abcd", "1\t2\r\x00\n"), `61626364,"1\t2\r\x00\n";`);
             tester.test("repr输出数组", "%r,%r;".(new char[]{'h', 'e', 'l', 'l', 'o'}, new int[]{2,3,5,7}),
