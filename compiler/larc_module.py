@@ -1412,11 +1412,18 @@ class Module:
                         break
                     #定义了多个变量，继续解析
                     assert sym == ","
-                    t, name = token_list.pop_name()
-                    self._check_redefine(t, name, dep_module_map)
-                    t, sym = token_list.pop_sym()
-                    if sym not in (";", "=", ","):
-                        t.syntax_err()
+                    t = token_list.pop()
+                    if t.is_sym(";"):
+                        #允许最后一个变量也由逗号结尾
+                        break
+                    if t.is_name:
+                        name = t.value
+                        self._check_redefine(t, name, dep_module_map)
+                        t, sym = token_list.pop_sym()
+                        if sym not in (";", "=", ","):
+                            t.syntax_err()
+                    else:
+                        t.syntax_err("需要变量名或';'")
                 continue
 
             t.syntax_err()

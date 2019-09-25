@@ -16,12 +16,14 @@ public final int
     O_CREAT,
     O_EXCL,
     O_SYNC,
-    O_TRUNC;
+    O_TRUNC,
+;
 
 public final int
     SEEK_SET = 0,
     SEEK_CUR = 1,
-    SEEK_END = 2;
+    SEEK_END = 2,
+;
 
 !<<
 

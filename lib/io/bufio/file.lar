@@ -4,7 +4,8 @@ final int
     STAT_RD     = 1,
     STAT_WR     = 2,
     STAT_RDWR   = 3,
-    STAT_CLOSED = 4;
+    STAT_CLOSED = 4,
+;
 
 public class File
 {
