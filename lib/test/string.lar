@@ -4,7 +4,7 @@ void test_string()
 {
     var r = new testing.CaseRunner();
 
-    r.add_test_case("general", []{
+    r.add_test_case("常规测试", []{
         public void call()
         {
             var v = "hello";
@@ -22,22 +22,44 @@ void test_string()
             s.to_char_array()[0] = '0';
             testing.assert(s.eq(v), "修改to_char_array返回的数组内容影响了String值");
 
-            v = "\r\n\t\a\b\v\00\012\x001";
-            b = new char[]{'\r', '\n', '\t', '\a', '\b', '\v', '\0', '\12', '\0', '1'};
+            v = "\r\n\t\a\b\v\00\012\x001\f\x5c\42";
+            b = new char[]{'\r', '\n', '\t', '\a', '\b', '\v', '\0', '\12', '\0', '1', '\f', '\\', '"'};
             s = new String(b);
             testing.assert(v.eq(s), "转义字符测试失败");
 
             testing.assert("1".eq("1") && !"1".eq("2"), "String.eq()测试失败");
             testing.assert("1".cmp("1") == 0 && "1".cmp("2") < 0 && "1".cmp("") > 0 && "1".cmp("1\0") < 0, "String.cmp()测试失败");
+
+            v = `\r\42\012` "`" `\x01\`;
+            b = new char[]{'\\', 'r', '\\', '4', '2', '\\', '0', '1', '2', '`', '\\', 'x', '0', '1', '\\'};
+            s = new String(b);
+            testing.assert(v.eq(s), "raw-String字面量和String字面量连接语法测试失败");
         }
     });
-    r.add_test_case("format", []{
+    r.add_test_case("String格式化", []{
         public void call()
         {
-            //todo
+            var tester = []{
+                void test(String name, String a, String b)
+                {
+                    testing.assert(a.eq(b), "String格式化语法测试用例[%s]失败：%r!=%r".(name, a, b));
+                }
+            };
+
+            tester.test("百分号", "%%".(), "%");
+            tester.test("宽度、精度和左右对齐", "%10t,%-20.4s;".(true, false),
+                        "".join(new String[]{"\x20".repeat(6), "true,fals", "\x20".repeat(16), ";"}.iter());
+            tester.test("整数格式输出", "%+d,%X,%b,%o;".(123, -123, 123, -123), "+123,-7B,1111011,-173;");
+            tester.test("浮点数格式输出", "%b,%+8.2f,%-11.2E,%.2g;".(123.5, 123.5, 123.5, 123.5),
+                        "8690539905941504p-46, +123.50,1.2350E+02 ,1.2e+02;");
+            tester.test("字符串特殊格式输出", "%X,%r;".("abcd", "1\t2\r\x00\n"), `61626364,"1\t2\r\x00\n";`);
+            tester.test("repr输出数组", "%r,%r;".(new char[]{'h', 'e', 'l', 'l', 'o'}, new int[]{2,3,5,7}),
+                        `<char[] "hello">,<int[] {2,3,5,7}>;`);
+            tester.test("输出类型名", "%T,%T,%T,%T;".(r, "", "".to_char_array(), "".to_char_array().iter()),
+                        "testing.CaseRunner,String,char[],ArrayIter<char>;");
         }
     });
-    r.add_test_case("methods", []{
+    r.add_test_case("方法测试", []{
         public void call()
         {
             //todo
