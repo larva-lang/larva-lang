@@ -61,7 +61,90 @@ void test_string()
     r.add_test_case("方法测试", []{
         public void call()
         {
-            //todo
+            var tester = []{
+                void assert(bool cond, String method_name)
+                {
+                    testing.assert(cond, "String方法测试用例[%s]执行失败".(method_name));
+                }
+            };
+
+            tester.assert("hello world".index("or") == 7, "index");
+            tester.assert("hello world".index_char('o') == 4, "index_char");
+            tester.assert("hello".concat("\x20").concat("world").eq("hello world"), "concat");
+            tester.assert("hello world".has_prefix("hel"), "has_prefix");
+            tester.assert("hello world".has_suffix("orld"), "has_suffix");
+            tester.assert(".".join(new String[]{"www", "qq", "com"}.iter()).eq("www.qq.com"), "join");
+
+            tester.assert("  a \tb  \v  c\fd\r\r\r\n".split(nil).eq(new String[]{"a", "b", "c", "d"}), "split（sep=nil）");
+            tester.assert("  a \tb  \v  c\fd\r\r\r\n".split_n(nil, 3).eq(new String[]{"a", "b", "c\fd\r\r\r\n"}),
+                          "split_n（sep=nil，n小于实际part数量）");
+            tester.assert("  a \tb  \v  c\fd\r\r\r\n".split_n(nil, 10000).eq(new String[]{"a", "b", "c", "d"}),
+                          "split_n（sep=nil，n大于实际part数量）");
+            tester.assert("  a, \tb , \v  c\f,d\r\r\r\n".split(",").eq(new String[]{"  a", " \tb ", " \v  c\f", "d\r\r\r\n"}),
+                          "split（sep!=nil）");
+            tester.assert("  a, \tb , \v  c\f,d\r\r\r\n".split_n(",", 3).eq(new String[]{"  a", " \tb ", " \v  c\f,d\r\r\r\n"}),
+                          "split_n（sep!=nil，n小于实际part数量）");
+            tester.assert("  a, \tb , \v  c\f,d\r\r\r\n".split_n(",", 10000).eq(new String[]{"  a", " \tb ", " \v  c\f", "d\r\r\r\n"}),
+                          "split_n（sep!=nil，n大于实际part数量）");
+            {
+                var c = call_and_catch<ValueError>([]{
+                    public void call()
+                    {
+                        "".split("");
+                    }
+                });
+                tester.assert(c !== nil, `split（sep=""）`);
+
+                c = call_and_catch<ValueError>([]{
+                    public void call()
+                    {
+                        "".split_n(nil, -1);
+                    }
+                });
+                tester.assert(c !== nil, "split_n（n<=0）");
+            }
+            tester.assert("".split(",").eq(new String[]{}), "空串的split");
+            tester.assert("  \t  \r \v\f\n".split(nil).eq(new String[]{}), "纯空白字符组成的String的split（sep=nil）");
+
+            tester.assert("hello world".sub_str(3, 7).eq("lo w"), "sub_str");
+            {
+                var c = call_and_catch<RangeError>([]{
+                    public void call()
+                    {
+                        "hello world".sub_str(-1, 100);
+                    }
+                });
+                tester.assert(c !== nil, "sub_str（范围错误）");
+            }
+
+            tester.assert("abc".repeat(3).eq("abcabcabc"), "repeat");
+            {
+                var c = call_and_catch<ValueError>([]{
+                    public void call()
+                    {
+                        "a".repeat(1000).repeat((long)1e16);
+                    }
+                });
+                tester.assert(c !== nil, "repeat（结果长度超限）");
+            }
+
+            for (var s: "1,t,T,TRUE,true,True".split(",").iter())
+            {
+                tester.assert(s.parse_bool(), `"%s".parse_bool()`.(s));
+            }
+            for (var s: "0,f,F,FALSE,false,False".split(",").iter())
+            {
+                tester.assert(!s.parse_bool(), `"%s".parse_bool()`.(s));
+            }
+            {
+                var c = call_and_catch<ValueError>([]{
+                    public void call()
+                    {
+                        "invalid bool literal".parse_bool();
+                    }
+                });
+                tester.assert(c !== nil, "parse_bool（非法字面量）");
+            }
         }
     });
 
