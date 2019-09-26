@@ -98,12 +98,12 @@ void test_string()
                 c = call_and_catch<ValueError>([]{
                     public void call()
                     {
-                        "".split_n(nil, -1);
+                        "".split_n(nil, -1L);
                     }
                 });
                 tester.assert(c !== nil, "split_n（n<=0）");
             }
-            tester.assert("".split(",").eq(new String[]{}), "空串的split");
+            tester.assert("".split(",").eq(new String[]{""}), "空串的split");
             tester.assert("  \t  \r \v\f\n".split(nil).eq(new String[]{}), "纯空白字符组成的String的split（sep=nil）");
 
             tester.assert("hello world".sub_str(3, 7).eq("lo w"), "sub_str");
@@ -111,7 +111,7 @@ void test_string()
                 var c = call_and_catch<RangeError>([]{
                     public void call()
                     {
-                        "hello world".sub_str(-1, 100);
+                        "hello world".sub_str(-1L, 100);
                     }
                 });
                 tester.assert(c !== nil, "sub_str（范围错误）");
@@ -128,11 +128,11 @@ void test_string()
                 tester.assert(c !== nil, "repeat（结果长度超限）");
             }
 
-            for (var s: "1,t,T,TRUE,true,True".split(",").iter())
+            foreach (var s: "1,t,T,TRUE,true,True".split(",").iter())
             {
                 tester.assert(s.parse_bool(), `"%s".parse_bool()`.(s));
             }
-            for (var s: "0,f,F,FALSE,false,False".split(",").iter())
+            foreach (var s: "0,f,F,FALSE,false,False".split(",").iter())
             {
                 tester.assert(!s.parse_bool(), `"%s".parse_bool()`.(s));
             }

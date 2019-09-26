@@ -176,7 +176,7 @@ public class String
                     break
                 }
 
-                if count + 1 == n {
+                if count + 1 == l_n {
                     //即将达到最大限制，将剩余字符串全部作为最后一个部分
                     sl = append(sl, s[idx :])
                     count ++
@@ -194,7 +194,7 @@ public class String
             }
             !>>
         }
-        else if (sep.size() == 0)
+        else if (sep.len() == 0)
         {
             throw(new ValueError("分隔符为空串"));
         }
@@ -223,7 +223,7 @@ public class String
 
     public String[] split(String sep)
     {
-        return this.split_n(sep, this.size());
+        return this.split_n(sep, this.len() + 1);
     }
 
     public String sub_str(long begin, long end)
