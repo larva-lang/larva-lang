@@ -84,4 +84,10 @@ func lar_go_func_any_type_name_to_go_str(a lar_intf_@<<GoAny>>) string {
     return lar_str_to_go_str(lar_func_@<<__internal.reflect_type_name>>(a))
 }
 
+//判断一个8-bit char是否为空白符
+func lar_go_func_char_is_space(c uint8) bool {
+    //六个空白符：\t \n \v \f \r \x20
+    return c >= 9 && c <= 13 || c == 32
+}
+
 !>>

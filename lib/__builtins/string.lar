@@ -119,14 +119,14 @@ public class String
         !>>
     }
 
-    public bool startswith(String s)
+    public bool has_prefix(String s)
     {
         !<<
         return strings.HasPrefix(this.s, l_s.s);
         !>>
     }
 
-    public bool endswith(String s)
+    public bool has_suffix(String s)
     {
         !<<
         return strings.HasSuffix(this.s, l_s.s);
@@ -144,29 +144,86 @@ public class String
         !>>
     }
 
-    public String[] split(String sep, long count)
+    public String[] split_n(String sep, long n)
     {
+        if (n <= 0)
+        {
+            throw(new ValueError("参数n不是正整数，n=%d".(n)));
+        }
+
         !<<
         var sl []string
-        if l_sep == nil {
-            sl = strings.Fields(this.s)
-        } else if len(l_sep.s) == 0 {
-            s_len := len(this.s)
-            sl = make([]string, 0, s_len)
-            for i := 0; i < s_len; i ++ {
-                sl = append(sl, this.s[i : i + 1])
-            }
-        } else {
-            sl = strings.SplitN(this.s, l_sep.s, int(l_count))
-        }
-        a := make([]*lar_cls_@<<String>>, 0, len(sl))
-        for _, s := range sl {
-            a = append(a, lar_str_from_go_str(s))
-        }
-        return &lar_arr_lar_cls_@<<String>>_1{
-            arr: a,
-        }
         !>>
+
+        if (sep === nil)
+        {
+            !<<
+            var (
+                count int64  = 0
+                idx   int    = 0
+                s     string = this.s
+                s_len int    = len(s)
+            )
+            sl = make([]string, 0, 8) //经验值
+            for {
+                //跳过空白字符
+                for idx < s_len && lar_go_func_char_is_space(s[idx]) {
+                    idx ++
+                }
+
+                if idx == s_len {
+                    //结束
+                    break
+                }
+
+                if count + 1 == n {
+                    //即将达到最大限制，将剩余字符串全部作为最后一个部分
+                    sl = append(sl, s[idx :])
+                    count ++
+                    break
+                }
+
+                //增加新的分割部分
+                end_idx := idx + 1
+                for end_idx < s_len && !lar_go_func_char_is_space(s[end_idx]) {
+                    end_idx ++
+                }
+                sl = append(sl, s[idx : end_idx])
+                count ++
+                idx = end_idx
+            }
+            !>>
+        }
+        else if (sep.size() == 0)
+        {
+            throw(new ValueError("分隔符为空串"));
+        }
+        else
+        {
+            !<<
+            sl = strings.SplitN(this.s, l_sep.s, int(l_n))
+            !>>
+        }
+
+        long new_n;
+        !<<
+        l_new_n = int64(len(sl))
+        !>>
+        var a = new String[new_n];
+        for (long i = 0; i < new_n; ++ i)
+        {
+            String s;
+            !<<
+            l_s = lar_str_from_go_str(sl[l_i])
+            !>>
+            a[i] = s;
+        }
+        return a;
+    }
+
+    public String[] split(String sep)
+    {
+        return this.split_n(sep, this.size());
     }
 
     public String sub_str(long begin, long end)
@@ -206,6 +263,10 @@ public class String
 
     public long parse_long(int base)
     {
+        if (base < 0 || base == 1 || base > 36)
+        {
+            throw(new ValueError("不支持%d进制".(base)));
+        }
         long r;
         bool ok;
         !<<
@@ -231,6 +292,10 @@ public class String
 
     public ulong parse_ulong(int base)
     {
+        if (base < 0 || base == 1 || base > 36)
+        {
+            throw(new ValueError("不支持%d进制".(base)));
+        }
         ulong r;
         bool ok;
         !<<

@@ -57,7 +57,7 @@ Case[] prepare()
                 bool is_valid(String msg)
                 {
                     var msg_suffix = " op/s";
-                    if (!msg.endswith(msg_suffix))
+                    if (!msg.has_suffix(msg_suffix))
                     {
                         return false;
                     }
