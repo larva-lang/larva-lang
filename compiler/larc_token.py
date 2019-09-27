@@ -332,7 +332,7 @@ def _parse_token(module_name, src_file, line_no, line, pos):
     if sym is not None:
         #符号
         if sym not in _SYM_SET:
-            _syntax_err(src_file, line_no, pos, "非法的符号'%s'" % sym)
+            _syntax_err(src_file, line_no, pos, "非法的符号'%r'" % sym)
 
         if sym in ("'", '"'):
             #字符或字符串

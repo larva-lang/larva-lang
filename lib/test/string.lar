@@ -1,4 +1,4 @@
-import testing;
+import testing, math;
 
 void test_string()
 {
@@ -168,7 +168,7 @@ void test_string()
             {
                 tester.assert("11011".parse_long(p.first()) == p.second(), `"11011".parse_long（base=%s）`.(p.first()));
             }
-            tester.assert("-aBcXyZ".parse_long(36) == -623741435, `"-aBcXyZ".parse_long（base=36）`);
+            tester.assert("-aBcXyZ".parse_long(36) == -623741435L, `"-aBcXyZ".parse_long（base=36）`);
             foreach (var base: new int[]{-10, -2, 1, 37, 100}.iter())
             {
                 var c = call_and_catch<ValueError>([]{
@@ -191,7 +191,7 @@ void test_string()
                         p.first().parse_long(p.second());
                     }
                 });
-                tester.assert(c !== nil, `"%s".parse_long（base=%s）".(p.first(), p.second()));
+                tester.assert(c !== nil, `"%s".parse_long（base=%s）`.(p.first(), p.second()));
             }
             {
                 var s = "0x8".concat("0".repeat(15));
@@ -257,10 +257,10 @@ void test_string()
                         p.first().parse_ulong(p.second());
                     }
                 });
-                tester.assert(c !== nil, `"%s".parse_ulong（base=%s）".(p.first(), p.second()));
+                tester.assert(c !== nil, `"%s".parse_ulong（base=%s）`.(p.first(), p.second()));
             }
             {
-                var s = "1".repeat(20).parse_ulong(10);
+                String s = "1".repeat(20);
                 tester.assert(s.parse_ulong(0) * 0 == 0, `"%s".parse_ulong`.(s));
             }
 
@@ -273,15 +273,15 @@ void test_string()
             {
                 tester.assert(math.abs(p.first().parse_double() - p.second()) < 0.000001, `"%s".parse_double`.(p.first()));
             }
-            foreach (var p: new String[]{"1,2", "1e", "1e400"}.iter())
+            foreach (var s: new String[]{"1,2", "1e", "1e400"}.iter())
             {
                 var c = call_and_catch<ValueError>([]{
                     public void call()
                     {
-                        p.first().parse_double(p.second());
+                        s.parse_double();
                     }
                 });
-                tester.assert(c !== nil, `"%s".parse_double".(p.first(), p.second()));
+                tester.assert(c !== nil, `"%s".parse_double`.(s));
             }
         }
     });
