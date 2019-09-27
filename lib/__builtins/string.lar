@@ -263,80 +263,66 @@ public class String
 
     public long parse_long(int base)
     {
-        if (base < 0 || base == 1 || base > 36)
-        {
-            throw(new ValueError("不支持%d进制".(base)));
-        }
-        long r;
-        bool ok;
-        !<<
-        var err error
-        l_r, err = strconv.ParseInt(this.s, int(l_base), 64)
-        l_ok = err == nil
-        !>>
-        if (!ok)
-        {
-            String err_info;
-            if (base == 0)
-            {
-                err_info = "无效的long字面量：%r".(this);
-            }
-            else
-            {
-                err_info = "无效的%d进制long字面量：%r".(base, this);
-            }
-            throw(new ValueError(err_info));
-        }
-        return r;
+        return _parse_number<long>(this, base);
     }
 
     public ulong parse_ulong(int base)
     {
-        if (base < 0 || base == 1 || base > 36)
-        {
-            throw(new ValueError("不支持%d进制".(base)));
-        }
-        ulong r;
-        bool ok;
-        !<<
-        var err error
-        l_r, err = strconv.ParseUint(this.s, int(l_base), 64)
-        l_ok = err == nil
-        !>>
-        if (!ok)
-        {
-            String err_info;
-            if (base == 0)
-            {
-                err_info = "无效的ulong字面量：%r".(this);
-            }
-            else
-            {
-                err_info = "无效的%d进制ulong字面量：%r".(base, this);
-            }
-            throw(new ValueError(err_info));
-        }
-        return r;
+        return _parse_number<ulong>(this, base);
     }
 
     public double parse_double()
     {
-        double r;
-        bool ok;
-        !<<
-        var err error
-        l_r, err = strconv.ParseFloat(this.s, 64)
-        l_ok = err == nil
-        !>>
-        if (!ok)
-        {
-            throw(new ValueError("无效的double字面量：%r".(this)));
-        }
-        return r;
+        return _parse_number<double>(this, 0);
     }
 
     !<<
     s string;
     !>>
     long h; //缓存的hash值，为0表示还没有计算
+}
+
+T _parse_number<T>(String s, int base)
+{
+    if (base < 0 || base == 1 || base > 36)
+    {
+        throw(new ValueError("不支持%d进制".(base)));
+    }
+
+    T r;
+    bool ok;
+
+    !<<
+    var err error
+    !>>
+
+#use
+    long tmp = r;
+    !<<
+    l_r, err = strconv.ParseInt(l_s.s, int(l_base), 64)
+    !>>
+#oruse
+    ulong tmp = r;
+    !<<
+    l_r, err = strconv.ParseUint(l_s.s, int(l_base), 64)
+    !>>
+#oruse
+    double tmp = r;
+    !<<
+    l_r, err = strconv.ParseFloat(l_s.s, 64)
+    !>>
+#oruse
+    #error 只支持long、ulong、double
+#enduse
+
+    !<<
+    l_ok = err == nil
+    !>>
+
+    if (!ok)
+    {
+        throw(new ValueError("无效的%s%T字面量：%r".("" if base == 0 else "%d进制".(base), r, this)));
+    }
+
+    return r;
 }

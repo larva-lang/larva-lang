@@ -103,7 +103,8 @@ void test_string()
                 });
                 tester.assert(c !== nil, "split_n（n<=0）");
             }
-            tester.assert("".split(",").eq(new String[]{""}), "空串的split");
+            tester.assert("".split(nil).eq(new String[]{}), "空串的split（sep=nil）");
+            tester.assert("".split(",").eq(new String[]{""}), "空串的split（sep!=nil）");
             tester.assert("  \t  \r \v\f\n".split(nil).eq(new String[]{}), "纯空白字符组成的String的split（sep=nil）");
 
             tester.assert("hello world".sub_str(3, 7).eq("lo w"), "sub_str");
@@ -144,6 +145,143 @@ void test_string()
                     }
                 });
                 tester.assert(c !== nil, "parse_bool（非法字面量）");
+            }
+
+            foreach (var p: new Pair<String, long>[]{
+                "-123":    -123L,
+                "0b11011": 0b11011L,
+                "-0123":   -0o123L,
+                "0o123":   0123L,
+                "-0x123":  -0x123L,
+            }.iter())
+            {
+                tester.assert(p.first().parse_long(0) == p.second(), `"%s".parse_long（base=0）`.(p.first()));
+            }
+            foreach (var p: new Pair<int, long>[]{
+                2:  0b11011L,
+                5:  756L,
+                8:  0o11011L,
+                11: 15984L,
+                16: 0x11011L,
+                35: 1543536L,
+            }.iter())
+            {
+                tester.assert("11011".parse_long(p.first()) == p.second(), `"11011".parse_long（base=%s）`.(p.first()));
+            }
+            tester.assert("-aBcXyZ".parse_long(36) == -623741435, `"-aBcXyZ".parse_long（base=36）`);
+            foreach (var base: new int[]{-10, -2, 1, 37, 100}.iter())
+            {
+                var c = call_and_catch<ValueError>([]{
+                    public void call()
+                    {
+                        "0".parse_long(base);
+                    }
+                });
+                tester.assert(c !== nil, "parse_long（非法进制%s）".(base));
+            }
+            foreach (var p: new Pair<String, int>[]{
+                "-12":          2,
+                "1+2":          0,
+                "1".repeat(20): 10,
+            }.iter())
+            {
+                var c = call_and_catch<ValueError>([]{
+                    public void call()
+                    {
+                        p.first().parse_long(p.second());
+                    }
+                });
+                tester.assert(c !== nil, `"%s".parse_long（base=%s）".(p.first(), p.second()));
+            }
+            {
+                var s = "0x8".concat("0".repeat(15));
+                var c = call_and_catch<ValueError>([]{
+                    public void call()
+                    {
+                        s.parse_long(0);
+                    }
+                });
+                tester.assert(c !== nil, `"%s".parse_long`.(s));
+                s = "-".concat(s);
+                c = call_and_catch<ValueError>([]{
+                    public void call()
+                    {
+                        s.parse_long(0);
+                    }
+                });
+                tester.assert(c === nil, `"%s".parse_long`.(s));
+            }
+
+            foreach (var p: new Pair<String, ulong>[]{
+                "123":     123UL,
+                "0b11011": 0b11011UL,
+                "0123":    0o123UL,
+                "0o123":   0123UL,
+                "0x123":   0x123UL,
+            }.iter())
+            {
+                tester.assert(p.first().parse_ulong(0) == p.second(), `"%s".parse_ulong（base=0）`.(p.first()));
+            }
+            foreach (var p: new Pair<int, ulong>[]{
+                2:  0b11011UL,
+                5:  756UL,
+                8:  0o11011UL,
+                11: 15984UL,
+                16: 0x11011UL,
+                35: 1543536UL,
+            }.iter())
+            {
+                tester.assert("11011".parse_ulong(p.first()) == p.second(), `"11011".parse_ulong（base=%s）`.(p.first()));
+            }
+            tester.assert("aBcXyZ".parse_ulong(36) == 623741435, `"aBcXyZ".parse_ulong（base=36）`);
+            foreach (var base: new int[]{-10, -2, 1, 37, 100}.iter())
+            {
+                var c = call_and_catch<ValueError>([]{
+                    public void call()
+                    {
+                        "0".parse_ulong(base);
+                    }
+                });
+                tester.assert(c !== nil, "parse_ulong（非法进制%s）".(base));
+            }
+            foreach (var p: new Pair<String, int>[]{
+                "-1":           0,
+                "12":           2,
+                "1+2":          0,
+                "1".repeat(21): 10,
+            }.iter())
+            {
+                var c = call_and_catch<ValueError>([]{
+                    public void call()
+                    {
+                        p.first().parse_ulong(p.second());
+                    }
+                });
+                tester.assert(c !== nil, `"%s".parse_ulong（base=%s）".(p.first(), p.second()));
+            }
+            {
+                var s = "1".repeat(20).parse_ulong(10);
+                tester.assert(s.parse_ulong(0) * 0 == 0, `"%s".parse_ulong`.(s));
+            }
+
+            foreach (var p: new Pair<String, double>[]{
+                "12.3":     12.3,
+                "-123e-1":  -123e-1,
+                "1.23e1":   1.23e1,
+                "-.123e2":  -.123e2,
+            }.iter())
+            {
+                tester.assert(math.abs(p.first().parse_double() - p.second()) < 0.000001, `"%s".parse_double`.(p.first()));
+            }
+            foreach (var p: new String[]{"1,2", "1e", "1e400"}.iter())
+            {
+                var c = call_and_catch<ValueError>([]{
+                    public void call()
+                    {
+                        p.first().parse_double(p.second());
+                    }
+                });
+                tester.assert(c !== nil, `"%s".parse_double".(p.first(), p.second()));
             }
         }
     });
