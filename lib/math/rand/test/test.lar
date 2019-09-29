@@ -6,7 +6,7 @@ class Counter<E>
 {
     Counter()
     {
-        this.m = new HashMap<E, long>(nil);
+        this.m = new util.HashMap<E, long>(nil);
     }
 
     void inc_count(E e)
@@ -18,7 +18,7 @@ class Counter<E>
     void dec_count(E e)
     {
         long count = this.m.get(e);
-        debug.assert(count > 0);
+        debug.assert(count > 0, "bug");
         if (count == 1)
         {
             this.m.pop(e);
@@ -35,7 +35,7 @@ class Counter<E>
         return 0 if it === nil else it.value();
     }
 
-    HashMap<E, long> m usemethod(size);
+    util.HashMap<E, long> m usemethod(size);
 }
 
 public void main()
@@ -85,13 +85,13 @@ public void main()
                 var counter = new Counter<double>();
                 for (long i = 0; i < N; ++ i)
                 {
-                    var rn = random.random();
+                    var rn = rand.random();
                     a[i] = rn;
                     counter.inc_count(rn);
                 }
                 var ac = a.shallow_copy();
 
-                random.shuffle(ac);
+                rand.shuffle(ac);
                 long same_count = 0;
                 for (long i = 0; i < N; ++ i)
                 {
