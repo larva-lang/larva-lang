@@ -1,0 +1,25 @@
+import testing, math;
+
+void float_pointer_eq(double a, double b)
+{
+    double diff = math.abs(a - b);
+    return diff < math.abs(1e-6 * a) && diff < math.abs(1e-6 * b);
+}
+
+public void main()
+{
+    var r = new testing.CaseRunner();
+
+    r.add_test_case("常规测试", []{
+        public void call()
+        {
+            testing.assert(float_pointer_eq(math.abs(-123.45), 123.45) && float_pointer_eq(math.abs(123.45), 123.45), "math.abs测试失败");
+            testing.assert(math.abs_long(-123) == 123 && math.abs_long(123) == 123, "math.abs_long测试失败");
+            testing.assert(math.abs_long(0) == 0 && math.abs_long(LONG_MIN) == LONG_MIN, "math.abs_long边界测试失败");
+            testing.assert(float_pointer_eq(math.pow(123.45, 67.89), 9.8023541665378136e+141));
+            testing.assert(float_pointer_eq(math.exp(123.45), 4.1082209310967009e+53));
+        }
+    });
+
+    r.run();
+}

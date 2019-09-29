@@ -1,0 +1,25 @@
+import testing, debug;
+
+final FAIL_MSG = "fAiL";
+
+public void main()
+{
+    var r = new testing.CaseRunner();
+
+    r.add_test_case("常规测试", []{
+        public void call()
+        {
+            var c = call_and_catch<Throwable>([]{
+                debug.assert(true, "");
+            });
+            testing.assert(c === nil, "debug.assert（true）抛出了异常");
+            c = call_and_catch<Throwable>([]{
+                debug.assert(false, FAIL_MSG);
+            });
+            var t = c.throwed();
+            testing.assert(c !== nil && t.str().eq(FAIL_MSG) && "%T".(t).eq("debug.AssertError"), "debug.assert（false）没有抛出预期的异常");
+        }
+    });
+
+    r.run();
+}

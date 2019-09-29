@@ -1,0 +1,114 @@
+import testing, math/rand, util, debug;
+
+final long N = 10000;
+
+class Counter<E>
+{
+    Counter()
+    {
+        this.m = new HashMap<E, long>(nil);
+    }
+
+    void inc_count(E e)
+    {
+        var it = this.m.find(e);
+        this.m.set(e, 1) if it === nil else it.set(it.value() + 1);
+    }
+
+    void dec_count(E e)
+    {
+        long count = this.m.get(e);
+        debug.assert(count > 0);
+        if (count == 1)
+        {
+            this.m.pop(e);
+        }
+        else
+        {
+            this.m.set(e, count - 1);
+        }
+    }
+
+    long count(E e)
+    {
+        var it = this.m.find(e);
+        return 0 if it === nil else it.value();
+    }
+
+    HashMap<E, long> m usemethod(size);
+}
+
+public void main()
+{
+    var r = new testing.CaseRunner();
+
+    r.add_test_case("常规测试", []{
+        public void call()
+        {
+            {
+                var counter = new Counter<double>();
+                for (long i = 0; i < N; ++ i)
+                {
+                    var rn = rand.random();
+                    testing.assert(rn >= 0.0 && rn < 1.0, "rand.random生成的随机数[%f]不在范围[0.0,1.0)中");
+                    counter.inc_count(rn);
+                }
+                testing.assert(counter.size() > N * 99 / 100, "rand.random生成的随机数有较多重合");
+            }
+
+            {
+                var c = call_and_catch<ValueError>([]{
+                    public void call()
+                    {
+                        rand.rand_n(0);
+                    }
+                });
+                testing.assert(c !== nil, "rand.rand_n对于非法输入没有抛出预期的异常");
+
+                var counter = new Counter<long>();
+                long n = N / 1000;
+                for (long i = 0; i < N; ++ i)
+                {
+                    long rn = rand.rand_n(n);
+                    testing.assert(rn >= 0 && rn < n, "rand.rand_n生成的数字[%d]不在范围[0,%d)中".(rn, n));
+                    counter.inc_count(rn);
+                }
+                for (long i = 0; i < n; ++ i)
+                {
+                    long count = counter.count(i);
+                    testing.assert(count > 900 && count < 1100, "rand.rand_n生成的随机数不够均匀");
+                }
+            }
+
+            {
+                var a = new double[N];
+                var counter = new Counter<double>();
+                for (long i = 0; i < N; ++ i)
+                {
+                    var rn = random.random();
+                    a[i] = rn;
+                    counter.inc_count(rn);
+                }
+                var ac = a.shallow_copy();
+
+                random.shuffle(ac);
+                long same_count = 0;
+                for (long i = 0; i < N; ++ i)
+                {
+                    if (a[i] == ac[i])
+                    {
+                        ++ same_count;
+                    }
+                }
+                testing.assert(same_count < N / 100, "rand.shuffle打乱不够均匀");
+                for (long i = 0; i < N; ++ i)
+                {
+                    counter.dec_count(ac[i]);
+                }
+                testing.assert(counter.size() == 0, "rand.shuffle打乱后的数值错误");
+            }
+        }
+    });
+
+    r.run();
+}

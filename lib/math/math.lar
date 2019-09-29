@@ -13,13 +13,10 @@ public double abs(double v)
     !>>
 }
 
+//这里不处理LONG_MIN等异常情况，调用者自己保证
 public long abs_long(long v)
 {
-    if (v < 0)
-    {
-        return -v;
-    }
-    return v;
+    return -v if v < 0 else v;
 }
 
 public double pow(double x, double y)
