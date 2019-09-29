@@ -1,4 +1,4 @@
-import time, net, math/rand;
+import time, net, math/rand, fiber;
 
 void log(String msg)
 {
@@ -153,7 +153,7 @@ public void main()
                 var conn = listener.accept();
                 log("accept success, new client [%s]".(conn.remote_addr()));
 
-                start_fiber(new Client(conn));
+                fiber.start_new(new Client(conn), nil);
             }
         });
         if (c !== nil)

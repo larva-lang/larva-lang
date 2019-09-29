@@ -32,7 +32,7 @@ func lar_booter_start_prog(builtins_mod_init_func func (), main_mod_init_func fu
     main_func()
 }
 
-func lar_booter_start_co(co lar_intf_@<<:Runnable>>) {
+func lar_booter_start_fiber(r lar_intf_@<<:Runnable>>) {
     defer lar_booter_check_go_panic()
     defer func () {
         c := lar_func_@<<:_catch_throwable>>(recover())
@@ -40,7 +40,7 @@ func lar_booter_start_co(co lar_intf_@<<:Runnable>>) {
             lar_booter_exit_with_catched(c)
         }
     }()
-    co.lar_method_run()
+    r.lar_method_run()
 }
 
 !>>

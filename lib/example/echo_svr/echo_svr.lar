@@ -1,4 +1,4 @@
-import net;
+import net, fiber;
 
 class Client
 {
@@ -49,7 +49,7 @@ public void main()
             public void call()
             {
                 var conn = listener.accept();
-                start_fiber(new Client{conn: conn});
+                fiber.start_new(new Client{conn: conn}, nil);
             }
         });
         if (c !== nil)

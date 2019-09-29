@@ -36,8 +36,14 @@ public T assert_type<T>(GoAny a)
     return t;
 }
 
-//因为经常会有将闭包回调作为参数传入的情况，弄个通用的接口在这里
+//常用的一些接口
+
 public interface Callable
 {
     public void call();
+}
+
+public interface Runnable
+{
+    public void run();
 }

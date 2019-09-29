@@ -49,7 +49,7 @@ func lar_exc_create_catched_throwable(t lar_intf_@<<Throwable>>, skip int) *lar_
         func_name_parts := strings.Split(func_name, ".")
         if len(func_name_parts) == 2 {
             fn := func_name_parts[1]
-            if fn == "lar_booter_start_prog" || fn == "lar_booter_start_co" {
+            if fn == "lar_booter_start_prog" || fn == "lar_booter_start_fiber" {
                 //追溯到了程序或协程的入口，停止
                 break
             }

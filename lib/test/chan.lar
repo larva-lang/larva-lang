@@ -1,4 +1,4 @@
-import testing;
+import testing, fiber;
 
 T chan_elem_zero_value<T>(Chan<T> ch)
 {
@@ -63,7 +63,7 @@ void test_chan()
                     long data_count = 20;
 
                     var ch = new Chan<long>(buf_size);
-                    start_fiber([]{
+                    fiber.start_new([]{
                         public void run()
                         {
                             for (long i = 1; i <= data_count; ++ i)
@@ -72,7 +72,7 @@ void test_chan()
                             }
                             ch.close();
                         }
-                    });
+                    }, nil);
 
                     for (long i = 1; i <= data_count; ++ i)
                     {

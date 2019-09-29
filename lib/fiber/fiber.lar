@@ -1,0 +1,10 @@
+public class Option
+{
+}
+
+public void start_new(Runnable r, Option opt)
+{
+    !<<
+    go lar_booter_start_fiber(l_r)
+    !>>
+}
