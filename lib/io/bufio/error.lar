@@ -1,9 +1,4 @@
 public class Error
 {
-    public Error(String s)
-    {
-        this.s = s;
-    }
-
     String s usemethod(str);
 }

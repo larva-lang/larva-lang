@@ -11,9 +11,9 @@ public class Reader
             buf_size = DEFAULT_READ_BUF_SIZE;
         }
 
-        this.r          = r;
-        this.buf        = new char[buf_size];
-        this.buf_data   = this.buf[: 0];
+        this.r        = r;
+        this.buf      = new char[buf_size];
+        this.buf_data = this.buf[: 0];
     }
 
     public io.Readable readable()

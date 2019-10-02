@@ -201,7 +201,7 @@ public class File
     {
         if (this.stat == STAT_CLOSED)
         {
-            throw(new Error("文件%r已被关闭".(this.fn)));
+            throw(new Error{"文件%r已被关闭".(this.fn)});
         }
     }
 

@@ -11,8 +11,8 @@ public class Writer
             buf_size = DEFAULT_WRITE_BUF_SIZE;
         }
 
-        this.w          = w;
-        this.buf_data   = (new char[buf_size])[: 0];
+        this.w        = w;
+        this.buf_data = (new char[buf_size])[: 0];
     }
 
     public io.Writeable writeable()
@@ -98,6 +98,6 @@ public class Writer
         }
     }
 
-    io.Writeable    w;
-    char[]          buf_data;
+    io.Writeable w;
+    char[]       buf_data;
 }
