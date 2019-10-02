@@ -17,7 +17,9 @@ public bool is_abs(String path)
 
 public String clean(String path)
 {
-    lar_str_from_go_str(filepath.Clean(lar_str_to_go_str(l_path)))
+    !<<
+    return lar_str_from_go_str(filepath.Clean(lar_str_to_go_str(l_path)))
+    !>>
 }
 
 public String abs(String path)
@@ -26,7 +28,7 @@ public String abs(String path)
     {
         return clean(path);
     }
-    return join(new String[]{os.cwd(), path}.iter())
+    return join(new String[]{os.cwd(), path}.iter());
 }
 
 public String join(Iter<String> si)
