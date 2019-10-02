@@ -1,0 +1,20 @@
+import testing, os/path, os;
+
+public void main()
+{
+    var r = new testing.CaseRunner();
+
+    r.add_test_case("常规测试", []{
+        public void call()
+        {
+            testing.assert(path.is_abs("/a") && !path.is_abs("a"), "path.is_abs测试失败");
+            testing.assert(path.abs(".").eq(path.abs(os.cwd())) && path.abs("/a/b").eq("/a/b"), "path.abs测试失败");
+            testing.assert(path.clean("a/b/./../././c/../d").eq("a/d"), "path.clean测试失败");
+            testing.assert(path.join("a,b,c".split(",").iter()).eq("a/b/c"), "path.join测试失败");
+            testing.assert(path.base("a/b/c").eq("c"), "path.base测试失败");
+            testing.assert(path.dir("a/b/c").eq("a/b"), "path.dir测试失败");
+        }
+    });
+
+    r.run();
+}
