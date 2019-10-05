@@ -26,7 +26,7 @@ func lar_booter_start_prog(builtins_mod_init_func func (*lar_go_stru_fiber), mai
 
     defer lar_booter_check_go_panic(lar_fiber)
     defer func () {
-        c := lar_func_@<<:_catch_throwable>>(recover())
+        c := lar_func_@<<:_catch_throwable>>(lar_fiber, recover())
         if c != nil {
             lar_booter_exit_with_catched(c)
         }
@@ -42,7 +42,7 @@ func lar_booter_start_fiber(lar_fiber *lar_go_stru_fiber, r lar_intf_@<<:Runnabl
 
     defer lar_booter_check_go_panic(lar_fiber)
     defer func () {
-        c := lar_func_@<<:_catch_throwable>>(recover())
+        c := lar_func_@<<:_catch_throwable>>(lar_fiber, recover())
         if c != nil {
             lar_booter_exit_with_catched(c)
         }

@@ -103,7 +103,7 @@ class Arr<E>
 
             //递归生成多维数组
             for i := int64(0); i < l_sz; i ++ {
-                l_arr.arr[i] = sub_arr_nil.lar_method_@<<_new_arr>>(szl[1 :]).(@<<{E}>>)
+                l_arr.arr[i] = sub_arr_nil.lar_method_@<<_new_arr>>(lar_fiber, szl[1 :]).(@<<{E}>>)
             }
         }
         !>>
@@ -130,7 +130,7 @@ class Arr<E>
     {
         var type_name = "%T".(this);
         !<<
-        sl := []string{"<", lar_str_to_go_str(l_type_name), " ", this.lar_method_@<<_simple_arr_repr>>().(string), ">"}
+        sl := []string{"<", lar_str_to_go_str(l_type_name), " ", this.lar_method_@<<_simple_arr_repr>>(lar_fiber).(string), ">"}
         return lar_str_from_go_str(strings.Join(sl, ""))
         !>>
     }
@@ -160,7 +160,7 @@ class Arr<E>
             }
             sub_arr, elem_is_arr := ((interface{})(elem)).(lar_intf_@<<IsArr>>)
             if elem_is_arr {
-                sl = append(sl, sub_arr.lar_method_@<<_simple_arr_repr>>().(string))
+                sl = append(sl, sub_arr.lar_method_@<<_simple_arr_repr>>(lar_fiber).(string))
             } else {
                 sl = append(sl, lar_go_func_any_repr_to_go_str(lar_fiber, elem))
             }

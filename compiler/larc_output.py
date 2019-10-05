@@ -369,7 +369,7 @@ def _gen_expr_code_ex(expr):
             new_dim_count = len(size_list)
         assert new_dim_count > 0
         new_arr_method = larc_type.gen_arr_type(tp.to_array_type(len(size_list))).get_coi().method_map["new_arr"]
-        return ("((%s)(nil)).%s([]int64{%s})" %
+        return ("((%s)(nil)).%s(lar_fiber, []int64{%s})" %
                 (_gen_arr_tp_name_code(_gen_non_array_type_name(tp), len(size_list)), _gen_method_name_code(new_arr_method),
                  ", ".join(["int64(%s)" % _gen_expr_code(e) for e in size_list[: new_dim_count]])))
 
@@ -470,7 +470,7 @@ def _gen_expr_code_ex(expr):
 def _gen_arg_def(arg_map, with_lar_fiber = True):
     acl = ["lar_fiber *lar_go_stru_fiber"] if with_lar_fiber else []
     acl += ["l_%s %s%s" % (name, "*" if tp.is_ref else "", _gen_type_name_code(tp)) for name, tp in arg_map.iteritems()]
-    return ", ".join()
+    return ", ".join(acl)
 
 #gen funcs end -----------------------------------------------------------------------------------------------
 
