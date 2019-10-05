@@ -101,12 +101,12 @@ type lar_go_stru_@<<go_WriteCloser_to_Writeable>> struct {
 
 func (this *lar_go_stru_@<<go_WriteCloser_to_Writeable>>) lar_method_write(lar_fiber *lar_go_stru_fiber, buf *lar_arr_uint8_1) {
     _, err := this.w.Write(buf.arr)
-    lar_go_func_@<<throw_on_go_err>>(this.lar_fiber, err)
+    lar_go_func_@<<throw_on_go_err>>(lar_fiber, err)
 }
 
 func (this *lar_go_stru_@<<go_WriteCloser_to_Writeable>>) lar_method_close(lar_fiber *lar_go_stru_fiber) {
     err := this.w.Close()
-    lar_go_func_@<<throw_on_go_err>>(this.lar_fiber, err)
+    lar_go_func_@<<throw_on_go_err>>(lar_fiber, err)
 }
 
 func lar_go_func_@<<go_WriteCloser_to_Writeable>>(w io.WriteCloser) lar_intf_@<<Writeable>> {

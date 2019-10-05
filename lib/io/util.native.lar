@@ -14,7 +14,7 @@ buf长度不可为0，否则抛出异常
 */
 func lar_go_func_@<<read>>(lar_fiber *lar_go_stru_fiber, r io.Reader, buf []byte) (int, error) {
     if len(buf) == 0 {
-        lar_func_@<<:throw>>(lar_fiber, lar_new_obj_lar_cls_@<<:ValueError>>(lar_str_from_go_str("read参数为空buf")))
+        lar_func_@<<:throw>>(lar_fiber, lar_new_obj_lar_cls_@<<:ValueError>>(lar_fiber, lar_str_from_go_str("read参数为空buf")))
     }
     for {
         n, err := r.Read(buf)
