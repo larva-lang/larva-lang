@@ -1,10 +1,25 @@
+import time;
+
 public class Option
 {
+    String name;
+    bool   is_worker;
+    double expire_at;
 }
 
 public void start_new(Runnable r, Option opt)
 {
+    if (opt === nil)
+    {
+        opt = new Option{};
+    }
+    if (opt.name === nil)
+    {
+        opt.name = "fiber_%d".((long)(time.time() * 1e6));
+    }
+
     !<<
-    go lar_booter_start_fiber(l_r)
+    go lar_booter_start_fiber(
+        lar_go_func_new_fiber(lar_fiber, lar_str_to_go_str(l_opt.m_name), l_opt.m_is_worker, int64(l_opt.m_expire_at * 1e9)), l_r)
     !>>
 }

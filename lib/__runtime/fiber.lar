@@ -1,0 +1,38 @@
+!<<
+
+import (
+    "context"
+    "time"
+)
+
+type lar_go_stru_fiber struct {
+    name   string
+    ctx    context.Context
+    cancel context.CancelFunc
+}
+
+func lar_go_func_new_fiber(lar_fiber *lar_go_stru_fiber, name string, is_worker bool, expire_at_nano int64) *lar_go_stru_fiber {
+    var (
+        par_ctx context.Context
+        ctx     context.Context
+        cancel  context.CancelFunc
+    )
+    if is_worker {
+        par_ctx = lar_fiber.ctx
+    } else {
+        par_ctx = context.Background()
+    }
+    if expire_at_nano > 0 {
+        ctx, cancel = context.WithDeadline(par_ctx, time.Unix(0, expire_at_nano))
+    } else {
+        ctx, cancel = context.WithCancel(par_ctx)
+    }
+
+    return &lar_go_stru_fiber{
+        name:   name,
+        ctx:    ctx,
+        cancel: cancel,
+    }
+}
+
+!>>

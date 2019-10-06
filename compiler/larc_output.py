@@ -290,8 +290,10 @@ def _gen_se_expr_code(expr):
         return "%s %s" % (_gen_expr_code(expr.lvalue), expr.op)
     return "%s %s %s" % (_gen_expr_code(expr.lvalue), expr.op, _gen_expr_code(expr.expr))
 
-def _gen_expr_list_code(expr_list):
-    return ", ".join([_gen_expr_code(e) for e in expr_list])
+def _gen_expr_list_code(expr_list, with_lar_fiber = True):
+    ecl = ["lar_fiber"] if with_lar_fiber else []
+    ecl += [_gen_expr_code(e) for e in expr_list]
+    return ", ".join(ecl)
 
 def _gen_expr_code(expr):
     if expr.is_se_expr:
@@ -408,7 +410,8 @@ def _gen_expr_code_ex(expr):
 
     if expr.op == "str_format":
         fmt, expr_list = expr.arg
-        return "lar_str_fmt(%s%s%s)" % (_gen_str_literal(fmt), ", " if expr_list else "", _gen_expr_list_code(expr_list))
+        return ("lar_str_fmt(%s%s%s)" %
+                (_gen_str_literal(fmt), ", " if expr_list else "", _gen_expr_list_code(expr_list, with_lar_fiber = False)))
 
     if expr.op == "to_go_str":
         e = expr.arg
@@ -441,7 +444,7 @@ def _gen_expr_code_ex(expr):
         func, expr_list = expr.arg
         if func.module.name == "__builtins" and func.name in ("_catch_throwable", "catch"):
             assert not expr_list
-            expr_list_code = "recover()"
+            expr_list_code = "lar_fiber, recover()"
         else:
             expr_list_code = _gen_expr_list_code(expr_list)
         return "%s(%s)" % (_gen_func_name(func), expr_list_code)
@@ -464,8 +467,10 @@ def _gen_expr_code_ex(expr):
 
     raise Exception("Bug")
 
-def _gen_arg_def(arg_map):
-    return ", ".join(["l_%s %s%s" % (name, "*" if tp.is_ref else "", _gen_type_name_code(tp)) for name, tp in arg_map.iteritems()])
+def _gen_arg_def(arg_map, with_lar_fiber = True):
+    acl = ["lar_fiber *lar_go_stru_fiber"] if with_lar_fiber else []
+    acl += ["l_%s %s%s" % (name, "*" if tp.is_ref else "", _gen_type_name_code(tp)) for name, tp in arg_map.iteritems()]
+    return ", ".join()
 
 #gen funcs end -----------------------------------------------------------------------------------------------
 
@@ -649,7 +654,6 @@ def _output_stmt_list(code, stmt_list):
 
 _literal_token_id_set = set()
 
-
 _curr_module = None
 def _output_module():
     module = _curr_module
@@ -681,11 +685,11 @@ def _output_module():
         code += ""
         mod_inited_flag_name = "lar_env_inited_flag_of_mod_%s" % _gen_module_name_code(module)
         code += "var %s bool = false" % mod_inited_flag_name
-        with code.new_blk("func %s()" % _gen_init_mod_func_name(module), False):
+        with code.new_blk("func %s(lar_fiber *lar_go_stru_fiber)" % _gen_init_mod_func_name(module), False):
             with code.new_blk("if !%s" % mod_inited_flag_name):
                 code += "%s = true" % mod_inited_flag_name
                 for dep_module_name in module.get_dep_module_set():
-                    code += "%s()" % _gen_init_mod_func_name(larc_module.module_map[dep_module_name])
+                    code += "%s(lar_fiber)" % _gen_init_mod_func_name(larc_module.module_map[dep_module_name])
                 for gv in module.global_var_map.itervalues():
                     if gv.expr is not None:
                         code.record_tb_info(gv.expr.pos_info)
@@ -706,7 +710,8 @@ def _output_module():
                                   (coi_name, _gen_method_name_code(method), _gen_arg_def(method.arg_map), _gen_type_name_code(method.type))):
                     code.record_tb_info(_POS_INFO_IGNORE)
                     code += ("%sthis.cm_%s(%s)" %
-                             ("" if method.type.is_void else "return ", method.name, ", ".join(["l_%s" % name for name in method.arg_map])))
+                             ("" if method.type.is_void else "return ", method.name,
+                              ", ".join(["lar_fiber"] + ["l_%s" % name for name in method.arg_map])))
             code += "var lar_reflect_type_name_%s = lar_str_from_go_str(%s)" % (coi_name, _gen_str_literal("<%s>" % closure))
             with code.new_blk("func (this *%s) lar_reflect_type_name() %s" % (coi_name, _STR_TYPE_NAME_CODE)):
                 code += "return lar_reflect_type_name_%s" % coi_name
@@ -738,7 +743,8 @@ def _output_module():
             with code.new_blk("func lar_new_obj_%s(%s) *%s" % (lar_cls_name, _gen_arg_def(cls.construct_method.arg_map), lar_cls_name)):
                 code += "o := new(%s)" % lar_cls_name
                 code.record_tb_info(_POS_INFO_IGNORE)
-                code += "o.lar_construct_method_%s(%s)" % (cls.name, ", ".join(["l_%s" % name for name in cls.construct_method.arg_map]))
+                code += ("o.lar_construct_method_%s(%s)" %
+                         (cls.name, ", ".join(["lar_fiber"] + ["l_%s" % name for name in cls.construct_method.arg_map])))
                 code += "return o"
             for method in [cls.construct_method] + list(cls.method_map.itervalues()):
                 if method is cls.construct_method:
@@ -756,13 +762,13 @@ def _output_module():
                         code.record_tb_info((method.attr.type.token, "<usemethod>"))
                         code += ("%sthis.m_%s.%s(%s)" %
                                  ("" if method.type.is_void else "return ", method.attr.name, method_name,
-                                  ", ".join(["l_%s" % name for name in method.arg_map])))
+                                  ", ".join(["lar_fiber"] + ["l_%s" % name for name in method.arg_map])))
 
         for func in [i for i in module.func_map.itervalues() if not i.gtp_name_list] + list(module.gfunc_inst_map.itervalues()):
             code.switch_file(func.file_name)
             if module.name == "__builtins" and func.name in ("_catch_throwable", "catch"):
                 assert not func.arg_map
-                arg_def = "_go_recovered interface{}"
+                arg_def = "lar_fiber *lar_go_stru_fiber, _go_recovered interface{}"
             else:
                 arg_def = _gen_arg_def(func.arg_map)
             with code.new_blk("func %s(%s) %s" % (_gen_func_name(func), arg_def, _gen_type_name_code(func.type))):

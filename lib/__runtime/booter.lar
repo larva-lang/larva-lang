@@ -10,7 +10,7 @@ func lar_booter_exit_with_catched(c *lar_gcls_inst_@<<:Catched>>_1_lar_intf_@<<:
     os.Exit(2)
 }
 
-func lar_booter_check_go_panic() {
+func lar_booter_check_go_panic(lar_fiber *lar_go_stru_fiber) {
     r := recover()
     if r != nil {
         fmt.Fprintln(os.Stderr, "process crash, traceback:")
@@ -19,28 +19,36 @@ func lar_booter_check_go_panic() {
     }
 }
 
-func lar_booter_start_prog(builtins_mod_init_func func (), main_mod_init_func func (), main_func func ()) {
-    defer lar_booter_check_go_panic()
+func lar_booter_start_prog(builtins_mod_init_func func (*lar_go_stru_fiber), main_mod_init_func func (*lar_go_stru_fiber),
+                           main_func func (*lar_go_stru_fiber)) {
+    lar_fiber := lar_go_func_new_fiber(nil, "main", false, 0)
+    defer lar_fiber.cancel()
+
+    defer lar_booter_check_go_panic(lar_fiber)
     defer func () {
         c := lar_func_@<<:_catch_throwable>>(recover())
         if c != nil {
             lar_booter_exit_with_catched(c)
         }
     }()
-    builtins_mod_init_func()
-    main_mod_init_func()
-    main_func()
+
+    builtins_mod_init_func(lar_fiber)
+    main_mod_init_func(lar_fiber)
+    main_func(lar_fiber)
 }
 
-func lar_booter_start_fiber(r lar_intf_@<<:Runnable>>) {
-    defer lar_booter_check_go_panic()
+func lar_booter_start_fiber(lar_fiber *lar_go_stru_fiber, r lar_intf_@<<:Runnable>>) {
+    defer lar_fiber.cancel()
+
+    defer lar_booter_check_go_panic(lar_fiber)
     defer func () {
         c := lar_func_@<<:_catch_throwable>>(recover())
         if c != nil {
             lar_booter_exit_with_catched(c)
         }
     }()
-    r.lar_method_run()
+
+    r.lar_method_run(lar_fiber)
 }
 
 !>>
