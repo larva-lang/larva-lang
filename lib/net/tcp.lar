@@ -14,9 +14,9 @@ public class TcpListener
     {
         !<<
         tcp_addr, err := net.ResolveTCPAddr("tcp", lar_str_to_go_str(l_addr))
-        lar_go_func_@<<throw_on_go_err>>(err)
+        lar_go_func_@<<throw_on_go_err>>(lar_fiber, err)
         ntl, err := net.ListenTCP("tcp", tcp_addr)
-        lar_go_func_@<<throw_on_go_err>>(err)
+        lar_go_func_@<<throw_on_go_err>>(lar_fiber, err)
         this.ntl = ntl
         !>>
     }
@@ -32,7 +32,7 @@ public class TcpListener
     {
         !<<
         ntc, err := this.ntl.AcceptTCP()
-        lar_go_func_@<<throw_on_go_err>>(err)
+        lar_go_func_@<<throw_on_go_err>>(lar_fiber, err)
         return &lar_cls_@<<TcpConn>>{
             ntc: ntc,
         }
@@ -43,7 +43,7 @@ public class TcpListener
     {
         !<<
         err := this.ntl.Close()
-        lar_go_func_@<<throw_on_go_err>>(err)
+        lar_go_func_@<<throw_on_go_err>>(lar_fiber, err)
         !>>
     }
 
@@ -71,8 +71,8 @@ public class TcpConn
     public long read(char[] buf)
     {
         !<<
-        n, err := lar_go_func_@<<io.read>>(this.ntc, l_buf.arr)
-        lar_go_func_@<<throw_on_go_err>>(err)
+        n, err := lar_go_func_@<<io.read>>(lar_fiber, this.ntc, l_buf.arr)
+        lar_go_func_@<<throw_on_go_err>>(lar_fiber, err)
         return int64(n)
         !>>
     }
@@ -81,7 +81,7 @@ public class TcpConn
     {
         !<<
         _, err := this.ntc.Write(l_buf.arr)
-        lar_go_func_@<<throw_on_go_err>>(err)
+        lar_go_func_@<<throw_on_go_err>>(lar_fiber, err)
         !>>
     }
 
@@ -89,7 +89,7 @@ public class TcpConn
     {
         !<<
         err := this.ntc.Close()
-        lar_go_func_@<<throw_on_go_err>>(err)
+        lar_go_func_@<<throw_on_go_err>>(lar_fiber, err)
         !>>
     }
 

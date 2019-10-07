@@ -29,6 +29,6 @@ public String format_time(String layout, double tm)
 {
     !<<
     nano_sec := int64(l_tm * 1e9)
-    return lar_str_from_go_str(time.Unix(nano_sec / int64(1e9), nano_sec % int64(1e9)).Format(lar_str_to_go_str(l_layout)))
+    return lar_str_from_go_str(time.Unix(0, nano_sec).Format(lar_str_to_go_str(l_layout)))
     !>>
 }

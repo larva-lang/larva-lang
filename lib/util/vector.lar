@@ -209,6 +209,6 @@ public class VectorIter<E>
         -- this.idx;
     }
 
-    Vector<E>   vec;
-    long        idx;
+    Vector<E> vec;
+    long      idx;
 }

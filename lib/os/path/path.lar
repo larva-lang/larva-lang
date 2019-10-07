@@ -35,9 +35,14 @@ public String join(Iter<String> si)
 {
     !<<
     sl := make([]string, 0, 16)
-    for ; !l_si.lar_method_after_end(); l_si.lar_method_inc() {
-        sl = append(sl, lar_str_to_go_str(l_si.lar_method_get()))
+    !>>
+    foreach (var s: si)
+    {
+        !<<
+        sl = append(sl, lar_str_to_go_str(l_s))
+        !>>
     }
+    !<<
     return lar_str_from_go_str(filepath.Join(sl...))
     !>>
 }

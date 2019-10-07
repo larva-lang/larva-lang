@@ -5,9 +5,9 @@ public class Error
 
 !<<
 
-func lar_go_func_@<<throw_on_go_err>>(err error) {
+func lar_go_func_@<<throw_on_go_err>>(lar_fiber *lar_go_stru_fiber, err error) {
     if err != nil {
-        lar_func_@<<:throw>>(&lar_cls_@<<Error>>{
+        lar_func_@<<:throw>>(lar_fiber, &lar_cls_@<<Error>>{
             m_e: &lar_cls_@<<:GoError>>{
                 err: err,
             },

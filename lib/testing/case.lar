@@ -18,7 +18,7 @@ public class CaseResult
         return this._msg;
     }
 
-    bool _ok; //测试成功或失败
+    bool   _ok;  //测试成功或失败
     String _msg; //测试结果消息
 }
 
@@ -27,8 +27,8 @@ public class CaseRunner
     public CaseRunner()
     {
         this.output_enabled = true;
-        this.cases = new util.HashMap<String, Case>(nil);
-        this.results = new util.HashMap<String, CaseResult>(nil);
+        this.cases          = new util.HashMap<String, Case>(nil);
+        this.results        = new util.HashMap<String, CaseResult>(nil);
     }
 
     public void disable_output()
@@ -137,7 +137,7 @@ public class CaseRunner
         }
     }
 
-    bool output_enabled; //是否开启输出，默认开启
-    util.HashMap<String, Case> cases;
+    bool                             output_enabled; //是否开启输出，默认开启
+    util.HashMap<String, Case>       cases;
     util.HashMap<String, CaseResult> results;
 }

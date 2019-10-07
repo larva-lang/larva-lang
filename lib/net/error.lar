@@ -53,9 +53,9 @@ func lar_go_func_@<<new_Error>>(e error) *lar_cls_@<<Error>> {
     return le
 }
 
-func lar_go_func_@<<throw_on_go_err>>(err error) {
+func lar_go_func_@<<throw_on_go_err>>(lar_fiber *lar_go_stru_fiber, err error) {
     if err != nil {
-        lar_func_@<<:throw>>(lar_go_func_@<<new_Error>>(err))
+        lar_func_@<<:throw>>(lar_fiber, lar_go_func_@<<new_Error>>(err))
     }
 }
 

@@ -592,9 +592,10 @@ def _output_stmt_list(code, stmt_list):
                 code += "var l_%s %s = (%s)" % (stmt.var_name, _gen_type_name_code(stmt.var_tp), _gen_default_value_code(stmt.var_tp))
                 code += "_ = l_%s" % (stmt.var_name)
                 code.record_tb_info(stmt.iter_expr.pos_info)
-                with code.new_blk("for foreach_iter := (%s); !foreach_iter.lar_method_after_end(); foreach_iter.lar_method_inc()" %
+                with code.new_blk("for foreach_iter := (%s); !foreach_iter.lar_method_after_end(lar_fiber); "
+                                  "foreach_iter.lar_method_inc(lar_fiber)" %
                                   _gen_expr_code(stmt.iter_expr), start_with_blank_line = False):
-                    code += "l_%s = foreach_iter.lar_method_get()" % (stmt.var_name)
+                    code += "l_%s = foreach_iter.lar_method_get(lar_fiber)" % (stmt.var_name)
                     _output_stmt_list(code, stmt.stmt_list)
             continue
 
