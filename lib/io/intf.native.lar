@@ -29,11 +29,11 @@ func (this *lar_go_stru_@<<Readable_to_go_ReadCloser>>) Close() (e error) {
 }
 
 func lar_go_func_@<<Readable_to_go_ReadCloser>>(lar_fiber *lar_go_stru_fiber, readable lar_intf_@<<Readable>>) io.ReadCloser {
-    p, ok := readable.(lar_go_stru_@<<go_ReadCloser_to_Readable>>)
+    p, ok := readable.(*lar_go_stru_@<<go_ReadCloser_to_Readable>>)
     if ok {
         return p.r
     }
-    return lar_go_stru_@<<Readable_to_go_ReadCloser>>{
+    return &lar_go_stru_@<<Readable_to_go_ReadCloser>>{
         lar_fiber: lar_fiber,
         readable:  readable,
     }
@@ -55,11 +55,11 @@ func (this *lar_go_stru_@<<go_ReadCloser_to_Readable>>) lar_method_close(lar_fib
 }
 
 func lar_go_func_@<<go_ReadCloser_to_Readable>>(r io.ReadCloser) lar_intf_@<<Readable>> {
-    p, ok := r.(lar_go_stru_@<<Readable_to_go_ReadCloser>>)
+    p, ok := r.(*lar_go_stru_@<<Readable_to_go_ReadCloser>>)
     if ok {
         return p.readable
     }
-    return lar_go_stru_@<<go_ReadCloser_to_Readable>>{
+    return &lar_go_stru_@<<go_ReadCloser_to_Readable>>{
         r: r,
     }
 }
@@ -78,18 +78,18 @@ func (this *lar_go_stru_@<<Writeable_to_go_WriteCloser>>) Write(buf []byte) (n i
     return
 }
 
-func (this lar_go_stru_@<<Writeable_to_go_WriteCloser>>) Close() (e error) {
+func (this *lar_go_stru_@<<Writeable_to_go_WriteCloser>>) Close() (e error) {
     defer lar_go_func_@<<:catch_go_err>>(this.lar_fiber, &e)
     this.writeable.lar_method_close(this.lar_fiber)
     return
 }
 
 func lar_go_func_@<<Writeable_to_go_WriteCloser>>(lar_fiber *lar_go_stru_fiber, writeable lar_intf_@<<Writeable>>) io.WriteCloser {
-    p, ok := writeable.(lar_go_stru_@<<go_WriteCloser_to_Writeable>>)
+    p, ok := writeable.(*lar_go_stru_@<<go_WriteCloser_to_Writeable>>)
     if ok {
         return p.w
     }
-    return lar_go_stru_@<<Writeable_to_go_WriteCloser>>{
+    return &lar_go_stru_@<<Writeable_to_go_WriteCloser>>{
         lar_fiber: lar_fiber,
         writeable: writeable,
     }
@@ -99,22 +99,22 @@ type lar_go_stru_@<<go_WriteCloser_to_Writeable>> struct {
     w io.WriteCloser
 }
 
-func (this lar_go_stru_@<<go_WriteCloser_to_Writeable>>) lar_method_write(lar_fiber *lar_go_stru_fiber, buf *lar_arr_uint8_1) {
+func (this *lar_go_stru_@<<go_WriteCloser_to_Writeable>>) lar_method_write(lar_fiber *lar_go_stru_fiber, buf *lar_arr_uint8_1) {
     _, err := this.w.Write(buf.arr)
     lar_go_func_@<<throw_on_go_err>>(this.lar_fiber, err)
 }
 
-func (this lar_go_stru_@<<go_WriteCloser_to_Writeable>>) lar_method_close(lar_fiber *lar_go_stru_fiber) {
+func (this *lar_go_stru_@<<go_WriteCloser_to_Writeable>>) lar_method_close(lar_fiber *lar_go_stru_fiber) {
     err := this.w.Close()
     lar_go_func_@<<throw_on_go_err>>(this.lar_fiber, err)
 }
 
 func lar_go_func_@<<go_WriteCloser_to_Writeable>>(w io.WriteCloser) lar_intf_@<<Writeable>> {
-    p, ok := w.(lar_go_stru_@<<Writeable_to_go_WriteCloser>>)
+    p, ok := w.(*lar_go_stru_@<<Writeable_to_go_WriteCloser>>)
     if ok {
         return p.writeable
     }
-    return lar_go_stru_@<<go_WriteCloser_to_Writeable>>{
+    return &lar_go_stru_@<<go_WriteCloser_to_Writeable>>{
         w: w,
     }
 }
