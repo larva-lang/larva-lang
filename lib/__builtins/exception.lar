@@ -8,7 +8,7 @@ public interface Throwable
 public void throw(Throwable t)
 {
     !<<
-    panic(lar_exc_create_catched_throwable(l_t, 2))
+    panic(lar_exc_create_catched_throwable(lar_fiber, l_t, 2))
     !>>
 }
 

@@ -418,15 +418,15 @@ def _gen_expr_code_ex(expr):
         if e.type == larc_type.STR_TYPE:
             #针对String小优化一下
             return "lar_str_to_go_str(%s)" % _gen_expr_code(e)
-        return "lar_go_func_any_to_go_str(%s)" % _gen_expr_code(e)
+        return "lar_go_func_any_to_go_str(lar_fiber, %s)" % _gen_expr_code(e)
 
     if expr.op == "repr_to_go_str":
         e = expr.arg
-        return "lar_go_func_any_repr_to_go_str(%s)" % _gen_expr_code(e)
+        return "lar_go_func_any_repr_to_go_str(lar_fiber, %s)" % _gen_expr_code(e)
 
     if expr.op == "type_name_to_go_str":
         e = expr.arg
-        return "lar_go_func_any_type_name_to_go_str(%s)" % _gen_expr_code(e)
+        return "lar_go_func_any_type_name_to_go_str(lar_fiber, %s)" % _gen_expr_code(e)
 
     if expr.op == "call_method":
         e, method, expr_list = expr.arg

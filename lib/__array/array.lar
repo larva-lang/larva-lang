@@ -162,7 +162,7 @@ class Arr<E>
             if elem_is_arr {
                 sl = append(sl, sub_arr.lar_method_@<<_simple_arr_repr>>().(string))
             } else {
-                sl = append(sl, lar_go_func_any_repr_to_go_str(elem))
+                sl = append(sl, lar_go_func_any_repr_to_go_str(lar_fiber, elem))
             }
         }
         sl = append(sl, "]")

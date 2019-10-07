@@ -14,7 +14,7 @@ func lar_booter_check_go_panic(lar_fiber *lar_go_stru_fiber) {
     r := recover()
     if r != nil {
         fmt.Fprintln(os.Stderr, "process crash, traceback:")
-        fmt.Fprintln(os.Stderr, lar_str_to_go_str(lar_exc_create_catched_throwable(nil, 5).m_tb))
+        fmt.Fprintln(os.Stderr, lar_str_to_go_str(lar_exc_create_catched_throwable(lar_fiber, nil, 5).m_tb))
         panic(r)
     }
 }

@@ -22,26 +22,26 @@ func lar_str_fmt(format string, a ...interface{}) *lar_cls_@<<String>> {
 }
 
 type lar_go_intf_strable interface {
-    lar_method_str() *lar_cls_@<<String>>
+    lar_method_str(lar_fiber *lar_go_stru_fiber) *lar_cls_@<<String>>
 }
 
-func lar_go_func_any_to_go_str(a lar_intf_@<<GoAny>>) string {
+func lar_go_func_any_to_go_str(lar_fiber *lar_go_stru_fiber, a lar_intf_@<<GoAny>>) string {
     strable, ok := a.(lar_go_intf_strable)
     if ok {
-        return lar_str_to_go_str(strable.lar_method_str())
+        return lar_str_to_go_str(strable.lar_method_str(lar_fiber))
     }
-    return lar_go_func_any_repr_to_go_str(a)
+    return lar_go_func_any_repr_to_go_str(lar_fiber, a)
 }
 
 type lar_go_intf_reprable interface {
-    lar_method_repr() *lar_cls_@<<String>>
+    lar_method_repr(lar_fiber *lar_go_stru_fiber) *lar_cls_@<<String>>
 }
 
 type lar_go_intf_nil_reprable interface {
-    lar_method_nil_repr() *lar_cls_@<<String>>
+    lar_method_nil_repr(lar_fiber *lar_go_stru_fiber) *lar_cls_@<<String>>
 }
 
-func lar_go_func_any_repr_to_go_str(a lar_intf_@<<GoAny>>) string {
+func lar_go_func_any_repr_to_go_str(lar_fiber *lar_go_stru_fiber, a lar_intf_@<<GoAny>>) string {
     switch v := a.(type) {
     case nil:
         return "<nil>"
@@ -65,14 +65,14 @@ func lar_go_func_any_repr_to_go_str(a lar_intf_@<<GoAny>>) string {
         nil_reprable, ok := lri.(lar_go_intf_nil_reprable)
         if ok {
             //定义了nil_repr，使用
-            return lar_str_to_go_str(nil_reprable.lar_method_nil_repr())
+            return lar_str_to_go_str(nil_reprable.lar_method_nil_repr(lar_fiber))
         }
     } else {
         //正常对象
         reprable, ok := lri.(lar_go_intf_reprable)
         if ok {
             //定义了repr，使用
-            return lar_str_to_go_str(reprable.lar_method_repr())
+            return lar_str_to_go_str(reprable.lar_method_repr(lar_fiber))
         }
     }
 
@@ -80,8 +80,8 @@ func lar_go_func_any_repr_to_go_str(a lar_intf_@<<GoAny>>) string {
     return fmt.Sprintf("<%s object at 0x%X>", lar_str_to_go_str(lri.lar_reflect_type_name()), p)
 }
 
-func lar_go_func_any_type_name_to_go_str(a lar_intf_@<<GoAny>>) string {
-    return lar_str_to_go_str(lar_func_@<<__internal.reflect_type_name>>(a))
+func lar_go_func_any_type_name_to_go_str(lar_fiber *lar_go_stru_fiber, a lar_intf_@<<GoAny>>) string {
+    return lar_str_to_go_str(lar_func_@<<__internal.reflect_type_name>>(lar_fiber, a))
 }
 
 //判断一个8-bit char是否为空白符

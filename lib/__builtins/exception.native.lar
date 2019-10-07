@@ -23,7 +23,8 @@ Traceback:
 不够准确，而如果使用-gcflags "-l"关闭内联又会有较大性能损耗
 */
 
-func lar_exc_create_catched_throwable(t lar_intf_@<<Throwable>>, skip int) *lar_gcls_inst_@<<Catched>>_1_lar_intf_@<<Throwable>> {
+func lar_exc_create_catched_throwable(lar_fiber *lar_go_stru_fiber, t lar_intf_@<<Throwable>>,
+                                      skip int) *lar_gcls_inst_@<<Catched>>_1_lar_intf_@<<Throwable>> {
     var tb_line_list []string
     if t != nil {
         var t_type_name string
@@ -72,7 +73,7 @@ func lar_exc_create_catched_throwable(t lar_intf_@<<Throwable>>, skip int) *lar_
             }
         }
     }
-    tb_line_list = append(tb_line_list, "Traceback:")
+    tb_line_list = append(tb_line_list, fmt.Sprintf("Traceback (fiber[%s]):", lar_fiber.name))
     //上面是反着写info的，reverse一下
     tb_line_count := len(tb_line_list)
     for i := 0; i < tb_line_count / 2; i ++ {
@@ -84,11 +85,11 @@ func lar_exc_create_catched_throwable(t lar_intf_@<<Throwable>>, skip int) *lar_
 }
 
 //捕获的异常转换为go的error
-func (this *lar_gcls_inst_@<<Catched>>_1_lar_intf_@<<Throwable>>) lar_go_method_to_go_err() error {
+func (this *lar_gcls_inst_@<<Catched>>_1_lar_intf_@<<Throwable>>) lar_go_method_to_go_err(lar_fiber *lar_go_stru_fiber) error {
     //若本身包含go的异常，直接返回即可
     ge, ok := this.m_t.(lar_intf_@<<GoErrorPorter>>)
     if ok {
-        return ge.lar_method_go_err().err
+        return ge.lar_method_go_err(lar_fiber).err
     }
     //提取信息，转为go的error字符串
     var t_type_name string
@@ -101,17 +102,17 @@ func (this *lar_gcls_inst_@<<Catched>>_1_lar_intf_@<<Throwable>>) lar_go_method_
     return errors.New("[Larva throwed]" + t_type_name + ": " + lar_str_to_go_str(this.m_t.lar_method_str()))
 }
 
-func lar_go_func_@<<throw_go_err>>(err error) {
-    lar_func_@<<throw>>(&lar_cls_@<<GoError>>{
+func lar_go_func_@<<throw_go_err>>(lar_fiber *lar_go_stru_fiber, err error) {
+    lar_func_@<<throw>>(lar_fiber, &lar_cls_@<<GoError>>{
         err: err,
     })
 }
 
 //用于反向port时候的defer
-func lar_go_func_@<<catch_go_err>>(err_ptr *error) {
-    c := lar_func_@<<_catch_throwable>>(recover())
+func lar_go_func_@<<catch_go_err>>(lar_fiber *lar_go_stru_fiber, err_ptr *error) {
+    c := lar_func_@<<_catch_throwable>>(lar_fiber, recover())
     if c != nil {
-        *err_ptr = c.lar_go_method_to_go_err()
+        *err_ptr = c.lar_go_method_to_go_err(lar_fiber)
     }
 }
 

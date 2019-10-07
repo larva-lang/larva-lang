@@ -12,27 +12,27 @@ import (
 public void print(GoAny a)
 {
     !<<
-    fmt.Print(lar_go_func_any_to_go_str(l_a))
+    fmt.Print(lar_go_func_any_to_go_str(lar_fiber, l_a))
     !>>
 }
 
 public void println(GoAny a)
 {
     !<<
-    fmt.Println(lar_go_func_any_to_go_str(l_a))
+    fmt.Println(lar_go_func_any_to_go_str(lar_fiber, l_a))
     !>>
 }
 
 public void err_print(GoAny a)
 {
     !<<
-    fmt.Fprint(os.Stderr, lar_go_func_any_to_go_str(l_a))
+    fmt.Fprint(os.Stderr, lar_go_func_any_to_go_str(lar_fiber, l_a))
     !>>
 }
 
 public void err_println(GoAny a)
 {
     !<<
-    fmt.Fprintln(os.Stderr, lar_go_func_any_to_go_str(l_a))
+    fmt.Fprintln(os.Stderr, lar_go_func_any_to_go_str(lar_fiber, l_a))
     !>>
 }
