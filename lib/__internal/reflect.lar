@@ -70,12 +70,12 @@ public String reflect_type_name(GoAny a)
     }
     return lar_str_from_go_str(
         fmt.Sprintf("%s%s%s",
-                    lar_str_to_go_str(REFLECT_TYPE_NAME_GO_TYPE_PREFIX), reflect.TypeOf(t).String(),
-                    lar_str_to_go_str(REFLECT_TYPE_NAME_GO_TYPE_SUFFIX)))
+                    lar_str_to_go_str(lar_gv_@<<REFLECT_TYPE_NAME_GO_TYPE_PREFIX>>), reflect.TypeOf(l_a).String(),
+                    lar_str_to_go_str(lar_gv_@<<REFLECT_TYPE_NAME_GO_TYPE_SUFFIX>>)))
     !>>
 }
 
-public bool is_go_type_name(type_name)
+public bool is_go_type_name(String type_name)
 {
     return type_name.has_prefix(REFLECT_TYPE_NAME_GO_TYPE_PREFIX) && type_name.has_suffix(REFLECT_TYPE_NAME_GO_TYPE_SUFFIX);
 }

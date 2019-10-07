@@ -124,7 +124,7 @@ Larva编译器
                 larc_common.exit("环境检查失败：标准库模块[%s]名字含有非法的下划线" % fn)
             first_level_std_module_set.add(fn)
 
-    std_lib_internal_module_list = "__builtins", "__internal", "__array", "__runtime"
+    std_lib_internal_module_list = "__builtins", "__internal", "__array", "__runtime", "fiber"
 
     #检查一下几个特殊的标准库模块，必须有
     for mn in std_lib_internal_module_list:
@@ -181,6 +181,7 @@ Larva编译器
     assert not internal_module.get_dep_module_set() #__internal模块不能导入其他模块
     larc_module.array_module = larc_module.module_map["__array"] = larc_module.Module("__array")
     larc_module.module_map["__runtime"] = larc_module.Module("__runtime")
+    larc_module.module_map["fiber"] = larc_module.Module("fiber")
 
     #预处理主模块
     larc_module.module_map[main_module_name] = main_module = larc_module.Module(main_module_name)
