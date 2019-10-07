@@ -102,12 +102,19 @@ void test_chan()
                             //worker
                             public void run()
                             {
-                                result_ch.send(call_and_catch<fiber.Canceled>([]{
+                                var c = call_and_catch<fiber.Canceled>([]{
                                     public void call()
                                     {
                                         ch.recv(ref _);
                                     }
-                                }));
+                                });
+                                //按正常测试流程，当前fiber应该已经被取消，不能再通过result_ch做send，另开一个fiber做这个工作
+                                fiber.start_new([]{
+                                    public void run()
+                                    {
+                                        result_ch.send(c);
+                                    }
+                                }, nil);
                             }
                         }, new fiber.Option{
                             is_worker: true,
@@ -115,7 +122,7 @@ void test_chan()
                     }
                 }, nil);
                 var c = result_ch.recv(ref _);
-                testing.assert(c !== nil && !c.is_timeout(), "worker fiber被取消时阻塞的Chan.recv未抛出预期的异常");
+                testing.assert(c !== nil && !c.throwed().is_timeout(), "worker fiber被取消时阻塞的Chan.recv未抛出预期的异常");
             }
 
             {
@@ -123,18 +130,25 @@ void test_chan()
                     //master
                     public void run()
                     {
-                        result_ch.send(call_and_catch<fiber.Canceled>([]{
+                        var c = call_and_catch<fiber.Canceled>([]{
                             public void call()
                             {
                                 ch.send(123);
                             }
-                        }));
+                        });
+                        //另开fiber将c发送到result_ch，理由同上
+                        fiber.start_new([]{
+                            public void run()
+                            {
+                                result_ch.send(c);
+                            }
+                        }, nil);
                     }
                 }, new fiber.Option{
                     timeout: 0.1,
                 });
                 var c = result_ch.recv(ref _);
-                testing.assert(c !== nil && c.is_timeout(), "timeout fiber超时时阻塞的Chan.send未抛出预期的异常");
+                testing.assert(c !== nil && c.throwed().is_timeout(), "timeout fiber超时时阻塞的Chan.send未抛出预期的异常");
             }
         }
     });
