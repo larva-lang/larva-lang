@@ -1,6 +1,17 @@
 public class Error
 {
-    GoError e usemethod;
+    public Error(String s)
+    {
+        this.s = s;
+    }
+
+    public String str()
+    {
+        return this.s if this.ge === nil else this.ge.str();
+    }
+
+    String  s;
+    GoError ge usemethod;
 }
 
 !<<
@@ -8,7 +19,7 @@ public class Error
 func lar_go_func_@<<throw_on_go_err>>(lar_fiber *lar_go_stru_fiber, err error) {
     if err != nil {
         lar_func_@<<:throw>>(lar_fiber, &lar_cls_@<<Error>>{
-            m_e: &lar_cls_@<<:GoError>>{
+            m_ge: &lar_cls_@<<:GoError>>{
                 err: err,
             },
         })

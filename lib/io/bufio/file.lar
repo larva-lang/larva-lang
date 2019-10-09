@@ -1,4 +1,4 @@
-import os;
+import os, io;
 
 final int
     STAT_RD     = 1,
@@ -88,7 +88,7 @@ public class File
     {
         if (!this.allow_read())
         {
-            throw("文件以模式%r打开，不可读".(this.md));
+            throw(new io.Error("文件以模式%r打开，不可读".(this.md)));
         }
     }
 
@@ -101,7 +101,7 @@ public class File
     {
         if (!this.allow_write())
         {
-            throw("文件以模式%r打开，不可写".(this.md));
+            throw(new io.Error("文件以模式%r打开，不可写".(this.md)));
         }
     }
 
