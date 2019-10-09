@@ -87,14 +87,14 @@ func lar_exc_create_catched_throwable(lar_fiber *lar_go_stru_fiber, t lar_intf_@
 //捕获的异常转换为go的error
 func (this *lar_gcls_inst_@<<Catched>>_1_lar_intf_@<<Throwable>>) lar_go_method_to_go_err(lar_fiber *lar_go_stru_fiber) error {
     //若本身包含go的异常，直接返回即可
-    ge, ok := this.m_t.(lar_intf_@<<GoErrorPorter>>)
-    if ok {
-        return ge.lar_method_go_err(lar_fiber).err
+    if gep, ok := this.m_t.(lar_intf_@<<GoErrorPorter>>); ok {
+        if ge := gep.lar_method_go_err(lar_fiber); ge != nil {
+            return ge.err
+        }
     }
     //提取信息，转为go的error字符串
     var t_type_name string
-    lri, ok := this.m_t.(lar_reflect_intf)
-    if ok {
+    if lri, ok := this.m_t.(lar_reflect_intf); ok {
         t_type_name = lar_str_to_go_str(lri.lar_reflect_type_name())
     } else {
         t_type_name = fmt.Sprintf("<GoType %s>", reflect.TypeOf(this.m_t).String())
