@@ -27,13 +27,7 @@ func lar_exc_create_catched_throwable(lar_fiber *lar_go_stru_fiber, t lar_intf_@
                                       skip int) *lar_gcls_inst_@<<Catched>>_1_lar_intf_@<<Throwable>> {
     var tb_line_list []string
     if t != nil {
-        var t_type_name string
-        lri, ok := t.(lar_reflect_intf)
-        if ok {
-            t_type_name = lar_str_to_go_str(lri.lar_reflect_type_name())
-        } else {
-            t_type_name = fmt.Sprintf("<GoType %s>", reflect.TypeOf(t).String())
-        }
+        t_type_name := lar_go_func_any_type_name_to_go_str(lar_fiber, t)
         tb_line_list = append(tb_line_list, t_type_name + ": " + lar_str_to_go_str(t.lar_method_str(lar_fiber)))
     }
     for i := skip; true; i ++ {
@@ -93,12 +87,7 @@ func (this *lar_gcls_inst_@<<Catched>>_1_lar_intf_@<<Throwable>>) lar_go_method_
         }
     }
     //提取信息，转为go的error字符串
-    var t_type_name string
-    if lri, ok := this.m_t.(lar_reflect_intf); ok {
-        t_type_name = lar_str_to_go_str(lri.lar_reflect_type_name())
-    } else {
-        t_type_name = fmt.Sprintf("<GoType %s>", reflect.TypeOf(this.m_t).String())
-    }
+    t_type_name := lar_go_func_any_type_name_to_go_str(lar_fiber, this.m_t)
     return errors.New("[Larva throwed]" + t_type_name + ": " + lar_str_to_go_str(this.m_t.lar_method_str(lar_fiber)))
 }
 

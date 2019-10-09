@@ -56,7 +56,7 @@ func lar_go_func_any_repr_to_go_str(lar_fiber *lar_go_stru_fiber, a lar_intf_@<<
     //检查是否larva对象
     lri, ok := a.(lar_reflect_intf)
     if !ok {
-        return "<go object>"
+        return fmt.Sprintf("<GoType %s object>", reflect.TypeOf(a).String())
     }
 
     p := reflect.ValueOf(&lri).Elem().InterfaceData()[1]

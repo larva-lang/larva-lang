@@ -3,15 +3,15 @@ import __internal;
 //无效larva对象
 public class NotLarvaObject
 {
-    EmptyException e usemethod;
+    String type_name usemethod(str);
 }
 
 public String type_name(Any a)
 {
     String name = __internal.reflect_type_name(a);
-    if (name === __internal.REFLECT_TYPE_NAME_GO_TYPE)
+    if (__internal.is_go_type_name(name))
     {
-        throw(new NotLarvaObject());
+        throw(new NotLarvaObject{name});
     }
     return name;
 }

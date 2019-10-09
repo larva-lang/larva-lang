@@ -1,5 +1,10 @@
 !<<
 
+import (
+    "fmt"
+    "reflect"
+)
+
 //larva反射接口，所有被编译的larva class都要实现这个接口，由编译器保证
 //native class的对应方法的代码也由编译器生成，lar_native代码中不需要自己实现
 //没有体现在larva代码中的元素（如native类的成员属性、native类没有暴露的方法等）
@@ -25,7 +30,10 @@ var (
 
 !>>
 
-public final String REFLECT_TYPE_NAME_GO_TYPE = "<go type>";
+final String
+    REFLECT_TYPE_NAME_GO_TYPE_PREFIX = "<GoType ",
+    REFLECT_TYPE_NAME_GO_TYPE_SUFFIX = ">",
+;
 
 public String reflect_type_name(GoAny a)
 {
@@ -60,6 +68,14 @@ public String reflect_type_name(GoAny a)
     if ok {
         return lri.lar_reflect_type_name()
     }
+    return lar_str_from_go_str(
+        fmt.Sprintf("%s%s%s",
+                    lar_str_to_go_str(REFLECT_TYPE_NAME_GO_TYPE_PREFIX), reflect.TypeOf(t).String(),
+                    lar_str_to_go_str(REFLECT_TYPE_NAME_GO_TYPE_SUFFIX)))
     !>>
-    return REFLECT_TYPE_NAME_GO_TYPE;
+}
+
+public bool is_go_type_name(type_name)
+{
+    return type_name.has_prefix(REFLECT_TYPE_NAME_GO_TYPE_PREFIX) && type_name.has_suffix(REFLECT_TYPE_NAME_GO_TYPE_SUFFIX);
 }
