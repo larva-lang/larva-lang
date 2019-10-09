@@ -3,6 +3,8 @@ Channel通讯类，用于fiber之间的通讯，实际就是go的chan的包装
 若Chan关闭，recv会返回T的zero_value并通过ref参数指示是否被关闭，send则会crash
 */
 
+import fiber;
+
 public class Chan<T>
 {
     public Chan(long buf_size)
@@ -33,7 +35,15 @@ public class Chan<T>
     public void send(T data)
     {
         !<<
-        this.ch <- l_data
+        select {
+        case this.ch <- l_data:
+            return
+        case <-lar_fiber.ctx.Done():
+        !>>
+            fiber.throw_on_canceled();
+            throw("bug");
+        !<<
+        }
         !>>
     }
 
@@ -43,6 +53,11 @@ public class Chan<T>
         select {
         case this.ch <- l_data:
             return true
+        case <-lar_fiber.ctx.Done():
+        !>>
+            fiber.throw_on_canceled();
+            throw("bug");
+        !<<
         default:
             return false
         }
@@ -61,10 +76,19 @@ public class Chan<T>
         T t;
         bool ok;
         !<<
-        l_t, l_ok = <-this.ch
+        select {
+        case l_t, l_ok = <-this.ch:
         !>>
-        closed = !ok;
-        return t;
+            closed = !ok;
+            return t;
+        !<<
+        case <-lar_fiber.ctx.Done():
+        !>>
+            fiber.throw_on_canceled();
+            throw("bug");
+        !<<
+        }
+        !>>
     }
 
     public T try_recv(ref bool ok, ref bool closed)
@@ -73,10 +97,19 @@ public class Chan<T>
         !<<
         select {
         case l_t, *l_ok = <-this.ch:
-            *l_closed = !*l_ok
+        !>>
+            closed = !ok;
+        !<<
+        case <-lar_fiber.ctx.Done():
+        !>>
+            fiber.throw_on_canceled();
+            throw("bug");
+        !<<
         default:
-            *l_ok = false
-            *l_closed = false
+        !>>
+            ok = false;
+            closed = false;
+        !<<
         }
         !>>
         return t;

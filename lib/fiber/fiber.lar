@@ -1,5 +1,13 @@
 import time;
 
+!<<
+
+import (
+    "context"
+)
+
+!>>
+
 public class Option
 {
     public String name;
@@ -34,4 +42,31 @@ public bool is_canceled()
         return false
     }
     !>>
+}
+
+public class Canceled
+{
+    public bool is_timeout()
+    {
+        return this._is_timeout;
+    }
+
+    public String str()
+    {
+        return "fiber已被%s取消".("超时" if this.is_timeout() else "");
+    }
+
+    bool _is_timeout;
+}
+
+public void throw_on_canceled()
+{
+    if (is_canceled())
+    {
+        bool is_timeout;
+        !<<
+        l_is_timeout = lar_fiber.ctx.Err() == context.DeadlineExceeded
+        !>>
+        throw(new Canceled{is_timeout});
+    }
 }

@@ -40,7 +40,7 @@ public class CaseRunner
     {
         if (this.cases.contains_key(name))
         {
-            throw("测试用例'%s'已存在".(name));
+            throw(new ValueError("测试用例'%s'已存在".(name)));
         }
         this.cases.set(name, case);
     }
@@ -93,7 +93,7 @@ public class CaseRunner
         var iter = this.results.find(name);
         if (iter === nil)
         {
-            throw("测试用例'%s'不存在或还未测试".(name));
+            throw(new KeyError(name));
         }
         return iter.value();
     }

@@ -87,6 +87,57 @@ void test_chan()
             tester.test(10); //带buffer Chan测试
         }
     });
+    r.add_test_case("感知fiber被取消", []{
+        public void call()
+        {
+            var ch = new Chan<int>(0);
+            var result_ch = new Chan<Catched<fiber.Canceled>>(0);
+
+            {
+                fiber.start_new([]{
+                    //master
+                    public void run()
+                    {
+                        fiber.start_new([]{
+                            //worker
+                            public void run()
+                            {
+                                result_ch.send(call_and_catch<fiber.Canceled>([]{
+                                    public void call()
+                                    {
+                                        ch.recv(ref _);
+                                    }
+                                }));
+                            }
+                        }, new fiber.Option{
+                            is_worker: true,
+                        });
+                    }
+                }, nil);
+                var c = result_ch.recv(ref _);
+                testing.assert(c !== nil && !c.is_timeout(), "worker fiber被取消时阻塞的Chan.recv未抛出预期的异常");
+            }
+
+            {
+                fiber.start_new([]{
+                    //master
+                    public void run()
+                    {
+                        result_ch.send(call_and_catch<fiber.Canceled>([]{
+                            public void call()
+                            {
+                                ch.send(123);
+                            }
+                        }));
+                    }
+                }, new fiber.Option{
+                    timeout: 0.1,
+                });
+                var c = result_ch.recv(ref _);
+                testing.assert(c !== nil && c.is_timeout(), "timeout fiber超时时阻塞的Chan.send未抛出预期的异常");
+            }
+        }
+    });
 
     r.run();
 }
