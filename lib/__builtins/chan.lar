@@ -3,8 +3,6 @@ Channel通讯类，用于fiber之间的通讯，实际就是go的chan的包装
 若Chan关闭，recv会返回T的zero_value并通过ref参数指示是否被关闭，send则会crash
 */
 
-import fiber;
-
 public class Chan<T>
 {
     public Chan(long buf_size)
@@ -39,10 +37,7 @@ public class Chan<T>
         case this.ch <- l_data:
             return
         case <-lar_fiber.ctx.Done():
-        !>>
-            fiber.throw_on_canceled();
-            throw("bug");
-        !<<
+            lar_fiber.throw_when_canceled()
         }
         !>>
     }
@@ -54,10 +49,7 @@ public class Chan<T>
         case this.ch <- l_data:
             return true
         case <-lar_fiber.ctx.Done():
-        !>>
-            fiber.throw_on_canceled();
-            throw("bug");
-        !<<
+            lar_fiber.throw_when_canceled()
         default:
             return false
         }
@@ -83,10 +75,7 @@ public class Chan<T>
             return t;
         !<<
         case <-lar_fiber.ctx.Done():
-        !>>
-            fiber.throw_on_canceled();
-            throw("bug");
-        !<<
+            lar_fiber.throw_when_canceled()
         }
         !>>
     }
@@ -101,10 +90,7 @@ public class Chan<T>
             closed = !ok;
         !<<
         case <-lar_fiber.ctx.Done():
-        !>>
-            fiber.throw_on_canceled();
-            throw("bug");
-        !<<
+            lar_fiber.throw_when_canceled()
         default:
         !>>
             ok = false;

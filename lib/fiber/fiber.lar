@@ -59,7 +59,7 @@ public class Canceled
     bool _is_timeout;
 }
 
-public void throw_on_canceled()
+public void throw_if_canceled()
 {
     if (is_canceled())
     {
