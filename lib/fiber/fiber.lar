@@ -10,10 +10,10 @@ import (
 
 public void start_new(Runnable r)
 {
-    var name = "fiber_%d".((long)(time.time() * 1e6));
+    var n = "fiber_%d".((long)(time.time() * 1e6));
 
     !<<
-    new_lar_fiber, cancel := lar_go_func_new_fiber(nil, lar_str_to_go_str(l_name))
+    new_lar_fiber, cancel := lar_go_func_new_fiber(nil, lar_str_to_go_str(l_n))
     go lar_booter_start_fiber(new_lar_fiber, cancel, l_r, nil)
     !>>
 }
@@ -35,23 +35,23 @@ public class Worker
 
 public Worker start_worker(Runnable r)
 {
-    var name = "fiber_worker_%d".((long)(time.time() * 1e6));
-    var w = new Worker()
+    var n = "fiber_worker_%d".((long)(time.time() * 1e6));
+    var w = new Worker();
 
     !<<
-    new_lar_fiber, cancel := lar_go_func_new_fiber(lar_fiber, lar_str_to_go_str(l_name))
+    new_lar_fiber, cancel := lar_go_func_new_fiber(lar_fiber, lar_str_to_go_str(l_n))
     go lar_booter_start_fiber(new_lar_fiber, cancel, l_r, l_w.m_ch.ch)
     !>>
 
-    return w
+    return w;
 }
 
-public void set_name(String name)
+public void set_name(String n)
 {
-    if (name !== nil)
+    if (n !== nil)
     {
         !<<
-        lar_fiber.set_name(lar_str_to_go_str(l_name))
+        lar_fiber.set_name(lar_str_to_go_str(l_n))
         !>>
     }
 }

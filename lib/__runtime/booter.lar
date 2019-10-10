@@ -44,7 +44,7 @@ func lar_booter_start_prog(builtins_mod_init_func func (*lar_go_stru_fiber), mai
 }
 
 func lar_booter_start_fiber(lar_fiber *lar_go_stru_fiber, cancel context.CancelFunc, r lar_intf_@<<:Runnable>>,
-                            work_exc_ch chan *lar_gcls_inst_@<<Catched>>_1_lar_intf_@<<Throwable>>) {
+                            work_exc_ch chan *lar_gcls_inst_@<<:Catched>>_1_lar_intf_@<<:Throwable>>) {
     defer cancel()
 
     defer lar_booter_check_go_panic(lar_fiber)

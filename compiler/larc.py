@@ -124,7 +124,7 @@ Larva编译器
                 larc_common.exit("环境检查失败：标准库模块[%s]名字含有非法的下划线" % fn)
             first_level_std_module_set.add(fn)
 
-    std_lib_internal_module_list = "__builtins", "__internal", "__array", "__runtime", "fiber"
+    std_lib_internal_module_list = "__builtins", "__internal", "__array", "__runtime"
 
     #检查一下几个特殊的标准库模块，必须有
     for mn in std_lib_internal_module_list:
@@ -180,8 +180,7 @@ Larva编译器
     internal_module = larc_module.module_map["__internal"] = larc_module.Module("__internal")
     assert not internal_module.get_dep_module_set() #__internal模块不能导入其他模块
     larc_module.array_module = larc_module.module_map["__array"] = larc_module.Module("__array")
-    larc_module.module_map["__runtime"] = larc_module.Module("__runtime")
-    larc_module.module_map["fiber"] = larc_module.Module("fiber")
+    runtime_module = larc_module.module_map["__runtime"] = larc_module.Module("__runtime")
 
     #预处理主模块
     larc_module.module_map[main_module_name] = main_module = larc_module.Module(main_module_name)
@@ -189,7 +188,7 @@ Larva编译器
 
     #预处理所有涉及到的模块
     compiling_set = (larc_module.builtins_module.get_dep_module_set() | larc_module.array_module.get_dep_module_set() |
-                     main_module.get_dep_module_set()) #需要预处理的模块名集合
+                     runtime_module.get_dep_module_set() | main_module.get_dep_module_set()) #需要预处理的模块名集合
     while compiling_set:
         new_compiling_set = set()
         for module_name in compiling_set:
