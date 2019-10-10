@@ -27,8 +27,15 @@ public void start_new(Runnable r, Option opt)
     }
 
     !<<
-    go lar_booter_start_fiber(
-        lar_go_func_new_fiber(lar_fiber, lar_str_to_go_str(l_opt.m_name), l_opt.m_is_worker, int64(l_opt.m_timeout * 1e9)), l_r)
+    new_lar_fiber, cancel := lar_go_func_new_fiber(lar_fiber, lar_str_to_go_str(l_opt.m_name), l_opt.m_is_worker, int64(l_opt.m_timeout * 1e9))
+    go lar_booter_start_fiber(new_lar_fiber, cancel, l_r)
+    !>>
+}
+
+public String name()
+{
+    !<<
+    return lar_str_from_go_str(lar_fiber.name)
     !>>
 }
 

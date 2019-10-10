@@ -3,6 +3,7 @@
 import (
     "fmt"
     "os"
+    "context"
 )
 
 func lar_booter_exit_with_catched(c *lar_gcls_inst_@<<:Catched>>_1_lar_intf_@<<:Throwable>>) {
@@ -21,8 +22,8 @@ func lar_booter_check_go_panic(lar_fiber *lar_go_stru_fiber) {
 
 func lar_booter_start_prog(builtins_mod_init_func func (*lar_go_stru_fiber), main_mod_init_func func (*lar_go_stru_fiber),
                            main_func func (*lar_go_stru_fiber)) {
-    lar_fiber := lar_go_func_new_fiber(nil, "main", false, 0)
-    defer lar_fiber.cancel()
+    lar_fiber, cancel := lar_go_func_new_fiber(nil, "main", false, 0)
+    defer cancel()
 
     defer lar_booter_check_go_panic(lar_fiber)
     defer func () {
@@ -37,8 +38,8 @@ func lar_booter_start_prog(builtins_mod_init_func func (*lar_go_stru_fiber), mai
     main_func(lar_fiber)
 }
 
-func lar_booter_start_fiber(lar_fiber *lar_go_stru_fiber, r lar_intf_@<<:Runnable>>) {
-    defer lar_fiber.cancel()
+func lar_booter_start_fiber(lar_fiber *lar_go_stru_fiber, cancel context.CancelFunc, r lar_intf_@<<:Runnable>>) {
+    defer cancel()
 
     defer lar_booter_check_go_panic(lar_fiber)
     defer func () {
