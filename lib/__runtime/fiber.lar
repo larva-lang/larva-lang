@@ -4,6 +4,7 @@ import fiber;
 
 import (
     "context"
+    "time"
 )
 
 type lar_go_stru_fiber struct {
@@ -60,6 +61,7 @@ func lar_go_func_new_fiber_ctx_with_cancel(lar_fiber *lar_go_stru_fiber, name st
 
 func lar_go_func_new_fiber_ctx_with_timeout(lar_fiber *lar_go_stru_fiber, name string, timeout time.Duration) (new_lar_fiber *lar_go_stru_fiber,
                                                                                                                cancel context.CancelFunc) {
+    var ctx context.Context
     ctx, cancel = context.WithTimeout(lar_fiber.ctx(), timeout)
 
     new_lar_fiber = &lar_go_stru_fiber{

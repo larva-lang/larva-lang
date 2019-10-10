@@ -106,7 +106,9 @@ void test_chan()
                     }
                 });
                 var c = w.wait();
-                testing.assert(c !== nil && !c.throwed().is_timeout(), "worker fiber被取消时阻塞的Chan.recv未抛出预期的异常");
+                fiber.Canceled e;
+                testing.assert(c !== nil && try_assert_type(c.throwed(), ref e) && !e.is_timeout(),
+                               "worker fiber被取消时阻塞的Chan.recv未抛出预期的异常");
             }
 
             {

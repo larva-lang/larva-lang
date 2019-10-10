@@ -48,7 +48,7 @@ public void main()
                 public void call()
                 {
                     fiber.start_worker([]{
-                        public void call()
+                        public void run()
                         {
                             defer ch.close();
 
