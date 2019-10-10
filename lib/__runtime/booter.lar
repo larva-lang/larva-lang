@@ -6,9 +6,8 @@ import (
     "context"
 )
 
-func lar_booter_exit_with_catched(c *lar_gcls_inst_@<<:Catched>>_1_lar_intf_@<<:Throwable>>) {
+func lar_booter_output_unhandled_exc(c *lar_gcls_inst_@<<:Catched>>_1_lar_intf_@<<:Throwable>>) {
     fmt.Fprintln(os.Stderr, lar_str_to_go_str(c.m_tb))
-    os.Exit(2)
 }
 
 func lar_booter_check_go_panic(lar_fiber *lar_go_stru_fiber) {
@@ -22,6 +21,11 @@ func lar_booter_check_go_panic(lar_fiber *lar_go_stru_fiber) {
 
 func lar_booter_start_prog(builtins_mod_init_func func (*lar_go_stru_fiber), main_mod_init_func func (*lar_go_stru_fiber),
                            main_func func (*lar_go_stru_fiber)) {
+    exit_code := 0
+    defer func () {
+        os.Exit(exit_code)
+    }()
+
     lar_fiber, cancel := lar_go_func_new_fiber(nil, "main", false, 0)
     defer cancel()
 
@@ -29,7 +33,8 @@ func lar_booter_start_prog(builtins_mod_init_func func (*lar_go_stru_fiber), mai
     defer func () {
         c := lar_func_@<<:_catch_throwable>>(lar_fiber, recover())
         if c != nil {
-            lar_booter_exit_with_catched(c)
+            lar_booter_output_unhandled_exc(c)
+            exit_code = 2
         }
     }()
 
@@ -45,7 +50,7 @@ func lar_booter_start_fiber(lar_fiber *lar_go_stru_fiber, cancel context.CancelF
     defer func () {
         c := lar_func_@<<:_catch_throwable>>(lar_fiber, recover())
         if c != nil {
-            lar_booter_exit_with_catched(c)
+            lar_booter_output_unhandled_exc(c)
         }
     }()
 
