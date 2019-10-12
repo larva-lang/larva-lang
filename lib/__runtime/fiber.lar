@@ -8,14 +8,26 @@ import (
 )
 
 type lar_go_stru_fiber struct {
-    name   string
-    ctx    context.Context
+    _name string
+    _ctx  context.Context
+}
+
+func (lar_fiber *lar_go_stru_fiber) name() string {
+    return lar_fiber._name
+}
+
+func (lar_fiber *lar_go_stru_fiber) set_name(name string) {
+    lar_fiber._name = name
+}
+
+func (lar_fiber *lar_go_stru_fiber) ctx() context.Context {
+    return lar_fiber._ctx
 }
 
 func (lar_fiber *lar_go_stru_fiber) throw_when_canceled() {
     select {
-    case <-lar_fiber.ctx.Done():
-        err := lar_fiber.ctx.Err()
+    case <-lar_fiber.ctx().Done():
+        err := lar_fiber.ctx().Err()
         if err != nil {
             lar_func_@<<:throw>>(lar_fiber, &lar_cls_@<<fiber.Canceled>>{
                 m__is_timeout: err == context.DeadlineExceeded,
@@ -26,26 +38,21 @@ func (lar_fiber *lar_go_stru_fiber) throw_when_canceled() {
     lar_func_@<<:throw>>(lar_fiber, lar_str_from_go_str("调用lar_fiber.throw_when_canceled()时fiber未被正确取消"))
 }
 
-func lar_go_func_new_fiber(lar_fiber *lar_go_stru_fiber, name string, is_worker bool, timeout_nano int64) (
-    new_lar_fiber *lar_go_stru_fiber, cancel context.CancelFunc) {
+func lar_go_func_new_fiber(lar_fiber *lar_go_stru_fiber, name string) (new_lar_fiber *lar_go_stru_fiber, cancel context.CancelFunc) {
     var (
         par_ctx context.Context
         ctx     context.Context
     )
-    if is_worker {
-        par_ctx = lar_fiber.ctx
-    } else {
+    if lar_fiber == nil {
         par_ctx = context.Background()
-    }
-    if timeout_nano > 0 {
-        ctx, cancel = context.WithTimeout(par_ctx, time.Duration(timeout_nano))
     } else {
-        ctx, cancel = context.WithCancel(par_ctx)
+        par_ctx = lar_fiber.ctx()
     }
+    ctx, cancel = context.WithCancel(par_ctx)
 
     new_lar_fiber = &lar_go_stru_fiber{
-        name: name,
-        ctx:  ctx,
+        _name: name,
+        _ctx:  ctx,
     }
 
     return

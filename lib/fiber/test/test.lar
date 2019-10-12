@@ -1,7 +1,7 @@
 import testing, fiber, time;
 
 //通过轮询try_recv实现Chan recv的一秒超时
-//正常情况下，Chan的超时操作一般是用fiber timeout控制，而这里本来就是为了测试fiber的各种特性，最好采用一个另外的超时测试方式
+//正常情况下，Chan的超时操作一般是用context timeout控制，而这里本来就是为了测试fiber和context的各种特性，最好采用一个另外的超时测试方式
 T chan_recv_with_timeout<T>(Chan<T> ch, ref bool ok, ref bool closed)
 {
     T t;
@@ -34,7 +34,7 @@ public void main()
                     defer ch.close();
                     ch.send(n);
                 }
-            }, nil);
+            });
             bool ok, closed;
             testing.assert(chan_recv_with_timeout(ch, ref ok, ref closed) == n && ok && !closed, "从fiber收取执行结果失败");
             testing.assert(chan_recv_with_timeout(ch, ref ok, ref closed) == 0 && !ok && closed, "确认fiber关闭Chan失败");
@@ -44,28 +44,23 @@ public void main()
         public void call()
         {
             var ch = new Chan<int>(0);
-            fiber.start_new([]{
-                //master fiber
-                public void run()
+            fiber.call_with_cancel([]{
+                public void call()
                 {
-                    //创建worker fiber后就退出，将导致worker fiber被cancel
-
-                    fiber.start_new([]{
-                        //worker fiber
-                        public void run()
+                    fiber.start_worker([]{
+                        public void call()
                         {
                             defer ch.close();
+
                             //等待被cancel
                             while (!fiber.is_canceled())
                             {
                                 time.sleep(0.01);
                             }
                         }
-                    }, new fiber.Option{
-                        is_worker: true,
                     });
                 }
-            }, nil);
+            });
             bool ok, closed;
             testing.assert(chan_recv_with_timeout(ch, ref ok, ref closed) == 0 && !ok && closed, "确认worker fiber结束失败");
         }
@@ -74,18 +69,23 @@ public void main()
         public void call()
         {
             var ch = new Chan<int>(0);
+            //在启动的fiber中做带超时的调用，当前fiber用于测试ch是否关闭
             fiber.start_new([]{
                 public void run()
                 {
-                    defer ch.close();
-                    //等待因超时被cancel
-                    while (!fiber.is_canceled())
-                    {
-                        time.sleep(0.01);
-                    }
+                    fiber.call_with_timeout(0.1, []{
+                        public void call()
+                        {
+                            defer ch.close();
+
+                            //等待因超时被cancel
+                            while (!fiber.is_canceled())
+                            {
+                                time.sleep(0.01);
+                            }
+                        }
+                    });
                 }
-            }, new fiber.Option{
-                timeout: 0.1,
             });
             bool ok, closed;
             testing.assert(chan_recv_with_timeout(ch, ref ok, ref closed) == 0 && !ok && closed, "确认worker fiber结束失败");

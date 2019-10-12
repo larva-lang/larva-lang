@@ -66,7 +66,7 @@ func lar_exc_create_catched_throwable(lar_fiber *lar_go_stru_fiber, t lar_intf_@
             }
         }
     }
-    tb_line_list = append(tb_line_list, fmt.Sprintf("Traceback (fiber[%s]):", lar_fiber.name))
+    tb_line_list = append(tb_line_list, fmt.Sprintf("Traceback (fiber[%s]):", lar_fiber.name()))
     //上面是反着写info的，reverse一下
     tb_line_count := len(tb_line_list)
     for i := 0; i < tb_line_count / 2; i ++ {

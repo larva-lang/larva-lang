@@ -34,7 +34,7 @@ public class Chan<T>
     {
         !<<
         select {
-        case <-lar_fiber.ctx.Done():
+        case <-lar_fiber.ctx().Done():
             lar_fiber.throw_when_canceled()
         default:
         }
@@ -49,7 +49,7 @@ public class Chan<T>
         select {
         case this.ch <- l_data:
             return
-        case <-lar_fiber.ctx.Done():
+        case <-lar_fiber.ctx().Done():
             lar_fiber.throw_when_canceled()
         }
         !>>
@@ -63,7 +63,7 @@ public class Chan<T>
         select {
         case this.ch <- l_data:
             return true
-        case <-lar_fiber.ctx.Done():
+        case <-lar_fiber.ctx().Done():
             lar_fiber.throw_when_canceled()
         default:
             return false
@@ -91,7 +91,7 @@ public class Chan<T>
             closed = !ok;
             return t;
         !<<
-        case <-lar_fiber.ctx.Done():
+        case <-lar_fiber.ctx().Done():
             lar_fiber.throw_when_canceled()
         }
         !>>
@@ -108,7 +108,7 @@ public class Chan<T>
         !>>
             closed = !ok;
         !<<
-        case <-lar_fiber.ctx.Done():
+        case <-lar_fiber.ctx().Done():
             lar_fiber.throw_when_canceled()
         default:
         !>>

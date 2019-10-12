@@ -8,34 +8,58 @@ import (
 
 !>>
 
-public class Option
+public void start_new(Runnable r)
 {
-    public String name;
-    public bool   is_worker;
-    public double timeout;
-}
-
-public void start_new(Runnable r, Option opt)
-{
-    if (opt === nil)
-    {
-        opt = new Option{};
-    }
-    if (opt.name === nil)
-    {
-        opt.name = "fiber_%d".((long)(time.time() * 1e6));
-    }
+    var name = "fiber_%d".((long)(time.time() * 1e6));
 
     !<<
-    new_lar_fiber, cancel := lar_go_func_new_fiber(lar_fiber, lar_str_to_go_str(l_opt.m_name), l_opt.m_is_worker, int64(l_opt.m_timeout * 1e9))
-    go lar_booter_start_fiber(new_lar_fiber, cancel, l_r)
+    new_lar_fiber, cancel := lar_go_func_new_fiber(nil, lar_str_to_go_str(l_name))
+    go lar_booter_start_fiber(new_lar_fiber, cancel, l_r, nil)
     !>>
+}
+
+public class Worker
+{
+    Worker()
+    {
+        this.ch = new Chan<Catched<Throwable>>(1);
+    }
+
+    public Catched<Throwable> wait()
+    {
+        return this.ch.recv(ref _);
+    }
+
+    Chan<Catched<Throwable>> ch;
+}
+
+public Worker start_worker(Runnable r)
+{
+    var name = "fiber_worker_%d".((long)(time.time() * 1e6));
+    var w = new Worker()
+
+    !<<
+    new_lar_fiber, cancel := lar_go_func_new_fiber(lar_fiber, lar_str_to_go_str(l_name))
+    go lar_booter_start_fiber(new_lar_fiber, cancel, l_r, l_w.m_ch.ch)
+    !>>
+
+    return w
+}
+
+public void set_name(String name)
+{
+    if (name !== nil)
+    {
+        !<<
+        lar_fiber.set_name(lar_str_to_go_str(l_name))
+        !>>
+    }
 }
 
 public String name()
 {
     !<<
-    return lar_str_from_go_str(lar_fiber.name)
+    return lar_str_from_go_str(lar_fiber.name())
     !>>
 }
 
@@ -43,7 +67,7 @@ public bool is_canceled()
 {
     !<<
     select {
-    case <-lar_fiber.ctx.Done():
+    case <-lar_fiber.ctx().Done():
         return true
     default:
         return false
@@ -72,7 +96,7 @@ public void throw_if_canceled()
     {
         bool is_timeout;
         !<<
-        l_is_timeout = lar_fiber.ctx.Err() == context.DeadlineExceeded
+        l_is_timeout = lar_fiber.ctx().Err() == context.DeadlineExceeded
         !>>
         throw(new Canceled{is_timeout});
     }

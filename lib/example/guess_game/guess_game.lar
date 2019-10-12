@@ -153,7 +153,7 @@ public void main()
                 var conn = listener.accept();
                 log("accept success, new client [%s]".(conn.remote_addr()));
 
-                fiber.start_new(new Client(conn), nil);
+                fiber.start_new(new Client(conn));
             }
         });
         if (c !== nil)
