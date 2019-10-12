@@ -65,12 +65,12 @@ public class TcpConn
     public TcpConn(String addr)
     {
         !<<
-        conn, err := (&net.Dialer{}).DialContext(lar_fiber.ctx(), "tcp", lar_str_to_go_str(l_add))
+        conn, err := (&net.Dialer{}).DialContext(lar_fiber.ctx(), "tcp", lar_str_to_go_str(l_addr))
         if err != nil {
             lar_fiber.throw_if_canceled()
             lar_go_func_@<<throw_on_go_err>>(lar_fiber, err)
         }
-        this.ntc = ntc
+        this.ntc = conn.(*net.TCPConn)
         !>>
     }
 
