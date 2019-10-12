@@ -4,6 +4,7 @@ import time;
 
 import (
     "context"
+    "time"
 )
 
 !>>
@@ -13,7 +14,7 @@ public void start_new(Runnable r)
     var n = "fiber_%d".((long)(time.time() * 1e6));
 
     !<<
-    new_lar_fiber, cancel := lar_go_func_new_fiber(nil, lar_str_to_go_str(l_n))
+    new_lar_fiber, cancel := lar_go_func_new_fiber_ctx_with_cancel(nil, lar_str_to_go_str(l_n))
     go lar_booter_start_fiber(new_lar_fiber, cancel, l_r, nil)
     !>>
 }
@@ -39,7 +40,7 @@ public Worker start_worker(Runnable r)
     var w = new Worker();
 
     !<<
-    new_lar_fiber, cancel := lar_go_func_new_fiber(lar_fiber, lar_str_to_go_str(l_n))
+    new_lar_fiber, cancel := lar_go_func_new_fiber_ctx_with_cancel(lar_fiber, lar_str_to_go_str(l_n))
     go lar_booter_start_fiber(new_lar_fiber, cancel, l_r, l_w.m_ch.ch)
     !>>
 
@@ -100,4 +101,28 @@ public void throw_if_canceled()
         !>>
         throw(new Canceled{is_timeout});
     }
+}
+
+//从当前ctx生成一个WithCancel ctx作为新的ctx，调用结束后cancel
+public void call_with_cancel(Callable callee)
+{
+    !<<
+    new_lar_fiber, cancel := lar_go_func_new_fiber_ctx_with_cancel(lar_fiber, lar_fiber.name())
+    lar_fiber = new_lar_fiber
+    defer cancel()
+    !>>
+
+    callee.call();
+}
+
+//从当前ctx生成一个WithTimeout ctx作为新的ctx，调用结束后cancel，timeout若为0或者负数，则相当于调用callee之前就被cancel了
+public void call_with_timeout(double timeout, Callable callee)
+{
+    !<<
+    new_lar_fiber, cancel := lar_go_func_new_fiber_ctx_with_timeout(lar_fiber, lar_fiber.name(), time.Duration(l_timeout * 1e9))
+    lar_fiber = new_lar_fiber
+    defer cancel()
+    !>>
+
+    callee.call();
 }

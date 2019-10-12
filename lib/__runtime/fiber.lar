@@ -37,7 +37,8 @@ func (lar_fiber *lar_go_stru_fiber) throw_when_canceled() {
     lar_func_@<<:throw>>(lar_fiber, lar_str_from_go_str("调用lar_fiber.throw_when_canceled()时fiber未被正确取消"))
 }
 
-func lar_go_func_new_fiber(lar_fiber *lar_go_stru_fiber, name string) (new_lar_fiber *lar_go_stru_fiber, cancel context.CancelFunc) {
+func lar_go_func_new_fiber_ctx_with_cancel(lar_fiber *lar_go_stru_fiber, name string) (new_lar_fiber *lar_go_stru_fiber,
+                                                                                       cancel context.CancelFunc) {
     var (
         par_ctx context.Context
         ctx     context.Context
@@ -57,4 +58,15 @@ func lar_go_func_new_fiber(lar_fiber *lar_go_stru_fiber, name string) (new_lar_f
     return
 }
 
+func lar_go_func_new_fiber_ctx_with_timeout(lar_fiber *lar_go_stru_fiber, name string, timeout time.Duration) (new_lar_fiber *lar_go_stru_fiber,
+                                                                                                               cancel context.CancelFunc) {
+    ctx, cancel = context.WithTimeout(lar_fiber.ctx(), timeout)
+
+    new_lar_fiber = &lar_go_stru_fiber{
+        _name: name,
+        _ctx:  ctx,
+    }
+
+    return
+}
 !>>
