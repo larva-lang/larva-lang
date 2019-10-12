@@ -1,10 +1,9 @@
-import io, fiber;
+import io, fiber, sync;
 
 !<<
 
 import (
     "net"
-    "sync"
 )
 
 !>>
@@ -142,7 +141,7 @@ public class TcpConn
 func lar_go_func_@<<tcp_conn_from_native>>(lar_fiber *lar_go_stru_fiber, ntc *net.TCPConn) *lar_cls_@<<TcpConn>> {
     return &lar_cls_@<<TcpConn>>{
         m_rd_lock: lar_new_obj_lar_cls_@<<sync.Mutex>>(lar_fiber),
-        m_wd_lock: lar_new_obj_lar_cls_@<<sync.Mutex>>(lar_fiber),
+        m_wr_lock: lar_new_obj_lar_cls_@<<sync.Mutex>>(lar_fiber),
         ntc: ntc,
     }
 }

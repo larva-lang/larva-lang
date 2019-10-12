@@ -47,8 +47,8 @@ func lar_go_func_@<<io_with_ctx>>(lar_fiber *lar_go_stru_fiber, lock *lar_cls_@<
     lar_fiber.throw_if_canceled()
 
     if lock != nil {
-        lock.lar_method_lock()
-        defer lock.lar_method_unlock()
+        lock.lar_method_lock(lar_fiber)
+        defer lock.lar_method_unlock(lar_fiber)
     }
     if init_func != nil {
         init_func()
