@@ -38,7 +38,7 @@ do_io_func：执行io操作，返回是否执行成功，不可为nil
 interrupt_routine_done：用于打断do_io_func的函数，一般对于阻塞调用是通过设置deadline进行，不可为nil
 fini_func：收尾工作，nil表示不需要
 */
-func lar_go_func_@<<io_with_ctx>>(lar_fiber *lar_go_stru_fiber, lock lar_cls_@<<sync.Mutex>>, init_func func (), do_io_func func() (ok bool),
+func lar_go_func_@<<io_with_ctx>>(lar_fiber *lar_go_stru_fiber, lock *lar_cls_@<<sync.Mutex>>, init_func func (), do_io_func func() (ok bool),
                                   interrupt_func func (), fini_func func ()) {
     lar_fiber.throw_if_canceled()
 
@@ -57,7 +57,7 @@ func lar_go_func_@<<io_with_ctx>>(lar_fiber *lar_go_stru_fiber, lock lar_cls_@<<
     }
 
     done := make(chan struct{}) //用于通知子go程结束
-    interrupt_routine_done = make(chan struct{}) //用于等待中断子go程结束
+    interrupt_routine_done := make(chan struct{}) //用于等待中断子go程结束
     defer func () {
         //通知并等待子go程结束
         close(done)
