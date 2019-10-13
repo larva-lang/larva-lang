@@ -26,31 +26,22 @@ Case[] prepare()
     return new Case[]{
         new Case{
             name: "普通测试用例-成功",
-            callee: []{
-                public void call()
-                {
-                }
+            callee: [-]{
             },
             expecting_ok: true,
         },
         new Case{
             name: "普通测试用例-失败",
-            callee: []{
-                public void call()
-                {
-                    fail();
-                }
+            callee: [-]{
+                fail();
             },
             expecting_ok: false,
         },
         new Case{
             is_benchmark_case: true,
             name: "性能测试用例-成功",
-            callee: []{
-                public void call()
-                {
-                    "-".repeat(1000);
-                }
+            callee: [-]{
+                "-".repeat(1000);
             },
             expecting_ok: true,
             msg_checker: []{
@@ -61,11 +52,8 @@ Case[] prepare()
                     {
                         return false;
                     }
-                    var c = call_and_catch<ValueError>([]{
-                        public void call()
-                        {
-                            msg.sub_str(0, msg.len() - msg_suffix.len()).parse_double();
-                        }
+                    var c = call_and_catch<ValueError>([-]{
+                        msg.sub_str(0, msg.len() - msg_suffix.len()).parse_double();
                     });
                     return c === nil;
                 }
@@ -74,11 +62,8 @@ Case[] prepare()
         new Case{
             is_benchmark_case: true,
             name: "性能测试用例-失败",
-            callee: []{
-                public void call()
-                {
-                    fail();
-                }
+            callee: [-]{
+                fail();
             },
             expecting_ok: false,
         },
@@ -112,23 +97,20 @@ public void main()
         var case = _case;
 
         var case_result = prepare_runner.get_result(case.name);
-        r.add_test_case("测试“".concat(case.name).concat("”"), []{
-            public void call()
-            {
-                testing.assert(case.expecting_ok == case_result.ok(),
-                               "子用例的测试应该执行%s，但是%s".("成功" if case.expecting_ok else "失败",
-                                                                 "成功" if case_result.ok() else "失败"));
+        r.add_test_case("测试“".concat(case.name).concat("”"), [-]{
+            testing.assert(case.expecting_ok == case_result.ok(),
+                           "子用例的测试应该执行%s，但是%s".("成功" if case.expecting_ok else "失败",
+                                                             "成功" if case_result.ok() else "失败"));
 
-                if (case.msg_checker === nil)
-                {
-                    var expecting_msg = "" if case.expecting_ok else FAIL_MSG;
-                    testing.assert(case_result.msg().eq(expecting_msg),
-                                   "子用例测试结果消息错误，应为[%s]，实际为[%s]".(expecting_msg, case_result.msg()));
-                }
-                else
-                {
-                    testing.assert(case.msg_checker.is_valid(case_result.msg()), "子用例测试结果消息[%s]不符合预期".(case_result.msg()));
-                }
+            if (case.msg_checker === nil)
+            {
+                var expecting_msg = "" if case.expecting_ok else FAIL_MSG;
+                testing.assert(case_result.msg().eq(expecting_msg),
+                               "子用例测试结果消息错误，应为[%s]，实际为[%s]".(expecting_msg, case_result.msg()));
+            }
+            else
+            {
+                testing.assert(case.msg_checker.is_valid(case_result.msg()), "子用例测试结果消息[%s]不符合预期".(case_result.msg()));
             }
         });
     }

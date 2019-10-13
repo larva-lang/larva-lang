@@ -4,285 +4,240 @@ void test_string()
 {
     var r = new testing.CaseRunner();
 
-    r.add_test_case("常规测试", []{
-        public void call()
+    r.add_test_case("常规测试", [-]{
+        var v = "hello";
+        var b = new char[]{'h', 'e', 'l', 'l', 'o'};
+        var s = new String(b);
+        testing.assert(s.eq(v), "通过char数组创建String错误");
+        testing.assert(s.len() == b.size(), "String.len()错误");
+        testing.assert(s.hash() == v.hash(), "String.hash()错误");
+        for (long i = s.len() - 1; i >= 0; -- i)
         {
-            var v = "hello";
-            var b = new char[]{'h', 'e', 'l', 'l', 'o'};
-            var s = new String(b);
-            testing.assert(s.eq(v), "通过char数组创建String错误");
-            testing.assert(s.len() == b.size(), "String.len()错误");
-            testing.assert(s.hash() == v.hash(), "String.hash()错误");
-            for (long i = s.len() - 1; i >= 0; -- i)
-            {
-                testing.assert(s.char_at(i) == b[i], "String.char_at()错误");
-            }
-            testing.assert(s.to_char_array().eq(b), "String.to_char_array()错误");
-
-            s.to_char_array()[0] = '0';
-            testing.assert(s.eq(v), "修改to_char_array返回的数组内容影响了String值");
-
-            v = "\r\n\t\a\b\v\00\012\x001\f\x5c\42";
-            b = new char[]{'\r', '\n', '\t', '\a', '\b', '\v', '\0', '\12', '\0', '1', '\f', '\\', '"'};
-            s = new String(b);
-            testing.assert(v.eq(s), "转义字符测试失败");
-
-            testing.assert("1".eq("1") && !"1".eq("2"), "String.eq()测试失败");
-            testing.assert("1".cmp("1") == 0 && "1".cmp("2") < 0 && "1".cmp("") > 0 && "1".cmp("1\0") < 0, "String.cmp()测试失败");
-
-            v = `\r\42\012` "`" `\x01\`;
-            b = new char[]{'\\', 'r', '\\', '4', '2', '\\', '0', '1', '2', '`', '\\', 'x', '0', '1', '\\'};
-            s = new String(b);
-            testing.assert(v.eq(s), "raw-String字面量和String字面量连接语法测试失败");
+            testing.assert(s.char_at(i) == b[i], "String.char_at()错误");
         }
+        testing.assert(s.to_char_array().eq(b), "String.to_char_array()错误");
+
+        s.to_char_array()[0] = '0';
+        testing.assert(s.eq(v), "修改to_char_array返回的数组内容影响了String值");
+
+        v = "\r\n\t\a\b\v\00\012\x001\f\x5c\42";
+        b = new char[]{'\r', '\n', '\t', '\a', '\b', '\v', '\0', '\12', '\0', '1', '\f', '\\', '"'};
+        s = new String(b);
+        testing.assert(v.eq(s), "转义字符测试失败");
+
+        testing.assert("1".eq("1") && !"1".eq("2"), "String.eq()测试失败");
+        testing.assert("1".cmp("1") == 0 && "1".cmp("2") < 0 && "1".cmp("") > 0 && "1".cmp("1\0") < 0, "String.cmp()测试失败");
+
+        v = `\r\42\012` "`" `\x01\`;
+        b = new char[]{'\\', 'r', '\\', '4', '2', '\\', '0', '1', '2', '`', '\\', 'x', '0', '1', '\\'};
+        s = new String(b);
+        testing.assert(v.eq(s), "raw-String字面量和String字面量连接语法测试失败");
     });
-    r.add_test_case("String格式化", []{
-        public void call()
+    r.add_test_case("String格式化", [-]{
+        var tester = []{
+            void test(String name, String a, String b)
+            {
+                testing.assert(a.eq(b), "String格式化语法测试用例[%s]失败：%r!=%r".(name, a, b));
+            }
+        };
+        tester.test("百分号", "%%".(), "%");
+        tester.test("宽度、精度和左右对齐", "%10t,%-20.4s;".(true, false),
+                    "".join(new String[]{"\x20".repeat(6), "true,fals", "\x20".repeat(16), ";"}.iter()));
+        tester.test("整数格式输出", "%+d,%X,%b,%o;".(123, -123, 123, -123), "+123,-7B,1111011,-173;");
+        tester.test("浮点数格式输出", "%b,%+8.2f,%-11.4E,%.2g;".(123.5, 123.5, 123.5, 123.5),
+                    "8690539905941504p-46, +123.50,1.2350E+02 ,1.2e+02;");
+        tester.test("字符串特殊格式输出", "%X,%r;".("abcd", "1\t2\r\x00\n"), `61626364,"1\t2\r\x00\n";`);
+        tester.test("repr输出数组", "%r,%r;".(new char[]{'h', 'e', 'l', 'l', 'o'}, new int[]{2,3,5,7}),
+                    `<char[] "hello">,<int[] [2, 3, 5, 7]>;`);
+        tester.test("输出类型名", "%T,%T,%T,%T;".(r, "", "".to_char_array(), "".to_char_array().iter()),
+                    "testing.CaseRunner,String,char[],ArrayIter<char>;");
+    });
+    r.add_test_case("方法测试", [-]{
+        var tester = []{
+            void assert(bool cond, String method_name)
+            {
+                testing.assert(cond, "String方法测试用例[%s]执行失败".(method_name));
+            }
+        };
+
+        tester.assert("hello world".index("or") == 7, "index");
+        tester.assert("hello world".index_char('o') == 4, "index_char");
+        tester.assert("hello".concat("\x20").concat("world").eq("hello world"), "concat");
+        tester.assert("hello world".has_prefix("hel"), "has_prefix");
+        tester.assert("hello world".has_suffix("orld"), "has_suffix");
+        tester.assert(".".join(new String[]{"www", "qq", "com"}.iter()).eq("www.qq.com"), "join");
+
+        tester.assert("  a \tb  \v  c\fd\r\r\r\n".split(nil).eq(new String[]{"a", "b", "c", "d"}), "split（sep=nil）");
+        tester.assert("  a \tb  \v  c\fd\r\r\r\n".split_n(nil, 3).eq(new String[]{"a", "b", "c\fd\r\r\r\n"}),
+                        "split_n（sep=nil，n小于实际part数量）");
+        tester.assert("  a \tb  \v  c\fd\r\r\r\n".split_n(nil, 10000).eq(new String[]{"a", "b", "c", "d"}),
+                        "split_n（sep=nil，n大于实际part数量）");
+        tester.assert("  a, \tb , \v  c\f,d\r\r\r\n".split(",").eq(new String[]{"  a", " \tb ", " \v  c\f", "d\r\r\r\n"}),
+                        "split（sep!=nil）");
+        tester.assert("  a, \tb , \v  c\f,d\r\r\r\n".split_n(",", 3).eq(new String[]{"  a", " \tb ", " \v  c\f,d\r\r\r\n"}),
+                        "split_n（sep!=nil，n小于实际part数量）");
+        tester.assert("  a, \tb , \v  c\f,d\r\r\r\n".split_n(",", 10000).eq(new String[]{"  a", " \tb ", " \v  c\f", "d\r\r\r\n"}),
+                        "split_n（sep!=nil，n大于实际part数量）");
         {
-            var tester = []{
-                void test(String name, String a, String b)
-                {
-                    testing.assert(a.eq(b), "String格式化语法测试用例[%s]失败：%r!=%r".(name, a, b));
-                }
-            };
-            tester.test("百分号", "%%".(), "%");
-            tester.test("宽度、精度和左右对齐", "%10t,%-20.4s;".(true, false),
-                        "".join(new String[]{"\x20".repeat(6), "true,fals", "\x20".repeat(16), ";"}.iter()));
-            tester.test("整数格式输出", "%+d,%X,%b,%o;".(123, -123, 123, -123), "+123,-7B,1111011,-173;");
-            tester.test("浮点数格式输出", "%b,%+8.2f,%-11.4E,%.2g;".(123.5, 123.5, 123.5, 123.5),
-                        "8690539905941504p-46, +123.50,1.2350E+02 ,1.2e+02;");
-            tester.test("字符串特殊格式输出", "%X,%r;".("abcd", "1\t2\r\x00\n"), `61626364,"1\t2\r\x00\n";`);
-            tester.test("repr输出数组", "%r,%r;".(new char[]{'h', 'e', 'l', 'l', 'o'}, new int[]{2,3,5,7}),
-                        `<char[] "hello">,<int[] [2, 3, 5, 7]>;`);
-            tester.test("输出类型名", "%T,%T,%T,%T;".(r, "", "".to_char_array(), "".to_char_array().iter()),
-                        "testing.CaseRunner,String,char[],ArrayIter<char>;");
+            var c = call_and_catch<ValueError>([-]{
+                "".split("");
+            });
+            tester.assert(c !== nil, `split（sep=""）`);
+
+            c = call_and_catch<ValueError>([-]{
+                "".split_n(nil, -1L);
+            });
+            tester.assert(c !== nil, "split_n（n<=0）");
         }
-    });
-    r.add_test_case("方法测试", []{
-        public void call()
+        tester.assert("".split(nil).eq(new String[]{}), "空串的split（sep=nil）");
+        tester.assert("".split(",").eq(new String[]{""}), "空串的split（sep!=nil）");
+        tester.assert("  \t  \r \v\f\n".split(nil).eq(new String[]{}), "纯空白字符组成的String的split（sep=nil）");
+
+        tester.assert("hello world".sub_str(3, 7).eq("lo w"), "sub_str");
         {
-            var tester = []{
-                void assert(bool cond, String method_name)
-                {
-                    testing.assert(cond, "String方法测试用例[%s]执行失败".(method_name));
-                }
-            };
+            var c = call_and_catch<RangeError>([-]{
+                "hello world".sub_str(-1L, 100);
+            });
+            tester.assert(c !== nil, "sub_str（范围错误）");
+        }
 
-            tester.assert("hello world".index("or") == 7, "index");
-            tester.assert("hello world".index_char('o') == 4, "index_char");
-            tester.assert("hello".concat("\x20").concat("world").eq("hello world"), "concat");
-            tester.assert("hello world".has_prefix("hel"), "has_prefix");
-            tester.assert("hello world".has_suffix("orld"), "has_suffix");
-            tester.assert(".".join(new String[]{"www", "qq", "com"}.iter()).eq("www.qq.com"), "join");
+        tester.assert("abc".repeat(3).eq("abcabcabc"), "repeat");
+        {
+            var c = call_and_catch<ValueError>([-]{
+                "a".repeat(1000).repeat((long)1e16);
+            });
+            tester.assert(c !== nil, "repeat（结果长度超限）");
+        }
 
-            tester.assert("  a \tb  \v  c\fd\r\r\r\n".split(nil).eq(new String[]{"a", "b", "c", "d"}), "split（sep=nil）");
-            tester.assert("  a \tb  \v  c\fd\r\r\r\n".split_n(nil, 3).eq(new String[]{"a", "b", "c\fd\r\r\r\n"}),
-                          "split_n（sep=nil，n小于实际part数量）");
-            tester.assert("  a \tb  \v  c\fd\r\r\r\n".split_n(nil, 10000).eq(new String[]{"a", "b", "c", "d"}),
-                          "split_n（sep=nil，n大于实际part数量）");
-            tester.assert("  a, \tb , \v  c\f,d\r\r\r\n".split(",").eq(new String[]{"  a", " \tb ", " \v  c\f", "d\r\r\r\n"}),
-                          "split（sep!=nil）");
-            tester.assert("  a, \tb , \v  c\f,d\r\r\r\n".split_n(",", 3).eq(new String[]{"  a", " \tb ", " \v  c\f,d\r\r\r\n"}),
-                          "split_n（sep!=nil，n小于实际part数量）");
-            tester.assert("  a, \tb , \v  c\f,d\r\r\r\n".split_n(",", 10000).eq(new String[]{"  a", " \tb ", " \v  c\f", "d\r\r\r\n"}),
-                          "split_n（sep!=nil，n大于实际part数量）");
-            {
-                var c = call_and_catch<ValueError>([]{
-                    public void call()
-                    {
-                        "".split("");
-                    }
-                });
-                tester.assert(c !== nil, `split（sep=""）`);
+        foreach (var s: "1,t,T,TRUE,true,True".split(",").iter())
+        {
+            tester.assert(s.parse_bool(), `"%s".parse_bool()`.(s));
+        }
+        foreach (var s: "0,f,F,FALSE,false,False".split(",").iter())
+        {
+            tester.assert(!s.parse_bool(), `"%s".parse_bool()`.(s));
+        }
+        {
+            var c = call_and_catch<ValueError>([-]{
+                "invalid bool literal".parse_bool();
+            });
+            tester.assert(c !== nil, "parse_bool（非法字面量）");
+        }
 
-                c = call_and_catch<ValueError>([]{
-                    public void call()
-                    {
-                        "".split_n(nil, -1L);
-                    }
-                });
-                tester.assert(c !== nil, "split_n（n<=0）");
-            }
-            tester.assert("".split(nil).eq(new String[]{}), "空串的split（sep=nil）");
-            tester.assert("".split(",").eq(new String[]{""}), "空串的split（sep!=nil）");
-            tester.assert("  \t  \r \v\f\n".split(nil).eq(new String[]{}), "纯空白字符组成的String的split（sep=nil）");
+        foreach (var p: new Pair<String, long>[]{
+            "-123":    -123L,
+            "0b11011": 0b11011L,
+            "-0123":   -0o123L,
+            "0o123":   0123L,
+            "-0x123":  -0x123L,
+        }.iter())
+        {
+            tester.assert(p.first().parse_long(0) == p.second(), `"%s".parse_long（base=0）`.(p.first()));
+        }
+        foreach (var p: new Pair<int, long>[]{
+            2:  0b11011L,
+            5:  756L,
+            8:  0o11011L,
+            11: 15984L,
+            16: 0x11011L,
+            35: 1543536L,
+        }.iter())
+        {
+            tester.assert("11011".parse_long(p.first()) == p.second(), `"11011".parse_long（base=%s）`.(p.first()));
+        }
+        tester.assert("-aBcXyZ".parse_long(36) == -623741435L, `"-aBcXyZ".parse_long（base=36）`);
+        foreach (var base: new int[]{-10, -2, 1, 37, 100}.iter())
+        {
+            var c = call_and_catch<ValueError>([-]{
+                "0".parse_long(base);
+            });
+            tester.assert(c !== nil, "parse_long（非法进制%s）".(base));
+        }
+        foreach (var p: new Pair<String, int>[]{
+            "-12":          2,
+            "1+2":          0,
+            "1".repeat(20): 10,
+        }.iter())
+        {
+            var c = call_and_catch<ValueError>([-]{
+                p.first().parse_long(p.second());
+            });
+            tester.assert(c !== nil, `"%s".parse_long（base=%s）`.(p.first(), p.second()));
+        }
+        {
+            var s = "0x8".concat("0".repeat(15));
+            var c = call_and_catch<ValueError>([-]{
+                s.parse_long(0);
+            });
+            tester.assert(c !== nil, `"%s".parse_long`.(s));
+            s = "-".concat(s);
+            c = call_and_catch<ValueError>([-]{
+                s.parse_long(0);
+            });
+            tester.assert(c === nil, `"%s".parse_long`.(s));
+        }
 
-            tester.assert("hello world".sub_str(3, 7).eq("lo w"), "sub_str");
-            {
-                var c = call_and_catch<RangeError>([]{
-                    public void call()
-                    {
-                        "hello world".sub_str(-1L, 100);
-                    }
-                });
-                tester.assert(c !== nil, "sub_str（范围错误）");
-            }
+        foreach (var p: new Pair<String, ulong>[]{
+            "123":     123UL,
+            "0b11011": 0b11011UL,
+            "0123":    0o123UL,
+            "0o123":   0123UL,
+            "0x123":   0x123UL,
+        }.iter())
+        {
+            tester.assert(p.first().parse_ulong(0) == p.second(), `"%s".parse_ulong（base=0）`.(p.first()));
+        }
+        foreach (var p: new Pair<int, ulong>[]{
+            2:  0b11011UL,
+            5:  756UL,
+            8:  0o11011UL,
+            11: 15984UL,
+            16: 0x11011UL,
+            35: 1543536UL,
+        }.iter())
+        {
+            tester.assert("11011".parse_ulong(p.first()) == p.second(), `"11011".parse_ulong（base=%s）`.(p.first()));
+        }
+        tester.assert("aBcXyZ".parse_ulong(36) == 623741435, `"aBcXyZ".parse_ulong（base=36）`);
+        foreach (var base: new int[]{-10, -2, 1, 37, 100}.iter())
+        {
+            var c = call_and_catch<ValueError>([-]{
+                "0".parse_ulong(base);
+            });
+            tester.assert(c !== nil, "parse_ulong（非法进制%s）".(base));
+        }
+        foreach (var p: new Pair<String, int>[]{
+            "-1":           0,
+            "12":           2,
+            "1+2":          0,
+            "1".repeat(21): 10,
+        }.iter())
+        {
+            var c = call_and_catch<ValueError>([-]{
+                p.first().parse_ulong(p.second());
+            });
+            tester.assert(c !== nil, `"%s".parse_ulong（base=%s）`.(p.first(), p.second()));
+        }
+        {
+            String s = "1".repeat(20);
+            tester.assert(s.parse_ulong(0) * 0 == 0, `"%s".parse_ulong`.(s));
+        }
 
-            tester.assert("abc".repeat(3).eq("abcabcabc"), "repeat");
-            {
-                var c = call_and_catch<ValueError>([]{
-                    public void call()
-                    {
-                        "a".repeat(1000).repeat((long)1e16);
-                    }
-                });
-                tester.assert(c !== nil, "repeat（结果长度超限）");
-            }
-
-            foreach (var s: "1,t,T,TRUE,true,True".split(",").iter())
-            {
-                tester.assert(s.parse_bool(), `"%s".parse_bool()`.(s));
-            }
-            foreach (var s: "0,f,F,FALSE,false,False".split(",").iter())
-            {
-                tester.assert(!s.parse_bool(), `"%s".parse_bool()`.(s));
-            }
-            {
-                var c = call_and_catch<ValueError>([]{
-                    public void call()
-                    {
-                        "invalid bool literal".parse_bool();
-                    }
-                });
-                tester.assert(c !== nil, "parse_bool（非法字面量）");
-            }
-
-            foreach (var p: new Pair<String, long>[]{
-                "-123":    -123L,
-                "0b11011": 0b11011L,
-                "-0123":   -0o123L,
-                "0o123":   0123L,
-                "-0x123":  -0x123L,
-            }.iter())
-            {
-                tester.assert(p.first().parse_long(0) == p.second(), `"%s".parse_long（base=0）`.(p.first()));
-            }
-            foreach (var p: new Pair<int, long>[]{
-                2:  0b11011L,
-                5:  756L,
-                8:  0o11011L,
-                11: 15984L,
-                16: 0x11011L,
-                35: 1543536L,
-            }.iter())
-            {
-                tester.assert("11011".parse_long(p.first()) == p.second(), `"11011".parse_long（base=%s）`.(p.first()));
-            }
-            tester.assert("-aBcXyZ".parse_long(36) == -623741435L, `"-aBcXyZ".parse_long（base=36）`);
-            foreach (var base: new int[]{-10, -2, 1, 37, 100}.iter())
-            {
-                var c = call_and_catch<ValueError>([]{
-                    public void call()
-                    {
-                        "0".parse_long(base);
-                    }
-                });
-                tester.assert(c !== nil, "parse_long（非法进制%s）".(base));
-            }
-            foreach (var p: new Pair<String, int>[]{
-                "-12":          2,
-                "1+2":          0,
-                "1".repeat(20): 10,
-            }.iter())
-            {
-                var c = call_and_catch<ValueError>([]{
-                    public void call()
-                    {
-                        p.first().parse_long(p.second());
-                    }
-                });
-                tester.assert(c !== nil, `"%s".parse_long（base=%s）`.(p.first(), p.second()));
-            }
-            {
-                var s = "0x8".concat("0".repeat(15));
-                var c = call_and_catch<ValueError>([]{
-                    public void call()
-                    {
-                        s.parse_long(0);
-                    }
-                });
-                tester.assert(c !== nil, `"%s".parse_long`.(s));
-                s = "-".concat(s);
-                c = call_and_catch<ValueError>([]{
-                    public void call()
-                    {
-                        s.parse_long(0);
-                    }
-                });
-                tester.assert(c === nil, `"%s".parse_long`.(s));
-            }
-
-            foreach (var p: new Pair<String, ulong>[]{
-                "123":     123UL,
-                "0b11011": 0b11011UL,
-                "0123":    0o123UL,
-                "0o123":   0123UL,
-                "0x123":   0x123UL,
-            }.iter())
-            {
-                tester.assert(p.first().parse_ulong(0) == p.second(), `"%s".parse_ulong（base=0）`.(p.first()));
-            }
-            foreach (var p: new Pair<int, ulong>[]{
-                2:  0b11011UL,
-                5:  756UL,
-                8:  0o11011UL,
-                11: 15984UL,
-                16: 0x11011UL,
-                35: 1543536UL,
-            }.iter())
-            {
-                tester.assert("11011".parse_ulong(p.first()) == p.second(), `"11011".parse_ulong（base=%s）`.(p.first()));
-            }
-            tester.assert("aBcXyZ".parse_ulong(36) == 623741435, `"aBcXyZ".parse_ulong（base=36）`);
-            foreach (var base: new int[]{-10, -2, 1, 37, 100}.iter())
-            {
-                var c = call_and_catch<ValueError>([]{
-                    public void call()
-                    {
-                        "0".parse_ulong(base);
-                    }
-                });
-                tester.assert(c !== nil, "parse_ulong（非法进制%s）".(base));
-            }
-            foreach (var p: new Pair<String, int>[]{
-                "-1":           0,
-                "12":           2,
-                "1+2":          0,
-                "1".repeat(21): 10,
-            }.iter())
-            {
-                var c = call_and_catch<ValueError>([]{
-                    public void call()
-                    {
-                        p.first().parse_ulong(p.second());
-                    }
-                });
-                tester.assert(c !== nil, `"%s".parse_ulong（base=%s）`.(p.first(), p.second()));
-            }
-            {
-                String s = "1".repeat(20);
-                tester.assert(s.parse_ulong(0) * 0 == 0, `"%s".parse_ulong`.(s));
-            }
-
-            foreach (var p: new Pair<String, double>[]{
-                "12.3":     12.3,
-                "-123e-1":  -123e-1,
-                "1.23e1":   1.23e1,
-                "-.123e2":  -.123e2,
-            }.iter())
-            {
-                tester.assert(math.abs(p.first().parse_double() - p.second()) < 0.000001, `"%s".parse_double`.(p.first()));
-            }
-            foreach (var s: new String[]{"1,2", "1e", "1e400"}.iter())
-            {
-                var c = call_and_catch<ValueError>([]{
-                    public void call()
-                    {
-                        s.parse_double();
-                    }
-                });
-                tester.assert(c !== nil, `"%s".parse_double`.(s));
-            }
+        foreach (var p: new Pair<String, double>[]{
+            "12.3":     12.3,
+            "-123e-1":  -123e-1,
+            "1.23e1":   1.23e1,
+            "-.123e2":  -.123e2,
+        }.iter())
+        {
+            tester.assert(math.abs(p.first().parse_double() - p.second()) < 0.000001, `"%s".parse_double`.(p.first()));
+        }
+        foreach (var s: new String[]{"1,2", "1e", "1e400"}.iter())
+        {
+            var c = call_and_catch<ValueError>([-]{
+                s.parse_double();
+            });
+            tester.assert(c !== nil, `"%s".parse_double`.(s));
         }
     });
 

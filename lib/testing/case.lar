@@ -111,14 +111,11 @@ public class CaseRunner
             }
 
             String msg;
-            var c = call_and_catch<Fail>([]{
-                public void call()
+            var c = call_and_catch<Fail>([-]{
+                msg = case.run();
+                if (msg === nil)
                 {
-                    msg = case.run();
-                    if (msg === nil)
-                    {
-                        msg = "";
-                    }
+                    msg = "";
                 }
             });
 

@@ -120,17 +120,10 @@ class Client
 
     public void run()
     {
-        defer
-        {
-            catch<Throwable>();
-        }
         defer this.conn.close();
 
-        var c = call_and_catch<Throwable>([]{
-            public void call()
-            {
-                this._run();
-            }
+        var c = call_and_catch<Throwable>([-]{
+            this._run();
         });
         if (c !== nil)
         {
@@ -147,19 +140,13 @@ public void main()
     log("game start!");
     for (;;)
     {
-        var c = call_and_catch<Throwable>([]{
-            public void call()
-            {
-                var conn = listener.accept();
-                log("accept success, new client [%s]".(conn.remote_addr()));
+        var c = call_and_catch<Throwable>([-]{
+            var conn = listener.accept();
+            log("accept success, new client [%s]".(conn.remote_addr()));
 
-                fiber.start_new([]{
-                    public void call()
-                    {
-                        new Client(conn).run();
-                    }
-                });
-            }
+            fiber.start_new([-]{
+                new Client(conn).run();
+            });
         });
         if (c !== nil)
         {

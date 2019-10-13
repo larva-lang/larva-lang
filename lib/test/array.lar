@@ -4,118 +4,97 @@ void test_array()
 {
     var r = new testing.CaseRunner();
 
-    r.add_test_case("常规测试", []{
-        public void call()
+    r.add_test_case("常规测试", [-]{
+        var a = new int[]{1,3,5,2,4};
+        testing.assert(a.size() == 5, "数组size()错误");
+        testing.assert(a.cap() == 5, "数组cap()错误");
+        testing.assert(a[1] == 3, "数组元素值错误");
+
+        var s = a[1 : 4];
+        testing.assert(s.size() == 3, "数组切片size()错误");
+        testing.assert(s.cap() == 4, "数组切片cap()错误");
+        testing.assert(s[1] == 5, "数组切片元素值错误");
+
+        s = s[: s.cap()];
+        testing.assert(s.size() == 4, "数组切片size()错误");
+        testing.assert(s.cap() == 4, "数组切片cap()错误");
+
+        s[1] = 9;
+        testing.assert(a[2] == 9, "通过切片对元素赋值后，数组中对应元素值错误");
+
         {
-            var a = new int[]{1,3,5,2,4};
-            testing.assert(a.size() == 5, "数组size()错误");
-            testing.assert(a.cap() == 5, "数组cap()错误");
-            testing.assert(a[1] == 3, "数组元素值错误");
-
-            var s = a[1 : 4];
-            testing.assert(s.size() == 3, "数组切片size()错误");
-            testing.assert(s.cap() == 4, "数组切片cap()错误");
-            testing.assert(s[1] == 5, "数组切片元素值错误");
-
-            s = s[: s.cap()];
-            testing.assert(s.size() == 4, "数组切片size()错误");
-            testing.assert(s.cap() == 4, "数组切片cap()错误");
-
-            s[1] = 9;
-            testing.assert(a[2] == 9, "通过切片对元素赋值后，数组中对应元素值错误");
-
-            {
-                long invalid_idx = 10;
-                var c = call_and_catch<IndexError>([]{
-                    public void call()
-                    {
-                        a.get(invalid_idx);
-                    }
-                });
-                testing.assert(c !== nil && c.throwed().str().eq("%s".(invalid_idx)), "通过无效索引进行get未抛出正确的IndexError异常");
-            }
-
-            {
-                long invalid_range_begin = -1L, invalid_range_end = 10;
-                var c = call_and_catch<RangeError>([]{
-                    public void call()
-                    {
-                        a.slice(invalid_range_begin, invalid_range_end);
-                    }
-                });
-                testing.assert(c !== nil && c.throwed().str().eq("[%s][%s:%s]".(a.size(), invalid_range_begin, invalid_range_end)),
-                               "通过无效索引范围进行slice未抛出正确的RangeError异常");
-            }
-
-            var c = call_and_catch<ValueError>([]{
-                public void call()
-                {
-                    var invalid_arr = new int[-1];
-                }
+            long invalid_idx = 10;
+            var c = call_and_catch<IndexError>([-]{
+                a.get(invalid_idx);
             });
-            testing.assert(c !== nil, "通过无效大小创建数组未抛出正确的ValueError异常");
+            testing.assert(c !== nil && c.throwed().str().eq("%s".(invalid_idx)), "通过无效索引进行get未抛出正确的IndexError异常");
         }
-    });
-    r.add_test_case("迭代器测试", []{
-        public void call()
+
         {
-            var arr = new int[]{0,1,1,2,3,5,8};
-            var x = arr[0], y = arr[1];
-            foreach (var z: arr[2 :].iter())
-            {
-                testing.assert(z == x + y, "未能正确按序迭代数组元素");
-                x = y;
-                y = z;
-            }
-
-            var iter = arr.iter();
-            iter.inc();
-            iter.inc();
-            var old_x = iter.get();
-            iter.set(100);
-            testing.assert(arr[2] == 100, "通过迭代器设置数组元素值失败");
-            iter.set(old_x);
-            iter.inc();
-            iter.inc();
-            testing.assert(iter.get() == 3, "通过迭代器获取数组元素值不符合预期");
-
-            while (!iter.after_end())
-            {
-                iter.inc();
-            }
-            var c = call_and_catch<IterOutOfRange>([]{
-                public void call()
-                {
-                    iter.get();
-                }
+            long invalid_range_begin = -1L, invalid_range_end = 10;
+            var c = call_and_catch<RangeError>([-]{
+                a.slice(invalid_range_begin, invalid_range_end);
             });
-            testing.assert(c !== nil, "对已经失效的迭代器做get操作未正确抛出IterOutOfRange异常");
-
-            iter.dec();
-            iter.dec();
-            testing.assert(iter.get() == 5, "通过迭代器获取数组元素值不符合预期");
+            testing.assert(c !== nil && c.throwed().str().eq("[%s][%s:%s]".(a.size(), invalid_range_begin, invalid_range_end)),
+                            "通过无效索引范围进行slice未抛出正确的RangeError异常");
         }
+
+        var c = call_and_catch<ValueError>([-]{
+            var invalid_arr = new int[-1];
+        });
+        testing.assert(c !== nil, "通过无效大小创建数组未抛出正确的ValueError异常");
     });
-    r.add_test_case("方法测试", []{
-        public void call()
+    r.add_test_case("迭代器测试", [-]{
+        var arr = new int[]{0,1,1,2,3,5,8};
+        var x = arr[0], y = arr[1];
+        foreach (var z: arr[2 :].iter())
         {
-            var a = new int[][]{
-                {1,2,3},
-                nil,
-                {4,5},
-            };
-
-            a[0][1 :].shallow_copy_from(new int[]{7,8,9,0});
-            testing.assert(a[0].eq(new int[]{1,7,8}), "shallow_copy_from后的数组元素值错误");
-
-            var a_copy = a.shallow_copy();
-            testing.assert(a !== a_copy && a.shallow_eq(a_copy), "shallow_copy返回的数组对象错误");
-
-            a_copy = a.deep_copy();
-            testing.assert(a !== a_copy && a.eq(a_copy) && !a.shallow_eq(a_copy), "deep_copy返回的数组对象错误");
-
-            testing.assert(a[0].index(7) == 1 && a[0].index(9) < 0, "index测试失败");
+            testing.assert(z == x + y, "未能正确按序迭代数组元素");
+            x = y;
+            y = z;
         }
+
+        var iter = arr.iter();
+        iter.inc();
+        iter.inc();
+        var old_x = iter.get();
+        iter.set(100);
+        testing.assert(arr[2] == 100, "通过迭代器设置数组元素值失败");
+        iter.set(old_x);
+        iter.inc();
+        iter.inc();
+        testing.assert(iter.get() == 3, "通过迭代器获取数组元素值不符合预期");
+
+        while (!iter.after_end())
+        {
+            iter.inc();
+        }
+        var c = call_and_catch<IterOutOfRange>([-]{
+            iter.get();
+        });
+        testing.assert(c !== nil, "对已经失效的迭代器做get操作未正确抛出IterOutOfRange异常");
+
+        iter.dec();
+        iter.dec();
+        testing.assert(iter.get() == 5, "通过迭代器获取数组元素值不符合预期");
+    });
+    r.add_test_case("方法测试", [-]{
+        var a = new int[][]{
+            {1,2,3},
+            nil,
+            {4,5},
+        };
+
+        a[0][1 :].shallow_copy_from(new int[]{7,8,9,0});
+        testing.assert(a[0].eq(new int[]{1,7,8}), "shallow_copy_from后的数组元素值错误");
+
+        var a_copy = a.shallow_copy();
+        testing.assert(a !== a_copy && a.shallow_eq(a_copy), "shallow_copy返回的数组对象错误");
+
+        a_copy = a.deep_copy();
+        testing.assert(a !== a_copy && a.eq(a_copy) && !a.shallow_eq(a_copy), "deep_copy返回的数组对象错误");
+
+        testing.assert(a[0].index(7) == 1 && a[0].index(9) < 0, "index测试失败");
     });
 
     r.run();

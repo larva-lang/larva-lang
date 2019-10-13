@@ -6,26 +6,18 @@ class Client
 
     public void run()
     {
-        defer
-        {
-            catch<Throwable>();
-        }
         defer this.conn.close();
 
-        var c = call_and_catch<Throwable>([]{
-            public void call()
+        var c = call_and_catch<Throwable>([-]{
+            var buf = new char[10000];
+            for (;;)
             {
-
-                var buf = new char[10000];
-                for (;;)
+                long recved_size = this.conn.read(buf);
+                if (recved_size == 0)
                 {
-                    long recved_size = this.conn.read(buf);
-                    if (recved_size == 0)
-                    {
-                        return;
-                    }
-                    this.conn.write(buf[: recved_size]);
+                    return;
                 }
+                this.conn.write(buf[: recved_size]);
             }
         });
         if (c !== nil)
@@ -45,17 +37,11 @@ public void main()
     println("server start");
     for (;;)
     {
-        var c = call_and_catch<Throwable>([]{
-            public void call()
-            {
-                var conn = listener.accept();
-                fiber.start_new([]{
-                    public void call()
-                    {
-                        new Client{conn: conn}.run();
-                    }
-                });
-            }
+        var c = call_and_catch<Throwable>([-]{
+            var conn = listener.accept();
+            fiber.start_new([-]{
+                new Client{conn: conn}.run();
+            });
         });
         if (c !== nil)
         {

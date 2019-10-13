@@ -21,75 +21,46 @@ public void main()
 {
     var r = new testing.CaseRunner();
 
-    r.add_test_case("常规测试", []{
-        public void call()
-        {
-            //常见的一个“创建fiber完成任务并通过Chan发回结果”的场景
-
-            var ch = new Chan<int>(0);
-            int n = -191;
-            fiber.start_new([]{
-                public void call()
-                {
-                    defer ch.close();
-                    ch.send(n);
-                }
-            });
-            bool ok, closed;
-            testing.assert(chan_recv_with_timeout(ch, ref ok, ref closed) == n && ok && !closed, "从fiber收取执行结果失败");
-            testing.assert(chan_recv_with_timeout(ch, ref ok, ref closed) == 0 && !ok && closed, "确认fiber关闭Chan失败");
-        }
+    r.add_test_case("常规测试", [-]{
+        //常见的一个“创建fiber完成任务并通过Chan发回结果”的场景
+        var ch = new Chan<int>(0);
+        int n = -191;
+        fiber.start_new([-]{
+            defer ch.close();
+            ch.send(n);
+        });
+        bool ok, closed;
+        testing.assert(chan_recv_with_timeout(ch, ref ok, ref closed) == n && ok && !closed, "从fiber收取执行结果失败");
+        testing.assert(chan_recv_with_timeout(ch, ref ok, ref closed) == 0 && !ok && closed, "确认fiber关闭Chan失败");
     });
-    r.add_test_case("测试worker", []{
-        public void call()
-        {
-            var ch = new Chan<int>(0);
-            fiber.call_with_cancel([]{
-                public void call()
+    r.add_test_case("测试worker", [-]{
+        var ch = new Chan<int>(0);
+        fiber.call_with_cancel([-]{
+            fiber.start_worker([-]{
+                defer ch.close();
+                while (!fiber.is_canceled())
                 {
-                    fiber.start_worker([]{
-                        public void call()
-                        {
-                            defer ch.close();
-
-                            //等待被cancel
-                            while (!fiber.is_canceled())
-                            {
-                                time.sleep(0.01);
-                            }
-                        }
-                    });
+                    time.sleep(0.01);
                 }
             });
-            bool ok, closed;
-            testing.assert(chan_recv_with_timeout(ch, ref ok, ref closed) == 0 && !ok && closed, "确认worker fiber结束失败");
-        }
+        });
+        bool ok, closed;
+        testing.assert(chan_recv_with_timeout(ch, ref ok, ref closed) == 0 && !ok && closed, "确认worker fiber结束失败");
     });
-    r.add_test_case("测试timeout", []{
-        public void call()
-        {
-            var ch = new Chan<int>(0);
-            //在启动的fiber中做带超时的调用，当前fiber用于测试ch是否关闭
-            fiber.start_new([]{
-                public void call()
+    r.add_test_case("测试timeout", [-]{
+        var ch = new Chan<int>(0);
+        //在启动的fiber中做带超时的调用，当前fiber用于测试ch是否关闭
+        fiber.start_new([-]{
+            fiber.call_with_timeout(0.1, [-]{
+                defer ch.close();
+                while (!fiber.is_canceled())
                 {
-                    fiber.call_with_timeout(0.1, []{
-                        public void call()
-                        {
-                            defer ch.close();
-
-                            //等待因超时被cancel
-                            while (!fiber.is_canceled())
-                            {
-                                time.sleep(0.01);
-                            }
-                        }
-                    });
+                    time.sleep(0.01);
                 }
             });
-            bool ok, closed;
-            testing.assert(chan_recv_with_timeout(ch, ref ok, ref closed) == 0 && !ok && closed, "确认worker fiber结束失败");
-        }
+        });
+        bool ok, closed;
+        testing.assert(chan_recv_with_timeout(ch, ref ok, ref closed) == 0 && !ok && closed, "确认worker fiber结束失败");
     });
 
     r.run();
