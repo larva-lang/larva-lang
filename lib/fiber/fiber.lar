@@ -9,13 +9,13 @@ import (
 
 !>>
 
-public void start_new(Runnable r)
+public void start_new(Callable callee)
 {
     var n = "fiber_%d".((long)(time.time() * 1e6));
 
     !<<
     new_lar_fiber, cancel := lar_go_func_new_fiber_ctx_with_cancel(nil, lar_str_to_go_str(l_n))
-    go lar_booter_start_fiber(new_lar_fiber, cancel, l_r, nil)
+    go lar_booter_start_fiber(new_lar_fiber, cancel, l_callee, nil)
     !>>
 }
 
@@ -34,14 +34,14 @@ public class Worker
     Chan<Catched<Throwable>> ch;
 }
 
-public Worker start_worker(Runnable r)
+public Worker start_worker(Callable callee)
 {
     var n = "fiber_worker_%d".((long)(time.time() * 1e6));
     var w = new Worker();
 
     !<<
     new_lar_fiber, cancel := lar_go_func_new_fiber_ctx_with_cancel(lar_fiber, lar_str_to_go_str(l_n))
-    go lar_booter_start_fiber(new_lar_fiber, cancel, l_r, l_w.m_ch.ch)
+    go lar_booter_start_fiber(new_lar_fiber, cancel, l_callee, l_w.m_ch.ch)
     !>>
 
     return w;
@@ -85,7 +85,7 @@ public class Canceled
 
     public String str()
     {
-        return "fiber已被%s取消".("超时" if this.is_timeout() else "");
+        return "context已被%s取消".("超时" if this.is_timeout() else "");
     }
 
     bool _is_timeout;

@@ -42,8 +42,3 @@ public interface Callable
 {
     public void call();
 }
-
-public interface Runnable
-{
-    public void run();
-}

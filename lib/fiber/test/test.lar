@@ -29,7 +29,7 @@ public void main()
             var ch = new Chan<int>(0);
             int n = -191;
             fiber.start_new([]{
-                public void run()
+                public void call()
                 {
                     defer ch.close();
                     ch.send(n);
@@ -48,7 +48,7 @@ public void main()
                 public void call()
                 {
                     fiber.start_worker([]{
-                        public void run()
+                        public void call()
                         {
                             defer ch.close();
 
@@ -71,7 +71,7 @@ public void main()
             var ch = new Chan<int>(0);
             //在启动的fiber中做带超时的调用，当前fiber用于测试ch是否关闭
             fiber.start_new([]{
-                public void run()
+                public void call()
                 {
                     fiber.call_with_timeout(0.1, []{
                         public void call()

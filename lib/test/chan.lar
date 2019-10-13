@@ -64,7 +64,7 @@ void test_chan()
 
                     var ch = new Chan<long>(buf_size);
                     fiber.start_new([]{
-                        public void run()
+                        public void call()
                         {
                             for (long i = 1; i <= data_count; ++ i)
                             {
@@ -87,7 +87,7 @@ void test_chan()
             tester.test(10); //带buffer Chan测试
         }
     });
-    r.add_test_case("感知上下文被取消", []{
+    r.add_test_case("感知context被取消", []{
         public void call()
         {
             var ch = new Chan<int>(0);
@@ -98,7 +98,7 @@ void test_chan()
                     public void call()
                     {
                         w = fiber.start_worker([]{
-                            public void run()
+                            public void call()
                             {
                                 ch.recv(ref _);
                             }

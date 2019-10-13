@@ -43,7 +43,7 @@ func lar_booter_start_prog(builtins_mod_init_func func (*lar_go_stru_fiber), mai
     main_func(lar_fiber)
 }
 
-func lar_booter_start_fiber(lar_fiber *lar_go_stru_fiber, cancel context.CancelFunc, r lar_intf_@<<:Runnable>>,
+func lar_booter_start_fiber(lar_fiber *lar_go_stru_fiber, cancel context.CancelFunc, callee lar_intf_@<<:Callable>>,
                             work_exc_ch chan *lar_gcls_inst_@<<:Catched>>_1_lar_intf_@<<:Throwable>>) {
     defer cancel()
 
@@ -59,7 +59,7 @@ func lar_booter_start_fiber(lar_fiber *lar_go_stru_fiber, cancel context.CancelF
         }
     }()
 
-    r.lar_method_run(lar_fiber)
+    callee.lar_method_call(lar_fiber)
 }
 
 !>>
