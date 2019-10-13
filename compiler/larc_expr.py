@@ -482,10 +482,16 @@ class Parser:
                 #闭包对象
                 if self.fom is None:
                     t.syntax_err("闭包只能用于函数或方法中")
-                self.token_list.pop_sym("]")
+                is_simple_callable = False
+                next_t = self.token_list.pop()
+                if next_t.is_sym("-"):
+                    self.token_list.pop_sym("]")
+                    is_simple_callable = True
+                elif not next_t.is_sym("]"):
+                    next_t.syntax_err("闭包表达式语法错误")
                 closure_token = larc_token.make_fake_token_name("closure").copy_on_pos(t)
                 closure = self.curr_module.new_closure(self.file_name, closure_token, self.cls, self.gtp_map, var_map_stk)
-                closure.parse(self.token_list)
+                closure.parse(self.token_list, is_simple_callable)
                 self.new_closure_hook_stk[-1](closure)
                 parse_stk.push_expr(_Expr("closure", closure, larc_type.gen_closure_type(closure)))
             else:

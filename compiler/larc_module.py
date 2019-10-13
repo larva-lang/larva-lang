@@ -708,7 +708,7 @@ class _GclsInst(_ClsBase):
         return True
 
 class _ClosureMethod:
-    def __init__(self, closure, token_list):
+    def __init__(self, closure, token_list, is_simple_callable = False):
         self.closure = closure
 
         self.module = closure.module
@@ -722,6 +722,8 @@ class _ClosureMethod:
         self.arg_map = None
         self.stmt_list = None
 
+        self.is_simple_callable = is_simple_callable
+
         self._parse(token_list)
 
     __repr__ = __str__ = lambda self: "%s.%s" % (self.closure, self.name)
@@ -729,32 +731,46 @@ class _ClosureMethod:
     def _parse(self, token_list):
         dep_module_map = self.module.get_dep_module_map(self.file_name)
 
-        #解析修饰
-        t = token_list.peek()
-        self.decr_set = _parse_decr_set(token_list)
-        if set(["final"]) & self.decr_set:
-            t.syntax_err("方法不能用final修饰")
+        #解析修饰和方法类型
+        if self.is_simple_callable:
+            self.decr_set = set(["public"])
+            self.type = larc_type.VOID_TYPE
+        else:
+            t = token_list.peek()
+            self.decr_set = _parse_decr_set(token_list)
+            if set(["final"]) & self.decr_set:
+                t.syntax_err("方法不能用final修饰")
 
-        self.type = larc_type.parse_type(token_list, dep_module_map)
-        t, self.name = token_list.pop_name()
-        if self.name in self.closure.method_map:
-            t.syntax_err("方法名重定义")
-        token_list.pop_sym("(")
-        self.arg_name_t_list, self.arg_map = _parse_arg_map(token_list, dep_module_map,
-                                                            [] if self.closure.gtp_map is None else list(self.closure.gtp_map))
-        token_list.pop_sym(")")
-        for arg_name_t, arg_name in zip(self.arg_name_t_list, self.arg_map):
-            #对每个arg看做是一个新的stmt块定义的变量来做检查，其中arg_map的内部名字冲突已经检查过了，var_map_stk追加一个空dict即可
-            larc_stmt.check_var_redefine(arg_name_t, arg_name, self.closure.var_map_stk + (larc_common.OrderedDict(),), self.module,
-                                         dep_module_map, self.closure.gtp_map, is_arg = True)
+            self.type = larc_type.parse_type(token_list, dep_module_map)
 
-        for tp in [self.type] + list(self.arg_map.itervalues()):
-            tp.check(self.module, gtp_map = self.closure.gtp_map)
+        #解析方法名和参数列表
+        if self.is_simple_callable:
+            self.name = "call"
+            self.arg_name_t_list, self.arg_map = [], larc_common.OrderedDict()
+        else:
+            t, self.name = token_list.pop_name()
+            if self.name in self.closure.method_map:
+                t.syntax_err("方法名重定义")
+            token_list.pop_sym("(")
+            self.arg_name_t_list, self.arg_map = _parse_arg_map(token_list, dep_module_map,
+                                                                [] if self.closure.gtp_map is None else list(self.closure.gtp_map))
+            token_list.pop_sym(")")
+            for arg_name_t, arg_name in zip(self.arg_name_t_list, self.arg_map):
+                #对每个arg看做是一个新的stmt块定义的变量来做检查，其中arg_map的内部名字冲突已经检查过了，var_map_stk追加一个空dict即可
+                larc_stmt.check_var_redefine(arg_name_t, arg_name, self.closure.var_map_stk + (larc_common.OrderedDict(),), self.module,
+                                            dep_module_map, self.closure.gtp_map, is_arg = True)
 
-        token_list.pop_sym("{")
+            for tp in [self.type] + list(self.arg_map.itervalues()):
+                tp.check(self.module, gtp_map = self.closure.gtp_map)
+
+            token_list.pop_sym("{")
+
+        #解析方法体
         self.stmt_list = larc_stmt.Parser(token_list, self.module, dep_module_map, self.cls, self.closure.gtp_map,
                                           self).parse(self.closure.var_map_stk + (self.arg_map.copy(),), 0, 0)
-        token_list.pop_sym("}")
+
+        if not self.is_simple_callable:
+            token_list.pop_sym("}")
 
 #闭包，相当于一个没有attr的匿名类，各闭包根据id区分，这里只记录method的接口形式，具体代码由闭包对象对应代码的expr本身记录
 class _Closure(_CoiBase):
@@ -781,15 +797,20 @@ class _Closure(_CoiBase):
             return self.method_map[name], None
         token.syntax_err("闭包'%s'没有方法'%s'" % (self, name))
 
-    def parse(self, token_list):
+    def parse(self, token_list, is_simple_callable):
         token_list.pop_sym("{")
-        while True:
-            if token_list.peek().is_sym("}"):
-                token_list.pop_sym("}")
-                return
-
-            method = _ClosureMethod(self, token_list)
+        if is_simple_callable:
+            method = _ClosureMethod(self, token_list, is_simple_callable = True)
             self.method_map[method.name] = method
+            token_list.pop_sym("}")
+        else:
+            while True:
+                if token_list.peek().is_sym("}"):
+                    token_list.pop_sym("}")
+                    return
+
+                method = _ClosureMethod(self, token_list)
+                self.method_map[method.name] = method
 
 #下面_Intf和_GintfInst的基类，只用于定义一些通用属性和方法
 class _IntfBase(_CoiBase):
