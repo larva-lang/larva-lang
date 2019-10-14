@@ -67,12 +67,7 @@ public String name()
 public bool is_canceled()
 {
     !<<
-    select {
-    case <-lar_fiber.ctx().Done():
-        return true
-    default:
-        return false
-    }
+    return lar_fiber.is_canceled()
     !>>
 }
 
@@ -93,14 +88,9 @@ public class Canceled
 
 public void throw_if_canceled()
 {
-    if (is_canceled())
-    {
-        bool is_timeout;
-        !<<
-        l_is_timeout = lar_fiber.ctx().Err() == context.DeadlineExceeded
-        !>>
-        throw(new Canceled{is_timeout});
-    }
+    !<<
+    lar_fiber.throw_if_canceled()
+    !>>
 }
 
 //从当前ctx生成一个WithCancel ctx作为新的ctx，调用结束后cancel

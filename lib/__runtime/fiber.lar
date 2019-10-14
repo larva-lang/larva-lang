@@ -24,18 +24,30 @@ func (lar_fiber *lar_go_stru_fiber) ctx() context.Context {
     return lar_fiber._ctx
 }
 
-func (lar_fiber *lar_go_stru_fiber) throw_when_canceled() {
+func (lar_fiber *lar_go_stru_fiber) is_canceled() bool {
     select {
     case <-lar_fiber.ctx().Done():
         err := lar_fiber.ctx().Err()
-        if err != nil {
-            lar_func_@<<:throw>>(lar_fiber, &lar_cls_@<<fiber.Canceled>>{
-                m__is_timeout: err == context.DeadlineExceeded,
-            })
+        if err == nil {
+            lar_func_@<<:throw>>(lar_fiber, lar_str_from_go_str("context未被正确取消：Err返回nil"))
         }
+        return true
     default:
+        return false
     }
-    lar_func_@<<:throw>>(lar_fiber, lar_str_from_go_str("调用lar_fiber.throw_when_canceled()时fiber未被正确取消"))
+}
+
+func (lar_fiber *lar_go_stru_fiber) throw_if_canceled() {
+    if lar_fiber.is_canceled() {
+        lar_func_@<<:throw>>(lar_fiber, &lar_cls_@<<fiber.Canceled>>{
+            m__is_timeout: lar_fiber.ctx().Err() == context.DeadlineExceeded,
+        })
+    }
+}
+
+func (lar_fiber *lar_go_stru_fiber) throw_when_canceled() {
+    lar_fiber.throw_if_canceled()
+    lar_func_@<<:throw>>(lar_fiber, lar_str_from_go_str("调用lar_fiber.throw_when_canceled()时context未被正确取消"))
 }
 
 func lar_go_func_new_fiber_ctx_with_cancel(lar_fiber *lar_go_stru_fiber, name string) (new_lar_fiber *lar_go_stru_fiber,
