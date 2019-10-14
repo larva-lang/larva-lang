@@ -1,3 +1,5 @@
+import sync;
+
 !<<
 
 import (
@@ -26,6 +28,60 @@ func lar_go_func_@<<read>>(lar_fiber *lar_go_stru_fiber, r io.Reader, buf []byte
         }
     }
     panic("unreachable")
+}
+
+/*
+在context中执行io操作，若context被取消则抛出fiber.Canceled异常
+lock：为了防止并发调用中一个io对象的操作在不同上下文中互相影响（一个上下文的interrupt影响了所有），一般需要加锁，这个由外部指定，nil表示不需要
+init_func：初始化工作，nil表示不需要
+do_io_func：执行io操作，返回是否执行成功，不可为nil
+interrupt_routine_done：用于打断do_io_func的函数，一般对于阻塞调用是通过设置deadline进行，不可为nil
+fini_func：收尾工作，nil表示不需要
+*/
+func lar_go_func_@<<io_with_ctx>>(lar_fiber *lar_go_stru_fiber, lock lar_cls_@<<sync.Mutex>>, init_func func (), do_io_func func() (ok bool),
+                                  interrupt_func func (), fini_func func ()) {
+    lar_fiber.throw_if_canceled()
+
+    if lock != nil {
+        lock.lar_method_lock(lar_fiber)
+        defer lock.lar_method_unlock(lar_fiber)
+    }
+    if init_func != nil {
+        init_func()
+    }
+    if do_io_func == nil || interrupt_func == nil {
+        lar_func_@<<:throw>>(lar_fiber, lar_str_from_go_str("do_io_func和interrupt_func不能为nil"))
+    }
+    if fini_func != nil {
+        defer fini_func()
+    }
+
+    done := make(chan struct{}) //用于通知子go程结束
+    interrupt_routine_done = make(chan struct{}) //用于等待中断子go程结束
+    defer func () {
+        //通知并等待子go程结束
+        close(done)
+        <-interrupt_routine_done
+    }()
+
+    /*
+    开启一个子go程，监控context，若被取消则中断阻塞的io流程，由于是并发执行，有可能中断的时候io操作还没开始/正在进行/已经结束，
+    因此调用者应保证这些情况下都不能出错
+    */
+    go func () {
+        select {
+        case <-lar_fiber.ctx().Done():
+            interrupt_func()
+        case <-done:
+        }
+        close(interrupt_routine_done)
+    }()
+
+    //执行io操作，如果没有执行成功，则检查是否可能被打断
+    if ok := do_io_func(); !ok {
+        //虽然没成功不一定是因为context取消，但两个错误都发生的话以后者为准也没什么问题
+        lar_fiber.throw_if_canceled()
+    }
 }
 
 !>>

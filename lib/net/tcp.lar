@@ -1,9 +1,10 @@
-import io;
+import io, sync, fiber;
 
 !<<
 
 import (
     "net"
+    "time"
 )
 
 !>>
@@ -19,6 +20,8 @@ public class TcpListener
         lar_go_func_@<<throw_on_go_err>>(lar_fiber, err)
         this.ntl = ntl
         !>>
+
+        this.accept_lock = new sync.Mutex();
     }
 
     public String addr()
@@ -31,7 +34,27 @@ public class TcpListener
     public TcpConn accept()
     {
         !<<
-        ntc, err := this.ntl.AcceptTCP()
+        var (
+            ntc *net.TCPConn
+            err error
+        )
+        lar_go_func_@<<io.io_with_ctx>>(
+            lar_fiber,
+            this.m_accept_lock,
+            func () {
+                this.ntl.SetDeadline(time.Time{}) //关闭deadline
+            },
+            func () bool {
+                ntc, err = this.ntl.AcceptTCP()
+                return err == nil
+            },
+            func () {
+                this.ntl.SetDeadline(time.Unix(1, 0)) //设置一个已过期的deadline来打断Accept
+            },
+            func () {
+                this.ntl.SetDeadline(time.Time{}) //关闭deadline
+            },
+        )
         lar_go_func_@<<throw_on_go_err>>(lar_fiber, err)
         return &lar_cls_@<<TcpConn>>{
             ntc: ntc,
@@ -50,6 +73,8 @@ public class TcpListener
     !<<
     ntl *net.TCPListener
     !>>
+
+    sync.Mutex accept_lock;
 }
 
 public class TcpConn
