@@ -1,0 +1,32 @@
+!<<
+
+import (
+    "sync"
+)
+
+!>>
+
+public class Mutex
+{
+    public Mutex()
+    {
+    }
+
+    public void lock()
+    {
+        !<<
+        this.m.Lock();
+        !>>
+    }
+
+    public void unlock()
+    {
+        !<<
+        this.m.Unlock();
+        !>>
+    }
+
+    !<<
+    m sync.Mutex
+    !>>
+}
