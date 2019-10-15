@@ -1,32 +1,36 @@
-!<<
-
-import (
-    "sync"
-)
-
-!>>
+//Mutex需要接入context，用Chan实现
 
 public class Mutex
 {
     public Mutex()
     {
+        this.ch = new Chan<int>(1);
+    }
+
+    public bool try_lock()
+    {
+        return this.ch.try_send(0);
     }
 
     public void lock()
     {
-        !<<
-        this.m.Lock();
-        !>>
+        this.ch.send(0);
     }
 
     public void unlock()
     {
+        //解锁的时候不需要检查context是否被取消，用native代码
         !<<
-        this.m.Unlock();
+        select {
+        case <-this.m_ch.ch:
+            //pass
+        default:
+        !>>
+            throw("对一个未加锁的Mutex进行解锁操作");
+        !<<
+        }
         !>>
     }
 
-    !<<
-    m sync.Mutex
-    !>>
+    Chan<int> ch;
 }
