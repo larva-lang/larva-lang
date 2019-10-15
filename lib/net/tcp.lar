@@ -109,7 +109,7 @@ public class TcpConn
         !<<
         var err error
         lar_go_func_@<<io.deadline_interruptable_io_with_ctx>>(lar_fiber, &this.wr_lock, this.ntc.SetWriteDeadline, func () bool {
-            _, err := this.ntc.Write(l_buf.arr)
+            _, err = this.ntc.Write(l_buf.arr)
             return err == nil
         })
         lar_go_func_@<<throw_on_go_err>>(lar_fiber, err)
