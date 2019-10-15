@@ -13,6 +13,8 @@ public class TcpListener
 {
     public TcpListener(String addr)
     {
+        this.accept_lock = new sync.Mutex();
+
         !<<
         tcp_addr, err := net.ResolveTCPAddr("tcp", lar_str_to_go_str(l_addr))
         lar_go_func_@<<throw_on_go_err>>(lar_fiber, err)
@@ -36,7 +38,7 @@ public class TcpListener
             ntc *net.TCPConn
             err error
         )
-        lar_go_func_@<<io.deadline_interruptable_io_with_ctx>>(lar_fiber, &this.accept_lock, this.ntl.SetDeadline, func () bool {
+        lar_go_func_@<<io.deadline_interruptable_io_with_ctx>>(lar_fiber, this.m_accept_lock, this.ntl.SetDeadline, func () bool {
             ntc, err = this.ntl.AcceptTCP()
             return err == nil
         })
@@ -53,10 +55,10 @@ public class TcpListener
         !>>
     }
 
+    sync.Mutex accept_lock;
+
     !<<
     ntl *net.TCPListener
-
-    accept_lock sync.Mutex
     !>>
 }
 
@@ -64,6 +66,9 @@ public class TcpConn
 {
     public TcpConn(String addr)
     {
+        this.rd_lock = new sync.Mutex();
+        this.wr_lock = new sync.Mutex();
+
         !<<
         conn, err := (&net.Dialer{}).DialContext(lar_fiber.ctx(), "tcp", lar_str_to_go_str(l_addr))
         if err != nil {
@@ -95,7 +100,7 @@ public class TcpConn
             n   int
             err error
         )
-        lar_go_func_@<<io.deadline_interruptable_io_with_ctx>>(lar_fiber, &this.rd_lock, this.ntc.SetReadDeadline, func () bool {
+        lar_go_func_@<<io.deadline_interruptable_io_with_ctx>>(lar_fiber, this.m_rd_lock, this.ntc.SetReadDeadline, func () bool {
             n, err = lar_go_func_@<<io.read>>(lar_fiber, this.ntc, l_buf.arr)
             return err == nil
         })
@@ -108,7 +113,7 @@ public class TcpConn
     {
         !<<
         var err error
-        lar_go_func_@<<io.deadline_interruptable_io_with_ctx>>(lar_fiber, &this.wr_lock, this.ntc.SetWriteDeadline, func () bool {
+        lar_go_func_@<<io.deadline_interruptable_io_with_ctx>>(lar_fiber, this.m_wr_lock, this.ntc.SetWriteDeadline, func () bool {
             _, err = this.ntc.Write(l_buf.arr)
             return err == nil
         })
@@ -124,11 +129,11 @@ public class TcpConn
         !>>
     }
 
+    sync.Mutex rd_lock;
+    sync.Mutex wr_lock;
+
     !<<
     ntc *net.TCPConn
-
-    rd_lock sync.Mutex
-    wr_lock sync.Mutex
     !>>
 }
 
@@ -136,6 +141,8 @@ public class TcpConn
 
 func lar_go_func_@<<tcp_conn_from_native>>(lar_fiber *lar_go_stru_fiber, ntc *net.TCPConn) *lar_cls_@<<TcpConn>> {
     return &lar_cls_@<<TcpConn>>{
+        m_rd_lock: lar_new_obj_lar_cls_@<<sync.Mutex>>(lar_fiber),
+        m_wd_lock: lar_new_obj_lar_cls_@<<sync.Mutex>>(lar_fiber),
         ntc: ntc,
     }
 }

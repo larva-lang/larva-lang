@@ -1,9 +1,10 @@
+import sync;
+
 !<<
 
 import (
     "io"
     "time"
-    "sync"
 )
 
 /*
@@ -41,13 +42,13 @@ fini_func：收尾工作，nil表示不需要
 
 理论上这个接口可以用于任何可中断调用的地方，但是纯计算类的中断调用可以用其他方式，比如插入hook等，所以这个native函数名字还是io_with_ctx
 */
-func lar_go_func_@<<io_with_ctx>>(lar_fiber *lar_go_stru_fiber, lock sync.Locker, init_func func (), do_io_func func() (ok bool),
+func lar_go_func_@<<io_with_ctx>>(lar_fiber *lar_go_stru_fiber, lock *lar_cls_@<<sync.Mutex>>, init_func func (), do_io_func func() (ok bool),
                                   interrupt_func func (), fini_func func ()) {
     lar_fiber.throw_if_canceled()
 
     if lock != nil {
-        lock.Lock()
-        defer lock.Unlock()
+        lock.lar_method_lock()
+        defer lock.lar_method_unlock()
     }
     if init_func != nil {
         init_func()
@@ -92,8 +93,8 @@ func lar_go_func_@<<io_with_ctx>>(lar_fiber *lar_go_stru_fiber, lock sync.Locker
 }
 
 //针对使用SetXXXDeadline来打断io调用的io对象弄个快捷的接口
-func lar_go_func_@<<deadline_interruptable_io_with_ctx>>(lar_fiber *lar_go_stru_fiber, lock sync.Locker, set_deadline func (d time.Time) error,
-                                                         do_io_func func() (ok bool)) {
+func lar_go_func_@<<deadline_interruptable_io_with_ctx>>(lar_fiber *lar_go_stru_fiber, lock *lar_cls_@<<sync.Mutex>>,
+                                                         set_deadline func (d time.Time) error, do_io_func func() (ok bool)) {
     lar_go_func_@<<io_with_ctx>>(
         lar_fiber,
         lock,
