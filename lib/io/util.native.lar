@@ -4,6 +4,7 @@ import sync;
 
 import (
     "io"
+    "time"
 )
 
 /*
@@ -32,11 +33,14 @@ func lar_go_func_@<<read>>(lar_fiber *lar_go_stru_fiber, r io.Reader, buf []byte
 
 /*
 在context中执行io操作，若context被取消则抛出fiber.Canceled异常
+
 lock：为了防止并发调用中一个io对象的操作在不同上下文中互相影响（一个上下文的interrupt影响了所有），一般需要加锁，这个由外部指定，nil表示不需要
 init_func：初始化工作，nil表示不需要
 do_io_func：执行io操作，返回是否执行成功，不可为nil
 interrupt_routine_done：用于打断do_io_func的函数，一般对于阻塞调用是通过设置deadline进行，不可为nil
 fini_func：收尾工作，nil表示不需要
+
+理论上这个接口可以用于任何可中断调用的地方，但是纯计算类的中断调用可以用其他方式，比如插入hook等，所以这个native函数名字还是io_with_ctx
 */
 func lar_go_func_@<<io_with_ctx>>(lar_fiber *lar_go_stru_fiber, lock *lar_cls_@<<sync.Mutex>>, init_func func (), do_io_func func() (ok bool),
                                   interrupt_func func (), fini_func func ()) {
@@ -65,8 +69,12 @@ func lar_go_func_@<<io_with_ctx>>(lar_fiber *lar_go_stru_fiber, lock *lar_cls_@<
     }()
 
     /*
-    开启一个子go程，监控context，若被取消则中断阻塞的io流程，由于是并发执行，有可能中断的时候io操作还没开始/正在进行/已经结束，
-    因此调用者应保证这些情况下都不能出错
+    开启一个子go程，监控context，若被取消则中断阻塞的io流程
+    由于是并发执行，有可能中断的时候io操作还没开始/正在进行/已经结束，因此调用者提供的interrupt_func等函数应保证这些情况下都不能出错
+    典型的用法是采用SetDeadline来打断调用：
+    1 init_func关闭deadline
+    2 interrupt_func通过设置当前时间之前的deadline来打断阻塞io调用
+    3 fini_func关闭deadline，保证io对象的deadline在外部处于未设置状态
     */
     go func () {
         select {
@@ -84,4 +92,22 @@ func lar_go_func_@<<io_with_ctx>>(lar_fiber *lar_go_stru_fiber, lock *lar_cls_@<
     }
 }
 
+//针对使用SetXXXDeadline来打断io调用的io对象弄个快捷的接口
+func lar_go_func_@<<deadline_interruptable_io_with_ctx>>(lar_fiber *lar_go_stru_fiber, lock *lar_cls_@<<sync.Mutex>>,
+                                                         set_deadline func (d time.Time) error, do_io_func func() (ok bool)) {
+    lar_go_func_@<<io_with_ctx>>(
+        lar_fiber,
+        lock,
+        func () {
+            set_deadline(time.Time{}) //关闭deadline
+        },
+        do_io_func,
+        func () {
+            set_deadline(time.Unix(1, 0)) //设置一个已过期的deadline来打断Accept
+        },
+        func () {
+            set_deadline(time.Time{}) //关闭deadline
+        },
+    )
+}
 !>>

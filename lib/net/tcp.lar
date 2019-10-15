@@ -38,23 +38,10 @@ public class TcpListener
             ntc *net.TCPConn
             err error
         )
-        lar_go_func_@<<io.io_with_ctx>>(
-            lar_fiber,
-            this.m_accept_lock,
-            func () {
-                this.ntl.SetDeadline(time.Time{}) //关闭deadline
-            },
-            func () bool {
-                ntc, err = this.ntl.AcceptTCP()
-                return err == nil
-            },
-            func () {
-                this.ntl.SetDeadline(time.Unix(1, 0)) //设置一个已过期的deadline来打断Accept
-            },
-            func () {
-                this.ntl.SetDeadline(time.Time{}) //关闭deadline
-            },
-        )
+        lar_go_func_@<<io.deadline_interruptable_io_with_ctx>>(lar_fiber, this.m_accept_lock, this.ntl.SetDeadline, func () bool {
+            ntc, err = this.ntl.AcceptTCP()
+            return err == nil
+        })
         lar_go_func_@<<throw_on_go_err>>(lar_fiber, err)
         return &lar_cls_@<<TcpConn>>{
             ntc: ntc,
