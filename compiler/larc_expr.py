@@ -253,9 +253,12 @@ class _ParseStk:
             if not e_cond.type.is_bool_type:
                 self.start_token.syntax_err("非法的表达式：'if-else'运算的条件运算分量类型需要是'bool'，不能是'%s'" % e_cond.type)
             if ea.type != eb.type:
-                try:
-                    ea, eb = _make_number_type_same(ea, eb)
-                except _CantMakeNumberTypeSame:
+                if ea.type.is_number_type and eb.type.is_number_type:
+                    try:
+                        ea, eb = _make_number_type_same(ea, eb)
+                    except _CantMakeNumberTypeSame:
+                        pass
+                if ea.type != eb.type:
                     self.start_token.syntax_err("非法的表达式：'if-else'运算的两个结果运算分量类型不同：'%s'和'%s'" % (ea.type, eb.type))
             tp = ea.type
             self.stk.append(_Expr(op, (e_cond, ea, eb), tp))

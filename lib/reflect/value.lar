@@ -42,7 +42,7 @@ public class Value
 
     public Any get()
     {
-        return this.r.get() if this.is_ref() else this.v;
+        return this.r.get() if this.is_ref() else (Any)this.v;
     }
 
     public bool is_ref()
