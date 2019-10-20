@@ -8,7 +8,7 @@ import (
 
 !>>
 
-String[] get_args()
+String[] _init_args()
 {
     long arg_count;
     !<<
@@ -24,7 +24,7 @@ String[] get_args()
     return a;
 }
 
-public String[] args = get_args();
+public String[] args = _init_args();
 
 public String cwd()
 {
