@@ -1,0 +1,177 @@
+import __internal;
+
+//类型对象全局唯一，即可以用===和!==判是否为同一类型，为简单起见用比较朴素的方式做
+
+!<<
+
+import (
+    "reflect"
+    "sync"
+    "fmt"
+)
+
+var (
+    lar_reflect_type_map_lock sync.RWMutex
+    lar_reflect_type_map      map[string]*lar_cls_@<<Type>>
+)
+
+//操作type_map，获取和设置类型，获取时若不存在则返回nil，设置时若存在则不覆盖，并返回map中最终的type结果，保证唯一性
+
+func lar_go_func_@<<get_type_from_map>>(name string) *lar_cls_@<<Type>> {
+    lar_reflect_type_map_lock.RLock()
+    defer lar_reflect_type_map_lock.RUnlock()
+
+    return lar_reflect_type_map[name]
+}
+
+func lar_go_func_@<<set_type_to_map>>(name string, tp *lar_cls_@<<Type>>) *lar_cls_@<<Type>> {
+    lar_reflect_type_map_lock.Lock()
+    defer lar_reflect_type_map_lock.Unlock()
+
+    if old_tp := lar_reflect_type_map[name]; old_tp != nil {
+        return old_tp
+    }
+    lar_reflect_type_map[name] = tp
+    return tp
+}
+
+!>>
+
+public class Type
+{
+    public String str()
+    {
+        return this.name();
+    }
+
+    public String repr()
+    {
+        return "<reflect.Type %s>".(this.name());
+    }
+
+    public String name()
+    {
+        return this._name;
+    }
+
+    public Any zero_value()
+    {
+        return this.zv;
+    }
+
+    public bool is_primitive()
+    {
+        !<<
+        _, ok := this.m_zv.(lar_reflect_intf)
+        return !ok
+        !>>
+    }
+
+    public bool can_new_empty()
+    {
+        !<<
+        if lri, ok := this.m_zv.(lar_reflect_intf); ok {
+            return lri.lar_reflect_can_new_empty()
+        }
+        !>>
+        return false;
+    }
+
+    public Any new_empty()
+    {
+        !<<
+        if lri, ok := this.m_zv.(lar_reflect_intf); ok {
+            return lri.lar_reflect_new_empty()
+        }
+        !>>
+        return nil;
+    }
+
+    public bool can_new(GoAny[] args)
+    {
+        !<<
+        if lri, ok := this.m_zv.(lar_reflect_intf); ok {
+            return lri.lar_reflect_can_new(l_args.arr)
+        }
+        !>>
+        return false;
+    }
+
+    public Any new_obj(GoAny[] args)
+    {
+        !<<
+        if lri, ok := this.m_zv.(lar_reflect_intf); ok {
+            return lri.lar_reflect_new(lar_fiber, l_args.arr)
+        }
+        !>>
+        return nil;
+    }
+
+    void throw_on_primitive()
+    {
+        if (this.is_primitive())
+        {
+            throw(new TypeError{"‘%s’是基础类型".(this.name())});
+        }
+    }
+
+    public long field_count()
+    {
+        this.throw_on_primitive();
+        !<<
+        return this.m_zv.(lar_reflect_intf).lar_reflect_field_count()
+        !>>
+    }
+
+    public FieldInfo field_by_idx(long idx)
+    {
+        throw_on_index_error(this.field_count(), idx);
+        !<<
+        zv, name, tag_map := this.m_zv.(lar_reflect_intf).lar_reflect_field_by_idx(l_idx)
+        return lar_go_func_@<<make_field_info>>(zv, name, tag_map)
+        !>>
+    }
+
+    public FieldInfo field_by_name(String name)
+    {
+        this.throw_on_primitive();
+        !<<
+        zv, name, tag_map := this.m_zv.(lar_reflect_intf).lar_reflect_field_by_name(lar_str_to_go_str(l_name))
+        return lar_go_func_@<<make_field_info>>(zv, name, tag_map)
+        !>>
+    }
+
+    String _name; //类型名
+    Any    zv;    //此类型的zero_value
+}
+
+//返回输入对象的类型
+public Type type_of(Any a)
+{
+    if (a === nil)
+    {
+        return nil;
+    }
+    String name = __internal.reflect_type_name(a);
+    if (__internal.is_go_type_name(name))
+    {
+        throw(new NotLarvaObject{name});
+    }
+    Any zv;
+    Type tp;
+    !<<
+    name := lar_str_to_go_str(l_name)
+    l_tp = lar_go_func_@<<get_type_from_map>>(name)
+    if l_tp != nil {
+        return l_tp
+    }
+    l_zv = reflect.Zero(reflect.TypeOf(l_a)).Interface()
+    !>>
+    tp = new Type{
+        _name: name,
+        zv:    zv,
+    };
+    !<<
+    return lar_go_func_@<<set_type_to_map>>(name, l_tp)
+    !>>
+}

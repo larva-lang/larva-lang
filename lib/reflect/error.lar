@@ -1,0 +1,11 @@
+//无效larva对象
+public class NotLarvaObject
+{
+    String type_name usemethod(str);
+}
+
+//类型相关错误
+public class TypeError
+{
+    String s usemethod(str);
+}

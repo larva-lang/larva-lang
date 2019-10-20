@@ -5,14 +5,17 @@ import (
     "reflect"
 )
 
-//larva反射接口，所有被编译的larva class都要实现这个接口，由编译器保证
-//native class的对应方法的代码也由编译器生成，lar_native代码中不需要自己实现
-//没有体现在larva代码中的元素（如native类的成员属性、native类没有暴露的方法等）
-//reflect模块中传入的Any对象若不是larva基础类型或对象，则视为非法输入，会抛出NotLarvaObjectError
+/*
+larva反射接口，所有被编译的larva class都要实现这个接口，由编译器保证
+native class的对应方法的代码也由编译器生成，lar_native代码中不需要自己实现
+没有体现在larva代码中的元素（如native类的成员属性、native类没有暴露的方法等）
+reflect模块中传入的Any对象若不是larva基础类型或对象，则视为非法输入，会抛出NotLarvaObjectError
+*/
 type lar_reflect_intf interface {
     lar_reflect_type_name() *lar_cls_@<<:String>>
 }
 
+//基础类型的名字定义
 var (
     lar_reflect_type_name_nil_intf  = lar_str_from_go_str("<nil interface>")
     lar_reflect_type_name_bool      = lar_str_from_go_str("bool")
@@ -27,6 +30,9 @@ var (
     lar_reflect_type_name_float     = lar_str_from_go_str("float")
     lar_reflect_type_name_double    = lar_str_from_go_str("double")
 )
+
+//用一个特殊值表示无类型nil的参数，在概念上和“传入一个任意类型接口的nil值”做区别
+var lar_reflect_untyped_nil_arg interface{} = struct{}{}
 
 !>>
 

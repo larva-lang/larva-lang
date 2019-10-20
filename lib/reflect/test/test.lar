@@ -1,0 +1,11 @@
+import testing, reflect;
+
+public void main()
+{
+    var r = new testing.CaseRunner();
+
+    r.add_test_case("常规测试", [-]{
+    });
+
+    r.run();
+}

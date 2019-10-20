@@ -1,0 +1,12 @@
+public class FieldInfo
+{
+    //todo
+}
+
+!<<
+
+func lar_go_func_@<<make_field_info>>(zv lar_intf_@<<:Any>>, name string, tag_map map[string]string) *lar_cls_@<<FieldInfo>> {
+    //todo
+}
+
+!>>

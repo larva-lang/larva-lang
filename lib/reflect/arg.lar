@@ -1,0 +1,18 @@
+//用一个特殊值表示无类型nil，在概念上和“传入一个任意类型接口的nil值”做区别
+public final GoAny ARG_UNTYPED_NIL;
+
+!<<
+
+func init() {
+    lar_gv_@<<ARG_UNTYPED_NIL>> = lar_reflect_untyped_nil_arg;
+}
+
+!>>
+
+//将ref参数的指针直接作为GoAny返回
+public GoAny make_ref_arg<T>(ref T a)
+{
+    !<<
+    return l_a;
+    !>>
+}
