@@ -31,9 +31,6 @@ var (
     lar_reflect_type_name_double    = lar_str_from_go_str("double")
 )
 
-//用一个特殊值表示无类型nil的参数，在概念上和“传入一个任意类型接口的nil值”做区别
-var lar_reflect_untyped_nil_arg interface{} = struct{}{}
-
 !>>
 
 final String

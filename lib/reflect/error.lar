@@ -4,8 +4,8 @@ public class NotLarvaObject
     String type_name usemethod(str);
 }
 
-//类型相关错误
-public class TypeError
+//通用错误
+public class Error
 {
     String s usemethod(str);
 }

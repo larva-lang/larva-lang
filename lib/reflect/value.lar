@@ -1,0 +1,141 @@
+public class Value
+{
+    public String str()
+    {
+        if (this.is_ref())
+        {
+            return this.repr();
+        }
+        return "%s".(this.v);
+    }
+
+    public String repr()
+    {
+        Any a;
+        String tp;
+        if (this.is_ref())
+        {
+            !<<
+            l_a = this.ref_get()
+            l_tp = lar_str_from_go_str("ref " + this.ref_type_name())
+            !>>
+        }
+        else
+        {
+            a = this.v;
+            tp = "%T".(a);
+        }
+        return "<reflect.Value of <%s> %s>".(tp, a);
+    }
+
+    //内部使用，不管是普通值还是ref指针都直接返回，用于lar_reflect_intf等更底层的接口
+    GoAny get_raw()
+    {
+        return this.v;
+    }
+
+    public Any get()
+    {
+        if (!this.is_ref())
+        {
+            return this.v;
+        }
+        !<<
+        return this.ref_get()
+        !>>
+    }
+
+    public bool is_ref()
+    {
+        !<<
+        return this.ref_get != nil
+        !>>
+    }
+
+    public bool can_set(Any a)
+    {
+        if (!this.is_ref())
+        {
+            return false;
+        }
+        !<<
+        return this.ref_can_set(l_a)
+        !>>
+    }
+
+    public void set(Any a)
+    {
+        if (!this.is_ref())
+        {
+            throw(new Error{"Value的值不是ref类型，不能set"});
+        }
+        !<<
+        this.ref_set(l_a)
+        !>>
+    }
+
+    //具体的值，如果是ref，则为一个指针
+    GoAny v;
+
+    !<<
+
+    //当为ref时，对其操作的函数接口，普通值的这几个字段都为nil
+    ref_type_name func () string
+    ref_get       func () interface{}
+    ref_can_set   func (interface{}) bool
+    ref_set       func (interface{})
+
+    !>>
+}
+
+public Value value_of(Any v)
+{
+    return new Value{
+        v: v,
+    };
+}
+
+public Value value_of_ref<T>(ref T t)
+{
+    var name_of_T = type_name<T>();
+    var thrower = []{
+        void on_type_mismatch_when_set(GoAny ga)
+        {
+            throw(new Error{"无法将类型‘%T’的值赋值给类型‘%s’".(ga, name_of_T)});
+        }
+    };
+    !<<
+    return &lar_cls_@<<Value>>{
+        m_v: l_t,
+
+        ref_type_name: func () string {
+            return lar_str_to_go_str(l_name_of_T)
+        },
+        ref_get:       func () interface{} {
+            return *l_t
+        },
+        ref_can_set:   func (i interface{}) bool {
+            _, ok := i.(@<<{T}>>)
+            return ok
+        },
+        ref_set:       func (i interface{}) {
+            if v, ok := i.(@<<{T}>>); ok {
+                *l_t = v
+            } else {
+                l_thrower.lar_method_@<<on_type_mismatch_when_set>>(lar_fiber, i)
+            }
+        },
+    }
+    !>>
+}
+
+GoAny[] values_to_raw(Value[] vs)
+{
+    long sz = vs.size();
+    var rs = new GoAny[sz];
+    for (long i = 0; i < sz; ++ i)
+    {
+        rs[i] = vs[i].get_raw();
+    }
+    return rs;
+}

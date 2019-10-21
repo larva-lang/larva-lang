@@ -1,4 +1,4 @@
-import __internal;
+import __internal, debug;
 
 //类型对象全局唯一，即可以用===和!==判是否为同一类型，为简单起见用比较朴素的方式做
 
@@ -54,9 +54,9 @@ public class Type
         return this._name;
     }
 
-    public Any zero_value()
+    public Value zero_value()
     {
-        return this.zv;
+        return value_of(this.zv);
     }
 
     public bool is_primitive()
@@ -65,6 +65,14 @@ public class Type
         _, ok := this.m_zv.(lar_reflect_intf)
         return !ok
         !>>
+    }
+
+    void throw_on_primitive()
+    {
+        if (this.is_primitive())
+        {
+            throw(new Error{"‘%s’是基础类型".(this.name())});
+        }
     }
 
     public bool can_new_empty()
@@ -77,42 +85,36 @@ public class Type
         return false;
     }
 
-    public Any new_empty()
+    public Value new_empty()
     {
+        this.throw_on_primitive();
+        Any a;
         !<<
-        if lri, ok := this.m_zv.(lar_reflect_intf); ok {
-            return lri.lar_reflect_new_empty()
-        }
+        l_a = this.m_zv.(lar_reflect_intf).lar_reflect_new_empty()
         !>>
-        return nil;
+        return value_of(a);
     }
 
-    public bool can_new(GoAny[] args)
+    public bool can_new(Value[] args)
     {
+        var args_raw = values_to_raw(args);
         !<<
         if lri, ok := this.m_zv.(lar_reflect_intf); ok {
-            return lri.lar_reflect_can_new(l_args.arr)
+            return lri.lar_reflect_can_new(l_args_raw.arr)
         }
         !>>
         return false;
     }
 
-    public Any new_obj(GoAny[] args)
+    public Value new_obj(Value[] args)
     {
+        var args_raw = values_to_raw(args);
+        this.throw_on_primitive();
+        Any a;
         !<<
-        if lri, ok := this.m_zv.(lar_reflect_intf); ok {
-            return lri.lar_reflect_new(lar_fiber, l_args.arr)
-        }
+        l_a = this.m_zv.(lar_reflect_intf).lar_reflect_new(lar_fiber, l_args_raw.arr)
         !>>
-        return nil;
-    }
-
-    void throw_on_primitive()
-    {
-        if (this.is_primitive())
-        {
-            throw(new TypeError{"‘%s’是基础类型".(this.name())});
-        }
+        return value_of(a);
     }
 
     public long field_count()
@@ -136,16 +138,19 @@ public class Type
     {
         this.throw_on_primitive();
         !<<
-        zv, name, tag_map := this.m_zv.(lar_reflect_intf).lar_reflect_field_by_name(lar_str_to_go_str(l_name))
-        return lar_go_func_@<<make_field_info>>(zv, name, tag_map)
+        zv, name, tag_map, ok := this.m_zv.(lar_reflect_intf).lar_reflect_field_by_name(lar_str_to_go_str(l_name))
+        if ok {
+            return lar_go_func_@<<make_field_info>>(zv, name, tag_map)
+        }
         !>>
+        throw(new Error{"类型‘%s’没有字段‘%s’".(this.name(), name)});
     }
 
     String _name; //类型名
     Any    zv;    //此类型的zero_value
 }
 
-//返回输入对象的类型
+//返回输入对象的类型，如果输入nil接口，则返回nil
 public Type type_of(Any a)
 {
     if (a === nil)
@@ -174,4 +179,17 @@ public Type type_of(Any a)
     !<<
     return lar_go_func_@<<set_type_to_map>>(name, l_tp)
     !>>
+}
+
+/*
+返回T的类型名
+和"%T"格式化以及Type类的name方法返回的名字不同的是，后两者取的是实际值的类型，不会返回接口类型名
+而type_name这个接口可返回T的实际名字，即便T是一个接口
+*/
+public String type_name<T>()
+{
+    //方法：获取T的数组的类型名并去掉数组后缀
+    var s = "%T".((T[])nil);
+    debug.assert(s.has_suffix("[]"), "bug");
+    return s.sub_str(0, s.size() - 2);
 }
