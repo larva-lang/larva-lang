@@ -180,16 +180,3 @@ public Type type_of(Any a)
     return lar_go_func_@<<set_type_to_map>>(name, l_tp)
     !>>
 }
-
-/*
-返回T的类型名
-和"%T"格式化以及Type类的name方法返回的名字不同的是，后两者取的是实际值的类型，不会返回接口类型名
-而type_name这个接口可返回T的实际名字，即便T是一个接口
-*/
-public String type_name<T>()
-{
-    //方法：获取T的数组的类型名并去掉数组后缀
-    var s = "%T".((T[])nil);
-    debug.assert(s.has_suffix("[]"), "bug");
-    return s.sub_str(0, s.size() - 2);
-}

@@ -78,7 +78,7 @@ public String reflect_type_name(GoAny a)
     !>>
 }
 
-public bool is_go_type_name(String type_name)
+public bool is_go_type_name(String tn)
 {
-    return type_name.has_prefix(REFLECT_TYPE_NAME_GO_TYPE_PREFIX) && type_name.has_suffix(REFLECT_TYPE_NAME_GO_TYPE_SUFFIX);
+    return tn.has_prefix(REFLECT_TYPE_NAME_GO_TYPE_PREFIX) && tn.has_suffix(REFLECT_TYPE_NAME_GO_TYPE_SUFFIX);
 }

@@ -17,6 +17,23 @@ public T zero_value<T>()
     return t;
 }
 
+/*
+返回T的类型名
+和"%T"格式化以及reflect.Type类的name方法返回的名字不同的是，后两者取的是实际值的类型名，不会返回接口类型名
+而type_name这个函数可返回T本身的名字，即便T是一个接口
+*/
+public String type_name<T>()
+{
+    //方法：获取T的数组的类型名并去掉数组后缀
+    T[] a;
+    var s = "%T".(a);
+    if (!s.has_suffix("[]"))
+    {
+        throw("BUG：数组类型名‘%T’不以‘[]’结尾".(a));
+    }
+    return s.sub_str(0, s.size() - 2);
+}
+
 public bool try_assert_type<T>(GoAny a, ref T t)
 {
     bool ok;

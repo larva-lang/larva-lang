@@ -128,9 +128,9 @@ class Arr<E>
     //数组的repr结果不是简单的嵌套为每个元素的repr，因为在多维数组下结果会很臃肿，多维数组采用简化的方式返回
     public String repr()
     {
-        var type_name = "%T".(this);
+        var tn = "%T".(this);
         !<<
-        sl := []string{"<", lar_str_to_go_str(l_type_name), " ", this.lar_method_@<<_simple_arr_repr>>(lar_fiber).(string), ">"}
+        sl := []string{"<", lar_str_to_go_str(l_tn), " ", this.lar_method_@<<_simple_arr_repr>>(lar_fiber).(string), ">"}
         return lar_str_from_go_str(strings.Join(sl, ""))
         !>>
     }
