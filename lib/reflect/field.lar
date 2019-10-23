@@ -8,13 +8,13 @@ public class FieldInfo
         this._name      = name;
 
         !<<
-        this.tag_map = l_tag_name.(map[string]string)
+        this.tag_map = l_tag_map.(map[string]string)
         !>>
     }
 
     public String repr()
     {
-        return "<Field %s of %s>".(this.name(), this.cls.name());
+        return "<Field %s of %s>".(this.name(), this.cls().name());
     }
 
     public Type cls()

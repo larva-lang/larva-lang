@@ -10,7 +10,7 @@ public void main()
         {
             GoAny ga;
             !<<
-            ga = struct{}{}
+            l_ga = struct{}{}
             !>>
             var c = call_and_catch<reflect.NotLarvaObject>([-]{
                 reflect.type_of(ga);
@@ -33,7 +33,7 @@ public void main()
             }.iter())
             {
                 var tp = reflect.type_of(p.first());
-                testing.assert(tp.zero_value() === p.second(), "Type[%s].zero_value测试失败".(tp));
+                testing.assert(tp.zero_value().get() === p.second(), "Type[%s].zero_value测试失败".(tp));
             }
         }
 

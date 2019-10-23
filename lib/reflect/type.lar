@@ -11,7 +11,7 @@ import (
 
 var (
     lar_reflect_type_map_lock sync.RWMutex
-    lar_reflect_type_map      map[string]*lar_cls_@<<Type>>
+    lar_reflect_type_map      = map[string]*lar_cls_@<<Type>>{}
 )
 
 //操作type_map，获取和设置类型，获取时若不存在则返回nil，设置时若存在则不覆盖，并返回map中最终的type结果，保证唯一性
