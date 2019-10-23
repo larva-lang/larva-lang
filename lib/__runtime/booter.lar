@@ -13,7 +13,8 @@ func lar_booter_output_unhandled_exc(c *lar_gcls_inst_@<<:Catched>>_1_lar_intf_@
 func lar_booter_check_go_panic(lar_fiber *lar_go_stru_fiber) {
     r := recover()
     if r != nil {
-        fmt.Fprintln(os.Stderr, "process crash, traceback:")
+        fmt.Fprintln(os.Stderr, "process crash:", r)
+        fmt.Fprintln(os.Stderr, "traceback:")
         fmt.Fprintln(os.Stderr, lar_str_to_go_str(lar_exc_create_catched_throwable(lar_fiber, nil, 5).m_tb))
         panic(r)
     }
@@ -23,6 +24,9 @@ func lar_booter_start_prog(builtins_mod_init_func func (*lar_go_stru_fiber), mai
                            main_func func (*lar_go_stru_fiber)) {
     exit_code := 0
     defer func () {
+        if r := recover(); r != nil {
+            panic(r)
+        }
         os.Exit(exit_code)
     }()
 
