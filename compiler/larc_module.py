@@ -762,6 +762,7 @@ class _ClosureMethod:
 
             for tp in [self.type] + list(self.arg_map.itervalues()):
                 tp.check(self.module, gtp_map = self.closure.gtp_map)
+            check_new_ginst_during_compile()
 
             token_list.pop_sym("{")
 
