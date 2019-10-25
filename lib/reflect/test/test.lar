@@ -4,7 +4,61 @@ public void main()
 {
     var r = new testing.CaseRunner();
 
-    r.add_test_case("常规测试", [-]{
+    r.add_test_case("Type基础测试", [-]{
+        testing.assert(reflect.type_of((Throwable)nil) === nil, "type_of(nil)");
+
+        {
+            GoAny ga;
+            !<<
+            ga = struct{}{}
+            !>>
+            var c = call_and_catch<reflect.NotLarvaObject>([-]{
+                reflect.type_of(ga);
+            });
+            testing.assert(c !== nil, "对非larva对象执行type_of未抛出期望的异常");
+        }
+
+        {
+            var tp_1 = reflect.type_of(1);
+            var tp_2 = reflect.type_of(2);
+            testing.assert(tp_1 === tp_2, "分别对int值执行type_of得到的Type对象不一样");
+        }
+
+        {
+            foreach (var p: new Pair<Any, Any>[]{
+                1:    0,
+                true: false,
+                1.f:  (float)0.0,
+                "":   (String)nil,
+            }.iter())
+            {
+                var tp = reflect.type_of(p.first());
+                testing.assert(tp.zero_value() === p.second(), "Type[%s].zero_value测试失败".(tp));
+            }
+        }
+
+        {
+            var tester = []{
+                void test(Any[] aa, bool expect_is_primitive)
+                {
+                    foreach (var a: aa.iter())
+                    {
+                        var tp = reflect.type_of(a);
+                        testing.assert(tp.is_primitive() == expect_is_primitive, "Type[%s].is_primitive测试失败".(tp));
+                    }
+                }
+            };
+            tester.test(new Any[]{'x', 1, 2L, true, 1.f, 0.0}, true);
+            tester.test(new Any[]{"abc", new int[0], (char[])nil}, false);
+        }
+    });
+    r.add_test_case("Value基础测试", [-]{
+    });
+    r.add_test_case("new对象相关测试", [-]{
+    });
+    r.add_test_case("字段存取测试", [-]{
+    });
+    r.add_test_case("方法调用测试", [-]{
     });
 
     r.run();

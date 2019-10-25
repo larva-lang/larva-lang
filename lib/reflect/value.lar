@@ -31,7 +31,7 @@ public class Value
             a = this.v;
             tp = "%T".(a);
         }
-        return "<reflect.Value of <%s> %s>".(tp, a);
+        return "<Value of <%s> %s>".(tp, a);
     }
 
     //内部使用，不管是普通值还是ref指针都直接返回，用于lar_reflect_intf等更底层的接口

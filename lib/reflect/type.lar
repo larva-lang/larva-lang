@@ -74,6 +74,7 @@ public class Type
         }
     }
 
+/*
     public bool can_new_empty()
     {
         !<<
@@ -92,6 +93,38 @@ public class Type
         l_a = this.m_zv.(lar_reflect_intf).lar_reflect_new_empty()
         !>>
         return value_of(a);
+    }
+
+    public long field_count()
+    {
+        this.throw_on_primitive();
+        !<<
+        return this.m_zv.(lar_reflect_intf).lar_reflect_field_count()
+        !>>
+    }
+
+    public FieldInfo field_by_idx(long idx)
+    {
+        this.throw_on_primitive();
+        !<<
+        tn, zv, name, tag_map, ok := this.m_zv.(lar_reflect_intf).lar_reflect_field_info_by_idx(l_idx)
+        if ok {
+            return lar_new_obj_lar_cls_@<<FieldInfo>>(lar_fiber, this, tn, zv, name, tag_map)
+        }
+        !>>
+        throw(new IndexError(idx));
+    }
+
+    public FieldInfo field_by_name(String name)
+    {
+        this.throw_on_primitive();
+        !<<
+        tn, zv, name, tag_map, ok := this.m_zv.(lar_reflect_intf).lar_reflect_field_info_by_name(lar_str_to_go_str(l_name))
+        if ok {
+            return lar_new_obj_lar_cls_@<<FieldInfo>>(lar_fiber, this, tn, zv, name, tag_map)
+        }
+        !>>
+        throw(new KeyError(name));
     }
 
     public bool can_new(Value[] args)
@@ -115,35 +148,7 @@ public class Type
         !>>
         return value_of(a);
     }
-
-    public long field_count()
-    {
-        this.throw_on_primitive();
-        !<<
-        return this.m_zv.(lar_reflect_intf).lar_reflect_field_count()
-        !>>
-    }
-
-    public FieldInfo field_by_idx(long idx)
-    {
-        throw_on_index_error(this.field_count(), idx);
-        !<<
-        zv, name, tag_map := this.m_zv.(lar_reflect_intf).lar_reflect_field_by_idx(l_idx)
-        return lar_go_func_@<<make_field_info>>(zv, name, tag_map)
-        !>>
-    }
-
-    public FieldInfo field_by_name(String name)
-    {
-        this.throw_on_primitive();
-        !<<
-        zv, name, tag_map, ok := this.m_zv.(lar_reflect_intf).lar_reflect_field_by_name(lar_str_to_go_str(l_name))
-        if ok {
-            return lar_go_func_@<<make_field_info>>(zv, name, tag_map)
-        }
-        !>>
-        throw(new Error{"类型‘%s’没有字段‘%s’".(this.name(), name)});
-    }
+*/
 
     String _name; //类型名
     Any    zv;    //此类型的zero_value
