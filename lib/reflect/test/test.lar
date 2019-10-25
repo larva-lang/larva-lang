@@ -2,20 +2,20 @@ import testing, reflect;
 
 interface ValueTester
 {
-    void assert(bool cond, String desc);
+    void assert(bool cond, Any a, String desc);
 }
 
 void test_value_of_ref<T>(ValueTester tester, T t, T new_t)
 {
     var v = reflect.value_of_ref(ref t);
-    tester.assert(v.get() === t, "取出的值和原始值不同");
-    tester.assert(v.is_ref(), "is_ref为false");
-    tester.assert(v.can_set(), "can_set为false");
+    tester.assert(v.get() === t, t, "取出的值和原始值不同");
+    tester.assert(v.is_ref(), t, "is_ref为false");
+    tester.assert(v.can_set(new_t), t, "can_set为false");
     var c = call_and_catch<reflect.Error>([-]{
         v.set(new_t);
     });
-    tester.assert(c === nil, "set抛出了reflect.Error异常");
-    tester.assert(v.get() === new_t, "取出的值和原始值不同");
+    tester.assert(c === nil, t, "set抛出了reflect.Error异常");
+    tester.assert(v.get() === new_t, t, "set之后取出的值和期望值‘%r’不同".(new_t));
 }
 
 public void main()
@@ -73,31 +73,31 @@ public void main()
     r.add_test_case("Value基础测试", [-]{
         String func_name = "UNKNOWN";
         var tester = []{
-            void assert(bool cond, String desc)
+            void assert(bool cond, Any a, String desc)
             {
                 testing.assert(cond, "对类型‘%T’的值‘%r’执行%s后：%s".(a, a, func_name, desc));
             }
-        }
+        };
 
         {
             func_name = "value_of";
             foreach (var a: new Any[]{'x', 1, 2L, true, 1.f, 0.0, "abc", new int[0], (char[])nil}.iter())
             {
                 var v = reflect.value_of(a);
-                tester.assert(v.get() === a, "取出的值和原始值不同");
-                tester.assert(!v.is_ref(), "is_ref为true");
-                tester.assert(!v.can_set(), "can_set为true");
+                tester.assert(v.get() === a, a, "取出的值和原始值不同");
+                tester.assert(!v.is_ref(), a, "is_ref为true");
+                tester.assert(!v.can_set(a), a, "can_set为true");
                 var c = call_and_catch<reflect.Error>([-]{
                     v.set(a);
                 });
-                tester.assert(c !== nil, "set未抛出期望的异常");
+                tester.assert(c !== nil, a, "set未抛出期望的异常");
             }
         }
 
         {
             func_name = "value_of_ref";
             test_value_of_ref(tester, 'x', 'y');
-            test_value_of_ref(tester, 1, 2);
+            test_value_of_ref(tester, +1, +2);
             test_value_of_ref(tester, 2L, 3L);
             test_value_of_ref(tester, true, false);
             test_value_of_ref(tester, 1.f, 2.f);

@@ -75,7 +75,7 @@ public Value value_of_ref<T>(ref T t)
 {
     GoAny v;
     !<<
-    v = l_t;
+    l_v = l_t;
     !>>
     String name_of_T = type_name<T>();
     return new Value{
