@@ -32,7 +32,7 @@ long hash_double(double n)
 
 long hash_bool(bool b)
 {
-    return 1 if b else 0;
+    return 1L if b else 0L;
 }
 
 //一个随机的hash因子，主要用于每个进程计算hash值的随机化

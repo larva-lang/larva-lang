@@ -13,7 +13,7 @@ type lar_reflect_intf interface {
 }
 
 //字段信息
-type lar_reflect_field_info_type {
+type lar_reflect_field_info_type struct {
     tn      *lar_cls_@<<:String>>
     zv      lar_intf_@<<:Any>>
     name    *lar_cls_@<<:String>>
@@ -21,7 +21,7 @@ type lar_reflect_field_info_type {
 }
 
 //字段tag
-type lar_reflect_field_tag_type {
+type lar_reflect_field_tag_type struct {
     name    string
     value   string
 }
