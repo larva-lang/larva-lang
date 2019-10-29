@@ -10,9 +10,14 @@ COMPILING_TIMESTAMP = int(time.time() * 1000)
 
 _ERR_EXIT_CODE = 157 #编译失败时的exit码
 
+_recoverable_detecting    = False      #是否尝试在编译错误时恢复，即是否用子进程试编译
 _child_report_fd          = -1         #子进程用来汇报信息的fd
 _show_msg_in_child        = False      #子进程出错退出的时候是否照流程显示错误信息
 _get_err_exit_report_info = lambda: "" #错误退出时若需要汇报信息，则通过这个注册的回调获取
+
+def enable_recoverable_detecting():
+    global _recoverable_detecting
+    _recoverable_detecting = True
 
 _verbose_mode = False
 _verbose_indent_count = 0
@@ -107,32 +112,33 @@ def warning(msg):
     print >> sys.stderr
 
 '''
-由于一开始设计的时候是遇到错误就退出，为支持监测多个错误但是又不想改动太大，就搞了这么个模式
-try_tasks_and_do会fork后尝试执行每个task（考虑到性能，是批量进行的），仅当尝试的task都成功的时候才真正执行
+由于一开始设计的时候是遇到错误就退出（也是默认模式），为支持监测多个错误但是又不想改动太大，就搞了这么个模式
+try_tasks_and_do在_recoverable_detecting模式下会fork后尝试执行每个task（考虑到性能，是批量进行的），仅当尝试的task都成功的时候才真正执行
 由于是尝试后再在主进程执行，因此需要保证task不要有进程外的副作用
 '''
 def try_tasks_and_do(tasks):
-    ok = True
-    start_idx = 0
-    while start_idx < len(tasks):
-        result = fork()
-        if result is None:
-            #子进程，尝试编译剩下的task，直到遇到一个失败的或全部成功
-            set_show_msg_in_child(True)
-            i = start_idx
-            reg_get_err_exit_report_info(lambda: str(i))
-            while i < len(tasks):
-                f, arg, kwarg = tasks[i]
-                f(*arg, **kwarg)
-                i += 1
-            child_exit_succ(str(i))
-        assert result
-        result = int(result)
-        if result < len(tasks):
-            ok = False #出现错误，断点重试了
-        start_idx = int(result) + 1
-    if not ok:
-        sys.exit(_ERR_EXIT_CODE)
+    if _recoverable_detecting:
+        ok = True
+        start_idx = 0
+        while start_idx < len(tasks):
+            result = fork()
+            if result is None:
+                #子进程，尝试编译剩下的task，直到遇到一个失败的或全部成功
+                set_show_msg_in_child(True)
+                i = start_idx
+                reg_get_err_exit_report_info(lambda: str(i))
+                while i < len(tasks):
+                    f, arg, kwarg = tasks[i]
+                    f(*arg, **kwarg)
+                    i += 1
+                child_exit_succ(str(i))
+            assert result
+            result = int(result)
+            if result < len(tasks):
+                ok = False #出现错误，断点重试了
+            start_idx = int(result) + 1
+        if not ok:
+            sys.exit(_ERR_EXIT_CODE)
 
     for f, arg, kwarg in tasks:
         f(*arg, **kwarg)

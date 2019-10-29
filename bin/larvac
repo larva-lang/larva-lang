@@ -25,11 +25,13 @@ def main():
 
 各参数说明
 
-    OPTIONS: [-v] [-u] -o OUT_BIN
+    OPTIONS: [-v] [-u] [--recoverable_detecting] -o OUT_BIN
 
 {v}
 
 {u}
+
+{recoverable_detecting}
 
 {o}
 
@@ -41,11 +43,11 @@ def main():
 
     #解析命令行参数
     try:
-        opt_list, args = getopt.getopt(sys.argv[1 :], "vuo:m:")
+        opt_list, args = getopt.getopt(sys.argv[1 :], "vuo:m:", ["recoverable_detecting"])
     except getopt.GetoptError:
         _show_usage_and_exit()
     opt_map = dict(opt_list)
-    for opt in "-v", "-u":
+    for opt in "-v", "-u", "--recoverable_detecting":
         if opt in opt_map:
             larc_args.append(opt)
     if "-o" not in opt_map:

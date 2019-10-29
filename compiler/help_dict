@@ -2,10 +2,15 @@ dict([(k, v.strip("\n")) for k, v in {
     "v": """
         -v
             开启verbose模式，会打印编译过程的详细信息
-"""
+""",
     "u": """
         -u
             若指定，则会对涉及到的本地已有的git项目做git pull操作
+""",
+    "recoverable_detecting": """
+        --recoverable_detecting
+            若指定，则在编译发现错误时尽可能恢复检测流程，继续发现尽可能多的错误，这种模式下编译速度比较慢
+            不指定时则编译过程中发现一个错误即报错结束，编译速度较快
 """,
     "o": """
         -o OUT_BIN

@@ -29,11 +29,13 @@ Larva编译器
 
 各参数说明
 
-    OPTIONS: [-v] [-u] [-o OUT_BIN] [--run]
+    OPTIONS: [-v] [-u] [--recoverable_detecting] [-o OUT_BIN] [--run]
 
 {v}
 
 {u}
+
+{recoverable_detecting}
 
 {o}
 
@@ -52,7 +54,7 @@ Larva编译器
 
     #解析命令行参数
     try:
-        opt_list, args = getopt.getopt(sys.argv[1 :], "vuo:m:", ["run"])
+        opt_list, args = getopt.getopt(sys.argv[1 :], "vuo:m:", ["recoverable_detecting", "run"])
     except getopt.GetoptError:
         _show_usage_and_exit()
     opt_map = dict(opt_list)
@@ -60,6 +62,8 @@ Larva编译器
         larc_common.enable_verbose_mode()
     larc_common.verbose_log("开始")
     larc_module.need_update_git = "-u" in opt_map
+    if "--recoverable_detecting" in opt_map:
+        larc_common.enable_recoverable_detecting()
     out_bin = opt_map.get("-o")
     if out_bin is not None:
         if os.path.exists(out_bin) and not os.path.isfile(out_bin):
