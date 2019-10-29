@@ -12,7 +12,9 @@ native class的对应方法的代码也由编译器生成，lar_native代码中�
 reflect模块中传入的Any对象若不是larva基础类型或对象，则视为非法输入，会抛出NotLarvaObjectError
 */
 type lar_reflect_intf interface {
-    lar_reflect_type_name() *lar_cls_@<<:String>>
+    lar_reflect_type_name()     *lar_cls_@<<:String>>
+    lar_reflect_can_new_empty() bool
+    lar_reflect_new_empty()     lar_intf_@<<:Any>>
 }
 
 //基础类型的名字定义

@@ -1,0 +1,50 @@
+import testing, reflect;
+
+class CantNewEmptyA
+{
+    public int x;
+    double y;
+}
+
+class CantNewEmptyB
+{
+    public int x;
+    !<<
+    !>>
+}
+
+class CanNewEmpty
+{
+    public int x;
+    public double y;
+    public String z;
+}
+
+void test_new_empty()
+{
+    Type tp;
+    var tester = []{
+        void assert(bool cond, String desc)
+        {
+            testing.assert(cond, "Type‘%s’：%s".(tp.name, desc));
+        }
+    };
+
+    foreach (var a: new Any[]{1, (CantNewEmptyA)nil, (CantNewEmptyB)nil})
+    {
+        tp = reflect.type_of(a);
+        tester.assert(!tp.can_new_empty(), "can_new_empty返回true");
+        var c = call_and_catch<reflect.Error>([-]{
+            tp.new_empty();
+        });
+        tester.assert(c !== nil, "new_empty未抛出预期的异常");
+    }
+
+    {
+        tp = reflect.type_of((CanNewEmpty)nil);
+        tester.assert(tp.can_new_empty(), "can_new_empty返回false");
+        CanNewEmpty c;
+        tester.assert(try_assert_type(tp.new_empty().get(), ref c), "new_empty返回的Value的值不是C的实例");
+        tester.assert(c.x == 0 && c.y == 0.0 && c.z === nil, "new_empty返回的Value的值的字段存在非零值");
+    }
+}

@@ -74,7 +74,6 @@ public class Type
         }
     }
 
-/*
     public bool can_new_empty()
     {
         !<<
@@ -92,9 +91,14 @@ public class Type
         !<<
         l_a = this.m_zv.(lar_reflect_intf).lar_reflect_new_empty()
         !>>
+        if (a === nil)
+        {
+            throw(new Error{"‘%s’不支持new_empty操作".(this.name())});
+        }
         return value_of(a);
     }
 
+/*
     public long field_count()
     {
         this.throw_on_primitive();
@@ -146,6 +150,10 @@ public class Type
         !<<
         l_a = this.m_zv.(lar_reflect_intf).lar_reflect_new(lar_fiber, l_args_raw.arr)
         !>>
+        if (a === nil)
+        {
+            throw(new Error{"new_obj失败：类型‘%s’".(this.name())});
+        }
         return value_of(a);
     }
 */

@@ -716,6 +716,10 @@ def _output_module():
             code += "var lar_reflect_type_name_%s = lar_str_from_go_str(%s)" % (coi_name, _gen_str_literal("<%s>" % closure))
             with code.new_blk("func (this *%s) lar_reflect_type_name() %s" % (coi_name, _STR_TYPE_NAME_CODE)):
                 code += "return lar_reflect_type_name_%s" % coi_name
+            with code.new_blk("func (this *%s) lar_reflect_can_new_empty() bool" % coi_name):
+                code += "return false"
+            with code.new_blk("func (this *%s) lar_reflect_new_empty() %s" % (coi_name, _ANY_INTF_TYPE_NAME_CODE)):
+                code += "return nil"
 
         for file_name, native_code_list in module.global_native_code_map.iteritems():
             code.switch_file(file_name)
@@ -729,9 +733,17 @@ def _output_module():
                 cls_type_name = cls.gtp_map.value_at(0).to_str(ignore_builtins_module_prefix = True) + "[]"
             else:
                 cls_type_name = larc_type.gen_type_from_cls(cls).to_str(ignore_builtins_module_prefix = True)
+            #反射相关接口
+            #1 类型名
             code += "var lar_reflect_type_name_%s = lar_str_from_go_str(%s)" % (lar_cls_name, _gen_str_literal(cls_type_name))
             with code.new_blk("func (this *%s) lar_reflect_type_name() %s" % (lar_cls_name, _STR_TYPE_NAME_CODE)):
                 code += "return lar_reflect_type_name_%s" % lar_cls_name
+            #2 new_empty，仅包含public属性的类（所有属性public并且无native代码）
+            can_new_empty = all(["public" in attr.decr_set for attr in cls.attr_map.itervalues()]) and not cls.native_code_list
+            with code.new_blk("func (this *%s) lar_reflect_can_new_empty() bool" % lar_cls_name):
+                code += "return %s" % ("true" if can_new_empty else "false")
+            with code.new_blk("func (this *%s) lar_reflect_new_empty() %s" % (lar_cls_name, _ANY_INTF_TYPE_NAME_CODE)):
+                code += "return %s" % ("&%s{}" % lar_cls_name if can_new_empty else "nil")
         for cls in [i for i in module.cls_map.itervalues() if not i.gtp_name_list] + list(module.gcls_inst_map.itervalues()):
             code.switch_file(cls.file_name)
             lar_cls_name = _gen_coi_name(cls)
