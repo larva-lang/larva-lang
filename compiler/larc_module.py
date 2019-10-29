@@ -520,7 +520,7 @@ class _Cls(_ClsBase):
                 #方法
                 self._parse_method(decr_set, type, name, token_list)
                 continue
-            if next_t.is_sym and next_t.value in (";", ",") or next_t.is_reserved("usemethod"):
+            if next_t.is_sym and next_t.value in (";", ",") or next_t.is_reserved("usemethod") or next_t.is_literal("str"):
                 #属性
                 if type.name == "void":
                     t.syntax_err("属性类型不可为void")

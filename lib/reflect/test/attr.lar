@@ -2,6 +2,18 @@ import testing, reflect;
 
 class ForAttrTesting
 {
+    ForAttrTesting()
+    {
+        this.x = 123;
+        this.y = "abc";
+        this.z = new ValueError("test");
+
+        this.a = 456;
+        !<<
+        this.b = "def"
+        !>>
+    }
+
     public int          x   `test_tag:"attr test" name:"x"`;
     public String       y;
     public Throwable    z   `name:"attr_z"`;
@@ -14,15 +26,7 @@ class ForAttrTesting
 
 void test_attr()
 {
-    var t = new ForAttrTesting{
-        x: 123,
-        y: "abc",
-        z: new ValueError("test"),
-        a: 456,
-    };
-    !<<
-    l_t.b = "def"
-    !>>
+    var t = new ForAttrTesting();
 
     {
         var tester = []{
@@ -38,7 +42,7 @@ void test_attr()
 
         var correct_names = new String[]{"x", "y", "z"};
         var correct_type_names = new String[]{"int", "String", "Throwable"};
-        var correct_types = new Type[]{type_of(0), type_of(""), nil};
+        var correct_types = new reflect.Type[]{reflect.type_of(0), reflect.type_of(""), nil};
         var correct_tag_lists = new Pair<String, String>[][]{
             {
                 "test_tag": "attr test",
@@ -57,7 +61,7 @@ void test_attr()
 
             var correct_name = correct_names[i];
             var an = ai.name();
-            tester.assert(an.eq(correct_name), "第%d个属性名应为‘%s’，而不是‘%s’".(correct_name, an));
+            tester.assert(an.eq(correct_name), "第%d个属性名应为‘%s’，而不是‘%s’".(i + 1, correct_name, an));
 
             var attr_tester = []{
                 void assert(bool cond, String desc)

@@ -50,7 +50,7 @@ public class AttrInfo
         return this._name;
     }
 
-    public Pair<String, String> tags()
+    public Pair<String, String>[] tags()
     {
         //防止外部修改，返回一个副本，由于Pair和String都不可变，所以浅拷贝就好
         return this._tags.shallow_copy();
@@ -60,5 +60,5 @@ public class AttrInfo
     String                  _type_name; //属性的定义的类型名
     Type                    _type;      //属性类型，若类型为接口则为nil
     String                  _name;      //属性名
-    Pair<String, String>    _tags;      //tag列表
+    Pair<String, String>[]  _tags;      //tag列表
 }
