@@ -25,7 +25,9 @@ def main():
 
 各参数说明
 
-    OPTIONS: [-u]
+    OPTIONS: [-v] [-u]
+
+{v}
 
 {u}
 
@@ -41,12 +43,13 @@ def main():
 
     #解析命令行参数
     try:
-        opt_list, args = getopt.getopt(sys.argv[1 :], "um:")
+        opt_list, args = getopt.getopt(sys.argv[1 :], "vum:")
     except getopt.GetoptError:
         _show_usage_and_exit()
     opt_map = dict(opt_list)
-    if "-u" in opt_map:
-        larc_args.append("-u")
+    for opt in "-v", "-u":
+        if opt in opt_map:
+            larc_args.append(opt)
     if "-m" in opt_map:
         larc_args.extend(["-m", opt_map["-m"]])
     else:

@@ -74,6 +74,7 @@ def find_module_file(module_name):
         git_repo_path = usr_lib_dir + "/" + git_repo
         if os.path.exists(git_repo_path):
             if need_update_git:
+                larc_common.verbose_log("通过'git pull'更新模块'%s'" % module_name)
                 try:
                     p = subprocess.Popen(["git", "pull"], stdout = subprocess.PIPE, stderr = subprocess.PIPE, cwd = git_repo_path)
                 except OSError:
@@ -82,6 +83,7 @@ def find_module_file(module_name):
                 if rc != 0:
                     err_exit("通过git pull更新项目'%s'失败" % git_repo)
         else:
+            larc_common.verbose_log("通过'git clone'获取模块'%s'" % module_name)
             git_repo_tmp_path = git_repo_path + ".tmp"
             shutil.rmtree(git_repo_tmp_path, True)
             try:

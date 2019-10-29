@@ -25,7 +25,9 @@ def main():
 
 各参数说明
 
-    OPTIONS: [-u] -o OUT_BIN
+    OPTIONS: [-v] [-u] -o OUT_BIN
+
+{v}
 
 {u}
 
@@ -39,12 +41,13 @@ def main():
 
     #解析命令行参数
     try:
-        opt_list, args = getopt.getopt(sys.argv[1 :], "uo:m:")
+        opt_list, args = getopt.getopt(sys.argv[1 :], "vuo:m:")
     except getopt.GetoptError:
         _show_usage_and_exit()
     opt_map = dict(opt_list)
-    if "-u" in opt_map:
-        larc_args.append("-u")
+    for opt in "-v", "-u":
+        if opt in opt_map:
+            larc_args.append(opt)
     if "-o" not in opt_map:
         _show_usage_and_exit()
     larc_args.extend(["-o", opt_map["-o"]])

@@ -4,13 +4,7 @@
 输出为go代码
 """
 
-import os
-import shutil
-import sys
-import platform
-import subprocess
-import re
-import hashlib
+import os, shutil, sys, platform, subprocess, re, hashlib, time
 
 import larc_common
 import larc_module
@@ -861,6 +855,9 @@ _ANY_INTF_TYPE_NAME_CODE = None
 _STR_TYPE_NAME_CODE = None
 
 def output(out_bin, need_run_prog, args_for_run):
+    output_start_time = time.time()
+    larc_common.verbose_log("开始输出go代码")
+
     _gen_all_module_name_code_map()
 
     global _ANY_INTF_TYPE_NAME_CODE, _STR_TYPE_NAME_CODE
@@ -888,8 +885,15 @@ def output(out_bin, need_run_prog, args_for_run):
     for _curr_module in larc_module.module_map.itervalues():
         _output_module()
     _output_util()
+
+    larc_common.verbose_log("go代码输出完毕，耗时%.2f秒" % (time.time() - output_start_time))
+
+    go_build_start_time = time.time()
+    larc_common.verbose_log("开始执行go build")
     _make_prog()
     if out_bin is not None:
         _make_out_bin(out_bin)
+    larc_common.verbose_log("go build完毕，耗时%.2f秒" % (time.time() - go_build_start_time))
+
     if need_run_prog:
         _run_prog(args_for_run)

@@ -1,4 +1,8 @@
 dict([(k, v.strip("\n")) for k, v in {
+    "v": """
+        -v
+            开启verbose模式，会打印编译过程的详细信息
+"""
     "u": """
         -u
             若指定，则会对涉及到的本地已有的git项目做git pull操作

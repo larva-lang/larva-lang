@@ -4,10 +4,8 @@
 编译器主模块
 """
 
-import sys
-import getopt
-import os
-import itertools
+import sys, getopt, os, itertools, time
+
 import larc_common
 import larc_token
 import larc_module
@@ -31,7 +29,9 @@ Larva编译器
 
 各参数说明
 
-    OPTIONS: [-u] [-o OUT_BIN] [--run]
+    OPTIONS: [-v] [-u] [-o OUT_BIN] [--run]
+
+{v}
 
 {u}
 
@@ -52,10 +52,13 @@ Larva编译器
 
     #解析命令行参数
     try:
-        opt_list, args = getopt.getopt(sys.argv[1 :], "uo:m:", ["run"])
+        opt_list, args = getopt.getopt(sys.argv[1 :], "vuo:m:", ["run"])
     except getopt.GetoptError:
         _show_usage_and_exit()
     opt_map = dict(opt_list)
+    if "-v" in opt_map:
+        larc_common.enable_verbose_mode()
+    larc_common.verbose_log("开始")
     larc_module.need_update_git = "-u" in opt_map
     out_bin = opt_map.get("-o")
     if out_bin is not None:
@@ -174,6 +177,8 @@ Larva编译器
     if any([mnp.startswith("__") for mnp in mnpl]):
         larc_common.exit("不能使用私有模块作为主模块'%s'" % main_module_name)
 
+    larc_common.verbose_log("初始化完毕，主模块'%s'" % main_module_name)
+
     #预处理内建模块族
     larc_module.builtins_module = larc_module.module_map["__builtins"] = larc_module.Module("__builtins")
     assert larc_module.builtins_module.get_dep_module_set() == set(["__internal"]) #内建模块只能而且必须导入__internal模块
@@ -186,7 +191,10 @@ Larva编译器
     larc_module.module_map[main_module_name] = main_module = larc_module.Module(main_module_name)
     module_tmp_out_dir = tmp_out_dir + "/" + main_module_name.replace('"', "")
 
+    larc_common.verbose_log("内建模块和主模块预处理完毕")
+
     #预处理所有涉及到的模块
+    larc_common.inc_verbose_indent()
     compiling_set = (larc_module.builtins_module.get_dep_module_set() | larc_module.array_module.get_dep_module_set() |
                      runtime_module.get_dep_module_set() | main_module.get_dep_module_set()) #需要预处理的模块名集合
     while compiling_set:
@@ -199,6 +207,11 @@ Larva编译器
             new_compiling_set |= m.get_dep_module_set()
         compiling_set = new_compiling_set
     assert larc_module.module_map.value_at(0) is larc_module.builtins_module
+    larc_common.dec_verbose_indent()
+
+    larc_common.verbose_log("所有模块预处理完毕")
+
+    compile_start_time = time.time()
 
     #检查循环import
     for m in larc_module.module_map.itervalues():
@@ -231,6 +244,8 @@ Larva编译器
         else:
             #所有ginst都编译完毕
             break
+
+    larc_common.verbose_log("语法编译完毕，耗时%.2f秒" % (time.time() - compile_start_time))
 
     #输出目标代码
     larc_output.main_module_name = main_module.name

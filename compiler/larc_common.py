@@ -14,6 +14,27 @@ _child_report_fd          = -1         #子进程用来汇报信息的fd
 _show_msg_in_child        = False      #子进程出错退出的时候是否照流程显示错误信息
 _get_err_exit_report_info = lambda: "" #错误退出时若需要汇报信息，则通过这个注册的回调获取
 
+_verbose_mode = False
+_verbose_indent_count = 0
+
+def enable_verbose_mode():
+    global _verbose_mode
+    _verbose_mode = True
+
+def inc_verbose_indent():
+    global _verbose_indent_count
+    assert _verbose_indent_count >= 0
+    _verbose_indent_count += 1
+
+def dec_verbose_indent():
+    global _verbose_indent_count
+    _verbose_indent_count -= 1
+    assert _verbose_indent_count >= 0
+
+def verbose_log(msg):
+    if _verbose_mode:
+        print time.strftime("[%H:%M:%S]") + "  " * _verbose_indent_count, msg
+
 #fork一个子进程继续执行编译操作，子进程可通过管道报结果，返回None表示为子进程，返回字符串表示为父进程等待到的子进程的结果
 def fork():
     global _child_report_fd
