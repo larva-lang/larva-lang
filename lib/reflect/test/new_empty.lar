@@ -30,7 +30,7 @@ void test_new_empty()
         }
     };
 
-    foreach (var a: new Any[]{1, (CantNewEmptyA)nil, (CantNewEmptyB)nil}.iter())
+    foreach (var a: new Any[]{1, []{}, (CantNewEmptyA)nil, (CantNewEmptyB)nil}.iter())
     {
         tp = reflect.type_of(a);
         tester.assert(!tp.can_new_empty(), "can_new_empty返回true");

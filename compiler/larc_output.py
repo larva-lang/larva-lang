@@ -701,6 +701,20 @@ def _output_module():
                 for method in intf.method_map.itervalues():
                     code += "%s(%s) %s" % (_gen_method_name_code(method), _gen_arg_def(method.arg_map), _gen_type_name_code(method.type))
 
+        def output_reflect_method(code, coi, type_name):
+            coi_name = _gen_coi_name(coi)
+            #1 类型名
+            code += "var lar_reflect_type_name_%s = lar_str_from_go_str(%s)" % (coi_name, _gen_str_literal(type_name))
+            with code.new_blk("func (this *%s) lar_reflect_type_name() %s" % (coi_name, _STR_TYPE_NAME_CODE)):
+                code += "return lar_reflect_type_name_%s" % coi_name
+            #2 new_empty，仅包含public属性的类（所有属性public并且无native代码）
+            can_new_empty = ((coi.is_cls or coi.is_gcls_inst) and all(["public" in attr.decr_set for attr in coi.attr_map.itervalues()]) and
+                             not coi.native_code_list)
+            with code.new_blk("func (this *%s) lar_reflect_can_new_empty() bool" % coi_name):
+                code += "return %s" % ("true" if can_new_empty else "false")
+            with code.new_blk("func (this *%s) lar_reflect_new_empty() %s" % (coi_name, _ANY_INTF_TYPE_NAME_CODE)):
+                code += "return %s" % ("&%s{}" % coi_name if can_new_empty else "nil")
+
         for closure in module.closure_map.itervalues():
             coi_name = _gen_coi_name(closure)
             with code.new_blk("type %s struct" % coi_name):
@@ -713,41 +727,25 @@ def _output_module():
                     code += ("%sthis.cm_%s(%s)" %
                              ("" if method.type.is_void else "return ", method.name,
                               ", ".join(["lar_fiber"] + ["l_%s" % name for name in method.arg_map])))
-            code += "var lar_reflect_type_name_%s = lar_str_from_go_str(%s)" % (coi_name, _gen_str_literal("<%s>" % closure))
-            with code.new_blk("func (this *%s) lar_reflect_type_name() %s" % (coi_name, _STR_TYPE_NAME_CODE)):
-                code += "return lar_reflect_type_name_%s" % coi_name
-            with code.new_blk("func (this *%s) lar_reflect_can_new_empty() bool" % coi_name):
-                code += "return false"
-            with code.new_blk("func (this *%s) lar_reflect_new_empty() %s" % (coi_name, _ANY_INTF_TYPE_NAME_CODE)):
-                code += "return nil"
+            output_reflect_method(code, closure, "<%s>" % closure)
 
         for file_name, native_code_list in module.global_native_code_map.iteritems():
             code.switch_file(file_name)
             for native_code in native_code_list:
                 _output_native_code(code, native_code, "")
 
-        def output_reflect_method(code):
+        def output_cls_reflect_method(code):
             if cls.module is larc_module.array_module and cls.name == "Arr":
                 #数组对象的类型名要处理一下
                 assert len(cls.gtp_map) == 1
                 cls_type_name = cls.gtp_map.value_at(0).to_str(ignore_builtins_module_prefix = True) + "[]"
             else:
                 cls_type_name = larc_type.gen_type_from_cls(cls).to_str(ignore_builtins_module_prefix = True)
-            #反射相关接口
-            #1 类型名
-            code += "var lar_reflect_type_name_%s = lar_str_from_go_str(%s)" % (lar_cls_name, _gen_str_literal(cls_type_name))
-            with code.new_blk("func (this *%s) lar_reflect_type_name() %s" % (lar_cls_name, _STR_TYPE_NAME_CODE)):
-                code += "return lar_reflect_type_name_%s" % lar_cls_name
-            #2 new_empty，仅包含public属性的类（所有属性public并且无native代码）
-            can_new_empty = all(["public" in attr.decr_set for attr in cls.attr_map.itervalues()]) and not cls.native_code_list
-            with code.new_blk("func (this *%s) lar_reflect_can_new_empty() bool" % lar_cls_name):
-                code += "return %s" % ("true" if can_new_empty else "false")
-            with code.new_blk("func (this *%s) lar_reflect_new_empty() %s" % (lar_cls_name, _ANY_INTF_TYPE_NAME_CODE)):
-                code += "return %s" % ("&%s{}" % lar_cls_name if can_new_empty else "nil")
+            output_reflect_method(code, cls, cls_type_name)
         for cls in [i for i in module.cls_map.itervalues() if not i.gtp_name_list] + list(module.gcls_inst_map.itervalues()):
             code.switch_file(cls.file_name)
             lar_cls_name = _gen_coi_name(cls)
-            output_reflect_method(code)
+            output_cls_reflect_method(code)
             with code.new_blk("type %s struct" % (lar_cls_name)):
                 for native_code in cls.native_code_list:
                     _output_native_code(code, native_code, "")
