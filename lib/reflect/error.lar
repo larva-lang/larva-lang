@@ -1,7 +1,7 @@
 //无效larva对象
 public class NotLarvaObject
 {
-    String type_name usemethod(str);
+    String go_type_name usemethod(str);
 }
 
 //通用错误
