@@ -5,16 +5,11 @@ import (
     "reflect"
 )
 
-/*
-larva反射接口，所有被编译的larva class都要实现这个接口，由编译器保证
-native class的对应方法的代码也由编译器生成，lar_native代码中不需要自己实现
-没有体现在larva代码中的元素（如native类的成员属性、native类没有暴露的方法等）
-reflect模块中传入的Any对象若不是larva基础类型或对象，则视为非法输入，会抛出NotLarvaObjectError
-*/
+//larva反射接口，所有被编译的类、闭包（相当于匿名类）都要实现这个接口，由编译器保证
 type lar_reflect_intf interface {
-    lar_reflect_type_name()     *lar_cls_@<<:String>>
-    lar_reflect_can_new_empty() bool
-    lar_reflect_new_empty()     lar_intf_@<<:Any>>
+    lar_reflect_type_name()     *lar_cls_@<<:String>>   //返回类名
+    lar_reflect_can_new_empty() bool                    //是否支持new一个空对象（所有字段为零值）
+    lar_reflect_new_empty()     lar_intf_@<<:Any>>      //new一个空对象并返回，若类不支持此操作则返回nil
 }
 
 //基础类型的名字定义
