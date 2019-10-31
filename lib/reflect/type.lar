@@ -98,61 +98,50 @@ public class Type
         return value_of(a);
     }
 
+    public FieldInfo[] field_infos()
+    {
+        this.throw_on_primitive();
+        long count;
+        !<<
+        fis := this.m_zv.(lar_reflect_intf).lar_reflect_field_infos()
+        l_count = int64(len(fis))
+        !>>
+        var field_infos = new FieldInfo[count];
+        for (long i = 0; i < count; ++ i)
+        {
+            FieldInfo field_info;
+            !<<
+            fi := fis[l_i];
+            l_field_info = lar_new_obj_lar_cls_@<<FieldInfo>>(lar_fiber, this, fi.tn, fi.zv, fi.name, fi.tags)
+            !>>
+            field_infos[i] = field_info;
+        }
+        return field_infos;
+    }
+
 /*
-    public long field_count()
-    {
-        this.throw_on_primitive();
-        !<<
-        return this.m_zv.(lar_reflect_intf).lar_reflect_field_count()
-        !>>
-    }
-
-    public FieldInfo field_by_idx(long idx)
-    {
-        this.throw_on_primitive();
-        !<<
-        tn, zv, name, tag_map, ok := this.m_zv.(lar_reflect_intf).lar_reflect_field_info_by_idx(l_idx)
-        if ok {
-            return lar_new_obj_lar_cls_@<<FieldInfo>>(lar_fiber, this, tn, zv, name, tag_map)
-        }
-        !>>
-        throw(new IndexError(idx));
-    }
-
-    public FieldInfo field_by_name(String name)
-    {
-        this.throw_on_primitive();
-        !<<
-        tn, zv, name, tag_map, ok := this.m_zv.(lar_reflect_intf).lar_reflect_field_info_by_name(lar_str_to_go_str(l_name))
-        if ok {
-            return lar_new_obj_lar_cls_@<<FieldInfo>>(lar_fiber, this, tn, zv, name, tag_map)
-        }
-        !>>
-        throw(new KeyError(name));
-    }
-
-    public bool can_new(Value[] args)
+    public bool can_new_instance(Value[] args)
     {
         var args_raw = values_to_raw(args);
         !<<
         if lri, ok := this.m_zv.(lar_reflect_intf); ok {
-            return lri.lar_reflect_can_new(l_args_raw.arr)
+            return lri.lar_reflect_can_new_instance(l_args_raw.arr)
         }
         !>>
         return false;
     }
 
-    public Value new_obj(Value[] args)
+    public Value new_instance(Value[] args)
     {
         var args_raw = values_to_raw(args);
         this.throw_on_primitive();
         Any a;
         !<<
-        l_a = this.m_zv.(lar_reflect_intf).lar_reflect_new(lar_fiber, l_args_raw.arr)
+        l_a = this.m_zv.(lar_reflect_intf).lar_reflect_new_instance(lar_fiber, l_args_raw.arr)
         !>>
         if (a === nil)
         {
-            throw(new Error{"new_obj失败：类型‘%s’".(this.name())});
+            throw(new Error{"new_instance失败：类型‘%s’".(this.name())});
         }
         return value_of(a);
     }

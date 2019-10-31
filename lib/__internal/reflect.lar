@@ -12,9 +12,23 @@ type lar_reflect_intf interface {
     lar_reflect_new_empty()     lar_intf_@<<:Any>>      //new一个空对象并返回，若类不支持此操作则返回nil
 }
 
+//字段信息
+type lar_reflect_field_info_type {
+    tn      *lar_cls_@<<:String>>
+    zv      lar_intf_@<<:Any>>
+    name    *lar_cls_@<<:String>>
+    tags    []*lar_reflect_field_tag_type
+}
+
+//字段tag
+type lar_reflect_field_tag_type {
+    name    string
+    value   string
+}
+
 //基础类型的名字定义
 var (
-    lar_reflect_type_name_nil_intf  = lar_str_from_go_str("<nil interface>")
+    lar_reflect_type_name_nil_intf  = lar_str_from_go_str("<nil>")
     lar_reflect_type_name_bool      = lar_str_from_go_str("bool")
     lar_reflect_type_name_schar     = lar_str_from_go_str("schar")
     lar_reflect_type_name_char      = lar_str_from_go_str("char")

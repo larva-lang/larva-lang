@@ -1,3 +1,5 @@
+import __internal;
+
 interface Ref
 {
     String type_name();
@@ -31,7 +33,7 @@ public class Value
             a = this.v;
             tp = "%T".(a);
         }
-        return "<Value of <%s> %s>".(tp, a);
+        return "<Value of <%s> %r>".(tp, a);
     }
 
     //内部使用，不管是普通值还是ref指针都直接返回，用于lar_reflect_intf等更底层的接口
@@ -43,6 +45,20 @@ public class Value
     public Any get()
     {
         return this.r.get() if this.is_ref() else (Any)this.v;
+    }
+
+    public String ref_type_name()
+    {
+        if (this.is_ref())
+        {
+            return this.r.type_name();
+        }
+        throw(new Error{"Value的值不是ref类型"});
+    }
+
+    public Type type()
+    {
+        return type_of(this.get());
     }
 
     public bool is_ref()
@@ -60,12 +76,38 @@ public class Value
         this.r.set(a) if this.is_ref() else throw(new Error{"Value的值不是ref类型，不能set"});
     }
 
+    Any get_instance()
+    {
+        Any a = this.get();
+        bool ok;
+        !<<
+        _, l_ok = l_a.(lar_reflect_intf)
+        !>>
+        if (!ok)
+        {
+            throw(new Error{"‘%r’不是一个Larva的类实例".(this)});
+        }
+        return a;
+    }
+
+    //返回一个类实例的所有字段的ref值
+    public Value[] fields()
+    {
+        Any a = this.get_instance();
+        //todo
+    }
+
     GoAny v; //具体的值，如果是ref，则为一个指针
     Ref   r; //当为ref时，对其操作的接口，普通值的这个字段为nil
 }
 
 public Value value_of(Any v)
 {
+    String tn = __internal.reflect_type_name(v);
+    if (__internal.is_go_type_name(tn))
+    {
+        throw(new NotLarvaObject{tn});
+    }
     return new Value{
         v: v,
     };

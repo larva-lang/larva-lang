@@ -1,0 +1,16 @@
+import testing, reflect;
+
+class ForMethodTesting
+{
+}
+
+void test_method()
+{
+    var t = new ForMethodTesting{};
+
+    var tp = reflect.type_of(t);
+    //todo
+
+    var v = reflect.value_of(t);
+    //todo
+}

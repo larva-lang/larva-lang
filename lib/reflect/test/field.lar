@@ -1,0 +1,87 @@
+import testing, reflect;
+
+class ForFieldTesting
+{
+    public int          x   `test_tag:"field test" name:"x"`;
+    public String       y;
+    public Throwable    z   `name:"field_z"`;
+
+    long a;
+    !<<
+    b string
+    !>>
+}
+
+void test_field()
+{
+    var t = new ForFieldTesting{
+        x: 123,
+        y: "abc",
+        z: new ValueError("test"),
+        a: 456,
+    };
+    !<<
+    l_t.b = "def"
+    !>>
+
+    {
+        var tester = []{
+            void assert(bool cond, String desc)
+            {
+                testing.assert(cond, "Type‘ForFieldTesting’：%s".(desc));
+            }
+        };
+
+        var tp = reflect.type_of(t);
+        var fis = tp.field_infos();
+        tester.assert(fis.size() == 3, "字段数量不为3");
+
+        var correct_names = new String[]{"x", "y", "z"};
+        var correct_type_names = new String[]{"int", "String", "Throwable"};
+        var correct_types = new Type[]{type_of(0), type_of(""), nil};
+        var correct_tag_lists = new Pair<String, String>[][]{
+            {
+                "test_tag": "field test",
+                "name":     "x",
+            },
+            {
+            },
+            {
+                "name": "field_z",
+            },
+        };
+
+        for (int i = 0; i < 3; ++ i)
+        {
+            var fi = fis[i];
+
+            var correct_name = correct_names[i];
+            var fn = fi.name();
+            tester.assert(fn.eq(correct_name), "第%d个字段名应为‘%s’，而不是‘%s’".(correct_name, fn));
+
+            var field_tester = []{
+                void assert(bool cond, String desc)
+                {
+                    tester.assert(cond, "字段‘%s’：%s".(fn, desc));
+                }
+            };
+
+            field_tester.assert(fi.cls() === tp, "cls返回的Type不是其所属的Type对象");
+
+            var correct_tn = correct_type_names[i];
+            var ftn = fi.type_name();
+            field_tester.assert(ftn.eq(correct_tn), "类型名应为‘%s’，而不是‘%s’".(correct_tn, ftn));
+
+            var correct_tp = correct_types[i];
+            var ftp = fi.type();
+            field_tester.assert(ftp === correct_tp, "类型错误");
+
+            var correct_tl = correct_tag_lists[i];
+            var ftl = fi.tags();
+            field_tester.assert(ftl.eq(correct_tl), "tag错误，应为‘%r’，而不是‘%r’".(correct_tl, ftl));
+        }
+    }
+
+    var v = reflect.value_of(t);
+    //todo
+}

@@ -108,13 +108,33 @@ public void main()
             test_value_of_ref<Any>(tester, 123, "hello");
             test_value_of_ref<Throwable>(tester, "error", new ValueError("test"));
         }
+
+        {
+            func_name = "value_of_ref";
+            Any a;
+            var v = value_of_ref(ref a);
+            tester.assert(v.type() === nil, a, "type返回的类型不为nil");
+            var rtn = v.ref_type_name();
+            tester.assert(rtn.eq("Any"), a, "ref_type_name返回的类型名为‘%s’".(rtn));
+        }
+
+        {
+            func_name = "value_of";
+            var v = value_of(1);
+            var c = call_and_catch<reflect.Error>([-]{
+                v.ref_type_name();
+            });
+            tester.assert(c !== nil, "ref_type_name未抛出预期的异常");
+        }
     });
     r.add_test_case("new对象相关测试", [-]{
         test_new_empty();
     });
-    r.add_test_case("字段存取测试", [-]{
+    r.add_test_case("字段相关测试", [-]{
+        test_field();
     });
     r.add_test_case("方法调用测试", [-]{
+        test_method();
     });
 
     r.run();

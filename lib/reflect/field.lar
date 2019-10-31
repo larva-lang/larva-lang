@@ -1,15 +1,28 @@
 public class FieldInfo
 {
-    FieldInfo(Type cls, String tn, Any zv, String name, GoAny tag_map)
+    FieldInfo(Type cls, String tn, Any zv, String name, GoAny tags)
     {
         this._cls       = cls;
         this._type_name = tn;
         this._type      = type_of(zv);
         this._name      = name;
 
+        long tag_count;
         !<<
-        this.tag_map = l_tag_map.(map[string]string)
+        tags_slice := l_tags.([]*lar_reflect_field_tag_type)
+        l_tag_count = int64(len(tags_slice))
         !>>
+        this._tags = new Pair<String, String>[tag_count];
+        for (long i = 0; i < tag_count; ++ i)
+        {
+            String tag_name, tag_value;
+            !<<
+            t := tags_slice[l_i]
+            l_tag_name = lar_str_from_go_str(t.name)
+            l_tag_value = lar_str_from_go_str(t.value)
+            !>>
+            this._tags[i] = make_pair(tag_name, tag_value);
+        }
     }
 
     public String repr()
@@ -37,39 +50,15 @@ public class FieldInfo
         return this._name;
     }
 
-    public String[] tag_names()
+    public Pair<String, String> tags()
     {
-        long sz;
-        !<<
-        l_sz = int64(len(this.tag_map))
-        !>>
-        var names = new String[sz];
-        !<<
-        idx := 0
-        for k, _ := range this.tag_map {
-            l_names.arr[idx] = lar_str_from_go_str(k)
-            idx ++
-        }
-        !>>
-        return names;
+        //防止外部修改，返回一个副本，由于Pair和String都不可变，所以浅拷贝就好
+        return this._tags.shallow_copy();
     }
 
-    public String get_tag_value(String tag_name)
-    {
-        !<<
-        if v, ok := this.tag_map[lar_str_to_go_str(l_tag_name)]; ok {
-            return lar_str_from_go_str(v)
-        }
-        !>>
-        return nil;
-    }
-
-    Type   _cls;        //字段所属的类
-    String _type_name;  //字段的定义的类型名
-    Type   _type;       //字段类型，若类型为接口则为nil
-    String _name;       //字段名
-
-    !<<
-    tag_map map[string]string
-    !>>
+    Type                    _cls;       //字段所属的类
+    String                  _type_name; //字段的定义的类型名
+    Type                    _type;      //字段类型，若类型为接口则为nil
+    String                  _name;      //字段名
+    Pair<String, String>    _tags;      //tag列表
 }
