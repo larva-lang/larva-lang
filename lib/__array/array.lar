@@ -267,7 +267,7 @@ class Arr<E>
 
         for (long i = 0; i < sz; ++ i)
         {
-            if (!is_same(this_arr[i], other[i]))
+            if ((Any)this_arr[i] !== (Any)other[i])
             {
                 return false;
             }
