@@ -1,11 +1,11 @@
 public class FieldInfo
 {
-    FieldInfo(Type cls, String decl_tn, Any zv, String name, GoAny tag_map)
+    FieldInfo(Type cls, String tn, Any zv, String name, GoAny tag_map)
     {
-        this._cls               = cls;
-        this._decl_type_name    = decl_tn;
-        this._type              = type_of(zv);
-        this._name              = name;
+        this._cls       = cls;
+        this._type_name = tn;
+        this._type      = type_of(zv);
+        this._name      = name;
 
         !<<
         this.tag_map = l_tag_map.(map[string]string)
@@ -22,9 +22,9 @@ public class FieldInfo
         return this._cls;
     }
 
-    public String decl_type_name()
+    public String type_name()
     {
-        return this._decl_type_name;
+        return this._type_name;
     }
 
     public Type type()
