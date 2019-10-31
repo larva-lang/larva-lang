@@ -1,3 +1,4 @@
+//Pair不可修改
 public class Pair<F, S>
 {
     public String repr()

@@ -17,9 +17,11 @@ String[] _init_args()
     var a = new String[arg_count];
     for (long i = 0; i < arg_count; ++ i)
     {
+        String arg;
         !<<
-        l_a.arr[l_i] = lar_str_from_go_str(os.Args[l_i])
+        l_arg = lar_str_from_go_str(os.Args[l_i])
         !>>
+        a[i] = arg;
     }
     return a;
 }
