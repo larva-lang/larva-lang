@@ -707,13 +707,13 @@ def _output_module():
             with code.new_blk("func (this *%s) lar_reflect_new_empty() interface{}" % coi_name):
                 code += "return %s" % ("&%s{}" % coi_name if can_new_empty else "nil")
             #3 属性信息和属性左值（仅对public属性）
-            with code.new_blk("var lar_reflect_attr_infos_%s = []*lar_reflect_attr_info_type"):
+            with code.new_blk("var lar_reflect_attr_infos_%s = []*lar_reflect_attr_info_type" % coi_name):
                 if coi.is_cls or coi.is_gcls_inst:
                     for attr in coi.attr_map.itervalues():
                         if "public" in attr.decr_set:
                             with code.new_blk("&lar_reflect_attr_info_type", tail = ","):
-                                code += "tn: %s," % _gen_str_literal(attr.tp.to_str(ignore_builtins_module_prefix = True))
-                                code += "zv: (%s)(%s)," % (_gen_type_name_code(attr.tp), _gen_default_value_code(attr.tp))
+                                code += "tn: %s," % _gen_str_literal(attr.type.to_str(ignore_builtins_module_prefix = True))
+                                code += "zv: (%s)(%s)," % (_gen_type_name_code(attr.type), _gen_default_value_code(attr.type))
                                 code += "name: %s," % _gen_str_literal(attr.name)
                                 with code.new_blk("tags: []*lar_reflect_attr_tag_type", tail = ","):
                                     for tag_name, tag_value in attr.tags:
