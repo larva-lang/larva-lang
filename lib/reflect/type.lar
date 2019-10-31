@@ -128,15 +128,15 @@ public class Type
             l_tag_count = int64(len(ai.tags))
             !>>
             var attr_info_tags = new Pair<String, String>[tag_count];
-            for (long i = 0; i < tag_count; ++ i)
+            for (long j = 0; j < tag_count; ++ j)
             {
                 String tag_name, tag_value;
                 !<<
-                tag := ai.tags[l_i]
+                tag := ai.tags[l_j]
                 l_tag_name = lar_str_from_go_str(tag.name)
                 l_tag_value = lar_str_from_go_str(tag.value)
                 !>>
-                attr_info_tags[i] = make_pair(tag_name, tag_value);
+                attr_info_tags[j] = make_pair(tag_name, tag_value);
             }
 
             AttrInfo attr_info;

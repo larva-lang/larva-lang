@@ -706,7 +706,7 @@ def _output_module():
                              not coi.native_code_list)
             with code.new_blk("func (this *%s) lar_reflect_can_new_empty() bool" % coi_name):
                 code += "return %s" % ("true" if can_new_empty else "false")
-            with code.new_blk("func (this *%s) lar_reflect_new_empty() %s" % (coi_name, _ANY_INTF_TYPE_NAME_CODE)):
+            with code.new_blk("func (this *%s) lar_reflect_new_empty() interface{}" % coi_name):
                 code += "return %s" % ("&%s{}" % coi_name if can_new_empty else "nil")
 
         for closure in module.closure_map.itervalues():
