@@ -416,13 +416,14 @@ class _Method(_MethodBase):
         del self.block_token_list
 
 class _Attr:
-    def __init__(self, cls, decr_set, type, name, usemethod_list):
+    def __init__(self, cls, decr_set, type, name, usemethod_list, tags):
         self.cls = cls
         self.module = cls.module
         self.decr_set = decr_set
         self.type = type
         self.name = name
         self.usemethod_list = usemethod_list
+        self.tags = tags
 
     __repr__ = __str__ = lambda self : "%s.%s" % (self.cls, self.name)
 
@@ -510,17 +511,19 @@ class _Cls(_ClsBase):
                 if type.name == "void":
                     t.syntax_err("属性类型不可为void")
                 while True:
+                    has_usemethod = False
                     usemethod_list = None
                     if next_t.is_reserved("usemethod"):
                         if type.is_nil or not type.is_obj_type:
                             t.syntax_err("usemethod不可用于类型'%s'" % type)
-                        decr_set.add("usemethod")
+                        has_usemethod = True
                         usemethod_list = _parse_usemethod_list(token_list)
 
                         next_t = token_list.pop()
                         if not (next_t.is_sym and next_t.value in (",", ";")):
                             next_t.syntax_err("需要','或';'")
-                    self.attr_map[name] = _Attr(self, decr_set, type, name, usemethod_list)
+                    self.attr_map[name] = (
+                        _Attr(self, (decr_set | set(["usemethod"])) if has_usemethod else decr_set, type, name, usemethod_list, tags))
                     if next_t.is_sym(";"):
                         break
                     #多属性定义
