@@ -5,6 +5,21 @@ public class Pair<F, S>
         return "%T{%r, %r}".(this, this.f, this.s);
     }
 
+    public bool eq(Pair<F, S> other)
+    {
+        return eq(this.f, other.f) && eq(this.s, other.s);
+    }
+
+    public int cmp(Pair<F, S> other)
+    {
+        int result = cmp(this.f, other.f);
+        if (result == 0)
+        {
+            result = cmp(this.s, other.s);
+        }
+        return result;
+    }
+
     public F first()
     {
         return this.f;

@@ -11,10 +11,78 @@ public interface Any
 {
 }
 
+//常用的一些泛型函数
+
 public T zero_value<T>()
 {
     T t;
     return t;
+}
+
+public bool is_same<T>(T a, T b)
+{
+#use
+    return a === b;
+#oruse
+    return a == b;
+#enduse
+}
+
+public bool eq<T>(T a, T b)
+{
+#use
+    return a.eq(b);
+#oruse
+    return a.cmp(b) == 0;
+#oruse
+    return is_same(a, b);
+#oruse
+    #error 类型不可做判等操作
+#enduse
+}
+
+public int cmp<T>(T a, T b)
+{
+#use
+    return a.cmp(b);
+#oruse
+    if (a < b)
+    {
+        return -1;
+    }
+    if (a > b)
+    {
+        return 1;
+    }
+    return 0;
+#oruse
+    #error 类型不可做比较操作
+#enduse
+}
+
+public void swap<T>(ref T a, ref T b)
+{
+    T tmp = a;
+    a = b;
+    b = tmp;
+}
+
+public T min<T>(T a, T b)
+{
+    if (cmp(a, b) < 0)
+    {
+        return a;
+    }
+    return b;
+}
+
+public T max<T>(T a, T b)
+{
+    if (cmp(a, b) > 0)
+    {
+        return a;
+    }
+    return b;
 }
 
 /*

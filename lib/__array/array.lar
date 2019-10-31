@@ -240,7 +240,7 @@ class Arr<E>
         long sz = this.size();
         for (long i = 0; i < sz; ++ i)
         {
-            if (util.eq(this_arr[i], e))
+            if (eq(this_arr[i], e))
             {
                 return i;
             }
@@ -267,7 +267,7 @@ class Arr<E>
 
         for (long i = 0; i < sz; ++ i)
         {
-            if (!util.is_same(this_arr[i], other[i]))
+            if (!is_same(this_arr[i], other[i]))
             {
                 return false;
             }
@@ -295,7 +295,7 @@ class Arr<E>
 
         for (long i = 0; i < sz; ++ i)
         {
-            if (!util.eq(this_arr[i], other[i]))
+            if (!eq(this_arr[i], other[i]))
             {
                 return false;
             }
