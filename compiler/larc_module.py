@@ -522,6 +522,8 @@ class _Cls(_ClsBase):
                         next_t = token_list.pop()
                         if not (next_t.is_sym and next_t.value in (",", ";")):
                             next_t.syntax_err("需要','或';'")
+                    tags = []
+                    #todo
                     self.attr_map[name] = (
                         _Attr(self, (decr_set | set(["usemethod"])) if has_usemethod else decr_set, type, name, usemethod_list, tags))
                     if next_t.is_sym(";"):
