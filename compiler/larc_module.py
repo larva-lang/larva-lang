@@ -4,7 +4,7 @@
 编译larva模块
 """
 
-import copy, os, subprocess, shutil
+import copy, os, subprocess, shutil, re
 
 import larc_common
 import larc_token
@@ -208,6 +208,20 @@ def _parse_usemethod_list(token_list):
 
     return usemethod_list
 
+def _parse_attr_tags(t, tags):
+    s = t.value
+    while True:
+        s = s.lstrip("\x20\t\r\n")
+        if not s:
+            break
+        m = re.match(r'([a-zA-Z_]\w*):"([^"]*)"', s)
+        if m is None:
+            t.syntax_err("非法的tag语法：‘……%s’" % s)
+        tag_name, tag_value = m.groups()
+        assert not (tag_name is None or tag_value is None)
+        tags.append((tag_name, tag_value))
+        s = s[m.end() :]
+
 #下面_ClsBase和_IntfBase的基类，用于定义一些接口和类共有的通用属性和方法
 class _CoiBase:
     def __init__(self):
@@ -358,7 +372,7 @@ class _ClsBase(_CoiBase):
 
     def get_initable_attr_map(self, t, from_module):
         if self.native_code_list:
-            t.syntax_err("类'%s'不能按属性初始化：包含native字段定义" % self)
+            t.syntax_err("类'%s'不能按属性初始化：包含native属性定义" % self)
         attr_map = larc_common.OrderedDict()
         for attr in self.attr_map.itervalues():
             if "public" not in attr.decr_set and self.module is not from_module:
@@ -515,15 +529,22 @@ class _Cls(_ClsBase):
                     usemethod_list = None
                     if next_t.is_reserved("usemethod"):
                         if type.is_nil or not type.is_obj_type:
-                            t.syntax_err("usemethod不可用于类型'%s'" % type)
+                            next_t.syntax_err("usemethod不可用于类型'%s'" % type)
                         has_usemethod = True
                         usemethod_list = _parse_usemethod_list(token_list)
 
                         next_t = token_list.pop()
-                        if not (next_t.is_sym and next_t.value in (",", ";")):
-                            next_t.syntax_err("需要','或';'")
+                        if not (next_t.is_sym and next_t.value in (",", ";") or next_t.is_literal("str")):
+                            next_t.syntax_err()
                     tags = []
-                    #todo
+                    if next_t.is_literal("str"):
+                        if "public" not in decr_set:
+                            next_t.syntax_err("非public属性不能有tag")
+                        _parse_attr_tags(next_t, tags)
+
+                        next_t = token_list.pop()
+                        if not (next_t.is_sym and next_t.value in (",", ";")):
+                            next_t.syntax_err()
                     self.attr_map[name] = (
                         _Attr(self, (decr_set | set(["usemethod"])) if has_usemethod else decr_set, type, name, usemethod_list, tags))
                     if next_t.is_sym(";"):
@@ -533,7 +554,7 @@ class _Cls(_ClsBase):
                     t, name = token_list.pop_name()
                     self._check_redefine(t, name)
                     next_t = token_list.pop()
-                    if not (next_t.is_sym and next_t.value in (",", ";") or next_t.is_reserved("usemethod")):
+                    if not (next_t.is_sym and next_t.value in (",", ";") or next_t.is_reserved("usemethod") or next_t.is_literal("str")):
                         next_t.syntax_err()
                 continue
             next_t.syntax_err()
