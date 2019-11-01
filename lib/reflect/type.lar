@@ -24,7 +24,7 @@ func lar_go_func_@<<init_type_map>>() {
         if _, ok := lar_reflect_type_map[tn_go_str]; ok {
             panic("bug：lar_reflect_all_zvs存在重复类型的值")
         }
-        if !reflect.ValueOf(zv).IsZero() {
+        if reflect.Zero(reflect.TypeOf(zv)).Interface() != zv {
             panic("bug：lar_reflect_all_zvs存在非零值")
         }
 
@@ -43,7 +43,7 @@ func lar_go_func_@<<init_type_map>>() {
 }
 
 func init() {
-    lar_func_@<<init_type_map>>()
+    lar_go_func_@<<init_type_map>>()
 }
 
 !>>
@@ -156,7 +156,7 @@ public class Type
             l_attr_info = &lar_cls_@<<AttrInfo>>{
                 m__cls:         this,
                 m__type_name:   lar_str_from_go_str(ai.tn),
-                m__type:        lar_func_@<<type_of>>(ai.zv),
+                m__type:        lar_func_@<<type_of>>(lar_fiber, ai.zv),
                 m__name:        lar_str_from_go_str(ai.name),
                 m__tags:        l_attr_info_tags,
             }

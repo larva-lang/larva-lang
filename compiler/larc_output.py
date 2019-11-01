@@ -830,7 +830,7 @@ def _output_util():
                 code += "`%s`: `%s`," % (name_code, name)
 
         #反射需要的所有类型的零值
-        with code.new_blk("var lar_reflect_all_zvs []interface{}"):
+        with code.new_blk("var lar_reflect_all_zvs = []interface{}"):
             for zv_code in _reflect_zvs:
                 code += "%s," % zv_code
 
