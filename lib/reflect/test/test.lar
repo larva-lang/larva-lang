@@ -130,8 +130,8 @@ public void main()
     r.add_test_case("new对象相关测试", [-]{
         test_new_empty();
     });
-    r.add_test_case("字段相关测试", [-]{
-        test_field();
+    r.add_test_case("属性相关测试", [-]{
+        test_attr();
     });
     r.add_test_case("方法调用测试", [-]{
         test_method();

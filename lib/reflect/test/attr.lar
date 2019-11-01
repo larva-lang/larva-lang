@@ -1,0 +1,87 @@
+import testing, reflect;
+
+class ForAttrTesting
+{
+    public int          x   `test_tag:"attr test" name:"x"`;
+    public String       y;
+    public Throwable    z   `name:"attr_z"`;
+
+    long a;
+    !<<
+    b string
+    !>>
+}
+
+void test_attr()
+{
+    var t = new ForAttrTesting{
+        x: 123,
+        y: "abc",
+        z: new ValueError("test"),
+        a: 456,
+    };
+    !<<
+    l_t.b = "def"
+    !>>
+
+    {
+        var tester = []{
+            void assert(bool cond, String desc)
+            {
+                testing.assert(cond, "Type‘ForAttrTesting’：%s".(desc));
+            }
+        };
+
+        var tp = reflect.type_of(t);
+        var ais = tp.attr_infos();
+        tester.assert(ais.size() == 3, "属性数量不为3");
+
+        var correct_names = new String[]{"x", "y", "z"};
+        var correct_type_names = new String[]{"int", "String", "Throwable"};
+        var correct_types = new Type[]{type_of(0), type_of(""), nil};
+        var correct_tag_lists = new Pair<String, String>[][]{
+            {
+                "test_tag": "attr test",
+                "name":     "x",
+            },
+            {
+            },
+            {
+                "name": "attr_z",
+            },
+        };
+
+        for (int i = 0; i < 3; ++ i)
+        {
+            var ai = ais[i];
+
+            var correct_name = correct_names[i];
+            var an = ai.name();
+            tester.assert(an.eq(correct_name), "第%d个属性名应为‘%s’，而不是‘%s’".(correct_name, an));
+
+            var attr_tester = []{
+                void assert(bool cond, String desc)
+                {
+                    tester.assert(cond, "属性‘%s’：%s".(an, desc));
+                }
+            };
+
+            attr_tester.assert(ai.cls() === tp, "cls返回的Type不是其所属的Type对象");
+
+            var correct_tn = correct_type_names[i];
+            var atn = ai.type_name();
+            attr_tester.assert(atn.eq(correct_tn), "类型名应为‘%s’，而不是‘%s’".(correct_tn, atn));
+
+            var correct_tp = correct_types[i];
+            var atp = ai.type();
+            attr_tester.assert(atp === correct_tp, "类型错误");
+
+            var correct_tl = correct_tag_lists[i];
+            var atl = ai.tags();
+            attr_tester.assert(atl.eq(correct_tl), "tag错误，应为‘%r’，而不是‘%r’".(correct_tl, atl));
+        }
+    }
+
+    var v = reflect.value_of(t);
+    //todo
+}

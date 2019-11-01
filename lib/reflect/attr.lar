@@ -1,6 +1,6 @@
-public class FieldInfo
+public class AttrInfo
 {
-    FieldInfo(Type cls, String tn, Any zv, String name, GoAny tags)
+    AttrInfo(Type cls, String tn, Any zv, String name, GoAny tags)
     {
         this._cls       = cls;
         this._type_name = tn;
@@ -9,7 +9,7 @@ public class FieldInfo
 
         long tag_count;
         !<<
-        tags_slice := l_tags.([]*lar_reflect_field_tag_type)
+        tags_slice := l_tags.([]*lar_reflect_attr_tag_type)
         l_tag_count = int64(len(tags_slice))
         !>>
         this._tags = new Pair<String, String>[tag_count];
@@ -27,7 +27,7 @@ public class FieldInfo
 
     public String repr()
     {
-        return "<Field %s of %s>".(this.name(), this.cls().name());
+        return "<Attr %s of %s>".(this.name(), this.cls().name());
     }
 
     public Type cls()
@@ -56,9 +56,9 @@ public class FieldInfo
         return this._tags.shallow_copy();
     }
 
-    Type                    _cls;       //字段所属的类
-    String                  _type_name; //字段的定义的类型名
-    Type                    _type;      //字段类型，若类型为接口则为nil
-    String                  _name;      //字段名
+    Type                    _cls;       //属性所属的类
+    String                  _type_name; //属性的定义的类型名
+    Type                    _type;      //属性类型，若类型为接口则为nil
+    String                  _name;      //属性名
     Pair<String, String>    _tags;      //tag列表
 }

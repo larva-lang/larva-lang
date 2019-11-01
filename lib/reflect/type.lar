@@ -98,25 +98,25 @@ public class Type
         return value_of(a);
     }
 
-    public FieldInfo[] field_infos()
+    public AttrInfo[] attr_infos()
     {
         this.throw_on_primitive();
         long count;
         !<<
-        fis := this.m_zv.(lar_reflect_intf).lar_reflect_field_infos()
-        l_count = int64(len(fis))
+        ais := this.m_zv.(lar_reflect_intf).lar_reflect_attr_infos()
+        l_count = int64(len(ais))
         !>>
-        var field_infos = new FieldInfo[count];
+        var attr_infos = new AttrInfo[count];
         for (long i = 0; i < count; ++ i)
         {
-            FieldInfo field_info;
+            AttrInfo attr_info;
             !<<
-            fi := fis[l_i];
-            l_field_info = lar_new_obj_lar_cls_@<<FieldInfo>>(lar_fiber, this, fi.tn, fi.zv, fi.name, fi.tags)
+            ai := ais[l_i];
+            l_attr_info = lar_new_obj_lar_cls_@<<AttrInfo>>(lar_fiber, this, ai.tn, ai.zv, ai.name, ai.tags)
             !>>
-            field_infos[i] = field_info;
+            attr_infos[i] = attr_info;
         }
-        return field_infos;
+        return attr_infos;
     }
 
 /*

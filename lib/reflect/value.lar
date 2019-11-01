@@ -90,15 +90,15 @@ public class Value
         return a;
     }
 
-    //返回一个类实例的所有字段的ref值
-    public Value[] fields()
+    //返回一个类实例的所有属性的ref值
+    public Value[] attrs()
     {
         Any a = this.get_instance();
         //todo
     }
 
     GoAny v; //具体的值，如果是ref，则为一个指针
-    Ref   r; //当为ref时，对其操作的接口，普通值的这个字段为nil
+    Ref   r; //当为ref时，对其操作的接口，普通值的这个属性为nil
 }
 
 public Value value_of(Any v)
