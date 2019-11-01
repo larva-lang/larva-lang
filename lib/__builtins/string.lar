@@ -242,7 +242,7 @@ public class String
             throw(new ValueError("String.repeat参数错误，count=%d，字符串长度=%d".(count, s_len)));
         }
         !<<
-        return lar_str_from_go_str(strings.Repeat(this.s, int(l_count)));
+        return lar_str_from_go_str(strings.Repeat(this.s, int(l_count)))
         !>>
     }
 
@@ -277,7 +277,7 @@ public class String
     }
 
     !<<
-    s string;
+    s string
     !>>
     long h; //缓存的hash值，为0表示还没有计算
 }
