@@ -101,22 +101,56 @@ public class Type
     public AttrInfo[] attr_infos()
     {
         this.throw_on_primitive();
+        return this._attr_infos.shallow_copy();
+    }
+
+    void init_attr_infos()
+    {
+        if (this.is_primitive())
+        {
+            return;
+        }
+
         long count;
         !<<
         ais := this.m_zv.(lar_reflect_intf).lar_reflect_attr_infos()
         l_count = int64(len(ais))
         !>>
-        var attr_infos = new AttrInfo[count];
+        this._attr_infos = new AttrInfo[count];
         for (long i = 0; i < count; ++ i)
         {
-            AttrInfo attr_info;
             !<<
             ai := ais[l_i];
-            l_attr_info = lar_new_obj_lar_cls_@<<AttrInfo>>(lar_fiber, this, ai.tn, ai.zv, ai.name, ai.tags)
             !>>
-            attr_infos[i] = attr_info;
+
+            long tag_count;
+            !<<
+            l_tag_count = int64(len(ai.tags))
+            !>>
+            var attr_info_tags = new Pair<String, String>[tag_count];
+            for (long i = 0; i < tag_count; ++ i)
+            {
+                String tag_name, tag_value;
+                !<<
+                tag := ai.tags[l_i]
+                l_tag_name = lar_str_from_go_str(tag.name)
+                l_tag_value = lar_str_from_go_str(tag.value)
+                !>>
+                attr_info_tags[i] = make_pair(tag_name, tag_value);
+            }
+
+            AttrInfo attr_info;
+            !<<
+            l_attr_info = &lar_cls_@<<AttrInfo>>{
+                m__cls:         this,
+                m__type_name:   lar_str_from_go_str(ai.tn),
+                m__zv:          ai.zv,
+                m__name:        lar_str_from_go_str(ai.name),
+                m__tags:        l_attr_info_tags,
+            }
+            !>>
+            this._attr_infos[i] = attr_info;
         }
-        return attr_infos;
     }
 
 /*
@@ -149,6 +183,8 @@ public class Type
 
     String _name; //类型名
     Any    zv;    //此类型的zero_value
+
+    AttrInfo[] _attr_infos;
 }
 
 //返回输入对象的类型，如果输入nil接口，则返回nil
@@ -177,6 +213,7 @@ public Type type_of(Any a)
         _name: name,
         zv:    zv,
     };
+    tp.init_attr_infos();
     !<<
     return lar_go_func_@<<set_type_to_map>>(name, l_tp)
     !>>

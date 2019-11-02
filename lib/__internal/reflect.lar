@@ -9,14 +9,14 @@ import (
 type lar_reflect_intf interface {
     lar_reflect_type_name()     *lar_cls_@<<:String>>   //返回类名
     lar_reflect_can_new_empty() bool                    //是否支持new一个空对象（所有属性为零值）
-    lar_reflect_new_empty()     lar_intf_@<<:Any>>      //new一个空对象并返回，若类不支持此操作则返回nil
+    lar_reflect_new_empty()     interface{}             //new一个空对象并返回，若类不支持此操作则返回nil
 }
 
 //属性信息
 type lar_reflect_attr_info_type struct {
-    tn      *lar_cls_@<<:String>>
-    zv      lar_intf_@<<:Any>>
-    name    *lar_cls_@<<:String>>
+    tn      string
+    zv      interface{}
+    name    string
     tags    []*lar_reflect_attr_tag_type
 }
 

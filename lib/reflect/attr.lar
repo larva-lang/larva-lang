@@ -1,30 +1,5 @@
 public class AttrInfo
 {
-    AttrInfo(Type cls, String tn, Any zv, String name, GoAny tags)
-    {
-        this._cls       = cls;
-        this._type_name = tn;
-        this._type      = type_of(zv);
-        this._name      = name;
-
-        long tag_count;
-        !<<
-        tags_slice := l_tags.([]*lar_reflect_attr_tag_type)
-        l_tag_count = int64(len(tags_slice))
-        !>>
-        this._tags = new Pair<String, String>[tag_count];
-        for (long i = 0; i < tag_count; ++ i)
-        {
-            String tag_name, tag_value;
-            !<<
-            t := tags_slice[l_i]
-            l_tag_name = lar_str_from_go_str(t.name)
-            l_tag_value = lar_str_from_go_str(t.value)
-            !>>
-            this._tags[i] = make_pair(tag_name, tag_value);
-        }
-    }
-
     public String repr()
     {
         return "<Attr %s of %s>".(this.name(), this.cls().name());
@@ -42,7 +17,7 @@ public class AttrInfo
 
     public Type type()
     {
-        return this._type;
+        return type_of(this._zv);
     }
 
     public String name()
@@ -58,7 +33,7 @@ public class AttrInfo
 
     Type                    _cls;       //属性所属的类
     String                  _type_name; //属性的定义的类型名
-    Type                    _type;      //属性类型，若类型为接口则为nil
+    Any                     _zv;
     String                  _name;      //属性名
     Pair<String, String>[]  _tags;      //tag列表
 }
