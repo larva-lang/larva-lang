@@ -144,7 +144,7 @@ public class Value
                         {
                             String tn;
                             !<<
-                            tn = lar_str_from_go_str(ar.tn)
+                            l_tn = lar_str_from_go_str(ar.tn)
                             !>>
                             throw(new Error{"无法将类型‘%T’的值赋值给类型‘%s’".(a, tn)});
                         }
