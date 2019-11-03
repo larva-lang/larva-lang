@@ -5,7 +5,7 @@ interface ValueTester
     void assert(bool cond, Any a, String desc);
 }
 
-void test_value_of_ref<T>(ValueTester tester, T t, T new_t)
+void test_value_of_ref<T>(ValueTester tester, T t, Any new_t)
 {
     var v = reflect.value_of_ref(ref t);
     tester.assert(v.get() === t, t, "取出的值和原始值不同");
