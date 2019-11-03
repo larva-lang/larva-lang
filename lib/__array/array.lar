@@ -10,8 +10,6 @@
 简化起见，多维数组嵌套的类型是Arr<E[]>而不是Arr<Arr<E>>
 */
 
-import util;
-
 !<<
 
 import (
