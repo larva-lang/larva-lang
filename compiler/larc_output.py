@@ -714,7 +714,7 @@ def _output_module():
                             with code.new_blk("&lar_reflect_attr_info_type", tail = ","):
                                 code += "tn: %s," % _gen_str_literal(attr.tp.to_str(ignore_builtins_module_prefix = True))
                                 code += "zv: (%s)(%s)," % (_gen_type_name_code(attr.tp), _gen_default_value_code(attr.tp))
-                                code += "name: %s" % _gen_str_literal(attr.name)
+                                code += "name: %s," % _gen_str_literal(attr.name)
                                 with code.new_blk("tags: []*lar_reflect_attr_tag_type", tail = ","):
                                     for tag_name, tag_value in attr.tags:
                                         code += ("&lar_reflect_attr_tag_type{%s, %s}," %
