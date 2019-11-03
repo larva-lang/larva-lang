@@ -646,6 +646,8 @@ def _output_stmt_list(code, stmt_list):
         raise Exception("Bug")
 
 _literal_token_id_set = set()
+_reflect_zvs = ["false"] + ["%s(0)" % _tp_name_code for _tp_name_code in _BASE_TYPE_NAME_MAP.itervalues() if _tp_name_code != "bool"]
+del _tp_name_code
 
 _curr_module = None
 def _output_module():
@@ -695,6 +697,7 @@ def _output_module():
 
         def output_reflect_method(code, coi, type_name):
             coi_name = _gen_coi_name(coi)
+            _reflect_zvs.append("(*%s)(nil)" % coi_name)
             #1 类型名
             code += "var lar_reflect_type_name_%s = lar_str_from_go_str(%s)" % (coi_name, _gen_str_literal(type_name))
             with code.new_blk("func (this *%s) lar_reflect_type_name() %s" % (coi_name, _STR_TYPE_NAME_CODE)):
@@ -825,6 +828,9 @@ def _output_util():
         with code.new_blk("var lar_util_module_name_map = map[string]string"):
             for name, name_code in _module_name_code_map.iteritems():
                 code += "`%s`: `%s`," % (name_code, name)
+
+        #反射需要的所有类型的零值
+        code += "var lar_reflect_all_zvs []interface{}{%s}" % ", ".join(_reflect_zvs)
 
 def _make_prog():
     if platform.system() in ("Darwin", "Linux"):

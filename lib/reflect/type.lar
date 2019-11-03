@@ -1,37 +1,49 @@
 import __internal, debug;
 
-//类型对象全局唯一，即可以用===和!==判是否为同一类型，为简单起见用比较朴素的方式做
+//类型对象全局唯一，即可以用===和!==判是否为同一类型，用一个map存放，程序启动时初始化
 
 !<<
 
 import (
     "reflect"
-    "sync"
 )
 
-var (
-    lar_reflect_type_map_lock sync.RWMutex
-    lar_reflect_type_map      = map[string]*lar_cls_@<<Type>>{}
-)
+var lar_reflect_type_map = map[string]*lar_cls_@<<Type>>{}
 
-//操作type_map，获取和设置类型，获取时若不存在则返回nil，设置时若存在则不覆盖，并返回map中最终的type结果，保证唯一性
+func lar_go_func_@<<init_type_map>>() {
+    //第一步：用Type对象填充map
+    for _, zv := range lar_reflect_all_zvs {
+        if zv == nil {
+            panic("bug：lar_reflect_all_zvs有nil接口")
+        }
+        tn, is_go_type_name := lar_go_func_@<<__internal.reflect_type_name>>(zv);
+        if is_go_type_name {
+            panic("bug：lar_reflect_all_zvs有go的对象")
+        }
+        tn_go_str := lar_str_to_go_str(tn)
+        if _, ok := lar_reflect_type_map[tn_go_str]; ok {
+            panic("bug：lar_reflect_all_zvs存在重复类型的值")
+        }
+        if !reflect.ValueOf(zv).IsZero() {
+            panic("bug：lar_reflect_all_zvs存在非零值")
+        }
 
-func lar_go_func_@<<get_type_from_map>>(name string) *lar_cls_@<<Type>> {
-    lar_reflect_type_map_lock.RLock()
-    defer lar_reflect_type_map_lock.RUnlock()
-
-    return lar_reflect_type_map[name]
+        tp := &lar_cls_@<<Type>>{
+            m__name: tn,
+            m_zv:    zv,
+        }
+        lar_reflect_type_map[tn_go_str] = tp
+    }
+    //第二步：初始化Type的其他信息，因为这个过程中可能会用到type_of，所以和上一步分开进行
+    lar_fiber, cancel := lar_go_func_new_fiber_ctx_with_cancel(nil, "reflect.init_type_map")
+    defer cancel()
+    for _, tp := range lar_reflect_type_map {
+        tp.lar_method_@<<init_attr_infos>>(lar_fiber)
+    }
 }
 
-func lar_go_func_@<<set_type_to_map>>(name string, tp *lar_cls_@<<Type>>) *lar_cls_@<<Type>> {
-    lar_reflect_type_map_lock.Lock()
-    defer lar_reflect_type_map_lock.Unlock()
-
-    if old_tp := lar_reflect_type_map[name]; old_tp != nil {
-        return old_tp
-    }
-    lar_reflect_type_map[name] = tp
-    return tp
+func init() {
+    lar_func_@<<init_type_map>>()
 }
 
 !>>
@@ -144,7 +156,7 @@ public class Type
             l_attr_info = &lar_cls_@<<AttrInfo>>{
                 m__cls:         this,
                 m__type_name:   lar_str_from_go_str(ai.tn),
-                m__zv:          ai.zv,
+                m__type:        lar_func_@<<type_of>>(ai.zv),
                 m__name:        lar_str_from_go_str(ai.name),
                 m__tags:        l_attr_info_tags,
             }
@@ -187,6 +199,21 @@ public class Type
     AttrInfo[] _attr_infos;
 }
 
+//获取larva对象的类型名，即__internal.reflect_type_name支持的那些，失败则抛出异常
+String get_larva_type_name(Any a)
+{
+    String tn;
+    bool is_go_type_name;
+    !<<
+    l_tn, l_is_go_type_name = lar_go_func_@<<__internal.reflect_type_name>>(l_a)
+    !>>
+    if (is_go_type_name)
+    {
+        throw(new NotLarvaObject{tn});
+    }
+    return tn;
+}
+
 //返回输入对象的类型，如果输入nil接口，则返回nil
 public Type type_of(Any a)
 {
@@ -194,27 +221,13 @@ public Type type_of(Any a)
     {
         return nil;
     }
-    String name = __internal.reflect_type_name(a);
-    if (__internal.is_go_type_name(name))
-    {
-        throw(new NotLarvaObject{name});
-    }
-    Any zv;
+
+    //所有type都初始化好了，直接从map读，如果读不到就是编译器bug了
+    var tn = get_larva_type_name(a);
     Type tp;
     !<<
-    name := lar_str_to_go_str(l_name)
-    l_tp = lar_go_func_@<<get_type_from_map>>(name)
-    if l_tp != nil {
-        return l_tp
-    }
-    l_zv = reflect.Zero(reflect.TypeOf(l_a)).Interface()
+    l_tp = lar_reflect_type_map[lar_str_to_go_str(l_tn)]
     !>>
-    tp = new Type{
-        _name: name,
-        zv:    zv,
-    };
-    tp.init_attr_infos();
-    !<<
-    return lar_go_func_@<<set_type_to_map>>(name, l_tp)
-    !>>
+    debug.assert(tp !== nil, "bug");
+    return tp;
 }

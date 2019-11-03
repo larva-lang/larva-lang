@@ -103,11 +103,7 @@ public class Value
 
 public Value value_of(Any v)
 {
-    String tn = __internal.reflect_type_name(v);
-    if (__internal.is_go_type_name(tn))
-    {
-        throw(new NotLarvaObject{tn});
-    }
+    get_larva_type_name(v);
     return new Value{
         v: v,
     };

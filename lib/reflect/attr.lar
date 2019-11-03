@@ -17,7 +17,7 @@ public class AttrInfo
 
     public Type type()
     {
-        return type_of(this._zv);
+        return this._type;
     }
 
     public String name()
@@ -33,7 +33,7 @@ public class AttrInfo
 
     Type                    _cls;       //属性所属的类
     String                  _type_name; //属性的定义的类型名
-    Any                     _zv;
+    Type                    _type;
     String                  _name;      //属性名
     Pair<String, String>[]  _tags;      //tag列表
 }

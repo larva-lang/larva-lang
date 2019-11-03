@@ -50,43 +50,57 @@ final String
     REFLECT_TYPE_NAME_GO_TYPE_SUFFIX = ">",
 ;
 
+!<<
+
+func lar_go_func_@<<reflect_type_name>>(a interface{}) (name *lar_cls_@<<:String>>, is_go_type_name bool) {
+    switch a.(type) {
+    case nil:
+        name = lar_reflect_type_name_nil_intf
+    case bool:
+        name = lar_reflect_type_name_bool
+    case int8:
+        name = lar_reflect_type_name_schar
+    case uint8:
+        name = lar_reflect_type_name_char
+    case int16:
+        name = lar_reflect_type_name_short
+    case uint16:
+        name = lar_reflect_type_name_ushort
+    case int32:
+        name = lar_reflect_type_name_int
+    case uint32:
+        name = lar_reflect_type_name_uint
+    case int64:
+        name = lar_reflect_type_name_long
+    case uint64:
+        name = lar_reflect_type_name_ulong
+    case float32:
+        name = lar_reflect_type_name_float
+    case float64:
+        name = lar_reflect_type_name_double
+    default:
+        lri, ok := a.(lar_reflect_intf)
+        if ok {
+            name = lri.lar_reflect_type_name()
+        } else {
+            name = (
+                lar_str_from_go_str(
+                    fmt.Sprintf("%s%s%s",
+                                lar_str_to_go_str(lar_gv_@<<REFLECT_TYPE_NAME_GO_TYPE_PREFIX>>), reflect.TypeOf(a).String(),
+                                lar_str_to_go_str(lar_gv_@<<REFLECT_TYPE_NAME_GO_TYPE_SUFFIX>>))))
+            is_go_type_name = true
+        }
+    }
+    return
+}
+
+!>>
+
 public String reflect_type_name(GoAny a)
 {
     !<<
-    switch l_a.(type) {
-    case nil:
-        return lar_reflect_type_name_nil_intf
-    case bool:
-        return lar_reflect_type_name_bool
-    case int8:
-        return lar_reflect_type_name_schar
-    case uint8:
-        return lar_reflect_type_name_char
-    case int16:
-        return lar_reflect_type_name_short
-    case uint16:
-        return lar_reflect_type_name_ushort
-    case int32:
-        return lar_reflect_type_name_int
-    case uint32:
-        return lar_reflect_type_name_uint
-    case int64:
-        return lar_reflect_type_name_long
-    case uint64:
-        return lar_reflect_type_name_ulong
-    case float32:
-        return lar_reflect_type_name_float
-    case float64:
-        return lar_reflect_type_name_double
-    }
-    lri, ok := l_a.(lar_reflect_intf)
-    if ok {
-        return lri.lar_reflect_type_name()
-    }
-    return lar_str_from_go_str(
-        fmt.Sprintf("%s%s%s",
-                    lar_str_to_go_str(lar_gv_@<<REFLECT_TYPE_NAME_GO_TYPE_PREFIX>>), reflect.TypeOf(l_a).String(),
-                    lar_str_to_go_str(lar_gv_@<<REFLECT_TYPE_NAME_GO_TYPE_SUFFIX>>)))
+    name, _ := lar_go_func_@<<reflect_type_name>>(l_a)
+    return name
     !>>
 }
 
