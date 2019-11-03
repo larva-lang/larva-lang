@@ -30,7 +30,7 @@ func lar_booter_start_prog(builtins_mod_init_func func (*lar_go_stru_fiber), mai
         os.Exit(exit_code)
     }()
 
-    lar_fiber, cancel := lar_go_func_new_fiber_ctx_with_cancel(nil, "main")
+    lar_fiber, cancel := lar_go_func_new_fiber_ctx_with_cancel(nil, "main") //定义在fiber模块中，main也需要一个默认ctx
     defer cancel()
 
     defer lar_booter_check_go_panic(lar_fiber)
