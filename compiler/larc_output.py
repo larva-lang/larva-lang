@@ -830,7 +830,9 @@ def _output_util():
                 code += "`%s`: `%s`," % (name_code, name)
 
         #反射需要的所有类型的零值
-        code += "var lar_reflect_all_zvs []interface{}{%s}" % ", ".join(_reflect_zvs)
+        with code.new_blk("var lar_reflect_all_zvs []interface{}"):
+            for zv_code in _reflect_zvs:
+                code += "%s," % zv_code
 
 def _make_prog():
     if platform.system() in ("Darwin", "Linux"):
