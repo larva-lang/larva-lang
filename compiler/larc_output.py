@@ -94,10 +94,10 @@ class _Code:
                 print >> f, line
             f.close()
 
-    def new_blk(self, title, start_with_blank_line = True):
+    def new_blk(self, title, start_with_blank_line = True, tail = ""):
         if start_with_blank_line:
             self += ""
-        end_line = "}"
+        end_line = "}" + tail
         if title == "import":
             self += title + " ("
             end_line = ")"
@@ -626,10 +626,8 @@ def _output_stmt_list(code, stmt_list):
             continue
 
         if stmt.type == "defer_block":
-            with code.new_blk("defer func ()"):
+            with code.new_blk("defer func ()", tail = "()"):
                 _output_stmt_list(code, stmt.stmt_list)
-            assert code.line_list[-1].strip() == "}"
-            code.line_list[-1] += "()"
             continue
 
         if stmt.type == "defer_expr":
@@ -708,6 +706,22 @@ def _output_module():
                 code += "return %s" % ("true" if can_new_empty else "false")
             with code.new_blk("func (this *%s) lar_reflect_new_empty() interface{}" % coi_name):
                 code += "return %s" % ("&%s{}" % coi_name if can_new_empty else "nil")
+            #3 属性信息和属性左值（仅对public属性）
+            with code.new_blk("var lar_reflect_attr_infos_%s = []*lar_reflect_attr_info_type"):
+                if coi.is_cls or coi.is_gcls_inst:
+                    for attr in coi.attr_map.itervalues():
+                        if "public" in attr.decr_set:
+                            with code.new_blk("&lar_reflect_attr_info_type", tail = ","):
+                                code += "tn: %s," % _gen_str_literal(attr.tp.to_str(ignore_builtins_module_prefix = True))
+                                code += "zv: (%s)(%s)," % (_gen_type_name_code(attr.tp), _gen_default_value_code(attr.tp))
+                                code += "name: %s" % _gen_str_literal(attr.name)
+                                with code.new_blk("tags: []*lar_reflect_attr_tag_type", tail = ","):
+                                    for tag_name, tag_value in attr.tags:
+                                        code += ("&lar_reflect_attr_tag_type{%s, %s}," %
+                                                 (_gen_str_literal(tag_name), _gen_str_literal(tag_value)))
+            with code.new_blk("func (this *%s) lar_reflect_attr_infos() []*lar_reflect_attr_info_type" % coi_name):
+                code += "return lar_reflect_attr_infos_%s" % coi_name
+            #todo 属性左值
 
         for closure in module.closure_map.itervalues():
             coi_name = _gen_coi_name(closure)
