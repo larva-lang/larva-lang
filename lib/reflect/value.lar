@@ -93,19 +93,77 @@ public class Value
     //返回一个类实例的所有属性的ref值
     public Value[] attrs()
     {
-        Any a = this.get_instance();
-        //todo
+        Any inst = this.get_instance();
+        long attr_count;
+        !<<
+        ars := l_inst.(lar_reflect_intf).lar_reflect_attr_refs()
+        l_attr_count = int64(len(ars))
+        !>>
+        var attrs = new Value[attr_count];
+        for (long i = 0; i < attr_count; ++ i)
+        {
+            !<<
+            ar := ars[l_i]
+            !>>
+
+            GoAny v;
+            !<<
+            l_v = ar.ptr
+            !>>
+            attrs[i] = new Value{
+                v: v,
+                r: []{
+                    String type_name()
+                    {
+                        !<<
+                        return lar_str_from_go_str(ar.tn)
+                        !>>
+                    }
+
+                    Any get()
+                    {
+                        !<<
+                        return ar.get()
+                        !>>
+                    }
+
+                    bool can_set(Any a)
+                    {
+                        !<<
+                        return ar.can_set(l_a)
+                        !>>
+                    }
+
+                    void set(Any a)
+                    {
+                        bool ok;
+                        !<<
+                        l_ok = ar.set(l_a)
+                        !>>
+                        if (!ok)
+                        {
+                            String tn;
+                            !<<
+                            tn = lar_str_from_go_str(ar.tn)
+                            !>>
+                            throw(new Error{"无法将类型‘%T’的值赋值给类型‘%s’".(a, tn)});
+                        }
+                    }
+                }
+            };
+        }
+        return attrs;
     }
 
     GoAny v; //具体的值，如果是ref，则为一个指针
     Ref   r; //当为ref时，对其操作的接口，普通值的这个属性为nil
 }
 
-public Value value_of(Any v)
+public Value value_of(Any a)
 {
-    get_larva_type_name(v);
+    get_larva_type_name(a);
     return new Value{
-        v: v,
+        v: a,
     };
 }
 
@@ -113,7 +171,7 @@ public Value value_of_ref<T>(ref T t)
 {
     GoAny v;
     !<<
-    l_v = l_t;
+    l_v = l_t
     !>>
     String name_of_T = type_name<T>();
     return new Value{

@@ -713,21 +713,29 @@ def _output_module():
             with code.new_blk("func (this *%s) lar_reflect_new_empty() interface{}" % coi_name):
                 code += "return %s" % ("&%s{}" % coi_name if can_new_empty else "nil")
             #3 属性信息和属性左值（仅对public属性）
+            public_attrs = [attr for attr in coi.attr_map.itervalues() if "public" in attr.decr_set] if coi.is_cls or coi.is_gcls_inst else []
             with code.new_blk("var lar_reflect_attr_infos_%s = []*lar_reflect_attr_info_type" % coi_name):
-                if coi.is_cls or coi.is_gcls_inst:
-                    for attr in coi.attr_map.itervalues():
-                        if "public" in attr.decr_set:
-                            with code.new_blk("&lar_reflect_attr_info_type", tail = ","):
-                                code += "tn: %s," % _gen_str_literal(attr.type.to_str(ignore_builtins_module_prefix = True))
-                                code += "zv: (%s)(%s)," % (_gen_type_name_code(attr.type), _gen_default_value_code(attr.type))
-                                code += "name: %s," % _gen_str_literal(attr.name)
-                                with code.new_blk("tags: []*lar_reflect_attr_tag_type", tail = ","):
-                                    for tag_name, tag_value in attr.tags:
-                                        code += ("&lar_reflect_attr_tag_type{%s, %s}," %
-                                                 (_gen_str_literal(tag_name), _gen_str_literal(tag_value)))
+                for attr in public_attrs:
+                    with code.new_blk("&lar_reflect_attr_info_type", tail = ","):
+                        code += "tn: %s," % _gen_str_literal(attr.type.to_str(ignore_builtins_module_prefix = True))
+                        code += "zv: (%s)(%s)," % (_gen_type_name_code(attr.type), _gen_default_value_code(attr.type))
+                        code += "name: %s," % _gen_str_literal(attr.name)
+                        with code.new_blk("tags: []*lar_reflect_attr_tag_type", tail = ","):
+                            for tag_name, tag_value in attr.tags:
+                                code += ("&lar_reflect_attr_tag_type{%s, %s}," % (_gen_str_literal(tag_name), _gen_str_literal(tag_value)))
             with code.new_blk("func (this *%s) lar_reflect_attr_infos() []*lar_reflect_attr_info_type" % coi_name):
                 code += "return lar_reflect_attr_infos_%s" % coi_name
-            #todo 属性左值
+            with code.new_blk("func (this *%s) lar_reflect_attr_refs() []*lar_reflect_attr_ref_type" % coi_name):
+                with code.new_blk("return []*lar_reflect_attr_ref_type"):
+                    for i, attr in enumerate(public_attrs):
+                        with code.new_blk("&lar_reflect_attr_ref_type", tail = ","):
+                            code += "ptr: &this.m_%s," % attr.name
+                            code += "tn: lar_reflect_attr_infos_%s[%d].tn," % (coi_name, i)
+                            code += "get: func () interface{} {return this.m_%s}," % attr.name
+                            code += "can_set: func (i interface{}) bool {_, ok := i.(%s); return ok}," % _gen_type_name_code(attr.type)
+                            code += ("set: func (i interface{}) bool "
+                                     "{if v, ok := i.(%s); ok {this.m_%s = v; return true} else {return false}}," %
+                                     (_gen_type_name_code(attr.type), attr.name))
 
         for closure in module.closure_map.itervalues():
             coi_name = _gen_coi_name(closure)

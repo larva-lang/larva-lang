@@ -11,6 +11,7 @@ type lar_reflect_intf interface {
     lar_reflect_can_new_empty() bool                            //是否支持new一个空对象（所有属性为零值）
     lar_reflect_new_empty()     interface{}                     //new一个空对象并返回，若类不支持此操作则返回nil
     lar_reflect_attr_infos()    []*lar_reflect_attr_info_type   //返回属性信息表
+    lar_reflect_attr_refs()     []*lar_reflect_attr_ref_type    //返回所有属性的引用
 }
 
 //属性信息
@@ -25,6 +26,15 @@ type lar_reflect_attr_info_type struct {
 type lar_reflect_attr_tag_type struct {
     name    string
     value   string
+}
+
+//属性的引用
+type lar_reflect_attr_ref_type struct {
+    ptr     interface{}             //指向属性的指针
+    tn      string                  //属性的类型名，Value的Ref接口需要用到，和lar_reflect_attr_info_type中的tn同
+    get     func () interface{}
+    can_set func (interface{}) bool
+    set     func (interface{}) bool //返回true表示成功
 }
 
 //基础类型的名字定义
