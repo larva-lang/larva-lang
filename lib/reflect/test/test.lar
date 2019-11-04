@@ -16,7 +16,7 @@ void test_value_of_ref<T>(ValueTester tester, T t, Any new_t, bool expect_can_se
         {
             tester.assert(cond, t, "set类型‘%T’的值‘%r’：%s".(new_t, new_t, desc));
         }
-    }
+    };
 
     bool can_set = v.can_set(new_t);
     var c = call_and_catch<reflect.Error>([-]{
