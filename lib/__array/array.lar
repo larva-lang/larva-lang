@@ -181,7 +181,7 @@ class Arr<E>
     {
         throw_on_index_error(this.size(), idx);
         !<<
-        this.arr[l_idx] = l_elem;
+        this.arr[l_idx] = l_elem
         !>>
     }
 
@@ -190,7 +190,7 @@ class Arr<E>
         throw_on_range_error(this.size(), begin, end);
         E[] this_arr;
         !<<
-        l_this_arr = this;
+        l_this_arr = this
         !>>
         return this_arr[begin : end];
     }
@@ -199,7 +199,7 @@ class Arr<E>
     {
         E[] this_arr;
         !<<
-        l_this_arr = this;
+        l_this_arr = this
         !>>
         return new ArrayIter<E>(this_arr, 0);
     }
@@ -224,7 +224,7 @@ class Arr<E>
     {
         E[] this_arr;
         !<<
-        l_this_arr = this;
+        l_this_arr = this
         !>>
         return deep_copy(this_arr);
     }
@@ -233,7 +233,7 @@ class Arr<E>
     {
         E[] this_arr;
         !<<
-        l_this_arr = this;
+        l_this_arr = this
         !>>
         long sz = this.size();
         for (long i = 0; i < sz; ++ i)
@@ -250,7 +250,7 @@ class Arr<E>
     {
         E[] this_arr;
         !<<
-        l_this_arr = this;
+        l_this_arr = this
         !>>
         if (this_arr === other)
         {
@@ -278,7 +278,7 @@ class Arr<E>
     {
         E[] this_arr;
         !<<
-        l_this_arr = this;
+        l_this_arr = this
         !>>
         if (this_arr === other)
         {

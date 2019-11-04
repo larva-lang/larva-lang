@@ -506,6 +506,9 @@ def _output_native_code(code, native_code, fom):
                     module_name, name = i
                     s += "%s_%d_%s" % (_gen_module_name_code(larc_module.module_map[module_name]), len(name), name)
             code.record_tb_info((FakeToken(line_idx + 1), fom))
+            if s.endswith(";"):
+                larc_common.warning("文件[%s]行[%d] native代码存在分号结尾" %
+                                    (native_code.module.dir + "/" + native_code.file_name, native_code.t.line_no + line_idx + 1))
             code += s
 
 def _output_closure_method(code, closure):

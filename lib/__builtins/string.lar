@@ -71,7 +71,7 @@ public class String
     public bool eq(String other)
     {
         !<<
-        return this.s == l_other.s;
+        return this.s == l_other.s
         !>>
     }
 
@@ -122,14 +122,14 @@ public class String
     public bool has_prefix(String s)
     {
         !<<
-        return strings.HasPrefix(this.s, l_s.s);
+        return strings.HasPrefix(this.s, l_s.s)
         !>>
     }
 
     public bool has_suffix(String s)
     {
         !<<
-        return strings.HasSuffix(this.s, l_s.s);
+        return strings.HasSuffix(this.s, l_s.s)
         !>>
     }
 

@@ -16,7 +16,7 @@ func lar_go_func_@<<init_type_map>>() {
         if zv == nil {
             panic("bug：lar_reflect_all_zvs有nil接口")
         }
-        tn, is_go_type_name := lar_go_func_@<<__internal.reflect_type_name>>(zv);
+        tn, is_go_type_name := lar_go_func_@<<__internal.reflect_type_name>>(zv)
         if is_go_type_name {
             panic("bug：lar_reflect_all_zvs有go的对象")
         }
@@ -132,7 +132,7 @@ public class Type
         for (long i = 0; i < count; ++ i)
         {
             !<<
-            ai := ais[l_i];
+            ai := ais[l_i]
             !>>
 
             long tag_count;
