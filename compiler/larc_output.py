@@ -920,5 +920,7 @@ def output(out_bin, need_run_prog, args_for_run):
         _make_out_bin(out_bin)
     larc_common.verbose_log("go build完毕，耗时%.2f秒" % (time.time() - go_build_start_time))
 
+    larc_common.output_all_warning()
+
     if need_run_prog:
         _run_prog(args_for_run)

@@ -5,6 +5,7 @@
 """
 
 import os, sys, time
+from StringIO import StringIO
 
 COMPILING_TIMESTAMP = int(time.time() * 1000)
 
@@ -84,7 +85,7 @@ def set_show_msg_in_child(show_msg_in_child):
 def is_child():
     return _child_report_fd >= 0
 
-def _output_ginst_create_chain():
+def _output_ginst_create_chain(f):
     import larc_module
     ginst_create_chain = []
     ginst = larc_module.ginst_being_processed[-1]
@@ -93,23 +94,30 @@ def _output_ginst_create_chain():
         ginst = ginst.ginst_creator
     if not ginst_create_chain:
         return
-    print >> sys.stderr, "泛型实例构造链："
+    print >> f, "泛型实例构造链："
     for ginst in reversed(ginst_create_chain):
-        print >> sys.stderr, ginst.creator_token.pos_desc(), ginst
+        print >> f, ginst.creator_token.pos_desc(), ginst
 
 def exit(msg):
     if _child_report_fd < 0 or _show_msg_in_child:
-        print >> sys.stderr, u"错误：" + msg.decode("utf8")
-        _output_ginst_create_chain()
+        print >> sys.stderr, "错误：" + msg
+        _output_ginst_create_chain(sys.stderr)
         print >> sys.stderr
     if _child_report_fd >= 0:
         _report_info(_get_err_exit_report_info())
     sys.exit(_ERR_EXIT_CODE)
 
+#warning信息不实时输出，而是记录在set中（顺便去重），在编译之后统一输出
+_warning_set = set()
 def warning(msg):
-    print >> sys.stderr, u"警告：" + msg.decode("utf8")
-    _output_ginst_create_chain()
-    print >> sys.stderr
+    f = StringIO()
+    print >> f, "警告：" + msg
+    _output_ginst_create_chain(f)
+    _warning_set.add(f.getvalue())
+
+def output_all_warning():
+    for w in _warning_set:
+        print >> sys.stderr, w
 
 '''
 由于一开始设计的时候是遇到错误就退出（也是默认模式），为支持监测多个错误但是又不想改动太大，就搞了这么个模式
