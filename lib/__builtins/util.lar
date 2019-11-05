@@ -93,6 +93,11 @@ public String type_name<T>()
     return s.sub_str(0, s.len() - 2);
 }
 
+public bool is_interface<T>()
+{
+    return zero_value<T>() === (Any)nil;
+}
+
 public bool try_assert_type<T>(GoAny a, ref T t)
 {
     bool ok;

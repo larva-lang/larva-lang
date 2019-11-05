@@ -169,11 +169,13 @@ public Value value_of(Any a)
 
 public Value value_of_ref<T>(ref T t)
 {
+    String name_of_T = type_name<T>();
+    bool type_T_is_interface = is_interface<T>();
+
     GoAny v;
     !<<
     l_v = l_t
     !>>
-    String name_of_T = type_name<T>();
     return new Value{
         v: v,
         r: []{
@@ -189,16 +191,31 @@ public Value value_of_ref<T>(ref T t)
 
             bool can_set(Any a)
             {
+                if (a === nil)
+                {
+                    return type_T_is_interface;
+                }
                 return try_assert_type<T>(a, ref _);
             }
 
             void set(Any a)
             {
-                T av;
-                if (try_assert_type(a, ref av))
+                if (a === nil)
                 {
-                    t = av;
-                    return;
+                    if (type_T_is_interface)
+                    {
+                        t = nil;
+                        return;
+                    }
+                }
+                else
+                {
+                    T av = nil;
+                    if (try_assert_type(a, ref av))
+                    {
+                        t = av;
+                        return;
+                    }
                 }
                 throw(new Error{"无法将类型‘%T’的值赋值给类型‘%s’".(a, name_of_T)});
             }
