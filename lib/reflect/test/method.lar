@@ -19,7 +19,7 @@ class ForMethodTesting
 
     public Any f3(Any a)
     {
-        return nil if a === nil else this.x * assert_type<int>(a);
+        return (Any)nil if a === nil else (Any)(this.x * assert_type<int>(a));
     }
 
     public void f4(long a, ref long b)
@@ -62,19 +62,19 @@ void test_method()
         var correct_ret_types = new reflect.Type[]{nil, nil, reflect.type_of(1), nil, nil};
         var correct_arg_info_lists = new ArgInfo[][]{
             {
-                new ArgInfo{false, "int", type_of(1)},
+                new ArgInfo{false, "int", reflect.type_of(1)},
             },
             {
             },
             {
-                new ArgInfo{false, "String", type_of("")},
+                new ArgInfo{false, "String", reflect.type_of("")},
             },
             {
                 new ArgInfo{false, "Any", nil},
             },
             {
-                new ArgInfo{false, "long", type_of(1L)},
-                new ArgInfo{true, "long", type_of(1L)},
+                new ArgInfo{false, "long", reflect.type_of(1L)},
+                new ArgInfo{true, "long", reflect.type_of(1L)},
             },
         };
 
@@ -107,7 +107,7 @@ void test_method()
             var ac = correct_ais.size();
             var mais = mi.arg_infos();
             mi_tester.assert(ac == mais.size(), "参数数量不一致");
-            for (int j = 0; j < ac; ++ j)
+            for (long j = 0; j < ac; ++ j)
             {
                 var mai_tester = []{
                     void assert(bool cond, String desc)
