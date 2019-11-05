@@ -106,7 +106,9 @@ public void main()
             test_value_of_ref(tester, new int[0], new int[1]);
             test_value_of_ref(tester, (char[])nil, "xyz".to_char_array());
             test_value_of_ref<Any>(tester, 123, "hello");
+            test_value_of_ref<Any>(tester, nil, nil);
             test_value_of_ref<Throwable>(tester, "error", new ValueError("test"));
+            test_value_of_ref<Throwable>(tester, nil, nil);
         }
 
         {
