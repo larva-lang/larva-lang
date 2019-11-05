@@ -200,22 +200,11 @@ public Value value_of_ref<T>(ref T t)
 
             void set(Any a)
             {
-                if (a === nil)
+                T av;
+                if ((a === nil && type_T_is_interface) || try_assert_type(a, ref av))
                 {
-                    if (type_T_is_interface)
-                    {
-                        t = nil;
-                        return;
-                    }
-                }
-                else
-                {
-                    T av = nil;
-                    if (try_assert_type(a, ref av))
-                    {
-                        t = av;
-                        return;
-                    }
+                    t = av;
+                    return;
                 }
                 throw(new Error{"无法将类型‘%T’的值赋值给类型‘%s’".(a, name_of_T)});
             }
