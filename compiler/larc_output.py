@@ -732,10 +732,26 @@ def _output_module():
                             code += "ptr: &this.m_%s," % attr.name
                             code += "tn: lar_reflect_attr_infos_%s[%d].tn," % (coi_name, i)
                             code += "get: func () interface{} {return this.m_%s}," % attr.name
-                            code += "can_set: func (i interface{}) bool {_, ok := i.(%s); return ok}," % _gen_type_name_code(attr.type)
-                            code += ("set: func (i interface{}) bool "
-                                     "{if v, ok := i.(%s); ok {this.m_%s = v; return true} else {return false}}," %
-                                     (_gen_type_name_code(attr.type), attr.name))
+                            if attr.type.is_coi_type:
+                                attr_type_coi = attr.type.get_coi()
+                                attr_is_intf = attr_type_coi.is_intf or attr_type_coi.is_gintf_inst
+                            else:
+                                attr_is_intf = False
+                            with code.new_blk("can_set: func (i interface{}) bool", tail = ","):
+                                if attr_is_intf:
+                                    with code.new_blk("if i == nil"):
+                                        code += "return true"
+                                code += "_, ok := i.(%s)" % _gen_type_name_code(attr.type)
+                                code += "return ok"
+                            with code.new_blk("set: func (i interface{}) bool", tail = ","):
+                                if attr_is_intf:
+                                    with code.new_blk("if i == nil"):
+                                        code += "this.m_%s = nil" % attr.name
+                                        code += "return true"
+                                with code.new_blk("if v, ok := i.(%s); ok" % _gen_type_name_code(attr.type)):
+                                    code += "this.m_%s = v" % attr.name
+                                    code += "return true"
+                                code += "return false"
 
         for closure in module.closure_map.itervalues():
             coi_name = _gen_coi_name(closure)
