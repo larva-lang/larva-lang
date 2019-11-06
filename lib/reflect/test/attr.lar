@@ -86,6 +86,49 @@ void test_attr()
         }
     }
 
-    var v = reflect.value_of(t);
-    //todo
+    {
+        var tester = []{
+            void assert(bool cond, String desc)
+            {
+                testing.assert(cond, "‘ForAttrTesting’实例的Value：%s".(desc));
+            }
+        };
+
+        var v = reflect.value_of(t);
+        var attr_infos = v.type().attr_infos();
+        var attrs = v.attrs();
+        tester.assert(attr_infos.size() == 3 && attrs.size() == 3, "属性数量不为3");
+
+        int idx = -1;
+        var attr_tester = []{
+            void assert(bool cond, String desc)
+            {
+                tester.assert(cond, "属性‘%s’：%s".(attr_infos[idx].name(), desc));
+            }
+        };
+
+        var old_values = new Any[]{t.x, t.y, t.z};
+        var invalid_new_value_lists = new Any[][]{
+            {"123", 0xabc, new int[1]},
+            {nil, nil, 0.1},
+        };
+        var valid_new_value_lists = new Any[][]{
+            {456, "def", new KeyError("test")},
+            {0, (String)nil, nil},
+        };
+
+        for (idx = 0; idx < 3; ++ idx)
+        {
+            foreach (var invalid_new_values: invalid_new_value_lists.iter())
+            {
+                test_ref_value(attr_tester, attrs[idx], old_values[idx], invalid_new_values[idx], false);
+            }
+            var old_value = old_values[idx];
+            foreach (var valid_new_values: valid_new_value_lists.iter())
+            {
+                test_ref_value(attr_tester, attrs[idx], old_value, valid_new_values[idx], true);
+                old_value = valid_new_values[idx];
+            }
+        }
+    }
 }

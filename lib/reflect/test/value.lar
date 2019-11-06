@@ -2,19 +2,19 @@ import testing, reflect;
 
 interface ValueTester
 {
-    void assert(bool cond, Any a, String desc);
+    void assert(bool cond, String desc);
 }
 
-void test_value_of_ref<T>(ValueTester tester, T t, Any new_t, bool expect_can_set)
+//attr的测试中也会用到这个
+void test_ref_value(ValueTester tester, reflect.Value v, Any t, Any new_t, bool expect_can_set)
 {
-    var v = reflect.value_of_ref(ref t);
-    tester.assert(v.get() === t, t, "取出的值和原始值不同");
-    tester.assert(v.is_ref(), t, "is_ref为false");
+    tester.assert(v.get() === t, "取出的值和原始值不同");
+    tester.assert(v.is_ref(), "is_ref为false");
 
     var tester_of_setting = []{
         void assert(bool cond, String desc)
         {
-            tester.assert(cond, t, "set类型‘%T’的值‘%r’：%s".(new_t, new_t, desc));
+            tester.assert(cond, "set类型‘%T’的值‘%r’：%s".(new_t, new_t, desc));
         }
     };
 
@@ -34,6 +34,19 @@ void test_value_of_ref<T>(ValueTester tester, T t, Any new_t, bool expect_can_se
         tester_of_setting.assert(c !== nil, "set没有抛出期望的reflect.Error异常");
         tester_of_setting.assert(v.get() === t, "set失败之后值被改变");
     }
+}
+
+void test_value_of_ref<T>(T t, Any new_t, bool expect_can_set)
+{
+    var a = t; //保存一下，避免t被set后报错信息有误
+    var tester = []{
+        void assert(bool cond, String desc)
+        {
+            testing.assert(cond, "对类型‘%T’的值‘%r’执行value_of_ref后：%s".(a, a, desc));
+        }
+    };
+    
+    test_ref_value(tester, reflect.value_of_ref(ref t), t, new_t, expect_can_set);
 }
 
 void test_value()
@@ -62,29 +75,27 @@ void test_value()
     }
 
     {
-        func_name = "value_of_ref";
+        test_value_of_ref('x', 'y', true);
+        test_value_of_ref(+1, +2, true);
+        test_value_of_ref(2L, 3L, true);
+        test_value_of_ref(true, false, true);
+        test_value_of_ref(1.f, 2.f, true);
+        test_value_of_ref(0.0, 100.0, true);
+        test_value_of_ref("abc", "def", true);
+        test_value_of_ref("abc", (String)nil, true);
+        test_value_of_ref(new int[0], new int[1], true);
+        test_value_of_ref((char[])nil, "xyz".to_char_array(), true);
+        test_value_of_ref<Any>(123, "hello", true);
+        test_value_of_ref<Any>(nil, nil, true);
+        test_value_of_ref<Throwable>("error", new ValueError("test"), true);
+        test_value_of_ref<Throwable>(nil, nil, true);
 
-        test_value_of_ref(tester, 'x', 'y', true);
-        test_value_of_ref(tester, +1, +2, true);
-        test_value_of_ref(tester, 2L, 3L, true);
-        test_value_of_ref(tester, true, false, true);
-        test_value_of_ref(tester, 1.f, 2.f, true);
-        test_value_of_ref(tester, 0.0, 100.0, true);
-        test_value_of_ref(tester, "abc", "def", true);
-        test_value_of_ref(tester, "abc", (String)nil, true);
-        test_value_of_ref(tester, new int[0], new int[1], true);
-        test_value_of_ref(tester, (char[])nil, "xyz".to_char_array(), true);
-        test_value_of_ref<Any>(tester, 123, "hello", true);
-        test_value_of_ref<Any>(tester, nil, nil, true);
-        test_value_of_ref<Throwable>(tester, "error", new ValueError("test"), true);
-        test_value_of_ref<Throwable>(tester, nil, nil, true);
-
-        test_value_of_ref(tester, 'x', 1, false);
-        test_value_of_ref(tester, true, 1L, false);
-        test_value_of_ref(tester, 1.f, 1.2, false);
-        test_value_of_ref(tester, 0.9, nil, false);
-        test_value_of_ref(tester, "abc", nil, false);
-        test_value_of_ref<Throwable>(tester, nil, new int[0], false);
+        test_value_of_ref('x', 1, false);
+        test_value_of_ref(true, 1L, false);
+        test_value_of_ref(1.f, 1.2, false);
+        test_value_of_ref(0.9, nil, false);
+        test_value_of_ref("abc", nil, false);
+        test_value_of_ref<Throwable>(nil, new int[0], false);
     }
 
     {
