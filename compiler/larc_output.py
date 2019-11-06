@@ -775,9 +775,10 @@ def _output_module():
                         code += "name: %s," % _gen_str_literal(method.name)
                         with code.new_blk("arg_infos: []*lar_reflect_method_arg_info_type", tail = ","):
                             for arg_tp in method.arg_map.itervalues():
-                                code += "is_ref: %s," % ("true" if arg_tp.is_ref else "false")
-                                code += "tn: %s," % _gen_str_literal(arg_tp.to_str(ignore_builtins_module_prefix = True))
-                                code += "zv: (%s)(%s)," % (_gen_type_name_code(arg_tp), _gen_default_value_code(arg_tp))
+                                with code.new_blk("&lar_reflect_method_arg_info_type", tail = ","):
+                                    code += "is_ref: %s," % ("true" if arg_tp.is_ref else "false")
+                                    code += "tn: %s," % _gen_str_literal(arg_tp.to_str(ignore_builtins_module_prefix = True))
+                                    code += "zv: (%s)(%s)," % (_gen_type_name_code(arg_tp), _gen_default_value_code(arg_tp))
             with code.new_blk("func (this *%s) lar_reflect_method_infos() []*lar_reflect_method_info_type" % coi_name):
                 code += "return lar_reflect_method_infos_%s" % coi_name
             #6 方法（仅对public方法）

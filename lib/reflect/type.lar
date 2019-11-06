@@ -191,7 +191,7 @@ public class Type
         mis := this.m_zv.(lar_reflect_intf).lar_reflect_method_infos()
         l_count = int64(len(mis))
         if l_count < 1 {
-            panic("bug：lar_reflect_method_infos返回的列表为空");
+            panic("bug：lar_reflect_method_infos返回的列表为空")
         }
         !>>
         this._method_infos = new MethodInfo[count];
