@@ -139,7 +139,7 @@ void test_closure_attr()
     var v = reflect.value_of(t);
     var attr_infos = v.type().attr_infos();
     var attrs = v.attrs();
-    tester.assert(attr_infos.size() == 0 && attrs.size() == 0, "闭包对象的属性数量不为0");
+    testing.assert(attr_infos.size() == 0 && attrs.size() == 0, "闭包对象的属性数量不为0");
 }
 
 void test_attr()

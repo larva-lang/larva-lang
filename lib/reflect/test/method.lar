@@ -141,7 +141,7 @@ void test_method()
     test_method_ex(new ForMethodTesting(0), true);
 
     int x = 0;
-    test_method()_ex([]{
+    test_method_ex([]{
         public void f1()
         {
             x = 123;
