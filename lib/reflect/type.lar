@@ -39,6 +39,7 @@ func lar_go_func_@<<init_type_map>>() {
     defer cancel()
     for _, tp := range lar_reflect_type_map {
         tp.lar_method_@<<init_attr_infos>>(lar_fiber)
+        tp.lar_method_@<<init_method_infos>>(lar_fiber)
     }
 }
 
@@ -165,7 +166,82 @@ public class Type
         }
     }
 
+    public MethodInfo constructor_info()
+    {
+        this.throw_on_primitive();
+        return this._method_infos[0];
+    }
+
+    public MethodInfo[] method_infos()
+    {
+        this.throw_on_primitive();
+        return this._method_infos[1 :].shallow_copy();
+    }
+
+    void init_method_infos()
+    {
+        if (this.is_primitive())
+        {
+            return;
+        }
+
+        //构造方法为第一个元素
+        long count;
+        !<<
+        mis := this.m_zv.(lar_reflect_intf).lar_reflect_method_infos()
+        l_count = int64(len(mis))
+        if l_count < 1 {
+            panic("bug：lar_reflect_method_infos返回的列表为空");
+        }
+        !>>
+        this._method_infos = new MethodInfo[count];
+        for (long i = 0; i < count; ++ i)
+        {
+            !<<
+            mi := mis[l_i]
+            if l_i == 0 && mi == nil {
+                //没有构造方法，略过第一个
+                continue
+            }
+            !>>
+
+            long arg_count;
+            !<<
+            l_arg_count = int64(len(mi.arg_infos))
+            !>>
+            var method_arg_infos = new MethodArgInfo[arg_count];
+            for (long j = 0; j < arg_count; ++ j)
+            {
+                MethodArgInfo method_arg_info;
+                !<<
+                mai := mi.arg_infos[l_j]
+                l_method_arg_info = &lar_cls_@<<MethodArgInfo>>{
+                    m__is_ref:      mai.is_ref,
+                    m__type_name:   lar_str_from_go_str(mai.tn),
+                    m__type:        lar_func_@<<type_of>>(lar_fiber, mai.zv),
+                }
+                !>>
+                method_arg_infos[j] = method_arg_info;
+            }
+
+            MethodInfo method_info;
+            !<<
+            l_method_info = &lar_cls_@<<MethodInfo>>{
+                m__cls:             this,
+                m__ret_type_name:   lar_str_from_go_str(mi.ret_tn),
+                m__ret_type:        lar_func_@<<type_of>>(lar_fiber, mi.ret_zv),
+                m__name:            lar_str_from_go_str(mi.name),
+                m__arg_infos:       l_method_arg_infos,
+            }
+            !>>
+            this._method_infos[i] = method_info;
+        }
+    }
+
 /*
+    array_dim_count
+    array_new
+
     public bool can_new_instance(Value[] args)
     {
         var args_raw = values_to_raw(args);
@@ -193,10 +269,11 @@ public class Type
     }
 */
 
-    String _name; //类型名
-    Any    zv;    //此类型的zero_value
+    String  _name; //类型名
+    Any     zv;    //此类型的zero_value
 
-    AttrInfo[] _attr_infos;
+    AttrInfo[]      _attr_infos;
+    MethodInfo[]    _method_infos; //至少一个元素，第一个元素为构造方法的信息，如果没有public构造方法则第一个元素为nil
 }
 
 //获取larva对象的类型名，即__internal.reflect_type_name支持的那些，失败则抛出异常

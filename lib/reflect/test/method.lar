@@ -2,15 +2,132 @@ import testing, reflect;
 
 class ForMethodTesting
 {
+    public ForMethodTesting(int x)
+    {
+        this.x = x;
+    }
+
+    public void f1()
+    {
+        this.x = 123;
+    }
+
+    public int f2(String s)
+    {
+        return -1 if s === nil else this.x + (int)s.parse_long(0);
+    }
+
+    public Any f3(Any a)
+    {
+        return nil if a === nil else this.x * assert_type<int>(a);
+    }
+
+    public void f4(long a, ref long b)
+    {
+        b = (long)this.x - a * b;
+    }
+
+    int x;
+}
+
+class ArgInfo
+{
+    bool            is_ref;
+    String          type_name;
+    reflect.Type    type;
 }
 
 void test_method()
 {
-    var t = new ForMethodTesting{};
+    var t = new ForMethodTesting(0);
 
-    var tp = reflect.type_of(t);
-    //todo
+    {
+        var tester = []{
+            void assert(bool cond, String desc)
+            {
+                testing.assert(cond, "Type‘ForMethodTesting’：%s".(desc));
+            }
+        };
 
-    var v = reflect.value_of(t);
-    //todo
+        var tp = reflect.type_of(t);
+
+        var mis = new reflect.MethodInfo[100];
+        mis[0] = tp.constructor_info();
+        var mc = 1 + mis[1 :].shallow_copy_from(tp.method_infos());
+        tester.assert(mc == 5, "方法数量（含构造方法）不为5");
+        mis = mis[: mc];
+
+        var correct_names = new String[]{"ForMethodTesting", "f1", "f2", "f3", "f4"};
+        var correct_ret_type_names = new String[]{"void", "void", "int", "Any", "void"};
+        var correct_ret_types = new reflect.Type[]{nil, nil, reflect.type_of(1), nil, nil};
+        var correct_arg_info_lists = new ArgInfo[][]{
+            {
+                new ArgInfo{false, "int", type_of(1)},
+            },
+            {
+            },
+            {
+                new ArgInfo{false, "String", type_of("")},
+            },
+            {
+                new ArgInfo{false, "Any", nil},
+            },
+            {
+                new ArgInfo{false, "long", type_of(1L)},
+                new ArgInfo{true, "long", type_of(1L)},
+            },
+        };
+
+        for (int i = 0; i < 5; ++ i)
+        {
+            var mi = mis[i];
+
+            var correct_name = correct_names[i];
+            var mn = mi.name();
+            tester.assert(correct_name.eq(mn), "%s方法名应为‘%s’，而不是‘%s’".("构造" if i == 0 else "%d".(i), correct_name, mn));
+
+            var mi_tester = []{
+                void assert(bool cond, String desc)
+                {
+                    tester.assert(cond, "%s：%s".("构造方法" if i == 0 else "方法‘%s’".(mn), desc));
+                }
+            };
+
+            mi_tester.assert(mi.cls() === tp, "cls返回的Type不是其所属的Type对象");
+
+            var correct_rtn = correct_ret_type_names[i];
+            var mrtn = mi.ret_type_name();
+            mi_tester.assert(correct_rtn.eq(mrtn), "返回类型的类型名应为‘%s’，而不是‘%s’".(correct_rtn, mrtn));
+
+            var correct_rtp = correct_ret_types[i];
+            var mrtp = mi.ret_type();
+            mi_tester.assert(correct_rtp === mrtp, "返回类型错误");
+
+            var correct_ais = correct_arg_info_lists[i];
+            var ac = correct_ais.size();
+            var mais = mi.arg_infos();
+            mi_tester.assert(ac == mais.size(), "参数数量不一致");
+            for (int j = 0; j < ac; ++ j)
+            {
+                var mai_tester = []{
+                    void assert(bool cond, String desc)
+                    {
+                        mi_tester.assert(cond, "参数#%d：%s".(j + 1, desc));
+                    }
+                };
+
+                var correct_ai = correct_ais[j];
+                var mai = mais[j];
+
+                mai_tester.assert(correct_ai.is_ref == mai.is_ref(), "is_ref错误");
+                mai_tester.assert(correct_ai.type_name.eq(mai.type_name()), "类型名错误");
+                mai_tester.assert(correct_ai.type === mai.type(), "类型错误");
+            }
+        }
+    }
+
+    {
+        var v = reflect.value_of(t);
+        //todo
+    }
 }
