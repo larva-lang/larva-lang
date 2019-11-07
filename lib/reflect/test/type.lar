@@ -10,7 +10,9 @@ void test_type()
         l_ga = struct{}{}
         !>>
         var c = call_and_catch<reflect.NotLarvaObject>([-]{
-            reflect.type_of(ga);
+            !<<
+            lar_func_@<<reflect.type_of>>(lar_fiber, l_ga); //正常larva代码是不可能将GoAny类型传入的，这个异常一般是检测native代码写错的情况
+            !>>
         });
         testing.assert(c !== nil, "对非larva对象执行type_of未抛出期望的异常");
     }

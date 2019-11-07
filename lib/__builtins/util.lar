@@ -19,6 +19,17 @@ public T zero_value<T>()
     return t;
 }
 
+public bool is_same<T>(T a, T b)
+{
+#use
+    return a === b;
+#oruse
+    return a == b;
+#oruse
+    #error 类型不可做判同操作（这个错误不该出现的，请检查编译器bug）
+#enduse
+}
+
 public bool eq<T>(T a, T b)
 {
 #use
@@ -26,7 +37,7 @@ public bool eq<T>(T a, T b)
 #oruse
     return a.cmp(b) == 0;
 #oruse
-    return (Any)a === (Any)b;
+    return is_same(a, b);
 #oruse
     #error 类型不可做判等操作
 #enduse

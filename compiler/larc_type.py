@@ -245,7 +245,7 @@ class _Type:
             return True
         if self == GO_ANY_INTF_TYPE or type == GO_ANY_INTF_TYPE:
             #特殊处理：禁止larva类型和GoAny的互转
-            return false
+            return False
         if self.is_coi_type:
             #目标类型为接口或类，非数组，分几种情况检查
             coi = self.get_coi()

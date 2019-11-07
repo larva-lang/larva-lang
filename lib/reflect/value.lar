@@ -30,7 +30,9 @@ public class Value
         }
         else
         {
-            a = this.v;
+            !<<
+            l_a = this.m_v
+            !>>
             tp = "%T".(a);
         }
         return "<Value of <%s> %r>".(tp, a);
@@ -44,7 +46,13 @@ public class Value
 
     public Any get()
     {
-        return this.r.get() if this.is_ref() else (Any)this.v;
+        if (this.is_ref())
+        {
+            return this.r.get();
+        }
+        !<<
+        return this.m_v
+        !>>
     }
 
     public String ref_type_name()
@@ -162,8 +170,12 @@ public class Value
 public Value value_of(Any a)
 {
     get_larva_type_name(a);
+    GoAny v;
+    !<<
+    l_v = l_a
+    !>>
     return new Value{
-        v: a,
+        v: v,
     };
 }
 

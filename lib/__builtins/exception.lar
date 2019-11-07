@@ -54,8 +54,12 @@ public class Catched<T>
 */
 
 //将recover捕获的go的异常转为larva的Catched对象
-Catched<Throwable> _go_recovered_to_catched(GoAny r)
+Catched<Throwable> _go_recovered_to_catched(GoAny _r)
 {
+    Any r;
+    !<<
+    l_r = l__r
+    !>>
     if (r === nil) {
         return nil;
     }
