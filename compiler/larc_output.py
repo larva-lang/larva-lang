@@ -768,7 +768,10 @@ def _output_module():
                         continue
                     with code.new_blk("&lar_reflect_method_info_type", tail = ","):
                         code += "ret_tn: %s," % _gen_str_literal(method.type.to_str(ignore_builtins_module_prefix = True))
-                        code += "ret_zv: (%s)(%s)," % (_gen_type_name_code(method.type), _gen_default_value_code(method.type))
+                        if method.type.is_void:
+                            code += "ret_zv: nil,"
+                        else:
+                            code += "ret_zv: (%s)(%s)," % (_gen_type_name_code(method.type), _gen_default_value_code(method.type))
                         code += "name: %s," % _gen_str_literal(method.name)
                         with code.new_blk("arg_infos: []*lar_reflect_method_arg_info_type", tail = ","):
                             for arg_tp in method.arg_map.itervalues():
