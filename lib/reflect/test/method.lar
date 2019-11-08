@@ -37,7 +37,7 @@ class ArgInfo
     reflect.Type    type;
 }
 
-void test_method()
+void test_class_method()
 {
     var t = new ForMethodTesting(0);
 
@@ -130,4 +130,15 @@ void test_method()
         var v = reflect.value_of(t);
         //todo
     }
+}
+
+void test_closure_method()
+{
+    //todo
+}
+
+void test_method()
+{
+    test_class_method();
+    test_closure_method();
 }

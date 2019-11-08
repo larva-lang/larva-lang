@@ -712,7 +712,7 @@ def _output_module():
                 code += "return %s" % ("true" if can_new_empty else "false")
             with code.new_blk("func (this *%s) lar_reflect_new_empty() interface{}" % coi_name):
                 code += "return %s" % ("&%s{}" % coi_name if can_new_empty else "nil")
-            #3 属性信息和属性左值（仅对public属性）
+            #3 属性信息（仅对public属性）
             public_attrs = [attr for attr in coi.attr_map.itervalues() if "public" in attr.decr_set] if coi.is_cls or coi.is_gcls_inst else []
             with code.new_blk("var lar_reflect_attr_infos_%s = []*lar_reflect_attr_info_type" % coi_name):
                 for attr in public_attrs:
@@ -725,6 +725,7 @@ def _output_module():
                                 code += ("&lar_reflect_attr_tag_type{%s, %s}," % (_gen_str_literal(tag_name), _gen_str_literal(tag_value)))
             with code.new_blk("func (this *%s) lar_reflect_attr_infos() []*lar_reflect_attr_info_type" % coi_name):
                 code += "return lar_reflect_attr_infos_%s" % coi_name
+            #4 属性左值（仅对public属性）
             with code.new_blk("func (this *%s) lar_reflect_attr_refs() []*lar_reflect_attr_ref_type" % coi_name):
                 with code.new_blk("return []*lar_reflect_attr_ref_type"):
                     for i, attr in enumerate(public_attrs):
@@ -752,6 +753,32 @@ def _output_module():
                                     code += "this.m_%s = v" % attr.name
                                     code += "return true"
                                 code += "return false"
+            #5 方法信息（构造方法和public方法，构造方法按是否public决定信息是否为nil）
+            if (coi.is_cls or coi.is_gcls_inst) and "public" in coi.construct_method.decr_set:
+                #存在public构造方法
+                public_methods = [coi.construct_method]
+            else:
+                #不存在也要占位
+                public_methods = [None]
+            public_methods += [method for method in coi.method_map.itervalues() if "public" in method.decr_set]
+            with code.new_blk("var lar_reflect_method_infos_%s = []*lar_reflect_method_info_type" % coi_name):
+                for i, method in enumerate(public_methods):
+                    if i == 0 and method is None:
+                        code += "nil,"
+                        continue
+                    with code.new_blk("&lar_reflect_method_info_type", tail = ","):
+                        code += "ret_tn: %s," % _gen_str_literal(method.type.to_str(ignore_builtins_module_prefix = True))
+                        code += "ret_zv: (%s)(%s)," % (_gen_type_name_code(method.type), _gen_default_value_code(method.type))
+                        code += "name: %s," % _gen_str_literal(method.name)
+                        with code.new_blk("arg_infos: []*lar_reflect_method_arg_info_type", tail = ","):
+                            for arg_tp in method.arg_map.itervalues():
+                                code += "is_ref: %s," % ("true" if arg_tp.is_ref else "false")
+                                code += "tn: %s," % _gen_str_literal(arg_tp.to_str(ignore_builtins_module_prefix = True))
+                                code += "zv: (%s)(%s)," % (_gen_type_name_code(arg_tp), _gen_default_value_code(arg_tp))
+            with code.new_blk("func (this *%s) lar_reflect_method_infos() []*lar_reflect_method_info_type" % coi_name):
+                code += "return lar_reflect_method_infos_%s" % coi_name
+            #6 方法（仅对public方法）
+            #todo
 
         for closure in module.closure_map.itervalues():
             coi_name = _gen_coi_name(closure)

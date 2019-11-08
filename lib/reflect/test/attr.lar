@@ -24,7 +24,7 @@ class ForAttrTesting
     !>>
 }
 
-void test_attr()
+void test_class_attr()
 {
     var t = new ForAttrTesting();
 
@@ -131,4 +131,15 @@ void test_attr()
             }
         }
     }
+}
+
+void test_closure_attr()
+{
+    //todo
+}
+
+void test_attr()
+{
+    test_class_attr();
+    test_closure_attr();
 }

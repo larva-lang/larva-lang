@@ -12,6 +12,7 @@ type lar_reflect_intf interface {
     lar_reflect_new_empty()     interface{}                     //new一个空对象并返回，若类不支持此操作则返回nil
     lar_reflect_attr_infos()    []*lar_reflect_attr_info_type   //返回属性信息表
     lar_reflect_attr_refs()     []*lar_reflect_attr_ref_type    //返回所有属性的引用
+    lar_reflect_method_infos()  []*lar_reflect_method_info_type //返回方法信息表
 }
 
 //属性信息
@@ -35,6 +36,21 @@ type lar_reflect_attr_ref_type struct {
     get     func () interface{}
     can_set func (interface{}) bool
     set     func (interface{}) bool //返回true表示成功
+}
+
+//方法信息
+type lar_reflect_method_info_type struct {
+    ret_tn      string
+    ret_zv      interface{}
+    name        string
+    arg_infos   []*lar_reflect_method_arg_info_type
+}
+
+//方法参数信息
+type lar_reflect_method_arg_info_type struct {
+    is_ref  bool
+    tn      string
+    zv      interface{}
 }
 
 //基础类型的名字定义
