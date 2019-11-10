@@ -51,6 +51,26 @@ void f7()
     println(undefined_name);
 }
 
+//case 8 -------------------------------
+
+GoAny g81;
+Any g82;
+
+void f81()
+{
+    g81 = g82;
+}
+
+void f82()
+{
+    g82 = g81;
+}
+
+void f83()
+{
+    g81 = 123;
+}
+
 public void main()
 {
 }

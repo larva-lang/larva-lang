@@ -233,7 +233,7 @@ class _CoiBase:
         self.is_gintf_inst = isinstance(self, _GintfInst)
         assert [self.is_cls, self.is_gcls_inst, self.is_closure, self.is_intf, self.is_gintf_inst].count(True) == 1
 
-    def is_intf_any(self):
+    def is_intf_with_no_method(self):
         return (self.is_intf or self.is_gintf_inst) and not self.method_map
 
     def can_convert_from(self, other):

@@ -243,11 +243,14 @@ class _Type:
         if self.is_obj_type and type.is_nil:
             #允许nil直接赋值给任何对象
             return True
+        if self == GO_ANY_INTF_TYPE or type == GO_ANY_INTF_TYPE:
+            #特殊处理：禁止larva类型和GoAny的互转
+            return false
         if self.is_coi_type:
             #目标类型为接口或类，非数组，分几种情况检查
             coi = self.get_coi()
-            if coi.is_intf_any():
-                #void之外的任何类型都能赋值给Any接口
+            if coi.is_intf_with_no_method():
+                #void之外的任何类型都能赋值给无任何方法的接口
                 return not type.is_void
             if type.is_array:
                 #数组可以赋值给实现了数组内建方法的接口
