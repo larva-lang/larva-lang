@@ -23,7 +23,7 @@ import (
 interface IsArr
 {
     void _is_arr();
-    GoAny _new_arr(GoAny size_list);
+    Any _new_arr(GoAny size_list);
     GoAny _simple_arr_repr();
 }
 
@@ -58,7 +58,7 @@ class Arr<E>
     }
 
     //创建本类型的新数组，因为代码中要动态判定类型，不能直接new，通过调用方法来进行
-    GoAny _new_arr(GoAny size_list)
+    Any _new_arr(GoAny size_list)
     {
         return this.new_arr(size_list);
     }

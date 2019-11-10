@@ -98,7 +98,7 @@ public bool is_interface<T>()
     return zero_value<T>() === (Any)nil;
 }
 
-public bool try_assert_type<T>(GoAny a, ref T t)
+public bool try_assert_type<T>(Any a, ref T t)
 {
     bool ok;
     !<<
@@ -107,7 +107,7 @@ public bool try_assert_type<T>(GoAny a, ref T t)
     return ok;
 }
 
-public T assert_type<T>(GoAny a)
+public T assert_type<T>(Any a)
 {
     T t;
     if (!try_assert_type(a, ref t))

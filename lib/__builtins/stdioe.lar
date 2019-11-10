@@ -9,28 +9,28 @@ import (
 
 !>>
 
-public void print(GoAny a)
+public void print(Any a)
 {
     !<<
     fmt.Print(lar_go_func_any_to_go_str(lar_fiber, l_a))
     !>>
 }
 
-public void println(GoAny a)
+public void println(Any a)
 {
     !<<
     fmt.Println(lar_go_func_any_to_go_str(lar_fiber, l_a))
     !>>
 }
 
-public void err_print(GoAny a)
+public void err_print(Any a)
 {
     !<<
     fmt.Fprint(os.Stderr, lar_go_func_any_to_go_str(lar_fiber, l_a))
     !>>
 }
 
-public void err_println(GoAny a)
+public void err_println(Any a)
 {
     !<<
     fmt.Fprintln(os.Stderr, lar_go_func_any_to_go_str(lar_fiber, l_a))

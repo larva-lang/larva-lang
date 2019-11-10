@@ -25,7 +25,7 @@ type lar_go_intf_strable interface {
     lar_method_str(lar_fiber *lar_go_stru_fiber) *lar_cls_@<<String>>
 }
 
-func lar_go_func_any_to_go_str(lar_fiber *lar_go_stru_fiber, a lar_intf_@<<GoAny>>) string {
+func lar_go_func_any_to_go_str(lar_fiber *lar_go_stru_fiber, a interface{}) string {
     strable, ok := a.(lar_go_intf_strable)
     if ok {
         return lar_str_to_go_str(strable.lar_method_str(lar_fiber))
@@ -41,7 +41,7 @@ type lar_go_intf_nil_reprable interface {
     lar_method_nil_repr(lar_fiber *lar_go_stru_fiber) *lar_cls_@<<String>>
 }
 
-func lar_go_func_any_repr_to_go_str(lar_fiber *lar_go_stru_fiber, a lar_intf_@<<GoAny>>) string {
+func lar_go_func_any_repr_to_go_str(lar_fiber *lar_go_stru_fiber, a interface{}) string {
     switch v := a.(type) {
     case nil:
         return "<nil>"
@@ -80,7 +80,7 @@ func lar_go_func_any_repr_to_go_str(lar_fiber *lar_go_stru_fiber, a lar_intf_@<<
     return fmt.Sprintf("<%s object at 0x%X>", lar_str_to_go_str(lri.lar_reflect_type_name()), p)
 }
 
-func lar_go_func_any_type_name_to_go_str(lar_fiber *lar_go_stru_fiber, a lar_intf_@<<GoAny>>) string {
+func lar_go_func_any_type_name_to_go_str(lar_fiber *lar_go_stru_fiber, a interface{}) string {
     return lar_str_to_go_str(lar_func_@<<__internal.reflect_type_name>>(lar_fiber, a))
 }
 
