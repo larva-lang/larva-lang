@@ -92,6 +92,7 @@ class ArgInfo
 
 interface MethodTester
 {
+    void assert(bool cond, reflect.Value[] args, String desc);
     void test_invalid_call(reflect.Value[] args);
     void test_valid_call(reflect.Value[] args, reflect.Value expect_ret_v, int expect_x_after_call);
 }

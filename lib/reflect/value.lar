@@ -249,7 +249,7 @@ public Value value_of_ref<T>(ref T t)
 GoAny[] values_to_raw(Value[] vs)
 {
     return iters.map_array(vs.iter(), []{
-        GoAny convert(Value v)
+        public GoAny convert(Value v)
         {
             return v.get_raw();
         }
