@@ -1,4 +1,4 @@
-public T[] to_array(Iter<T> it)
+public T[] to_array<T>(Iter<T> it)
 {
     var a = new T[0];
     foreach (var t: it)

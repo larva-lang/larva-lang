@@ -16,7 +16,7 @@ public void main()
     r.add_test_case("map相关测试", [-]{
         long correct_i = 0;
         foreach (var i: iters.map(new iters.Range<int>(100), []{
-            long convert(int n)
+            public long convert(int n)
             {
                 return (long)n * -7L;
             }
