@@ -66,9 +66,9 @@ public class Type
         return this._name;
     }
 
-    public Value zero_value()
+    public Any zero_value()
     {
-        return value_of(this.zv);
+        return this.zv;
     }
 
     public bool is_primitive()
@@ -97,7 +97,7 @@ public class Type
         return false;
     }
 
-    public Value new_empty()
+    public Any new_empty()
     {
         this.throw_on_primitive();
         Any a;
@@ -108,7 +108,7 @@ public class Type
         {
             throw(new Error{"‘%s’不支持new_empty操作".(this.name())});
         }
-        return value_of(a);
+        return a;
     }
 
     public AttrInfo[] attr_infos()
@@ -253,7 +253,7 @@ public class Type
         return false;
     }
 
-    public Value new_instance(Value[] args)
+    public Any new_instance(Value[] args)
     {
         var args_raw = values_to_raw(args);
         this.throw_on_primitive();
@@ -265,7 +265,7 @@ public class Type
         {
             throw(new Error{"new_instance失败：类型‘%s’".(this.name())});
         }
-        return value_of(a);
+        return a;
     }
 */
 

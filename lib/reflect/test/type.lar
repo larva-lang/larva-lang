@@ -32,7 +32,7 @@ void test_type()
         }.iter())
         {
             var tp = reflect.type_of(p.first());
-            testing.assert(tp.zero_value().get() === p.second(), "Type[%s].zero_value测试失败".(tp));
+            testing.assert(tp.zero_value() === p.second(), "Type[%s].zero_value测试失败".(tp));
         }
     }
 
