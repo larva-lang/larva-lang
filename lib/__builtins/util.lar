@@ -1,7 +1,8 @@
 /*
-GoAny和Any一样，都对应的go层面的interface{}，用不同名字只是为了在逻辑上区分不同场景的不同用法
-显式用GoAny的代码表示对应类型可能为非larva类型
-用Any的地方表示这里逻辑上只允许用larva类型
+GoAny和Any一样，都对应的go层面的interface{}，用不同名字是为了区分不同场景的不同用法
+显式用GoAny的代码表示对应类型可能为非larva类型，用Any的地方表示这里在正常逻辑下只允许或只会使用larva类型
+GoAny的特殊性在于larva禁止其他类型和它的转换，即便GoAny和Any一模一样也不行，这是为了防止正常代码中不小心将go层面的对象代入larva层
+如果有这类特殊需求，需要用native代码
 */
 public interface GoAny
 {
