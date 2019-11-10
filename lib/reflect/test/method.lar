@@ -231,7 +231,7 @@ void test_method_ex(XKeeper t, bool has_constructor)
                         mt.assert((ret_v === nil && expect_ret_v === nil) ||
                                   (ret_v !== nil && expect_ret_v !== nil && ret_v.get() === expect_ret_v.get()),
                                   args, "返回值错误");
-                        mt.assert(t.x() == expect_x_after_call, args, "调用后x的值‘%d’与期望值‘%d’不一致", t.x(), expect_x_after_call);
+                        mt.assert(t.x() == expect_x_after_call, args, "调用后x的值‘%d’与期望值‘%d’不一致".(t.x(), expect_x_after_call));
                     }
                 };
             }
@@ -244,9 +244,9 @@ void test_method_ex(XKeeper t, bool has_constructor)
 
         //定义一些value和方法，简化invalid arg测试的数据准备代码
         var
-            INT_FOR_REF     = 0;
-            LONG_FOR_REF    = 0L;
-            STR_FOR_REF     = "";
+            INT_FOR_REF     = 0,
+            LONG_FOR_REF    = 0L,
+            STR_FOR_REF     = "",
         ;
         var
             NIL_VAL         = reflect.value_of(nil),
