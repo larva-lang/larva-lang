@@ -414,6 +414,8 @@ class Parser:
 
         def build_inc_dec_expr(op, lvalue, t):
             check_lvalue(lvalue)
+            if not lvalue.type.is_integer_type:
+                t.syntax_err("类型'%s'无法做运算'%s'" % (lvalue.type, op))
             return _SeExpr(lvalue, op, None)
 
         t = self.token_list.peek()
