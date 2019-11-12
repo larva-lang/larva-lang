@@ -1,0 +1,25 @@
+public interface MapElemConverter<A, B>
+{
+    public B convert(A a);
+}
+
+//将ai中的元素用传入的converter转为B类型并返回迭代器
+public Iter<B> map<A, B>(Iter<A> it_a, MapElemConverter<A, B> converter)
+{
+    return []{
+        public B get()
+        {
+            return converter.convert(it_a.get());
+        }
+
+        public bool after_end()
+        {
+            return it_a.after_end();
+        }
+
+        public void inc()
+        {
+            it_a.inc();
+        }
+    };
+}

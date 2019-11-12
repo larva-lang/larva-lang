@@ -1,0 +1,36 @@
+//迭代[0, n)区间，T必须是整数类型
+public class Range<T>
+{
+    T curr, end;
+
+    public Range(T end)
+    {
+        this.curr = 0;
+        this.end = end;
+    }
+
+    void throw_on_out_of_range()
+    {
+        if (this.after_end())
+        {
+            throw(new IterOutOfRange());
+        }
+    }
+
+    public T get()
+    {
+        this.throw_on_out_of_range();
+        return this.curr;
+    }
+
+    public bool after_end()
+    {
+        return this.curr >= this.end;
+    }
+
+    public void inc()
+    {
+        this.throw_on_out_of_range();
+        ++ this.curr;
+    }
+}

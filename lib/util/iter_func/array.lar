@@ -1,0 +1,12 @@
+public T[] to_array(Iter<T> it)
+{
+    var a = new T[0];
+    foreach (var t: it)
+    {
+        //这里确保了a在返回之前由函数独占，所以可以直接改内部的arr字段
+        !<<
+        l_a.arr = append(l_a.arr, l_t)
+        !>>
+    }
+    return a;
+}

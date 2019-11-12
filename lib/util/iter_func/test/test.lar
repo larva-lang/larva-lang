@@ -1,0 +1,35 @@
+import testing, util/iters;
+
+public void main()
+{
+    var r = new testing.CaseRunner();
+
+    r.add_test_case("range相关测试", [-]{
+        int correct_i = 0;
+        foreach (var i: new iters.Range<int>(100))
+        {
+            testing.assert(i == correct_i, "range测试失败");
+            ++ correct_i;
+        }
+    });
+
+    r.add_test_case("map相关测试", [-]{
+        long correct_i = 0;
+        foreach (var i: iters.map(new iters.Range<int>(100), []{
+            long convert(int n)
+            {
+                return (long)n * -7L;
+            }
+        }))
+        {
+            testing.assert(i == correct_i, "map测试失败");
+            correct_i -= 7;
+        }
+    });
+
+    r.add_test_case("array相关测试", [-]{
+        testing.assert(iters.to_array(new iters.Range<uint>(5)).eq(new uint[]{0, 1, 2, 3, 4}), "to_array测试失败");
+    });
+
+    r.run();
+}
