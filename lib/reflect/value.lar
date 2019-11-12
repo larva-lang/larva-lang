@@ -1,4 +1,4 @@
-import __internal;
+import __internal, util/iters;
 
 interface Ref
 {
@@ -163,6 +163,28 @@ public class Value
         return attrs;
     }
 
+    public Method[] methods()
+    {
+        Any inst = this.get_instance();
+        long method_count;
+        !<<
+        ms := l_inst.(lar_reflect_intf).lar_reflect_methods()
+        l_method_count = int64(len(ms))
+        !>>
+        var methods = new Method[method_count];
+        for (long i = 0; i < method_count; ++ i)
+        {
+            !<<
+            m := ms[l_i]
+            !>>
+
+            methods[i] = new Method{
+                //todo
+            };
+        }
+        return methods;
+    }
+
     GoAny v; //具体的值，如果是ref，则为一个指针
     Ref   r; //当为ref时，对其操作的接口，普通值的这个属性为nil
 }
@@ -226,11 +248,10 @@ public Value value_of_ref<T>(ref T t)
 
 GoAny[] values_to_raw(Value[] vs)
 {
-    long sz = vs.size();
-    var rs = new GoAny[sz];
-    for (long i = 0; i < sz; ++ i)
-    {
-        rs[i] = vs[i].get_raw();
-    }
-    return rs;
+    return iters.map_array(vs.iter(), []{
+        GoAny convert(Value v)
+        {
+            return v.get_raw();
+        }
+    });
 }

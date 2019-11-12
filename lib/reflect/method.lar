@@ -58,3 +58,8 @@ public class MethodInfo
     String          _name;          //方法名
     MethodArgInfo[] _arg_infos;
 }
+
+public class Method
+{
+    //todo
+}

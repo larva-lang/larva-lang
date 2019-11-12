@@ -1,33 +1,86 @@
-import testing, reflect;
+import testing, reflect, util/iters;
+
+final int
+    X_AFTER_INIT    = -987,
+    X_AFTER_F1      = 123,
+    X_AFTER_F2      = 456,
+    X_AFTER_F3      = 789,
+    X_AFTER_F4      = 012,
+;
+
+void f1(ref int x)
+{
+    defer
+    {
+        x = X_AFTER_F1;
+    }
+}
+
+int f2(ref int x, String s)
+{
+    defer
+    {
+        x = X_AFTER_F2;
+    }
+    return -1 if s === nil else x + (int)s.parse_long(0);
+}
+
+Any f3(ref int x, Any a)
+{
+    defer
+    {
+        x = X_AFTER_F3;
+    }
+    return (Any)nil if a === nil else (Any)(x * assert_type<int>(a));
+}
+
+void f4(ref int x, long a, ref long b)
+{
+    defer
+    {
+        x = X_AFTER_F4;
+    }
+    b = (long)x - a * b;
+}
+
+interface XKeeper
+{
+    int x();
+}
 
 class ForMethodTesting
 {
     public ForMethodTesting(int x)
     {
-        this.x = x;
+        this._x = x;
+    }
+
+    int x()
+    {
+        return this._x;
     }
 
     public void f1()
     {
-        this.x = 123;
+        f1(ref this._x);
     }
 
     public int f2(String s)
     {
-        return -1 if s === nil else this.x + (int)s.parse_long(0);
+        return f2(ref this._x, s);
     }
 
     public Any f3(Any a)
     {
-        return (Any)nil if a === nil else (Any)(this.x * assert_type<int>(a));
+        return f3(ref this._x, a);
     }
 
     public void f4(long a, ref long b)
     {
-        b = (long)this.x - a * b;
+        f4(ref this._x, a, ref b);
     }
 
-    int x;
+    int _x;
 }
 
 class ArgInfo
@@ -37,7 +90,18 @@ class ArgInfo
     reflect.Type    type;
 }
 
-void test_method_ex(Any t, bool has_constructor)
+interface MethodTester
+{
+    void test_invalid_call(reflect.Value[] args);
+    void test_valid_call(reflect.Value[] args, reflect.Value expect_ret_v, int expect_x_after_call);
+}
+
+interface ValidCallTester
+{
+    void test(MethodTester mt);
+}
+
+void test_method_ex(XKeeper t, bool has_constructor)
 {
     {
         var tester = []{
@@ -130,36 +194,188 @@ void test_method_ex(Any t, bool has_constructor)
     }
 
     {
+        var tester = []{
+            void assert(bool cond, String desc)
+            {
+                testing.assert(cond, "‘%T’实例的Value：%s".(t, desc));
+            }
+        };
+
+        tester.assert(t.x() == X_AFTER_INIT, "x的初始值‘%d’不为‘%d’".(t.x(), X_AFTER_INIT));
+
+        var method_tester_maker = []{
+            MethodTester make(String m_name, reflect.Method m)
+            {
+                var mt = []{
+                    void assert(bool cond, reflect.Value[] args, String desc)
+                    {
+                        tester.assert(cond, "方法‘%s’，参数表‘%r’：%s".(m_name, args, desc));
+                    }
+                };
+
+                return []{
+                    void test_invalid_call(reflect.Value[] args)
+                    {
+                        mt.assert(!m.can_call(args), args, "call_call返回true");
+                    }
+
+                    void test_valid_call(reflect.Value[] args, reflect.Value expect_ret_v, int expect_x_after_call)
+                    {
+                        mt.assert(m.can_call(args), args, "call_call返回false");
+                        var ret_v = m.call(args);
+                        mt.assert((ret_v === nil && expect_ret_v === nil) ||
+                                  (ret_v !== nil && expect_ret_v !== nil && ret_v.get() === expect_ret_v.get()),
+                                  args, "返回值错误");
+                        mt.assert(t.x() == expect_x_after_call, args, "调用后x的值‘%d’与期望值‘%d’不一致", t.x(), expect_x_after_call);
+                    }
+                };
+            }
+        };
+
         var v = reflect.value_of(t);
-        //todo
+        var mis = v.type().method_infos();
+        var ms = v.methods();
+        tester.assert(mis.size() == 4 && ms.size() == 4, "方法数量不为4");
+
+        /*todo
+        void f1()
+        int f2(String s)
+        Any f3(Any a)
+        void f4(long a, ref long b)
+        */
+
+        //定义一些value和方法，简化invalid arg测试的数据准备代码
+        var
+            INT_FOR_REF     = 0;
+            LONG_FOR_REF    = 0L;
+            STR_FOR_REF     = "";
+        ;
+        var
+            NIL_VAL         = reflect.value_of(nil),
+            INT_VAL         = reflect.value_of(0),
+            REF_INT_VAL     = reflect.value_of_ref(ref INT_FOR_REF),
+            LONG_VAL        = reflect.value_of(0L),
+            REF_LONG_VAL    = reflect.value_of_ref(ref LONG_FOR_REF),
+            STR_VAL         = reflect.value_of(""),
+            REF_STR_VAL     = reflect.value_of_ref(ref STR_FOR_REF),
+        ;
+        var as2vs_converter = []{
+            reflect.Value[] convert(Any[] aa)
+            {
+                return iters.map_array(aa.iter(), []{
+                    public reflect.Value convert(Any a)
+                    {
+                        return reflect.value_of(a);
+                    }
+                });
+            }
+        };
+
+        //每个方法多个args测试用例
+        var list_of_invalid_arg_lists = new reflect.Value[][][]{
+            {
+                {
+                    {NIL_VAL},
+                    {INT_VAL},
+                    as2vs_converter.convert(new Any[]{"", new int[0], nil, 3L}),
+                },
+            },
+            {
+                {
+                    {},
+                    {NIL_VAL},
+                    {INT_VAL},
+                    {STR_VAL, STR_VAL},
+                    {REF_STR_VAL},
+                },
+            },
+            {
+                {
+                    {},
+                    {REF_INT_VAL},
+                    {INT_VAL, LONG_VAL},
+                },
+            },
+            {
+                {
+                    {},
+                    {LONG_VAL},
+                    {REF_LONG_VAL, LONG_VAL},
+                    {REF_LONG_VAL, REF_LONG_VAL},
+                },
+            },
+        };
+        var valid_call_testers = new ValidCallTester[]{
+            []{
+                void test(MethodTester mt)
+                {
+                    mt.test_valid_call(new reflect.Value[]{}, nil, X_AFTER_F1);
+                }
+            },
+            []{
+                void test(MethodTester mt)
+                {
+                    //todo
+                }
+            },
+            []{
+                void test(MethodTester mt)
+                {
+                    //todo
+                }
+            },
+            []{
+                void test(MethodTester mt)
+                {
+                    //todo
+                }
+            },
+        };
+
+        for (int i = 0; i < 4; ++ i)
+        {
+            var mt = method_tester_maker.make(mis[i].name(), ms[i]);
+
+            foreach (var invalid_args: list_of_invalid_arg_lists[i].iter())
+            {
+                mt.test_invalid_call(invalid_args);
+            }
+
+            valid_call_testers[i].test(mt);
+        }
     }
 }
 
 void test_method()
 {
     //使用同样的接口和实现来测试，一个是class实现一个是closure实现，区别在于class有构造方法
-    test_method_ex(new ForMethodTesting(0), true);
+    test_method_ex(new ForMethodTesting(X_AFTER_INIT), true);
 
-    int x = 0;
+    int x = X_AFTER_INIT;
     test_method_ex([]{
+        int x()
+        {
+            return x;
+        }
+
         public void f1()
         {
-            x = 123;
+            f1(ref x);
         }
 
         public int f2(String s)
         {
-            return -1 if s === nil else x + (int)s.parse_long(0);
+            return f2(ref x, s);
         }
 
         public Any f3(Any a)
         {
-            return (Any)nil if a === nil else (Any)(x * assert_type<int>(a));
+            return f3(ref x, a);
         }
 
         public void f4(long a, ref long b)
         {
-            b = (long)x - a * b;
+            f4(ref x, a, ref b);
         }
     }, false);
 }
