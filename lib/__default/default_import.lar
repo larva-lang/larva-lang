@@ -1,2 +1,2 @@
 //import一些默认需要的库，这些库属于标准库而不是内建库，但和runtime或语言机制相关，需要默认导入
-import fiber, reflect;
+import fiber;
