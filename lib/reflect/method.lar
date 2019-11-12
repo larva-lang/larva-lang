@@ -61,5 +61,15 @@ public class MethodInfo
 
 public class Method
 {
+    public bool can_call(Value[] args)
+    {
+        //todo
+    }
+
+    public Value call(Value[] args)
+    {
+        //todo
+    }
+
     //todo
 }
