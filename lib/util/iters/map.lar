@@ -23,3 +23,9 @@ public Iter<B> map<A, B>(Iter<A> it_a, MapElemConverter<A, B> converter)
         }
     };
 }
+
+//返回一个数组而不是迭代器
+public B[] map_array<A, B>(Iter<A> it_a, MapElemConverter<A, B> converter)
+{
+    return to_array(map(it_a, converter));
+}
