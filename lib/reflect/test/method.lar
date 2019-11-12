@@ -214,6 +214,11 @@ void test_method_ex(XKeeper t, bool has_constructor)
                 };
 
                 return []{
+                    void assert(bool cond, reflect.Value[] args, String desc)
+                    {
+                        mt.assert(cond, args, desc);
+                    }
+
                     void test_invalid_call(reflect.Value[] args)
                     {
                         mt.assert(!m.can_call(args), args, "call_call返回true");
@@ -236,13 +241,6 @@ void test_method_ex(XKeeper t, bool has_constructor)
         var mis = v.type().method_infos();
         var ms = v.methods();
         tester.assert(mis.size() == 4 && ms.size() == 4, "方法数量不为4");
-
-        /*todo
-        void f1()
-        int f2(String s)
-        Any f3(Any a)
-        void f4(long a, ref long b)
-        */
 
         //定义一些value和方法，简化invalid arg测试的数据准备代码
         var
@@ -315,19 +313,28 @@ void test_method_ex(XKeeper t, bool has_constructor)
             []{
                 void test(MethodTester mt)
                 {
-                    //todo
+                    mt.test_valid_call(new reflect.Value[]{reflect.value_of((String)nil)}, reflect.value_of(-1), X_AFTER_F2);
+                    mt.test_valid_call(new reflect.Value[]{reflect.value_of("123")}, reflect.value_of(X_AFTER_F2 + 123), X_AFTER_F2);
                 }
             },
             []{
                 void test(MethodTester mt)
                 {
-                    //todo
+                    mt.test_valid_call(new reflect.Value[]{NIL_VAL}, NIL_VAL, X_AFTER_F3);
+                    mt.test_valid_call(new reflect.Value[]{reflect.value_of(135)}, reflect.value_of(X_AFTER_F3 * 135), X_AFTER_F3);
                 }
             },
             []{
                 void test(MethodTester mt)
                 {
-                    //todo
+                    long a = 975;
+                    long b = 246;
+                    var av = reflect.value_of(a);
+                    var ref_b_v = reflect.value_of_ref(ref b);
+                    long old_b = b;
+                    var args = new reflect.Value[]{av, ref_b_v};
+                    mt.test_valid_call(args, nil, X_AFTER_F4);
+                    mt.assert(b == (long)X_AFTER_F3 - a * old_b, args, "调用之后ref参数b的值错误");
                 }
             },
         };
