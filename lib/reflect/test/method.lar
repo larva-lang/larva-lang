@@ -272,35 +272,27 @@ void test_method_ex(XKeeper t, bool has_constructor)
         //每个方法多个args测试用例
         var list_of_invalid_arg_lists = new reflect.Value[][][]{
             {
-                {
-                    {NIL_VAL},
-                    {INT_VAL},
-                    as2vs_converter.convert(new Any[]{"", new int[0], nil, 3L}),
-                },
+                {NIL_VAL},
+                {INT_VAL},
+                as2vs_converter.convert(new Any[]{"", new int[0], nil, 3L}),
             },
             {
-                {
-                    {},
-                    {NIL_VAL},
-                    {INT_VAL},
-                    {STR_VAL, STR_VAL},
-                    {REF_STR_VAL},
-                },
+                {},
+                {NIL_VAL},
+                {INT_VAL},
+                {STR_VAL, STR_VAL},
+                {REF_STR_VAL},
             },
             {
-                {
-                    {},
-                    {REF_INT_VAL},
-                    {INT_VAL, LONG_VAL},
-                },
+                {},
+                {REF_INT_VAL},
+                {INT_VAL, LONG_VAL},
             },
             {
-                {
-                    {},
-                    {LONG_VAL},
-                    {REF_LONG_VAL, LONG_VAL},
-                    {REF_LONG_VAL, REF_LONG_VAL},
-                },
+                {},
+                {LONG_VAL},
+                {REF_LONG_VAL, LONG_VAL},
+                {REF_LONG_VAL, REF_LONG_VAL},
             },
         };
         var valid_call_testers = new ValidCallTester[]{
