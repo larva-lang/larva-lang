@@ -275,6 +275,9 @@ class Parser:
         t = self.token_list.pop()
         if not t.is_sym or t.value not in (";", ","):
             t.syntax_err("需要';'或','")
+        if t.is_sym(",") and self.token_list.peek().is_sym(";"):
+            #允许最后一个变量定义也以逗号结尾
+            t = self.token_list.pop()
         return tp, name, expr, t.value
 
     def _is_valid_expr_stmt(self, expr):
