@@ -223,13 +223,13 @@ void test_method_ex(XKeeper t, bool has_constructor)
                     void test_invalid_call(reflect.Value[] args, int expect_err_arg_idx)
                     {
                         int err_arg_idx;
-                        mt.assert(!m.can_call(args, ref err_arg_idx), args, "call_call返回true");
-                        mt.assert(err_arg_idx == expect_err_arg_idx, args, "call_call返回的err_arg_idx值错误");
+                        mt.assert(!m.can_call(args, ref err_arg_idx), args, "can_call返回true");
+                        mt.assert(err_arg_idx == expect_err_arg_idx, args, "can_call返回的err_arg_idx值错误");
                     }
 
                     void test_valid_call(reflect.Value[] args, reflect.Value expect_ret_v, int expect_x_after_call)
                     {
-                        mt.assert(m.can_call(args, ref _), args, "call_call返回false");
+                        mt.assert(m.can_call(args, ref _), args, "can_call返回false");
                         var ret_v = m.call(args);
                         mt.assert((ret_v === nil && expect_ret_v === nil) ||
                                   (ret_v !== nil && expect_ret_v !== nil && ret_v.get() === expect_ret_v.get()),
@@ -271,13 +271,6 @@ void test_method_ex(XKeeper t, bool has_constructor)
                 });
             }
         };
-
-/*
-    public void f1()
-    public int f2(String s)
-    public Any f3(Any a)
-    public void f4(long a, ref long b)
-*/
 
         //每个方法多个args测试用例
         var list_of_invalid_arg_lists = new Pair<reflect.Value[], int>[][]{

@@ -198,10 +198,10 @@ public class Value
 
                     bool call(GoAny[] args, ref Any ret)
                     {
-                        long err_arg_seq;
+                        int err_arg_seq;
                         bool has_ret;
                         !<<
-                        l_err_arg_seq, *l_ret, l_has_ret = m.call(l_args.arr)
+                        l_err_arg_seq, *l_ret, l_has_ret = m.call(lar_fiber, l_args.arr)
                         !>>
                         if (err_arg_seq < 0)
                         {

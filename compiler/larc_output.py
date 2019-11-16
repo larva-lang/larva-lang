@@ -781,6 +781,10 @@ def _output_module():
                 with code.new_blk("if len(args) != %d" % len(method.arg_map)):
                     code += "err_arg_seq = -1"
                     code += "return"
+                code += ""
+                code += "var ok bool"
+                code += "_ = ok"
+                code += ""
                 for i, arg_tp in enumerate(method.arg_map.itervalues()):
                     if arg_tp.is_coi_type and not arg_tp.is_ref:
                         arg_tp_coi = arg_tp.get_coi()
@@ -788,25 +792,26 @@ def _output_module():
                     else:
                         arg_tp_is_intf = False
                     arg_tp_code = "%s%s" % ("*" if arg_tp.is_ref else "", _gen_type_name_code(arg_tp))
-                    code += "var ok bool"
                     code += "var arg_%d %s" % (i, arg_tp_code)
                     #逻辑：当参数类型是非ref的接口类型，且输入为nil，则不作下面的block（即保留接口初始化的nil值）
-                    with code.new_blk(("if args[%d] != nil" % i) if arg_tp_is_intf else ""):
-                        with code.new_blk("if arg_%d, ok = args[%d].(%s); !ok" % (i, arg_tp_code)):
+                    with code.new_blk(("if args[%d] != nil" % i) if arg_tp_is_intf else "", start_with_blank_line = False):
+                        with code.new_blk("if arg_%d, ok = args[%d].(%s); !ok" % (i, i, arg_tp_code)):
                             code += "err_arg_seq = %d" % (i + 1)
                             code += "return"
+                    code += "_ = arg_%d" % i
             with code.new_blk("func (this *%s) lar_reflect_methods() []*lar_reflect_method_type" % coi_name):
                 with code.new_blk("return []*lar_reflect_method_type"):
                     for method in public_methods:
                         with code.new_blk("&lar_reflect_method_type", tail = ","):
-                            with code.new_blk("can_call: func (args []%s) (err_arg_seq int64)" % _GO_ANY_INTF_TYPE_NAME_CODE, tail = ","):
+                            with code.new_blk("can_call: func (args []%s) (err_arg_seq int32)" % _GO_ANY_INTF_TYPE_NAME_CODE, tail = ","):
                                 output_code_of_preparing_args(code, method)
                                 code += "return"
-                            with code.new_blk("call: func (args []%s) (err_arg_seq int64, ret interface{}, has_ret bool)" %
+                            with code.new_blk("call: func (lar_fiber *lar_go_stru_fiber, args []%s) "
+                                              "(err_arg_seq int32, ret interface{}, has_ret bool)" %
                                               _GO_ANY_INTF_TYPE_NAME_CODE, tail = ","):
                                 output_code_of_preparing_args(code, method)
                                 code_of_calling_method = (
-                                    "this.%s(%s)" %
+                                    "this.%s(lar_fiber, %s)" %
                                     (_gen_method_name_code(method), ", ".join(["arg_%d" % i for i in xrange(len(method.arg_map))])))
                                 if method.type.is_void:
                                     code += code_of_calling_method
