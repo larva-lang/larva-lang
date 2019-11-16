@@ -63,7 +63,7 @@ type lar_reflect_method_type struct {
 }
 
 //参数，若is_ref为true，则v为一个ptr
-type lar_reflect_method_arg_type {
+type lar_reflect_method_arg_type struct {
     is_ref  bool
     v       interface{}
 }

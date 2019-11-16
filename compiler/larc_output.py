@@ -803,7 +803,7 @@ def _output_module():
                             code += "return"
                         #逻辑：当参数类型是非ref的接口类型，且输入为nil，则不作下面的block（即保留接口初始化的nil值）
                         with code.new_blk(("if arg.v != nil") if arg_tp_is_intf else "", start_with_blank_line = False):
-                            with code.new_blk("if arg_%d, ok = arg.(%s); !ok" % (i, arg_tp_code)):
+                            with code.new_blk("if arg_%d, ok = arg.v.(%s); !ok" % (i, arg_tp_code)):
                                 code += "err_arg_seq = %d" % (i + 1)
                                 code += "return"
                         code += "_ = arg_%d" % i
