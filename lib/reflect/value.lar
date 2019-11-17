@@ -170,7 +170,7 @@ public class Value
         {
             GoAny m;
             !<<
-            l_m := ms[l_i]
+            l_m = ms[l_i]
             !>>
             methods[i] = make_method(m);
         }

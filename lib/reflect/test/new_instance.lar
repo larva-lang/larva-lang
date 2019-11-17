@@ -40,7 +40,7 @@ void test_new_instance()
     {
         tp = reflect.type_of(a);
         bool has_constructor;
-        tester.assert(!tp.can_new_instance(new Value[]{}, ref has_constructor, ref _), "can_new_instance返回true");
+        tester.assert(!tp.can_new_instance(new reflect.Value[]{}, ref has_constructor, ref _), "can_new_instance返回true");
         tester.assert(!has_constructor, "can_new_instance设置has_constructor为true");
         var c = call_and_catch<reflect.Error>([-]{
             tp.new_instance(new reflect.Value[]{});
