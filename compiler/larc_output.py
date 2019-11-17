@@ -839,7 +839,7 @@ def _output_module():
                                           "(err_arg_seq int32, ret interface{}, has_ret bool)", tail = ","):
                             output_code_of_preparing_args(code, constructor)
                             code += ("ret = lar_new_obj_%s(lar_fiber, %s)" %
-                                     (coi_name, ", ".join(["arg_%d" % i for i in xrange(len(method.arg_map))])))
+                                     (coi_name, ", ".join(["arg_%d" % i for i in xrange(len(constructor.arg_map))])))
                             code += "has_ret = true"
                             code += "return"
 

@@ -12,6 +12,7 @@ public void main()
     });
     r.add_test_case("new对象相关测试", [-]{
         test_new_empty();
+        test_new_instance();
     });
     r.add_test_case("属性相关测试", [-]{
         test_attr();

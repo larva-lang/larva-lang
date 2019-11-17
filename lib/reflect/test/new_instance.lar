@@ -36,7 +36,7 @@ void test_new_instance()
         }
     };
 
-    foreach (var a: new Any[]{1, []{}, (CantNewInstanceA)nil, (CantNewInstanceB)nil}.iter())
+    foreach (var a: new Any[]{1, (int[])nil, []{}, (CantNewInstanceA)nil, (CantNewInstanceB)nil}.iter())
     {
         tp = reflect.type_of(a);
         bool has_constructor;
@@ -75,7 +75,7 @@ void test_new_instance()
             int err_arg_idx;
             tester.assert(!tp.can_new_instance(args, ref has_constructor, ref err_arg_idx), "args‘%r’：can_new_instance返回true".(args));
             tester.assert(has_constructor, "args‘%r’：can_new_instance设置has_constructor为false".(args));
-            tester.assert(err_arg_idx != expect_err_arg_idx,
+            tester.assert(err_arg_idx == expect_err_arg_idx,
                           "args‘%r’：can_new_instance设置的err_arg_idx[%d]不等于期望值[%d]".(args, err_arg_idx, expect_err_arg_idx));
             var c = call_and_catch<reflect.Error>([-]{
                 tp.new_instance(args);
