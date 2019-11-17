@@ -677,7 +677,7 @@ def infer_gtp(expr_list_start_token, gtp_name_list, arg_type_list, type_list, re
                         continue
                     if tp.module_name is not None:
                         assert tp.token.is_name
-                        if tp.get_coi_original() is not coi:
+                        if tp.is_closure or tp.get_coi_original() is not coi:
                             #只有当tp和arg_type不是同一泛型接口的实例才进行方法匹配推导，否则跳到下面的“其余情况”进行精确匹配，原因有二：
                             #1 相对于方法匹配而言更加直接
                             #2 对于arg_type接口中存在直接usemethod泛型参数的情况，方法匹配无法进行，但在泛型接口一致的情况下，应该继续进行匹配
