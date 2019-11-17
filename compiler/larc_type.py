@@ -131,6 +131,7 @@ class _Type:
 
     #check完成或无需check的时候
     def _set_is_checked(self):
+        self.is_check_ignore_gtp_done = True #check完成表示不含gtp_name，也意味着check_ignore_gtp也没必要做了
         self.is_checked = True
         self.is_freezed = True #锁住type，禁止更改
         if self.is_array:
@@ -142,7 +143,7 @@ class _Type:
         assert self.is_check_ignore_gtp_done
         return self.module_name is None and self.token.is_name
 
-    '''暂时不需要
+    '''todo del
     #判断复合类型中是否包含一个未决的泛型类型名
     def has_unchecked_gtp_name(self):
         assert not self.is_array #调用者保证
@@ -164,9 +165,9 @@ class _Type:
     #self中出现的gtp_name必须存在于gtp_map中
     def replace_gtp_name(self, gtp_map):
         #检查输入，确保已经做了必要的check
-        assert self.is_check_ignore_gtp_done or self.is_checked
+        assert self.is_check_ignore_gtp_done
         for tp in gtp_map.itervalues():
-            assert tp.is_check_ignore_gtp_done or tp.is_checked
+            assert tp.is_check_ignore_gtp_done
 
         if self.token.is_reserved:
             #基础类型（及其数组类型）原样返回
