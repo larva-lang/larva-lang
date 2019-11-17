@@ -36,6 +36,7 @@ class _Type:
         self.is_ref = is_ref
         self.is_closure = is_closure
         self._set_is_XXX()
+        self.is_check_ignore_gtp_done = False
         self.is_checked = False
         self.is_freezed = False
 
@@ -105,7 +106,7 @@ class _Type:
         return tp
 
     def to_elem_type(self):
-        assert self.is_array
+        assert self.is_array and self.is_checked
         tp = _Type((self.token, self.name), None, None, module_name = self.module_name)
         tp.gtp_list = self.gtp_list
         tp.array_dim_count = self.array_dim_count - 1
@@ -121,6 +122,13 @@ class _Type:
         assert coi is not None
         return coi
 
+    def get_coi_original(self):
+        assert self.token.is_name and self.module_name is not None and not self.is_array
+        m = larc_module.module_map[self.module_name]
+        coi = m.get_coi_original(self.name)
+        assert coi is not None
+        return coi
+
     #check完成或无需check的时候
     def _set_is_checked(self):
         self.is_checked = True
@@ -128,8 +136,65 @@ class _Type:
         if self.is_array:
             _reg_array(self) #注册数组信息
 
+    #判断是否为一个未决的泛型类型名，即模块的泛型元素在check_ignore_gtp中被ignore的那些类型
+    def is_unchecked_gtp_name(self):
+        assert not self.is_array #调用者保证
+        assert self.is_check_ignore_gtp_done
+        return self.module_name is None and self.token.is_name
+
+    '''暂时不需要
+    #判断复合类型中是否包含一个未决的泛型类型名
+    def has_unchecked_gtp_name(self):
+        assert not self.is_array #调用者保证
+        assert self.is_check_ignore_gtp_done
+        if self.is_unchecked_gtp_name():
+            return True
+        for tp in self.gtp_list:
+            while tp.is_array:
+                #unchecked类型需要手动to_elem_type
+                tp = copy.deepcopy(tp)
+                tp.array_dim_count -= 1
+                tp.is_array = tp.array_dim_count != 0
+            if tp.has_unchecked_gtp_name():
+                return True
+        return False
+    '''
+
+    #遍历整个类型，根据gtp_map的kv对替换所有出现的gtp_name，类似check的对应环节，但不是原地修改，而是返回副本
+    #self中出现的gtp_name必须存在于gtp_map中
+    def replace_gtp_name(self, gtp_map):
+        #检查输入，确保已经做了必要的check
+        assert self.is_check_ignore_gtp_done or self.is_checked
+        for tp in gtp_map.itervalues():
+            assert tp.is_check_ignore_gtp_done or tp.is_checked
+
+        if self.token.is_reserved:
+            #基础类型（及其数组类型）原样返回
+            assert not self.gtp_list
+            return copy.deepcopy(self)
+
+        assert self.token.is_name
+        if self.module_name is None:
+            #自身就是一个gtp_name或其数组，用gtp_map中的对应类型替代，并补齐数组维度
+            assert self.name in gtp_map
+            r = copy.deepcopy(gtp_map[self.name])
+            r.array_dim_count += self.array_dim_count
+            r._set_is_XXX()
+            return r
+
+        #普通的非基础类型或泛型类型，递归处理泛型参数
+        self_copy = copy.deepcopy(self)
+        for i in xrange(len(self_copy.gtp_list)):
+            self_copy.gtp_list[i] = self_copy.gtp_list[i].replace_gtp_name(gtp_map)
+        return self_copy
+
     #忽略泛型类型，对其他部分做check，用于泛型类和函数中类型的预check，和实际check流程类似，主要目的是完善module信息并检查权限
     def check_ignore_gtp(self, curr_module, gtp_name_set):
+        if not self.is_check_ignore_gtp_done:
+            self._check_ignore_gtp(curr_module, gtp_name_set)
+            self.is_check_ignore_gtp_done = True
+
+    def _check_ignore_gtp(self, curr_module, gtp_name_set):
         if self.token.is_reserved:
             #忽略基础类型（及其数组类型）
             assert not self.gtp_list
@@ -582,37 +647,43 @@ def infer_gtp(expr_list_start_token, gtp_name_list, arg_type_list, type_list, re
                     #用update接口，类型之后还可能被进一步推导为其他兼容类型
                     gtp_infer_map[arg_type.name].update(tp)
                     continue
-                coi = larc_module.module_map[arg_type.module_name].get_coi_original(arg_type.name)
+                coi = arg_type.get_coi_original()
                 if coi.is_intf and coi.gtp_name_list:
+                    def on_match_method_type_failed(msg):
+                        expr_list_start_token.syntax_err("参数#%d类型匹配失败：%s" % (arg_idx + 1, msg))
+                    def coi_gintf_method_iter():
+                        if coi.gintf_method_map is None:
+                            on_match_method_type_failed("泛型接口‘%s’方法集不确定，无法自动推导" % arg_type)
+                        return coi.gintf_method_map.itervalues()
                     #泛型接口，展开双方的接口进行精确匹配
                     def match_method_type(method, tp_method):
                         if tp_method is None:
-                            expr_list_start_token.syntax_err(
-                                "参数#%d类型匹配失败，接口方法'%s'找不到：'%s'->'%s'" % (arg_idx + 1, method.name, tp, arg_type))
+                            on_match_method_type_failed("接口方法'%s'找不到：'%s'->'%s'" % (method.name, tp, arg_type))
                         if (list(method.decr_set) + list(tp_method.decr_set)).count("public") not in (0, 2):
                             #权限签名不同
-                            expr_list_start_token.syntax_err(
-                                "参数#%d类型匹配失败，接口方法'%s'权限签名不同：'%s'->'%s'" % (arg_idx + 1, method.name, tp, arg_type))
+                            on_match_method_type_failed("接口方法'%s'权限签名不同：'%s'->'%s'" % (method.name, tp, arg_type))
                         if "public" not in method.decr_set and method.module is not tp_method.module:
                             #权限私有且两个coi不在同一模块，这个接口无权访问
-                            expr_list_start_token.syntax_err(
-                                "参数#%d类型匹配失败，对接口方法'%s'无访问权限：'%s'->'%s'" % (arg_idx + 1, method.name, tp, arg_type))
+                            on_match_method_type_failed("对接口方法'%s'无访问权限：'%s'->'%s'" % (method.name, tp, arg_type))
                         if len(method.arg_map) != len(tp_method.arg_map):
-                            expr_list_start_token.syntax_err(
-                                "参数#%d类型匹配失败，接口方法'%s'参数数量不匹配：'%s'->'%s'" % (arg_idx + 1, method.name, tp, arg_type))
+                            on_match_method_type_failed("接口方法'%s'参数数量不匹配：'%s'->'%s'" % (method.name, tp, arg_type))
                         match_type(method.type, tp_method.type)
                         for method_arg_type, tp_method_arg_type in zip(method.arg_map.itervalues(), tp_method.arg_map.itervalues()):
                             match_type(method_arg_type, tp_method_arg_type)
                     if tp.is_array:
-                        for method in coi.method_map.itervalues():
+                        for method in coi_gintf_method_iter():
                             match_method_type(method, get_array_method(tp, method.name))
                         continue
                     if tp.module_name is not None:
                         assert tp.token.is_name
-                        tp_coi = tp.get_coi()
-                        for method in coi.method_map.itervalues():
-                            match_method_type(method, tp_coi.method_map[method.name] if method.name in tp_coi.method_map else None)
-                        continue
+                        if tp.get_coi_original() is not coi:
+                            #只有当tp和arg_type不是同一泛型接口的实例才进行方法匹配推导，否则跳到下面的“其余情况”进行精确匹配，原因有二：
+                            #1 相对于方法匹配而言更加直接
+                            #2 对于arg_type接口中存在直接usemethod泛型参数的情况，方法匹配无法进行，但在泛型接口一致的情况下，应该继续进行匹配
+                            tp_coi = tp.get_coi()
+                            for method in coi_gintf_method_iter():
+                                match_method_type(method, tp_coi.method_map[method.name] if method.name in tp_coi.method_map else None)
+                            continue
         #其余情况，必须精确匹配
         match_type(arg_type, tp)
 
