@@ -1032,7 +1032,7 @@ class _Intf(_IntfBase):
             self.gintf_usemethod_stat = "to_expand"
             self.gintf_method_map = larc_common.OrderedDict()
             for method in self.method_map.itervalues():
-                self.gintf_method_map[method.name] = copy.deepcopy(method)
+                self.gintf_method_map[method.name] = method #这里如果copy的话，check_type_ignore_gtp中就得单独对gintf_method_map做一次了
 
     def _check_redefine(self, t, name):
         if name in self.method_map:
