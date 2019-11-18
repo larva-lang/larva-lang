@@ -143,24 +143,6 @@ class _Type:
         assert self.is_check_ignore_gtp_done
         return self.module_name is None and self.token.is_name
 
-    '''todo del
-    #判断复合类型中是否包含一个未决的泛型类型名
-    def has_unchecked_gtp_name(self):
-        assert not self.is_array #调用者保证
-        assert self.is_check_ignore_gtp_done
-        if self.is_unchecked_gtp_name():
-            return True
-        for tp in self.gtp_list:
-            while tp.is_array:
-                #unchecked类型需要手动to_elem_type
-                tp = copy.deepcopy(tp)
-                tp.array_dim_count -= 1
-                tp.is_array = tp.array_dim_count != 0
-            if tp.has_unchecked_gtp_name():
-                return True
-        return False
-    '''
-
     #遍历整个类型，根据gtp_map的kv对替换所有出现的gtp_name，类似check的对应环节，但不是原地修改，而是返回副本
     #self中出现的gtp_name必须存在于gtp_map中
     def replace_gtp_name(self, gtp_map):
