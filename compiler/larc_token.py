@@ -425,7 +425,7 @@ class _NativeCode:
         self.pos = pos
         self.line_list = []
 
-def _parse_line(src_file, line_no, line, pos):
+def _parse_line(module_name, src_file, line_no, line, pos):
     token_list = [] #因为是临时解析的一个token列表，需要做分析合并等操作，简单起见直接用list
     uncompleted_comment_start_pos = None
     raw_str = None
@@ -522,7 +522,7 @@ def parse_token_list(module_name, src_file):
                 #编译控制命令
                 pos = line.find("#")
                 assert pos >= 0
-                ccc_tl, uncompleted_comment_start_pos, uncompleted_raw_str = _parse_line(src_file, line_no, line, pos + 1)
+                ccc_tl, uncompleted_comment_start_pos, uncompleted_raw_str = _parse_line(module_name, src_file, line_no, line, pos + 1)
                 if uncompleted_comment_start_pos is not None:
                     _syntax_err(src_file, line_no, uncompleted_comment_start_pos, "编译控制命令行不能含跨行的块注释")
                 if uncompleted_raw_str is not None:
@@ -554,7 +554,7 @@ def parse_token_list(module_name, src_file):
                 native_code = _NativeCode(src_file, line_no, line.find("!<<"))
                 continue
 
-        line_tl, uncompleted_comment_start_pos, raw_str = _parse_line(src_file, line_no, line, pos)
+        line_tl, uncompleted_comment_start_pos, raw_str = _parse_line(module_name, src_file, line_no, line, pos)
         for t in line_tl:
             token_list.append(t)
         if uncompleted_comment_start_pos is not None:
