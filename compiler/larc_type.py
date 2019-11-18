@@ -668,9 +668,13 @@ def infer_gtp(expr_list_start_token, gtp_name_list, arg_type_list, type_list, re
                             on_match_method_type_failed("对接口方法'%s'无访问权限：'%s'->'%s'" % (method.name, tp, arg_type))
                         if len(method.arg_map) != len(tp_method.arg_map):
                             on_match_method_type_failed("接口方法'%s'参数数量不匹配：'%s'->'%s'" % (method.name, tp, arg_type))
-                        match_type(method.type, tp_method.type)
+                        match_type(method.type.replace_gtp_name(arg_gtp_map), tp_method.type)
                         for method_arg_type, tp_method_arg_type in zip(method.arg_map.itervalues(), tp_method.arg_map.itervalues()):
-                            match_type(method_arg_type, tp_method_arg_type)
+                            match_type(method_arg_type.replace_gtp_name(arg_gtp_map), tp_method_arg_type)
+                    assert len(coi.gtp_name_list) == len(arg_type.gtp_list)
+                    arg_gtp_map = larc_common.OrderedDict()
+                    for arg_gtp_name, arg_gtp in zip(coi.gtp_name_list, arg_type.gtp_list):
+                        arg_gtp_map[arg_gtp_name] = arg_gtp
                     if tp.is_array:
                         for method in coi_gintf_method_iter():
                             match_method_type(method, get_array_method(tp, method.name))
