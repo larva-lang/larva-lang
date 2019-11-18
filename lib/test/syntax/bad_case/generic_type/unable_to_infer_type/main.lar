@@ -211,6 +211,22 @@ void f_14_2()
     f_14_1(new C_14());
 }
 
+//case 15 ----------------------------------
+
+interface I_15<T>
+{
+    T usemethod;
+}
+
+void f_15_1<T>(I_15<T> i)
+{
+}
+
+void f_15_2()
+{
+    f_15_1([-]{});
+}
+
 public void main()
 {
 }
