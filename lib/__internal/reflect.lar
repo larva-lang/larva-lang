@@ -12,7 +12,8 @@ type lar_reflect_intf interface {
     lar_reflect_new_empty()     interface{}                     //new一个空对象并返回，若类不支持此操作则返回nil
     lar_reflect_attr_infos()    []*lar_reflect_attr_info_type   //返回属性信息表
     lar_reflect_attr_refs()     []*lar_reflect_attr_ref_type    //返回所有属性的引用
-    lar_reflect_method_infos()  []*lar_reflect_method_info_type //返回方法信息表
+    lar_reflect_method_infos()  []*lar_reflect_method_info_type //返回方法信息表（含构造方法）
+    lar_reflect_methods()       []*lar_reflect_method_type      //返回所有方法（不含构造方法）
 }
 
 //属性信息
@@ -53,9 +54,11 @@ type lar_reflect_method_arg_info_type struct {
     zv      interface{}
 }
 
+//方法
 type lar_reflect_method_type struct {
-    can_call    func (args []lar_intf_@<<:GoAny>>) bool
-    call        func (args []lar_intf_@<<:GoAny>>) (ret interface{}, has_ret bool) //has_ret为false表示返回类型为void
+    //err_arg_seq的值：<0表示参数数量不对，=0表示正确，>0表示第一个错误参数的序号（1开始）
+    can_call    func (args []lar_intf_@<<:GoAny>>) (err_arg_seq int32)
+    call        func (args []lar_intf_@<<:GoAny>>) (err_arg_seq int32, ret interface{}, has_ret bool) //has_ret为false表示返回类型为void
 }
 
 //基础类型的名字定义

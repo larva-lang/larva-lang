@@ -4,15 +4,19 @@
 
 interface MethodImpl
 {
-    bool can_call(GoAny[] args);
+    bool can_call(GoAny[] args, ref int err_arg_idx);
     bool call(GoAny[] args, ref Any ret); //返回true表示有返回值存在ret，否则表示一个返回类型为void的方法调用
 }
 
 public class Method
 {
-    public bool can_call(Value[] args)
+    /*
+    若返回false，则err_arg_idx指示错误信息：参数数量不符合为-1，否则为错误参数的下标
+    若返回true则err_arg_idx值无意义
+    */
+    public bool can_call(Value[] args, ref int err_arg_idx)
     {
-        return this.m.can_call(values_to_raw(args));
+        return this.m.can_call(values_to_raw(args), ref err_arg_idx);
     }
 
     public Value call(Value[] args)

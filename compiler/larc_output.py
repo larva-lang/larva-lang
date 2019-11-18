@@ -754,15 +754,10 @@ def _output_module():
                                     code += "return true"
                                 code += "return false"
             #5 方法信息（构造方法和public方法，构造方法按是否public决定信息是否为nil）
-            if (coi.is_cls or coi.is_gcls_inst) and "public" in coi.construct_method.decr_set:
-                #存在public构造方法
-                public_methods = [coi.construct_method]
-            else:
-                #不存在也要占位
-                public_methods = [None]
-            public_methods += [method for method in coi.method_map.itervalues() if "public" in method.decr_set]
+            constructor = coi.construct_method if (coi.is_cls or coi.is_gcls_inst) and "public" in coi.construct_method.decr_set else None
+            public_methods = [method for method in coi.method_map.itervalues() if "public" in method.decr_set]
             with code.new_blk("var lar_reflect_method_infos_%s = []*lar_reflect_method_info_type" % coi_name):
-                for i, method in enumerate(public_methods):
+                for i, method in enumerate([constructor] + public_methods):
                     if i == 0 and method is None:
                         code += "nil,"
                         continue
@@ -782,7 +777,43 @@ def _output_module():
             with code.new_blk("func (this *%s) lar_reflect_method_infos() []*lar_reflect_method_info_type" % coi_name):
                 code += "return lar_reflect_method_infos_%s" % coi_name
             #6 方法（仅对public方法）
-            #todo
+            def output_code_of_preparing_args(code, method): #这个函数下面构造方法的地方还需要用到
+                with code.new_blk("if len(args) != %d" % len(method.arg_map)):
+                    code += "err_arg_seq = -1"
+                    code += "return"
+                for i, arg_tp in enumerate(method.arg_map.itervalues()):
+                    if arg_tp.is_coi_type and not arg_tp.is_ref:
+                        arg_tp_coi = arg_tp.get_coi()
+                        arg_tp_is_intf = arg_tp_coi.is_intf or arg_tp_coi.is_gintf_inst
+                    else:
+                        arg_tp_is_intf = False
+                    arg_tp_code = "%s%s" % ("*" if arg_tp.is_ref else "", _gen_type_name_code(arg_tp))
+                    code += "var ok bool"
+                    code += "var arg_%d %s" % (i, arg_tp_code)
+                    #逻辑：当参数类型是非ref的接口类型，且输入为nil，则不作下面的block（即保留接口初始化的nil值）
+                    with code.new_blk(("if args[%d] != nil" % i) if arg_tp_is_intf else ""):
+                        with code.new_blk("if arg_%d, ok = args[%d].(%s); !ok" % (i, arg_tp_code)):
+                            code += "err_arg_seq = %d" % (i + 1)
+                            code += "return"
+            with code.new_blk("func (this *%s) lar_reflect_methods() []*lar_reflect_method_type" % coi_name):
+                with code.new_blk("return []*lar_reflect_method_type"):
+                    for method in public_methods:
+                        with code.new_blk("&lar_reflect_method_type", tail = ","):
+                            with code.new_blk("can_call: func (args []%s) (err_arg_seq int64)" % _GO_ANY_INTF_TYPE_NAME_CODE, tail = ","):
+                                output_code_of_preparing_args(code, method)
+                                code += "return"
+                            with code.new_blk("call: func (args []%s) (err_arg_seq int64, ret interface{}, has_ret bool)" %
+                                              _GO_ANY_INTF_TYPE_NAME_CODE, tail = ","):
+                                output_code_of_preparing_args(code, method)
+                                code_of_calling_method = (
+                                    "this.%s(%s)" %
+                                    (_gen_method_name_code(method), ", ".join(["arg_%d" % i for i in xrange(len(method.arg_map))])))
+                                if method.type.is_void:
+                                    code += code_of_calling_method
+                                else:
+                                    code += "ret = %s" % code_of_calling_method
+                                    code += "has_ret = true"
+                                code += "return"
 
         for closure in module.closure_map.itervalues():
             coi_name = _gen_coi_name(closure)
@@ -931,6 +962,7 @@ def _run_prog(args_for_run):
     else:
         larc_common.exit("找不到可执行文件[%s]" % _exe_file)
 
+_GO_ANY_INTF_TYPE_NAME_CODE = None
 _ANY_INTF_TYPE_NAME_CODE = None
 _STR_TYPE_NAME_CODE = None
 
@@ -940,7 +972,8 @@ def output(out_bin, need_run_prog, args_for_run):
 
     _gen_all_module_name_code_map()
 
-    global _ANY_INTF_TYPE_NAME_CODE, _STR_TYPE_NAME_CODE
+    global _GO_ANY_INTF_TYPE_NAME_CODE, _ANY_INTF_TYPE_NAME_CODE, _STR_TYPE_NAME_CODE
+    _GO_ANY_INTF_TYPE_NAME_CODE = _gen_type_name_code(larc_type.GO_ANY_INTF_TYPE)
     _ANY_INTF_TYPE_NAME_CODE = _gen_type_name_code(larc_type.ANY_INTF_TYPE)
     _STR_TYPE_NAME_CODE = _gen_type_name_code(larc_type.STR_TYPE)
 

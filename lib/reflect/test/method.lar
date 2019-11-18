@@ -93,7 +93,7 @@ class ArgInfo
 interface MethodTester
 {
     void assert(bool cond, reflect.Value[] args, String desc);
-    void test_invalid_call(reflect.Value[] args);
+    void test_invalid_call(reflect.Value[] args, int expect_err_arg_idx);
     void test_valid_call(reflect.Value[] args, reflect.Value expect_ret_v, int expect_x_after_call);
 }
 
@@ -220,14 +220,16 @@ void test_method_ex(XKeeper t, bool has_constructor)
                         mt.assert(cond, args, desc);
                     }
 
-                    void test_invalid_call(reflect.Value[] args)
+                    void test_invalid_call(reflect.Value[] args, int expect_err_arg_idx)
                     {
-                        mt.assert(!m.can_call(args), args, "call_call返回true");
+                        int err_arg_idx;
+                        mt.assert(!m.can_call(args, ref err_arg_idx), args, "call_call返回true");
+                        mt.assert(err_arg_idx == expect_err_arg_idx, args, "call_call返回的err_arg_idx值错误");
                     }
 
                     void test_valid_call(reflect.Value[] args, reflect.Value expect_ret_v, int expect_x_after_call)
                     {
-                        mt.assert(m.can_call(args), args, "call_call返回false");
+                        mt.assert(m.can_call(args, ref _), args, "call_call返回false");
                         var ret_v = m.call(args);
                         mt.assert((ret_v === nil && expect_ret_v === nil) ||
                                   (ret_v !== nil && expect_ret_v !== nil && ret_v.get() === expect_ret_v.get()),
@@ -270,30 +272,38 @@ void test_method_ex(XKeeper t, bool has_constructor)
             }
         };
 
+/*
+    public void f1()
+    public int f2(String s)
+    public Any f3(Any a)
+    public void f4(long a, ref long b)
+*/
+
         //每个方法多个args测试用例
-        var list_of_invalid_arg_lists = new reflect.Value[][][]{
+        var list_of_invalid_arg_lists = new Pair<reflect.Value[], int>[][]{
             {
-                {NIL_VAL},
-                {INT_VAL},
-                as2vs_converter.convert(new Any[]{"", new int[0], nil, 3L}),
+                {NIL_VAL}:                                                      -1,
+                {INT_VAL}:                                                      -1,
+                as2vs_converter.convert(new Any[]{"", new int[0], nil, 3L}):    -1,
             },
             {
-                {},
-                {NIL_VAL},
-                {INT_VAL},
-                {STR_VAL, STR_VAL},
-                {REF_STR_VAL},
+                {}:                 -1,
+                {NIL_VAL}:          0,
+                {INT_VAL}:          0,
+                {STR_VAL, STR_VAL}: -1,
+                {REF_STR_VAL}:      0,
             },
             {
-                {},
-                {REF_INT_VAL},
-                {INT_VAL, LONG_VAL},
+                {}:                     -1,
+                {REF_INT_VAL}:          0,
+                {INT_VAL, LONG_VAL}:    -1,
             },
             {
-                {},
-                {LONG_VAL},
-                {REF_LONG_VAL, LONG_VAL},
-                {REF_LONG_VAL, REF_LONG_VAL},
+                {}:                             -1,
+                {LONG_VAL}:                     -1,
+                {LONG_VAL, LONG_VAL}:           1,
+                {REF_LONG_VAL, LONG_VAL}:       0,
+                {REF_LONG_VAL, REF_LONG_VAL}:   0,
             },
         };
         var valid_call_testers = new ValidCallTester[]{
@@ -338,7 +348,7 @@ void test_method_ex(XKeeper t, bool has_constructor)
 
             foreach (var invalid_args: list_of_invalid_arg_lists[i].iter())
             {
-                mt.test_invalid_call(invalid_args);
+                mt.test_invalid_call(invalid_args.first(), invalid_args.second());
             }
 
             valid_call_testers[i].test(mt);
