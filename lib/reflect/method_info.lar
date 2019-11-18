@@ -1,0 +1,60 @@
+public class MethodArgInfo
+{
+    public bool is_ref()
+    {
+        return this._is_ref;
+    }
+
+    public String type_name()
+    {
+        return this._type_name;
+    }
+
+    public Type type()
+    {
+        return this._type;
+    }
+
+    bool    _is_ref;
+    String  _type_name;
+    Type    _type;
+}
+
+public class MethodInfo
+{
+    public String repr()
+    {
+        return "<Method %s of %s>".(this.name(), this.cls().name());
+    }
+
+    public Type cls()
+    {
+        return this._cls;
+    }
+
+    public String ret_type_name()
+    {
+        return this._ret_type_name;
+    }
+
+    public Type ret_type()
+    {
+        return this._ret_type;
+    }
+
+    public String name()
+    {
+        return this._name;
+    }
+
+    public MethodArgInfo[] arg_infos()
+    {
+        return this._arg_infos.shallow_copy();
+    }
+
+    Type            _cls;           //方法所属的类
+    String          _ret_type_name; //方法返回值的类型名
+    Type            _ret_type;
+    String          _name;          //方法名
+    MethodArgInfo[] _arg_infos;
+}

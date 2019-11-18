@@ -53,6 +53,11 @@ type lar_reflect_method_arg_info_type struct {
     zv      interface{}
 }
 
+type lar_reflect_method_type struct {
+    can_call    func (args []lar_intf_@<<:GoAny>>) bool
+    call        func (args []lar_intf_@<<:GoAny>>) (ret interface{}, has_ret bool) //has_ret为false表示返回类型为void
+}
+
 //基础类型的名字定义
 var (
     lar_reflect_type_name_nil_intf  = lar_str_from_go_str("<nil>")

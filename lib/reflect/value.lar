@@ -179,7 +179,23 @@ public class Value
             !>>
 
             methods[i] = new Method{
-                //todo
+                m: []{
+                    bool can_call(GoAny[] args)
+                    {
+                        !<<
+                        return m.can_call(l_args.arr)
+                        !>>
+                    }
+
+                    bool call(GoAny[] args, ref Any ret)
+                    {
+                        bool has_ret;
+                        !<<
+                        *l_ret, l_has_ret = m.call(l_args.arr)
+                        !>>
+                        return has_ret;
+                    }
+                },
             };
         }
         return methods;
