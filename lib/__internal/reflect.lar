@@ -14,6 +14,7 @@ type lar_reflect_intf interface {
     lar_reflect_attr_refs()     []*lar_reflect_attr_ref_type    //返回所有属性的引用
     lar_reflect_method_infos()  []*lar_reflect_method_info_type //返回方法信息表（含构造方法）
     lar_reflect_methods()       []*lar_reflect_method_type      //返回所有方法（不含构造方法）
+    lar_reflect_method_of_new() *lar_reflect_method_type        //返回public构造方法，若没有则返回nil
 }
 
 //属性信息

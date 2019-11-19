@@ -826,6 +826,22 @@ def _output_module():
                                     code += "ret = %s" % code_of_calling_method
                                     code += "has_ret = true"
                                 code += "return"
+            #7 构造方法
+            with code.new_blk("func (this *%s) lar_reflect_method_of_new() *lar_reflect_method_type" % coi_name):
+                if constructor is None:
+                    code += "return nil"
+                else:
+                    with code.new_blk("return &lar_reflect_method_type"):
+                        with code.new_blk("can_call: func (args []*lar_reflect_method_arg_type) (err_arg_seq int32)", tail = ","):
+                            output_code_of_preparing_args(code, constructor)
+                            code += "return"
+                        with code.new_blk("call: func (lar_fiber *lar_go_stru_fiber, args []*lar_reflect_method_arg_type) "
+                                          "(err_arg_seq int32, ret interface{}, has_ret bool)", tail = ","):
+                            output_code_of_preparing_args(code, constructor)
+                            code += ("ret = lar_new_obj_%s(lar_fiber, %s)" %
+                                     (coi_name, ", ".join(["arg_%d" % i for i in xrange(len(method.arg_map))])))
+                            code += "has_ret = true"
+                            code += "return"
 
         for closure in module.closure_map.itervalues():
             coi_name = _gen_coi_name(closure)
