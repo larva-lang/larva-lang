@@ -78,15 +78,14 @@ class Parser:
                         nested_ccc_stk.append("use")
                     elif t.is_ccc("if"):
                         nested_ccc_stk.append("if")
-                    elif t.is_ccc:
-                        assert t.value in ("oruse", "else_of_use", "enduse", "elif", "else_of_if", "endif")
+                    elif any([t.is_ccc(ccc) for ccc in ("oruse", "else_of_use", "enduse", "elif", "else_of_if", "endif")]):
                         if not nested_ccc_stk:
                             return t
-                        if t.value in ("oruse", "else_of_use", "enduse"):
+                        if any([t.is_ccc(ccc) for ccc in ("oruse", "else_of_use", "enduse")]):
                             assert nested_ccc_stk[-1] == "use"
-                        if t.value in ("elif", "else_of_if", "endif"):
+                        if any([t.is_ccc(ccc) for ccc in ("elif", "else_of_if", "endif")]):
                             assert nested_ccc_stk[-1] == "if"
-                        if t.value in ("enduse", "endif"):
+                        if any([t.is_ccc(ccc) for ccc in ("enduse", "endif")]):
                             nested_ccc_stk.pop()
 
             if t.is_ccc("use"):

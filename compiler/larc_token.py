@@ -36,6 +36,7 @@ _RESERVED_WORD_SET = set(["import", "class", "void", "bool", "schar", "char", "s
 
 #编译控制命令集
 _COMPILING_CTRL_CMD_SET = set(["use", "oruse", "else", "enduse", "error", "if", "elif", "endif"])
+_INTERNAL_COMPILING_CTRL_CMD_SET = _COMPILING_CTRL_CMD_SET - set(["else"]) | set(["else_of_use", "else_of_if"])
 
 class _Token:
     def __init__(self, type, value, src_file, line_no, pos):
@@ -101,7 +102,7 @@ class _Token:
             def __nonzero__(self):
                 return self.token.type == "ccc"
             def __call__(self, ccc):
-                assert ccc in _COMPILING_CTRL_CMD_SET, str(ccc)
+                assert ccc in _INTERNAL_COMPILING_CTRL_CMD_SET, str(ccc)
                 return self and self.token.value == ccc
         self.is_ccc = IsCcc(self)
 
@@ -615,7 +616,7 @@ def parse_token_list_until_sym(token_list, end_sym_set):
                 t.syntax_err("未匹配的'#endif'")
             stk.pop()
             stk.pop()
-        if t.is_ccc("else"):
+        if t.is_ccc and t.value == "else": #不能直接is_ccc("else")判断
             if not (stk and (stk[-1].is_ccc("use") or stk[-1].is_ccc("if"))):
                 t.syntax_err("未匹配的'#else'")
             t._unfreeze()
