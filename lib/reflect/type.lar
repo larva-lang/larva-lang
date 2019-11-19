@@ -238,35 +238,62 @@ public class Type
         }
     }
 
-/*
-    array_dim_count
-    array_new
-
-    public bool can_new_instance(Value[] args)
+    Method get_method_of_new()
     {
-        var args_raw = values_to_raw_args(args);
+        GoAny method_raw;
         !<<
-        if lri, ok := this.m_zv.(lar_reflect_intf); ok {
-            return lri.lar_reflect_can_new_instance(l_args_raw.arr)
+        m := this.m_zv.(lar_reflect_intf).lar_reflect_method_of_new()
+        if m == nil {
+            //不存在public构造方法
+            return nil
         }
+        l_method_raw = m
         !>>
-        return false;
+        return make_method(method_raw);
+    }
+
+    /*
+    若返回false：
+        1 has_constructor指示是否存在public构造方法（基础类型视为无构造方法）
+        2 若存在public构造方法，则err_arg_idx指示参数错误信息：参数数量不符合为-1，否则为错误参数的下标；
+        3 若不存在public构造方法则err_arg_idx值无意义
+    若返回true则has_constructor为true，err_arg_idx值无意义
+    */
+    public bool can_new_instance(Value[] args, ref bool has_constructor, ref int err_arg_idx)
+    {
+        has_constructor = false;
+
+        if (this.is_primitive())
+        {
+            return false;
+        }
+
+        var m = this.get_method_of_new();
+        if (m === nil)
+        {
+            return false;
+        }
+
+        has_constructor = true;
+        return m.can_call(args, ref err_arg_idx);
     }
 
     public Any new_instance(Value[] args)
     {
-        var args_raw = values_to_raw_args(args);
         this.throw_on_primitive();
-        Any a;
-        !<<
-        l_a = this.m_zv.(lar_reflect_intf).lar_reflect_new_instance(lar_fiber, l_args_raw.arr)
-        !>>
-        if (a === nil)
+
+        var m = this.get_method_of_new();
+        if (m === nil)
         {
-            throw(new Error{"new_instance失败：类型‘%s’".(this.name())});
+            throw(new Error{"类型‘%s’没有public构造方法".(this.name())});
         }
-        return a;
+
+        return m.call(args).get(); //call返回的Value必然不是nil，编译器保证
     }
+
+/*todo
+    array_dim_count
+    array_new
 */
 
     String  _name; //类型名

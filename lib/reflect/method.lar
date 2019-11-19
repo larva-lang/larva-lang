@@ -31,3 +31,47 @@ public class Method
 
     MethodImpl m;
 }
+
+Method make_method(GoAny method_raw)
+{
+    !<<
+    m := l_method_raw.(*lar_reflect_method_type)
+    !>>
+    return new Method{
+        m: []{
+            bool can_call(GoAny args, ref int err_arg_idx)
+            {
+                !<<
+                err_arg_seq := m.can_call(l_args.([]*lar_reflect_method_arg_type))
+                if err_arg_seq == 0 {
+                    return true
+                }
+                if err_arg_seq < 0 {
+                    *l_err_arg_idx = -1
+                } else {
+                    *l_err_arg_idx = err_arg_seq - 1
+                }
+                return false
+                !>>
+            }
+
+            bool call(GoAny args, ref Any ret)
+            {
+                int err_arg_seq;
+                bool has_ret;
+                !<<
+                l_err_arg_seq, *l_ret, l_has_ret = m.call(lar_fiber, l_args.([]*lar_reflect_method_arg_type))
+                !>>
+                if (err_arg_seq < 0)
+                {
+                    throw(new Error{"参数数量错误，无法调用方法"});
+                }
+                else if (err_arg_seq > 0)
+                {
+                    throw(new Error{"参数#%d类型错误，无法调用方法".(err_arg_seq)});
+                }
+                return has_ret;
+            }
+        },
+    };
+}
