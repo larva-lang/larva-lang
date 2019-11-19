@@ -108,7 +108,7 @@ class Parser:
                         break
                     assert t.is_ccc("oruse")
                 continue
-            if t.is_ccc and t.value in ("oruse", "enduse"):
+            if t.is_ccc and t.value in ("oruse", "else", "enduse"):
                 assert self.ccc_use_deep > top_ccc_use_deep
                 if larc_common.is_child() and self.ccc_use_deep == work_ccc_use_deep:
                     #子进程尝试成功，汇报给父进程
