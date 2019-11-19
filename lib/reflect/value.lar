@@ -38,12 +38,6 @@ public class Value
         return "<Value of <%s> %r>".(tp, a);
     }
 
-    //内部使用，不管是普通值还是ref指针都直接返回，用于lar_reflect_intf等更底层的接口
-    GoAny get_raw()
-    {
-        return this.v;
-    }
-
     public Any get()
     {
         if (this.is_ref())
@@ -180,10 +174,10 @@ public class Value
 
             methods[i] = new Method{
                 m: []{
-                    bool can_call(GoAny[] args, ref int err_arg_idx)
+                    bool can_call(GoAny args, ref int err_arg_idx)
                     {
                         !<<
-                        err_arg_seq := m.can_call(l_args.arr)
+                        err_arg_seq := m.can_call(l_args.([]*lar_reflect_method_arg_type))
                         if err_arg_seq == 0 {
                             return true
                         }
@@ -196,12 +190,12 @@ public class Value
                         !>>
                     }
 
-                    bool call(GoAny[] args, ref Any ret)
+                    bool call(GoAny args, ref Any ret)
                     {
                         int err_arg_seq;
                         bool has_ret;
                         !<<
-                        l_err_arg_seq, *l_ret, l_has_ret = m.call(lar_fiber, l_args.arr)
+                        l_err_arg_seq, *l_ret, l_has_ret = m.call(lar_fiber, l_args.([]*lar_reflect_method_arg_type))
                         !>>
                         if (err_arg_seq < 0)
                         {
@@ -280,12 +274,24 @@ public Value value_of_ref<T>(ref T t)
     };
 }
 
-GoAny[] values_to_raw(Value[] vs)
+//将value转为内部的arg结构的数组
+GoAny values_to_raw_args(Value[] vs)
 {
-    return iters.map_array(vs.iter(), []{
-        public GoAny convert(Value v)
-        {
-            return v.get_raw();
-        }
-    });
+    long count = vs.size();
+    !<<
+    ras := make([]*lar_reflect_method_arg_type, 0, l_count)
+    !>>
+    foreach (var v: vs.iter())
+    {
+        bool is_ref = v.is_ref();
+        !<<
+        ras = append(ras, &lar_reflect_method_arg_type{
+            is_ref: l_is_ref,
+            v:      l_v.m_v,
+        })
+        !>>
+    }
+    !<<
+    return ras
+    !>>
 }

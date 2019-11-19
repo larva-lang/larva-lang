@@ -4,8 +4,8 @@
 
 interface MethodImpl
 {
-    bool can_call(GoAny[] args, ref int err_arg_idx);
-    bool call(GoAny[] args, ref Any ret); //返回true表示有返回值存在ret，否则表示一个返回类型为void的方法调用
+    bool can_call(GoAny args, ref int err_arg_idx);
+    bool call(GoAny args, ref Any ret); //返回true表示有返回值存在ret，否则表示一个返回类型为void的方法调用
 }
 
 public class Method
@@ -16,13 +16,13 @@ public class Method
     */
     public bool can_call(Value[] args, ref int err_arg_idx)
     {
-        return this.m.can_call(values_to_raw(args), ref err_arg_idx);
+        return this.m.can_call(values_to_raw_args(args), ref err_arg_idx);
     }
 
     public Value call(Value[] args)
     {
         Any ret;
-        if (this.m.call(values_to_raw(args), ref ret))
+        if (this.m.call(values_to_raw_args(args), ref ret))
         {
             return value_of(ret);
         }

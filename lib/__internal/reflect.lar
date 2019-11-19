@@ -57,9 +57,15 @@ type lar_reflect_method_arg_info_type struct {
 //方法
 type lar_reflect_method_type struct {
     //err_arg_seq的值：<0表示参数数量不对，=0表示正确，>0表示第一个错误参数的序号（1开始）
-    can_call    func (args []lar_intf_@<<:GoAny>>) (err_arg_seq int32)
+    can_call    func (args []*lar_reflect_method_arg_type) (err_arg_seq int32)
     call        func (lar_fiber *lar_go_stru_fiber,
-                      args []lar_intf_@<<:GoAny>>) (err_arg_seq int32, ret interface{}, has_ret bool) //has_ret为false表示返回类型为void
+                      args []*lar_reflect_method_arg_type) (err_arg_seq int32, ret interface{}, has_ret bool) //has_ret为false表示返回类型为void
+}
+
+//参数，若is_ref为true，则v为一个ptr
+type lar_reflect_method_arg_type {
+    is_ref  bool
+    v       interface{}
 }
 
 //基础类型的名字定义

@@ -244,7 +244,7 @@ public class Type
 
     public bool can_new_instance(Value[] args)
     {
-        var args_raw = values_to_raw(args);
+        var args_raw = values_to_raw_args(args);
         !<<
         if lri, ok := this.m_zv.(lar_reflect_intf); ok {
             return lri.lar_reflect_can_new_instance(l_args_raw.arr)
@@ -255,7 +255,7 @@ public class Type
 
     public Any new_instance(Value[] args)
     {
-        var args_raw = values_to_raw(args);
+        var args_raw = values_to_raw_args(args);
         this.throw_on_primitive();
         Any a;
         !<<
