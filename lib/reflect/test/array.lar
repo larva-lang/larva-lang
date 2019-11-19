@@ -1,0 +1,55 @@
+import testing, reflect;
+
+void test_array_new<T>(long[] sizes, T[] expect_array)
+{
+    var tp = reflect.type_of((T[])nil);
+    var tester = []{
+        void assert(bool cond, String desc)
+        {
+            testing.assert(cond, "Type‘%s’：%s".(tp.name(), desc));
+        }
+    };
+    T[] a;
+    tester.assert(try_assert_type(tp.array_new(sizes), ref a), "array_new返回的值不是期望的数组类型");
+    tester.assert(a.eq(expect_array), "array_new返回的数组和期望不一样");
+}
+
+void test_array()
+{
+    reflect.Type tp;
+    var tester = []{
+        void assert(bool cond, String desc)
+        {
+            testing.assert(cond, "Type‘%s’：%s".(tp.name(), desc));
+        }
+    };
+
+    foreach (var p: new Pair<Any, long>[]{
+        1:                          0,
+        (int[])nil:                 1,
+        "":                         0,
+        (long[][])nil:              2,
+        (Iter<int[][]>[][][])nil:   3,
+    }.iter())
+    {
+        tp = reflect.type_of(p.first());
+        tester.assert(tp.array_dim_count() == p.second(), "数组维度[%d]错误，期望值[%d]".(tp.array_dim_count(), p.second()));
+    }
+
+    foreach (var p: new Pair<Any, long[]>[]{
+        1:                          {},
+        (int[])nil:                 {},
+        (long[][])nil:              {1, 2, 3},
+    }.iter())
+    {
+        tp = reflect.type_of(p.first());
+        var c = call_and_catch<reflect.Error>([-]{
+            tp.array_new(p.second());
+        });
+        tester.assert(c !== nil, "array_new未抛出预期的异常");
+    }
+
+    test_array_new(new long[]{1}, new int[1]);
+    test_array_new(new long[]{1, 2}, new String[1][2][]);
+    test_array_new(new long[]{1, 2, 3}, new Callable[1][2][3]);
+}

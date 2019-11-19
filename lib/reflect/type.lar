@@ -1,4 +1,4 @@
-import __internal, debug;
+import __internal, debug, __array;
 
 //类型对象全局唯一，即可以用===和!==判是否为同一类型，用一个map存放，程序启动时初始化
 
@@ -40,6 +40,7 @@ func lar_go_func_@<<init_type_map>>() {
     for _, tp := range lar_reflect_type_map {
         tp.lar_method_@<<init_attr_infos>>(lar_fiber)
         tp.lar_method_@<<init_method_infos>>(lar_fiber)
+        tp.lar_method_@<<init_array_dim_count>>(lar_fiber)
     }
 }
 
@@ -291,16 +292,47 @@ public class Type
         return m.call(args).get(); //call返回的Value必然不是nil，编译器保证
     }
 
-/*todo
-    array_dim_count
-    array_new
-*/
+    public long array_dim_count()
+    {
+        return this._array_dim_count;
+    }
+
+    void init_array_dim_count()
+    {
+        var name = this.name();
+        this._array_dim_count = 0;
+        while (name.has_suffix("[]"))
+        {
+            ++ this._array_dim_count;
+            name = name.sub_str(0, name.len() - 2);
+        }
+    }
+
+    public Any array_new(long[] sizes)
+    {
+        if (this.array_dim_count() <= 0)
+        {
+            throw(new Error{"类型‘%s’不是数组".(this.name())});
+        }
+        if (sizes.size() <= 0)
+        {
+            throw(new Error{"未指定数组第一维的size"});
+        }
+        if (sizes.size() > this.array_dim_count())
+        {
+            throw(new Error{"数组size数量[%d]超过了类型‘%s’的数组维度数[%d]".(sizes.size(), this.name(), this.array_dim_count())});
+        }
+        !<<
+        return lar_go_func_@<<__array.new_arr>>(lar_fiber, this.m_zv, l_sizes.arr)
+        !>>
+    }
 
     String  _name; //类型名
     Any     zv;    //此类型的zero_value
 
     AttrInfo[]      _attr_infos;
-    MethodInfo[]    _method_infos; //至少一个元素，第一个元素为构造方法的信息，如果没有public构造方法则第一个元素为nil
+    MethodInfo[]    _method_infos;      //至少一个元素，第一个元素为构造方法的信息，如果没有public构造方法则第一个元素为nil
+    long            _array_dim_count;   //数组维度
 }
 
 //获取larva对象的类型名，即__internal.reflect_type_name支持的那些，失败则抛出异常

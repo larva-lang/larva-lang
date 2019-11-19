@@ -64,7 +64,7 @@ class Arr<E>
     }
 
     /*
-    编译器保证：
+    编译器或调用者保证：
     1 size_list的类型是go的[]int64，且len大于0
     2 size_list的len不会超出数组维度数量
     */
@@ -306,3 +306,12 @@ class Arr<E>
     arr []@<<{E}>>
     !>>
 }
+
+!<<
+
+//在native层面暴露给其他标准库使用的新建数组的接口，主要是reflect在用，使用者自行保证参数的合法性（合法性见上面的相关注释）
+func lar_go_func_@<<new_arr>>(lar_fiber *lar_go_stru_fiber, arr_zv interface{}, sizes []int64) interface{} {
+    return arr_zv.(lar_intf_@<<IsArr>>).lar_method_@<<_new_arr>>(lar_fiber, sizes)
+}
+
+!>>

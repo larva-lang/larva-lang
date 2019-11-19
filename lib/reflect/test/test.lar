@@ -20,6 +20,9 @@ public void main()
     r.add_test_case("方法调用测试", [-]{
         test_method();
     });
+    r.add_test_case("数组相关测试", [-]{
+        test_array();
+    });
 
     r.run();
 }
