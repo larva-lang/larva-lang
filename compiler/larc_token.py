@@ -426,7 +426,7 @@ class _NativeCode:
         self.line_list = []
 
 def _parse_line(src_file, line_no, line, pos):
-    token_list = []
+    token_list = [] #因为是临时解析的一个token列表，需要做分析合并等操作，简单起见直接用list
     uncompleted_comment_start_pos = None
     raw_str = None
 
@@ -522,37 +522,41 @@ def parse_token_list(module_name, src_file):
                 #编译控制命令
                 pos = line.find("#")
                 assert pos >= 0
-                ccc_token_list, uncompleted_comment_start_pos, uncompleted_raw_str = _parse_line(src_file, line_no, line, pos + 1)
+                ccc_tl, uncompleted_comment_start_pos, uncompleted_raw_str = _parse_line(src_file, line_no, line, pos + 1)
                 if uncompleted_comment_start_pos is not None:
                     _syntax_err(src_file, line_no, uncompleted_comment_start_pos, "编译控制命令行不能含跨行的块注释")
                 if uncompleted_raw_str is not None:
                     _syntax_err(src_file, line_no, uncompleted_raw_str.pos, "编译控制命令行不能含跨行的原始字符串")
-                if not ccc_token_list:
+                if not ccc_tl:
                     _syntax_err(src_file, line_no, pos + 1, "需要编译控制命令")
-                ccc_name_token = ccc_token_list[0]
+                ccc_name_token = ccc_tl[0]
                 if ccc_name_token.is_ccc_name:
                     ccc = ccc_name_token.value
                 else:
                     ccc_name_token.syntax_err("非法的编译控制命令")
                 token_list.append(_Token("ccc", ccc, src_file, line_no, pos))
-                ccc_arg_token_list = ccc_token_list[1 :]
+                ccc_arg_tl = ccc_tl[1 :]
                 if ccc == "error":
-                    if not (len(ccc_arg_token_list) == 1 and ccc_arg_token_list[0].is_literal("str")):
+                    if not (len(ccc_arg_tl) == 1 and ccc_arg_tl[0].is_literal("str")):
                         ccc_name_token.syntax_err("error命令需要一个字符串参数")
-                    token_list.append(ccc_arg_token_list[0])
+                    token_list.append(ccc_arg_tl[0])
                 elif ccc in ("if", "elif"):
+                    ccc_arg_token_list = TokenList(src_file)
+                    for t in ccc_arg_tl:
+                        ccc_arg_token_list.append(t)
                     token_list.append(_Token("ccc_arg", ccc_arg_token_list, src_file, line_no, pos))
                 else:
-                    if ccc_arg_token_list:
-                        ccc_arg_token_list[0].syntax_err("无效的命令参数")
+                    if ccc_arg_tl:
+                        ccc_arg_tl[0].syntax_err("无效的命令参数")
                 continue
             if line.strip() == "!<<":
                 #native code开始
                 native_code = _NativeCode(src_file, line_no, line.find("!<<"))
                 continue
 
-        line_token_list, uncompleted_comment_start_pos, raw_str = _parse_line(src_file, line_no, line, pos)
-        token_list += line_token_list
+        line_tl, uncompleted_comment_start_pos, raw_str = _parse_line(src_file, line_no, line, pos)
+        for t in line_tl:
+            token_list.append(t)
         if uncompleted_comment_start_pos is not None:
             assert raw_str is None
             in_comment = True
