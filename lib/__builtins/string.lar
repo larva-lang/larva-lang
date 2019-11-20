@@ -355,7 +355,7 @@ T _parse_number<T>(String s, int base)
     l_r, err = strconv.ParseFloat(l_s.s, 64)
     !>>
 #oruse
-    #error 只支持long、ulong、double
+    #error "只支持long、ulong、double"
 #enduse
 
     !<<

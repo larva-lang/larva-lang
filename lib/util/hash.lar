@@ -75,7 +75,7 @@ public long hash<T>(T t)
 #oruse
     h = assert_type<Hashable>(t).hash(); //其他对象不做区分，动态检测解决
 #oruse
-    #error 未知错误，请检查代码实现
+    #error "未知错误，请检查代码实现"
 #enduse
 
     /*

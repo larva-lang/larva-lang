@@ -115,7 +115,7 @@ class Parser:
                 continue
             if t.is_ccc("error"):
                 ccc_err_msg_t = self.token_list.pop()
-                assert ccc_err_msg_t.type == "ccc_err_msg"
+                assert ccc_err_msg_t.is_literal("str")
                 ccc_err_msg = ccc_err_msg_t.value
                 t.syntax_err(ccc_err_msg)
 

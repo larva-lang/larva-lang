@@ -35,7 +35,7 @@ _RESERVED_WORD_SET = set(["import", "class", "void", "bool", "schar", "char", "s
                           "public", "interface", "new", "usemethod", "var", "defer", "final", "foreach", "from", "_"])
 
 #编译控制命令集
-_COMPILING_CTRL_CMD_SET = set(["use", "oruse", "enduse", "error"])
+_COMPILING_CTRL_CMD_SET = set(["use", "oruse", "else", "enduse", "error", "if", "elif", "endif"])
 
 class _Token:
     def __init__(self, type, value, src_file, line_no, pos):
@@ -93,6 +93,7 @@ class _Token:
                 return self and self.token.value == word
         self.is_reserved = IsReserved(self)
         self.is_name = self.type == "word" and self.value not in _RESERVED_WORD_SET
+        self.is_ccc_name = self.type == "word" and self.value in _COMPILING_CTRL_CMD_SET
 
         class IsCcc:
             def __init__(self, token):
@@ -235,6 +236,9 @@ class TokenList:
 
 def _syntax_err(src_file, line_no, pos, msg):
     larc_common.exit("文件[%s]行[%d]列[%d] %s" % (src_file, line_no, pos + 1, msg))
+
+def _syntax_warning(src_file, line_no, pos, msg):
+    larc_common.warning("文件[%s]行[%d]列[%d] %s" % (src_file, line_no, pos + 1, msg))
 
 def _get_escape_char(s, src_file, line_no, pos):
     if s[0] in "abfnrtv":
@@ -407,12 +411,71 @@ class _RawStr:
         self.line_no = line_no
         self.pos = pos
 
+    def check(self):
+        for c in self.value:
+            if ord(c) < 32 and c != "\t":
+                _syntax_err(self.src_file, self.line_no, self.pos, "原始字符串含有制表符之外的ascii控制码")
+        if "\t\n" in self.value or "\x20\n" in self.value:
+            _syntax_warning(self.src_file, self.line_no, self.pos, "原始字符串含有空格或制表符结尾的行")
+
 class _NativeCode:
     def __init__(self, src_file, line_no, pos):
         self.src_file = src_file
         self.line_no = line_no
         self.pos = pos
         self.line_list = []
+
+def _parse_line(src_file, line_no, line, pos):
+    token_list = []
+    uncompleted_comment_start_pos = None
+    raw_str = None
+
+    #解析当前行token
+    while pos < len(line):
+        #跳过空格
+        while pos < len(line) and line[pos] in "\t\x20":
+            pos += 1
+        if pos >= len(line):
+            #行结束
+            break
+
+        if line[pos : pos + 2] == "//":
+            #单行注释，略过本行
+            break
+        if line[pos : pos + 2] == "/*":
+            #块注释
+            pos += 2
+            comment_end_pos = line[pos :].find("*/")
+            if comment_end_pos < 0:
+                #注释跨行了，设置标记略过本行
+                uncompleted_comment_start_pos = pos - 2
+                break
+            #注释在本行结束，跳过它
+            pos += comment_end_pos + 2
+            continue
+        if line[pos] == "`":
+            #原始字符串
+            raw_str = _RawStr("", src_file, line_no, pos)
+            pos += 1
+            raw_str_end_pos = line[pos :].find("`")
+            if raw_str_end_pos < 0:
+                #跨行了，追加内容并进行下一行
+                raw_str.value += line[pos :] + "\n"
+                break
+            #在本行结束
+            raw_str.value += line[pos : pos + raw_str_end_pos]
+            raw_str.check()
+            token_list.append(_Token("literal_str", raw_str.value, raw_str.src_file, raw_str.line_no, raw_str.pos))
+            pos += raw_str_end_pos + 1
+            raw_str = None
+            continue
+
+        #解析token
+        token, token_len = _parse_token(module_name, src_file, line_no, line, pos)
+        token_list.append(token)
+        pos += token_len
+
+    return token_list, uncompleted_comment_start_pos, raw_str
 
 def parse_token_list(module_name, src_file):
     line_list = larc_common.open_src_file(src_file).read().splitlines()
@@ -441,6 +504,7 @@ def parse_token_list(module_name, src_file):
                 continue
             #在本行结束
             raw_str.value += line[: pos]
+            raw_str.check()
             token_list.append(_Token("literal_str", raw_str.value, raw_str.src_file, raw_str.line_no, raw_str.pos))
             pos += 1
             raw_str = None
@@ -458,64 +522,40 @@ def parse_token_list(module_name, src_file):
                 #编译控制命令
                 pos = line.find("#")
                 assert pos >= 0
-                ccc = line[pos + 1 :].strip("\t\x20")
-                if ccc == "error" or ccc.startswith("error\t") or ccc.startswith("error\x20"):
-                    ccc_err_msg = ccc[5 :].strip()
-                    ccc = "error"
-                if ccc not in _COMPILING_CTRL_CMD_SET:
-                    _syntax_err(src_file, line_no, pos, "非法的编译控制命令'%s'" % ccc)
+                ccc_token_list, uncompleted_comment_start_pos, uncompleted_raw_str = _parse_line(src_file, line_no, line, pos + 1)
+                if uncompleted_comment_start_pos is not None:
+                    _syntax_err(src_file, line_no, uncompleted_comment_start_pos, "编译控制命令行不能含跨行的块注释")
+                if uncompleted_raw_str is not None:
+                    _syntax_err(src_file, line_no, uncompleted_raw_str.pos, "编译控制命令行不能含跨行的原始字符串")
+                if not ccc_token_list:
+                    _syntax_err(src_file, line_no, pos + 1, "需要编译控制命令")
+                ccc_name_token = ccc_token_list[0]
+                if ccc_name_token.is_ccc_name:
+                    ccc = ccc_name_token.value
+                else:
+                    ccc_name_token.syntax_err("非法的编译控制命令")
                 token_list.append(_Token("ccc", ccc, src_file, line_no, pos))
+                ccc_arg_token_list = ccc_token_list[1 :]
                 if ccc == "error":
-                    token_list.append(_Token("ccc_err_msg", ccc_err_msg, src_file, line_no, pos))
+                    if not (len(ccc_arg_token_list) == 1 and ccc_arg_token_list[0].is_literal("str")):
+                        ccc_name_token.syntax_err("error命令需要一个字符串参数")
+                    token_list.append(ccc_arg_token_list[0])
+                elif ccc in ("if", "elif"):
+                    token_list.append(_Token("ccc_arg", ccc_arg_token_list, src_file, line_no, pos))
+                else:
+                    if ccc_arg_token_list:
+                        ccc_arg_token_list[0].syntax_err("无效的命令参数")
                 continue
             if line.strip() == "!<<":
                 #native code开始
                 native_code = _NativeCode(src_file, line_no, line.find("!<<"))
                 continue
 
-        #解析当前行token
-        while pos < len(line):
-            #跳过空格
-            while pos < len(line) and line[pos] in "\t\x20":
-                pos += 1
-            if pos >= len(line):
-                #行结束
-                break
-
-            if line[pos : pos + 2] == "//":
-                #单行注释，略过本行
-                break
-            if line[pos : pos + 2] == "/*":
-                #块注释
-                pos += 2
-                comment_end_pos = line[pos :].find("*/")
-                if comment_end_pos < 0:
-                    #注释跨行了，设置标记略过本行
-                    in_comment = True
-                    break
-                #注释在本行结束，跳过它
-                pos += comment_end_pos + 2
-                continue
-            if line[pos] == "`":
-                #原始字符串
-                raw_str = _RawStr("", src_file, line_no, pos)
-                pos += 1
-                raw_str_end_pos = line[pos :].find("`")
-                if raw_str_end_pos < 0:
-                    #跨行了，追加内容并进行下一行
-                    raw_str.value += line[pos :] + "\n"
-                    break
-                #在本行结束
-                raw_str.value += line[pos : pos + raw_str_end_pos]
-                token_list.append(_Token("literal_str", raw_str.value, raw_str.src_file, raw_str.line_no, raw_str.pos))
-                pos += raw_str_end_pos + 1
-                raw_str = None
-                continue
-
-            #解析token
-            token, token_len = _parse_token(module_name, src_file, line_no, line, pos)
-            token_list.append(token)
-            pos += token_len
+        line_token_list, uncompleted_comment_start_pos, raw_str = _parse_line(src_file, line_no, line, pos)
+        token_list += line_token_list
+        if uncompleted_comment_start_pos is not None:
+            assert raw_str is None
+            in_comment = True
 
     if in_comment:
         _syntax_err(src_file, len(line_list), len(line_list[-1]), "存在未结束的块注释")
