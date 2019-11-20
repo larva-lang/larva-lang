@@ -4,7 +4,7 @@
 将模块解析为token列表
 """
 
-import os, re, math, platform
+import os, re, math, platform, copy
 import larc_common
 
 #用于解析token的正则表达式
@@ -157,14 +157,7 @@ class TokenList:
             yield self.l[i]
 
     def copy(self):
-        #拷贝时候也拷贝当前解析到的状态
-        c = TokenList(self.src_file)
-        c.l = self.l[:]
-        c.i = self.i
-        for t in c.l:
-            if t.is_sub_token_list:
-                t.value = t.value.copy()
-        return c
+        return copy.deepcopy(self)
 
     def peek(self, start_idx = 0):
         try:

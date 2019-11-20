@@ -122,7 +122,7 @@ class Parser:
 
             if t.is_ccc("if"):
                 while True:
-                    ccc_if_arg_t = token_list.pop()
+                    ccc_if_arg_t = self.token_list.pop()
                     assert ccc_if_arg_t.is_sub_token_list
                     ccc_if_token_list = ccc_if_arg_t.value
                     ccc_if_result = self._eval_ccc_if(var_map_stk, ccc_if_arg_t.value)
