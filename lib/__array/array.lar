@@ -42,7 +42,7 @@ T[] deep_copy<T>(T[] a)
     {
 #use
         b[i] = deep_copy(a[i]);
-#oruse
+#else
         b[i] = a[i];
 #enduse
     }

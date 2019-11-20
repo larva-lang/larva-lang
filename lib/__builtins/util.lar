@@ -26,7 +26,7 @@ public bool is_same<T>(T a, T b)
     return a === b;
 #oruse
     return a == b;
-#oruse
+#else
     #error "类型不可做判同操作（这个错误不该出现的，请检查编译器bug）"
 #enduse
 }
@@ -39,7 +39,7 @@ public bool eq<T>(T a, T b)
     return a.cmp(b) == 0;
 #oruse
     return is_same(a, b);
-#oruse
+#else
     #error "类型不可做判等操作"
 #enduse
 }
@@ -58,7 +58,7 @@ public int cmp<T>(T a, T b)
         return 1;
     }
     return 0;
-#oruse
+#else
     #error "类型不可做比较操作"
 #enduse
 }

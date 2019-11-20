@@ -596,9 +596,29 @@ def parse_token_list_until_sym(token_list, end_sym_set):
             if not (stk and stk[-1].is_ccc("use")):
                 t.syntax_err("未匹配的'#oruse'")
         if t.is_ccc("enduse"):
-            if not (stk and stk[-1].is_ccc("use")):
+            if stk and stk[-1].is_ccc("use"):
+                t.syntax_err("'#enduse'前缺少'#else'")
+            if not (len(stk) >= 2 and stk[-1].is_ccc("else") and stk[-2].is_ccc("use")):
                 t.syntax_err("未匹配的'#enduse'")
             stk.pop()
+            stk.pop()
+        if t.is_ccc("if"):
+            stk.append(t)
+            in_top_level_new = False
+        if t.is_ccc("elif"):
+            if not (stk and stk[-1].is_ccc("if")):
+                t.syntax_err("未匹配的'#elif'")
+        if t.is_ccc("endif"):
+            if stk and stk[-1].is_ccc("if"):
+                t.syntax_err("'#endif'前缺少'#else'")
+            if not (len(stk) >= 2 and stk[-1].is_ccc("else") and stk[-2].is_ccc("if")):
+                t.syntax_err("未匹配的'#endif'")
+            stk.pop()
+            stk.pop()
+        if t.is_ccc("else"):
+            if not (stk and (stk[-1].is_ccc("use") or stk[-1].is_ccc("if"))):
+                t.syntax_err("未匹配的'#else'")
+            stk.append(t)
         if t.is_reserved("new") and not stk:
             in_top_level_new = True
         if t.is_sym("<") and (in_top_level_new or (stk and stk[-1].is_sym("<"))):
