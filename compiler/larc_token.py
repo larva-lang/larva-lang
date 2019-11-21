@@ -491,11 +491,9 @@ def parse_token_list(module_name, src_file):
         line_no += 1
 
         for pos, c in enumerate(line):
-            assert c != "\n"
-            if c == "\r":
-                _syntax_warning(src_file, line_no, pos, "含有回车符‘\\r’")
+            assert c not in ("\r", "\n")
             if ord(c) < 32 and c not in ("\t",):
-                _syntax_err(src_file, line_no, pos, "含有非法的ascii控制码‘\\x%02X’" % ord(c))
+                _syntax_err(src_file, line_no, pos, "含有非法的ascii控制码‘%r’" % c)
 
         if in_comment:
             #有未完的注释

@@ -237,6 +237,8 @@ def open_src_file(fn):
         f_cont.decode("utf8")
     except UnicodeDecodeError:
         exit("源代码文件[%s]不是utf8编码" % fn)
+    if "\r" in f_cont:
+        warning("源代码文件[%s]含有回车符‘\\r’" % fn)
     f.seek(0, os.SEEK_SET)
     return f
 
