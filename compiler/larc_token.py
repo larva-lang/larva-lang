@@ -618,7 +618,9 @@ def parse_token_list_until_sym(token_list, end_sym_set):
         if t.is_ccc("else"):
             if not (stk and (stk[-1].is_ccc("use") or stk[-1].is_ccc("if"))):
                 t.syntax_err("未匹配的'#else'")
+            t._unfreeze()
             t.value = "else_of_" + stk[-1].value #将else改为对应控制命令的特化else_of，方便后面的编译过程
+            t._freeze()
             stk.append(t)
         if t.is_reserved("new") and not stk:
             in_top_level_new = True
