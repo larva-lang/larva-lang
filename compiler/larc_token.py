@@ -598,7 +598,7 @@ def parse_token_list_until_sym(token_list, end_sym_set):
         if t.is_ccc("enduse"):
             if stk and stk[-1].is_ccc("use"):
                 t.syntax_err("'#enduse'前缺少'#else'")
-            if not (len(stk) >= 2 and stk[-1].is_ccc("else") and stk[-2].is_ccc("use")):
+            if not (len(stk) >= 2 and stk[-1].is_ccc("else_of_use") and stk[-2].is_ccc("use")):
                 t.syntax_err("未匹配的'#enduse'")
             stk.pop()
             stk.pop()
@@ -611,13 +611,14 @@ def parse_token_list_until_sym(token_list, end_sym_set):
         if t.is_ccc("endif"):
             if stk and stk[-1].is_ccc("if"):
                 t.syntax_err("'#endif'前缺少'#else'")
-            if not (len(stk) >= 2 and stk[-1].is_ccc("else") and stk[-2].is_ccc("if")):
+            if not (len(stk) >= 2 and stk[-1].is_ccc("else_of_if") and stk[-2].is_ccc("if")):
                 t.syntax_err("未匹配的'#endif'")
             stk.pop()
             stk.pop()
         if t.is_ccc("else"):
             if not (stk and (stk[-1].is_ccc("use") or stk[-1].is_ccc("if"))):
                 t.syntax_err("未匹配的'#else'")
+            t.value = "else_of_" + stk[-1].value #将else改为对应控制命令的特化else_of，方便后面的编译过程
             stk.append(t)
         if t.is_reserved("new") and not stk:
             in_top_level_new = True

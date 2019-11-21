@@ -78,14 +78,15 @@ class Parser:
                         nested_ccc_stk.append("use")
                     elif t.is_ccc("if"):
                         nested_ccc_stk.append("if")
-                    elif t.is_ccc("oruse") or t.is_ccc("enduse") or t.is_ccc("elif") or t.is_ccc("endif") or t.is_ccc("else"):
+                    elif t.is_ccc:
+                        assert t.value in ("oruse", "else_of_use", "enduse", "elif", "else_of_if", "endif")
                         if not nested_ccc_stk:
                             return t
-                        if t.is_ccc("oruse") or t.is_ccc("enduse"):
+                        if t.value in ("oruse", "else_of_use", "enduse"):
                             assert nested_ccc_stk[-1] == "use"
-                        if t.is_ccc("elif") or t.is_ccc("endif"):
+                        if t.value in ("elif", "else_of_if", "endif"):
                             assert nested_ccc_stk[-1] == "if"
-                        if t.is_ccc("enduse") or t.is_ccc("endif"):
+                        if t.value in ("enduse", "endif"):
                             nested_ccc_stk.pop()
 
             if t.is_ccc("use"):
@@ -103,12 +104,12 @@ class Parser:
                     #失败了，跳过这个use block继续尝试下一个
                     assert result == ""
                     t = ccc_jmp()
-                    if t.is_ccc("else"):
+                    if t.is_ccc("else_of_use"):
                         #已经是最后一个了，以这个为准
                         break
                     assert t.is_ccc("oruse")
                 continue
-            if t.is_ccc and t.value in ("oruse", "else", "enduse"):
+            if t.is_ccc and t.value in ("oruse", "else_of_use", "enduse"):
                 assert self.ccc_use_deep > top_ccc_use_deep
                 if larc_common.is_child() and self.ccc_use_deep == work_ccc_use_deep:
                     #子进程尝试成功，汇报给父进程
@@ -119,6 +120,8 @@ class Parser:
                     pass
                 self.ccc_use_deep -= 1
                 continue
+
+            #todo ccc if
 
             if t.is_ccc("error"):
                 ccc_err_msg_t = self.token_list.pop()
