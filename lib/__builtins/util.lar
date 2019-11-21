@@ -67,7 +67,7 @@ public int cmp<T>(T a, T b)
     return 0;
 #else
     #error "类型不可做比较操作"
-#enduse
+#endif
 }
 
 public void swap<T>(ref T a, ref T b)
