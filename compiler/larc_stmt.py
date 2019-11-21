@@ -71,16 +71,23 @@ class Parser:
 
             def ccc_jmp():
                 #跳过ccc块，返回跳过的块的结束ccc token
-                nested_ccc_use_deep = 0
+                nested_ccc_stk = []
                 while True:
                     t = self.token_list.pop()
                     if t.is_ccc("use"):
-                        nested_ccc_use_deep += 1
-                    elif t.is_ccc("oruse") or t.is_ccc("enduse"):
-                        if nested_ccc_use_deep == 0:
+                        nested_ccc_stk.append("use")
+                    elif t.is_ccc("if"):
+                        nested_ccc_stk.append("if")
+                    elif t.is_ccc("oruse") or t.is_ccc("enduse") or t.is_ccc("elif") or t.is_ccc("endif") or t.is_ccc("else"):
+                        if not nested_ccc_stk:
                             return t
-                        if t.is_ccc("enduse"):
-                            nested_ccc_use_deep -= 1
+                        if t.is_ccc("oruse") or t.is_ccc("enduse"):
+                            assert nested_ccc_stk[-1] == "use"
+                        if t.is_ccc("elif") or t.is_ccc("endif"):
+                            assert nested_ccc_stk[-1] == "if"
+                        if t.is_ccc("enduse") or t.is_ccc("endif"):
+                            nested_ccc_stk.pop()
+
             if t.is_ccc("use"):
                 self.ccc_use_deep += 1
                 while True:
@@ -95,12 +102,11 @@ class Parser:
                         break
                     #失败了，跳过这个use block继续尝试下一个
                     assert result == ""
-                    revert_idx = self.token_list.i #用于最后一个use block的回滚
                     t = ccc_jmp()
-                    if t.is_ccc("enduse"):
+                    if t.is_ccc("else"):
                         #已经是最后一个了，以这个为准
-                        self.token_list.revert(revert_idx)
                         break
+                    assert t.is_ccc("oruse")
                 continue
             if t.is_ccc and t.value in ("oruse", "enduse"):
                 assert self.ccc_use_deep > top_ccc_use_deep
@@ -113,6 +119,7 @@ class Parser:
                     pass
                 self.ccc_use_deep -= 1
                 continue
+
             if t.is_ccc("error"):
                 ccc_err_msg_t = self.token_list.pop()
                 assert ccc_err_msg_t.is_literal("str")
