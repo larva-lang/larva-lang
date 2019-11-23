@@ -95,6 +95,7 @@ class _Token:
         self.is_reserved = IsReserved(self)
         self.is_name = self.type == "word" and self.value not in _RESERVED_WORD_SET
         self.is_ccc_name = self.type == "word" and self.value in _COMPILING_CTRL_CMD_SET
+        self.is_ccc_func_name = self.type == "word"
 
         class IsCcc:
             def __init__(self, token):
@@ -107,6 +108,10 @@ class _Token:
         self.is_ccc = IsCcc(self)
 
         self.is_native_code = self.type == "native_code"
+
+        self.is_sub_token_list = self.type == "sub_token_list"
+
+        self.is_end_tag = self.type == "end_tag"
 
     def __str__(self):
         return """<token %r, %d, %d, %r>""" % (self.src_file, self.line_no, self.pos + 1, self.value)
@@ -156,6 +161,9 @@ class TokenList:
         c = TokenList(self.src_file)
         c.l = self.l[:]
         c.i = self.i
+        for t in c.l:
+            if t.is_sub_token_list:
+                t.value = t.value.copy()
         return c
 
     def peek(self, start_idx = 0):
@@ -174,8 +182,14 @@ class TokenList:
         if i is None:
             assert self.i > 0
             self.i -= 1
+            t = self.l[self.i]
+            if t.is_sub_token_list:
+                t.value.revert(0)
         else:
-            assert 0 <= i < len(self.l)
+            assert 0 <= i <= self.i < len(self.l)
+            for t in self.l[i : self.i]:
+                if t.is_sub_token_list:
+                    t.value.revert(0)
             self.i = i
 
     def pop(self):
@@ -213,6 +227,8 @@ class TokenList:
         #合并同表达式中相邻的字符串，即"abc""def""123"合并为"abcdef123"
         first = None
         for i, t in enumerate(self.l):
+            if t.is_sub_token_list:
+                t.value.join_str_literal()
             if first is not None:
                 #正在合并
                 if t.type == first.type:
@@ -545,7 +561,9 @@ def parse_token_list(module_name, src_file):
                     ccc_arg_token_list = TokenList(src_file)
                     for t in ccc_arg_tl:
                         ccc_arg_token_list.append(t)
-                    token_list.append(_Token("ccc_arg", ccc_arg_token_list, src_file, line_no, pos))
+                    #需要加一个结束标记token，保证单独编译子token列表的时候的报错信息正常（“需要‘xxx’”而不是“文件意外结束）
+                    ccc_arg_token_list.append(_Token("end_tag", None, src_file, line_no, len(line)))
+                    token_list.append(_Token("sub_token_list", ccc_arg_token_list, src_file, line_no, pos))
                 else:
                     if ccc_arg_tl:
                         ccc_arg_tl[0].syntax_err("无效的命令参数")

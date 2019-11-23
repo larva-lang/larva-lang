@@ -108,7 +108,7 @@ class Parser:
                         break
                     assert t.is_ccc("oruse")
                 continue
-            if t.is_ccc and t.value in ("oruse", "else_of_use", "enduse"):
+            if any([t.is_ccc(ccc) for ccc in ("oruse", "else_of_use", "enduse")]):
                 assert self.ccc_use_deep > top_ccc_use_deep
                 if larc_common.is_child() and self.ccc_use_deep == work_ccc_use_deep:
                     #子进程尝试成功，汇报给父进程
@@ -120,7 +120,31 @@ class Parser:
                 self.ccc_use_deep -= 1
                 continue
 
-            #todo ccc if
+            if t.is_ccc("if"):
+                while True:
+                    ccc_if_arg_t = token_list.pop()
+                    assert ccc_if_arg_t.is_sub_token_list
+                    ccc_if_token_list = ccc_if_arg_t.value
+                    ccc_if_result = self._eval_ccc_if(var_map_stk, ccc_if_arg_t.value)
+                    assert ccc_if_token_list
+                    end_tag_t = ccc_if_token_list.pop()
+                    if not end_tag_t.is_end_tag:
+                        end_tag_t.syntax_err()
+                    if ccc_if_result:
+                        #选择这个block
+                        break
+                    t = ccc_jmp()
+                    if t.is_ccc("else_of_if"):
+                        #已经是最后一个了，以这个为准
+                        break
+                    assert t.is_ccc("elif")
+                continue
+            if any([t.is_ccc(ccc) for ccc in ("elif", "else_of_if", "endif")]):
+                #跳到endif继续编译
+                self.token_list.revert()
+                while not ccc_jmp().is_ccc("endif"):
+                    pass
+                continue
 
             if t.is_ccc("error"):
                 ccc_err_msg_t = self.token_list.pop()
@@ -490,6 +514,52 @@ class Parser:
             if not self.token_list.peek().is_sym(","):
                 return expr_list
             self.token_list.pop_sym(",")
+
+    def _eval_ccc_if(self, var_map_stk, ccc_if_token_list):
+        def parse_type():
+            t = ccc_if_token_list.peek()
+            tp = larc_type.try_parse_type(ccc_if_token_list, self.module, self.dep_module_map, self.gtp_map, var_map_stk)
+            if tp is None:
+                t.syntax_err("需要类型")
+            return t, tp
+        t = ccc_if_token_list.pop()
+        if t.is_ccc_func_name:
+            ccc_func_name = t.value
+            if ccc_func_name in ("typein", "typeimplements"):
+                ccc_if_token_list.pop_sym("(")
+                t, tp_arg = parse_type()
+                ccc_if_token_list.pop_sym(",")
+                if ccc_func_name == "typein":
+                    ccc_if_token_list.pop_sym("{")
+                    result = False
+                    while True:
+                        if ccc_if_token_list.peek().is_sym("}"):
+                            ccc_if_token_list.pop_sym("}")
+                            break
+                        _, tp = parse_type()
+                        if tp_arg == tp:
+                            result = True
+                        t = ccc_if_token_list.peek()
+                        if not (t.is_sym("}") or t.is_sym(",")):
+                            t.syntax_err("需要‘}’或‘,’")
+                        if t.is_sym(","):
+                            ccc_if_token_list.pop_sym(",")
+                elif ccc_func_name == "typeimplements":
+                    t, intf_tp = parse_type()
+                    is_intf = False
+                    if intf_tp.is_coi_type:
+                        intf_coi = intf_tp.get_coi()
+                        if intf_coi.is_intf or intf_coi.is_gintf_inst:
+                            is_intf = True
+                    if not is_intf:
+                        t.syntax_err("需要接口类型")
+                    result = intf_tp.can_convert_from(tp_arg)
+                else:
+                    raise Exception("Bug")
+                ccc_if_token_list.pop_sym(")")
+                return result
+            t.syntax_err("非法的#if函数名")
+        t.syntax_err("需要#if函数名")
 
 def check_var_redefine(t, name, var_map_stk, module, dep_module_map, gtp_map, is_arg = False):
     if name in dep_module_map:
