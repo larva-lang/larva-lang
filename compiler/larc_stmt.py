@@ -525,11 +525,11 @@ class Parser:
         t = ccc_if_token_list.pop()
         if t.is_ccc_func_name:
             ccc_func_name = t.value
-            if ccc_func_name in ("typein", "typeimplements"):
+            if ccc_func_name in ("typein", "typeimplements", "typeisprimitive", "typeisarray"):
                 ccc_if_token_list.pop_sym("(")
                 t, tp_arg = parse_type()
-                ccc_if_token_list.pop_sym(",")
                 if ccc_func_name == "typein":
+                    ccc_if_token_list.pop_sym(",")
                     ccc_if_token_list.pop_sym("{")
                     result = False
                     while True:
@@ -545,6 +545,7 @@ class Parser:
                         if t.is_sym(","):
                             ccc_if_token_list.pop_sym(",")
                 elif ccc_func_name == "typeimplements":
+                    ccc_if_token_list.pop_sym(",")
                     t, intf_tp = parse_type()
                     is_intf = False
                     if intf_tp.is_coi_type:
@@ -554,6 +555,10 @@ class Parser:
                     if not is_intf:
                         t.syntax_err("需要接口类型")
                     result = intf_tp.can_convert_from(tp_arg)
+                elif ccc_func_name == "typeisprimitive":
+                    result = tp_arg.is_primitive
+                elif ccc_func_name == "typeisarray":
+                    result = tp_arg.is_array
                 else:
                     raise Exception("Bug")
                 ccc_if_token_list.pop_sym(")")

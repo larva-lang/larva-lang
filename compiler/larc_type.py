@@ -59,6 +59,7 @@ class _Type:
         self.is_number_type = self.is_integer_type or self.is_float_type
         self.can_inc_dec = self.is_integer_type
         self.is_nil_ref = self.name == "nil_ref"
+        self.is_primitive = self.is_bool_type or self.is_number_type
 
     #转为字符串，ignore_builtins_module_prefix表示是否忽略掉“__builtins.”模块前缀
     def to_str(self, ignore_builtins_module_prefix):
