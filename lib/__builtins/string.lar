@@ -91,7 +91,7 @@ public class String
             {
                 h = 1;
             }
-            this.h = (long)h;
+            this.h = cast<long>(h);
         }
         return this.h;
     }

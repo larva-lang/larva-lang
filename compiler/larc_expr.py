@@ -13,7 +13,7 @@ import larc_module
 import larc_stmt
 import larc_type
 
-_UNARY_OP_SET = set(["~", "!", "neg", "pos", "force_convert"])
+_UNARY_OP_SET = set(["~", "!", "neg", "pos"])
 _BINOCULAR_OP_SET = larc_token.BINOCULAR_OP_SYM_SET
 _OP_PRIORITY_LIST = [["if", "else", "if-else"],
                      ["||"],
@@ -26,7 +26,7 @@ _OP_PRIORITY_LIST = [["if", "else", "if-else"],
                      ["<<", ">>"],
                      ["+", "-"],
                      ["*", "/", "%"],
-                     ["~", "!", "neg", "pos", "force_convert"]]
+                     ["~", "!", "neg", "pos"]]
 _OP_PRIORITY_MAP = {}
 for _i in xrange(len(_OP_PRIORITY_LIST)):
     for _op in _OP_PRIORITY_LIST[_i]:
@@ -97,11 +97,7 @@ class _ParseStk:
         self.stk = []
         self.op_stk = []
 
-    def push_op(self, op, force_convert_type = None):
-        if op == "force_convert":
-            assert force_convert_type is not None
-        else:
-            assert force_convert_type is None
+    def push_op(self, op):
         #弹出所有优先级高的运算
         while self.op_stk:
             if _OP_PRIORITY_MAP[self.op_stk[-1]] > _OP_PRIORITY_MAP[op]:
@@ -120,11 +116,6 @@ class _ParseStk:
                         break
                     self.start_token.syntax_err("禁止多个'if-else'表达式直接混合运算，请加括号")
                 self._pop_top_op()
-        if op == "force_convert":
-            #类型强转额外压入一个类型对象
-            self.op_stk.append(force_convert_type)
-            self.op_stk.append(op)
-            return
         if op == "else":
             if self.op_stk and self.op_stk[-1] == "if":
                 self.op_stk[-1] = "if-else"
@@ -139,24 +130,18 @@ class _ParseStk:
             if len(self.stk) < 1:
                 self.start_token.syntax_err("非法的表达式")
             e = self.stk.pop()
-            if op == "force_convert":
-                tp = self.op_stk.pop()
-                if not tp.can_force_convert_from(e.type):
-                    self.start_token.syntax_err("非法的表达式，存在无效的强制类型转换：'%s'到'%s'" % (e.type, tp))
-                self.stk.append(_Expr(op, (tp, e), tp))
+            if op in ("neg", "pos"):
+                if not e.type.is_number_type:
+                    self.start_token.syntax_err("非法的表达式：类型'%s'不可做正负运算" % e.type)
+            elif op == "!":
+                if not e.type.is_bool_type:
+                    self.start_token.syntax_err("非法的表达式：类型'%s'不可做'!'运算" % e.type)
+            elif op == "~":
+                if not e.type.is_integer_type:
+                    self.start_token.syntax_err("非法的表达式：类型'%s'不可做'~'运算" % e.type)
             else:
-                if op in ("neg", "pos"):
-                    if not e.type.is_number_type:
-                        self.start_token.syntax_err("非法的表达式：类型'%s'不可做正负运算" % e.type)
-                elif op == "!":
-                    if not e.type.is_bool_type:
-                        self.start_token.syntax_err("非法的表达式：类型'%s'不可做'!'运算" % e.type)
-                elif op == "~":
-                    if not e.type.is_integer_type:
-                        self.start_token.syntax_err("非法的表达式：类型'%s'不可做'~'运算" % e.type)
-                else:
-                    raise Exception("Bug")
-                self.stk.append(_Expr(op, e, e.type))
+                raise Exception("Bug")
+            self.stk.append(_Expr(op, e, e.type))
 
         elif op in _BINOCULAR_OP_SET:
             #双目运算符
@@ -321,18 +306,25 @@ class Parser:
                 continue
 
             if t.is_sym("("):
-                tp = larc_type.try_parse_type(self.token_list, self.curr_module, self.dep_module_map, self.gtp_map, var_map_stk,
-                                              used_dep_module_set = self.used_dep_module_set)
-                if tp is not None:
-                    #类型强转
-                    if tp == larc_type.VOID_TYPE:
-                        t.syntax_err("无效的类型强转：不能转为void类型")
-                    self.token_list.pop_sym(")")
-                    parse_stk.push_op("force_convert", tp)
-                    continue
                 #子表达式
                 parse_stk.push_expr(self.parse(var_map_stk, None))
                 self.token_list.pop_sym(")")
+            elif t.is_reserved("cast"):
+                self.token_list.pop_sym("<")
+                t = self.token_list.peek()
+                tp = larc_type.try_parse_type(self.token_list, self.curr_module, self.dep_module_map, self.gtp_map, var_map_stk,
+                                              used_dep_module_set = self.used_dep_module_set)
+                if tp is None:
+                    t.syntax_err("需要类型")
+                if tp == larc_type.VOID_TYPE:
+                    t.syntax_err("无效的类型强转：不能转为void类型")
+                self.token_list.pop_sym(">")
+                self.token_list.pop_sym("(")
+                expr = self.parse(var_map_stk, None)
+                self.token_list.pop_sym(")")
+                if not tp.can_force_convert_from(expr.type):
+                    t.syntax_err("无效的强制类型转换：‘%s’到‘%s’" % (expr.type, tp))
+                parse_stk.push_expr(_Expr("force_convert", (tp, expr), tp))
             elif t.is_name:
                 if t.value in self.dep_module_map:
                     m = larc_module.module_map[self.dep_module_map[t.value]]

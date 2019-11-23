@@ -2,7 +2,7 @@ import testing, reflect;
 
 void test_array_new<T>(long[] sizes, T[] expect_array)
 {
-    var tp = reflect.type_of((T[])nil);
+    var tp = reflect.type_of(cast<T[]>(nil));
     var tester = []{
         void assert(bool cond, String desc)
         {
@@ -25,11 +25,11 @@ void test_array()
     };
 
     foreach (var p: new Pair<Any, long>[]{
-        1:                          0,
-        (int[])nil:                 1,
-        "":                         0,
-        (long[][])nil:              2,
-        (Iter<int[][]>[][][])nil:   3,
+        1:                              0,
+        cast<int[]>(nil):               1,
+        "":                             0,
+        cast<long[][]>(nil):            2,
+        cast<Iter<int[][]>[][][]>(nil): 3,
     }.iter())
     {
         tp = reflect.type_of(p.first());
@@ -37,9 +37,9 @@ void test_array()
     }
 
     foreach (var p: new Pair<Any, long[]>[]{
-        1:                          {},
-        (int[])nil:                 {},
-        (long[][])nil:              {1, 2, 3},
+        1:                      {},
+        cast<int[]>(nil):       {},
+        cast<long[][]>(nil):    {1, 2, 3},
     }.iter())
     {
         tp = reflect.type_of(p.first());

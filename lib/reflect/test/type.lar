@@ -2,7 +2,7 @@ import testing, reflect;
 
 void test_type()
 {
-    testing.assert(reflect.type_of((Throwable)nil) === nil, "type_of(nil)");
+    testing.assert(reflect.type_of(cast<Throwable>(nil)) === nil, "type_of(nil)");
 
     {
         GoAny ga;
@@ -27,8 +27,8 @@ void test_type()
         foreach (var p: new Pair<Any, Any>[]{
             1:    0,
             true: false,
-            1.f:  (float)0.0,
-            "":   (String)nil,
+            1.f:  0.0f,
+            "":   cast<String>(nil),
         }.iter())
         {
             var tp = reflect.type_of(p.first());
@@ -48,6 +48,6 @@ void test_type()
             }
         };
         tester.test(new Any[]{'x', 1, 2L, true, 1.f, 0.0}, true);
-        tester.test(new Any[]{"abc", new int[0], (char[])nil}, false);
+        tester.test(new Any[]{"abc", new int[0], cast<char[]>(nil)}, false);
     }
 }

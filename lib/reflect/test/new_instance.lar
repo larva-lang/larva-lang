@@ -36,7 +36,7 @@ void test_new_instance()
         }
     };
 
-    foreach (var a: new Any[]{1, (int[])nil, []{}, (CantNewInstanceA)nil, (CantNewInstanceB)nil}.iter())
+    foreach (var a: new Any[]{1, cast<int[]>(nil), []{}, cast<CantNewInstanceA>(nil), cast<CantNewInstanceB>(nil)}.iter())
     {
         tp = reflect.type_of(a);
         bool has_constructor;
@@ -60,7 +60,7 @@ void test_new_instance()
     ;
 
     {
-        tp = reflect.type_of((CanNewInstance)nil);
+        tp = reflect.type_of(cast<CanNewInstance>(nil));
 
         foreach (var p: new Pair<reflect.Value[], int>[]{
             {}:                     -1,
@@ -85,7 +85,7 @@ void test_new_instance()
     }
 
     {
-        tp = reflect.type_of((CanNewInstance)nil);
+        tp = reflect.type_of(cast<CanNewInstance>(nil));
         var args = new reflect.Value[]{INT_VAL, STR_VAL};
 
         bool has_constructor;

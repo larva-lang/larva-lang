@@ -104,7 +104,7 @@ void test_string()
         tester.assert("abc".repeat(3).eq("abcabcabc"), "repeat");
         {
             var c = call_and_catch<ValueError>([-]{
-                "a".repeat(1000).repeat((long)1e16);
+                "a".repeat(1000).repeat(cast<long>(1e16));
             });
             tester.assert(c !== nil, "repeat（结果长度超限）");
         }

@@ -88,7 +88,7 @@ func lar_go_func_new_fiber_ctx_with_timeout(lar_fiber *lar_go_stru_fiber, name s
 
 public void start_new(Callable callee)
 {
-    var n = "fiber_%d".((long)(time.time() * 1e6));
+    var n = "fiber_%d".(cast<long>(time.time() * 1e6));
 
     !<<
     new_lar_fiber, cancel := lar_go_func_new_fiber_ctx_with_cancel(nil, lar_str_to_go_str(l_n))
@@ -113,7 +113,7 @@ public class Worker
 
 public Worker start_worker(Callable callee)
 {
-    var n = "fiber_worker_%d".((long)(time.time() * 1e6));
+    var n = "fiber_worker_%d".(cast<long>(time.time() * 1e6));
     var w = new Worker();
 
     !<<

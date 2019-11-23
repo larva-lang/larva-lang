@@ -22,7 +22,7 @@ class Client
         this.result = new char[4];
         for (long i = 0; i < 4; )
         {
-            char c = '0' + (char)rand.rand_n(10);
+            char c = '0' + cast<char>(rand.rand_n(10));
             if (this.result[: i].index(c) < 0)
             {
                 this.result[i] = c;

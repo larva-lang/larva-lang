@@ -43,7 +43,7 @@ ulong init_rand_hash_factor()
 {
     for (var i = 0; i < 100; ++ i)
     {
-        var rhf = (ulong)rand.rand_n(LONG_MAX) * (ulong)rand.rand_n(LONG_MAX);
+        var rhf = cast<ulong>(rand.rand_n(LONG_MAX)) * cast<ulong>(rand.rand_n(LONG_MAX));
         if (rhf != 0)
         {
             return rhf;
@@ -69,7 +69,7 @@ public long hash<T>(T t)
 #elif typein(T, {double})
     h = hash_double(t);
 #elif typeisprimitive(T)
-    h = (long)t; //覆盖所有整数基本类型
+    h = cast<long>(t); //覆盖所有整数基本类型
 #elif typeimplements(T, Hashable)
     h = t.hash();
 #else
@@ -83,6 +83,6 @@ public long hash<T>(T t)
     其他一些语言，例如python是在特定对象，例如字符串的hash算法中增加随机种子来防攻击，larva则统一在这里进行
     严格来说具体对象也应按实际情况来进行一些防攻击策略，例如如果攻击者找到了一堆字符串s1，s2……，其hash方法返回都相同，那么这个hash返回也是一样的
     */
-    ulong uh = (ulong)h * (rand_hash_factor | 1);
-    return (long)(((uh >> 32) ^ uh) + rand_hash_factor) & LONG_MAX;
+    ulong uh = cast<ulong>(h) * (rand_hash_factor | 1);
+    return cast<long>(((uh >> 32) ^ uh) + rand_hash_factor) & LONG_MAX;
 }

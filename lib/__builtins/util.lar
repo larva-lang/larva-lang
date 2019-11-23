@@ -114,7 +114,7 @@ public String type_name<T>()
 
 public bool is_interface<T>()
 {
-    return zero_value<T>() === (Any)nil;
+    return zero_value<T>() === cast<Any>(nil);
 }
 
 public bool try_assert_type<T>(Any a, ref T t)

@@ -18,7 +18,7 @@ public void main()
         foreach (var i: iters.map(new iters.Range<int>(100), []{
             public long convert(int n)
             {
-                return (long)n * -7L;
+                return cast<long>(n) * -7L;
             }
         }))
         {

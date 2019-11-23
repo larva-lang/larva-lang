@@ -3,14 +3,14 @@
 void f1()
 {
     Any a = "hello";
-    println((String)a);
+    println(cast<String>(a));
 }
 
 //case 2 -------------------------------
 
 void f2()
 {
-    (void)1;
+    cast<void>(1);
 }
 
 //case 3 -------------------------------

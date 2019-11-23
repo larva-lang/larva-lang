@@ -30,7 +30,7 @@ void test_new_empty()
         }
     };
 
-    foreach (var a: new Any[]{1, []{}, (CantNewEmptyA)nil, (CantNewEmptyB)nil}.iter())
+    foreach (var a: new Any[]{1, []{}, cast<CantNewEmptyA>(nil), cast<CantNewEmptyB>(nil)}.iter())
     {
         tp = reflect.type_of(a);
         tester.assert(!tp.can_new_empty(), "can_new_empty返回true");
@@ -41,7 +41,7 @@ void test_new_empty()
     }
 
     {
-        tp = reflect.type_of((CanNewEmpty)nil);
+        tp = reflect.type_of(cast<CanNewEmpty>(nil));
         tester.assert(tp.can_new_empty(), "can_new_empty返回false");
         CanNewEmpty c;
         tester.assert(try_assert_type(tp.new_empty(), ref c), "new_empty返回的值不是CanNewEmpty的实例");

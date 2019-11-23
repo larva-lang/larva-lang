@@ -22,7 +22,7 @@ int f2(ref int x, String s)
     {
         x = X_AFTER_F2;
     }
-    return -1 if s === nil else x + (int)s.parse_long(0);
+    return -1 if s === nil else x + cast<int>(s.parse_long(0));
 }
 
 Any f3(ref int x, Any a)
@@ -31,7 +31,7 @@ Any f3(ref int x, Any a)
     {
         x = X_AFTER_F3;
     }
-    return (Any)nil if a === nil else (Any)(x * assert_type<int>(a));
+    return cast<Any>(nil) if a === nil else cast<Any>(x * assert_type<int>(a));
 }
 
 void f4(ref int x, long a, ref long b)
@@ -40,7 +40,7 @@ void f4(ref int x, long a, ref long b)
     {
         x = X_AFTER_F4;
     }
-    b = (long)x - a * b;
+    b = cast<long>(x) - a * b;
 }
 
 interface XKeeper
@@ -309,7 +309,7 @@ void test_method_ex(XKeeper t, bool has_constructor)
             []{
                 void test(MethodTester mt)
                 {
-                    mt.test_valid_call(new reflect.Value[]{reflect.value_of((String)nil)}, reflect.value_of(-1), X_AFTER_F2);
+                    mt.test_valid_call(new reflect.Value[]{reflect.value_of(cast<String>(nil))}, reflect.value_of(-1), X_AFTER_F2);
                     mt.test_valid_call(new reflect.Value[]{reflect.value_of("123")}, reflect.value_of(X_AFTER_F2 + 123), X_AFTER_F2);
                 }
             },
@@ -330,7 +330,7 @@ void test_method_ex(XKeeper t, bool has_constructor)
                     long old_b = b;
                     var args = new reflect.Value[]{av, ref_b_v};
                     mt.test_valid_call(args, nil, X_AFTER_F4);
-                    mt.assert(b == (long)X_AFTER_F3 - a * old_b, args, "调用之后ref参数b的值错误");
+                    mt.assert(b == cast<long>(X_AFTER_F3) - a * old_b, args, "调用之后ref参数b的值错误");
                 }
             },
         };

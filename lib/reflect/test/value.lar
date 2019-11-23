@@ -61,7 +61,7 @@ void test_value()
 
     {
         func_name = "value_of";
-        foreach (var a: new Any[]{'x', 1, 2L, true, 1.f, 0.0, "abc", new int[0], (char[])nil}.iter())
+        foreach (var a: new Any[]{'x', 1, 2L, true, 1.f, 0.0, "abc", new int[0], cast<char[]>(nil)}.iter())
         {
             var v = reflect.value_of(a);
             tester.assert(v.get() === a, a, "取出的值和原始值不同");
@@ -82,9 +82,9 @@ void test_value()
         test_value_of_ref(1.f, 2.f, true);
         test_value_of_ref(0.0, 100.0, true);
         test_value_of_ref("abc", "def", true);
-        test_value_of_ref("abc", (String)nil, true);
+        test_value_of_ref("abc", cast<String>(nil), true);
         test_value_of_ref(new int[0], new int[1], true);
-        test_value_of_ref((char[])nil, "xyz".to_char_array(), true);
+        test_value_of_ref(cast<char[]>(nil), "xyz".to_char_array(), true);
         test_value_of_ref<Any>(123, "hello", true);
         test_value_of_ref<Any>(nil, nil, true);
         test_value_of_ref<Throwable>("error", new ValueError("test"), true);

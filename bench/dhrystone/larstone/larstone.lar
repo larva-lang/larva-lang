@@ -46,7 +46,7 @@ bool Func2(String StrParI1, String StrParI2)
     char CharLoc = 0;
     while (IntLoc <= 1)
     {
-        if (Func1(StrParI1.char_at((long)IntLoc), StrParI2.char_at((long)IntLoc + 1)) == Ident1)
+        if (Func1(StrParI1.char_at(cast<long>(IntLoc)), StrParI2.char_at(cast<long>(IntLoc) + 1)) == Ident1)
         {
             CharLoc = 65;
             ++ IntLoc;
@@ -263,11 +263,11 @@ public void main()
 {
     if (os.args.size() > 1)
     {
-        loops = (int)os.args[1].parse_long(0);
+        loops = cast<int>(os.args[1].parse_long(0));
     }
     double ts = time.time();
     Proc0();
     double tm = time.time() - ts;
     println("Time used: %f sec".(tm));
-    println("This machine benchmarks at %f LarStones/second".((double)loops / tm));
+    println("This machine benchmarks at %f LarStones/second".(cast<double>(loops) / tm));
 }
