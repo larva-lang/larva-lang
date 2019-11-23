@@ -62,21 +62,19 @@ public long hash<T>(T t)
 {
     long h;
 
-#use
+#if typein(T, {bool})
     h = hash_bool(t);
-#oruse
+#elif typein(T, {float})
     h = hash_float(t);
-#oruse
+#elif typein(T, {double})
     h = hash_double(t);
-#oruse
+#elif typeisprimitive(T)
     h = (long)t; //覆盖所有整数基本类型
-#oruse
+#elif typeimplements(T, Hashable)
     h = t.hash();
-#oruse
-    h = assert_type<Hashable>(t).hash(); //其他对象不做区分，动态检测解决
 #else
-    #error "未知错误，请检查代码实现"
-#enduse
+    #error "无法对输入参数类型取hash"
+#endif
 
     /*
     这个算法是为了防止hash冲突序列的重复攻击

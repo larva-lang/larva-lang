@@ -337,26 +337,23 @@ T _parse_number<T>(String s, int base)
     var err error
     !>>
 
-#use
-    long tmp = r;
+#if typein(T, {long})
     fix_s_and_base.call();
     !<<
     l_r, err = strconv.ParseInt(l_s.s, int(l_base), 64)
     !>>
-#oruse
-    ulong tmp = r;
+#elif typein(T, {ulong})
     fix_s_and_base.call();
     !<<
     l_r, err = strconv.ParseUint(l_s.s, int(l_base), 64)
     !>>
-#oruse
-    double tmp = r;
+#elif typein(T, {double})
     !<<
     l_r, err = strconv.ParseFloat(l_s.s, 64)
     !>>
 #else
     #error "只支持long、ulong、double"
-#enduse
+#endif
 
     !<<
     l_ok = err == nil

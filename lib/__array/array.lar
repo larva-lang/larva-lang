@@ -40,11 +40,11 @@ T[] deep_copy<T>(T[] a)
 
     for (long i = 0; i < sz; ++ i)
     {
-#use
+#if typeisarray(T)
         b[i] = deep_copy(a[i]);
 #else
         b[i] = a[i];
-#enduse
+#endif
     }
 
     return b;

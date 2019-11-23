@@ -22,33 +22,40 @@ public T zero_value<T>()
 
 public bool is_same<T>(T a, T b)
 {
-#use
-    return a === b;
-#oruse
+#if typeisprimitive(T)
     return a == b;
 #else
-    #error "类型不可做判同操作（这个错误不该出现的，请检查编译器bug）"
-#enduse
+    return a === b;
+#endif
 }
 
 public bool eq<T>(T a, T b)
 {
-#use
+#if typeimplements(T, Equalable<T>)
     return a.eq(b);
-#oruse
+#elif typeimplements(T, Comparable<T>)
     return a.cmp(b) == 0;
-#oruse
-    return is_same(a, b);
 #else
-    #error "类型不可做判等操作"
-#enduse
+    return is_same(a, b);
+#endif
 }
 
 public int cmp<T>(T a, T b)
 {
-#use
+#if typeimplements(T, Comparable<T>)
     return a.cmp(b);
-#oruse
+#elif typein(T, {bool})
+    //bool类型按false比true小计算
+    if (a == b)
+    {
+        return 0;
+    }
+    if (a)
+    {
+        return 1;
+    }
+    return -1;
+#elif typeisprimitive(T)
     if (a < b)
     {
         return -1;
@@ -134,4 +141,14 @@ public T assert_type<T>(Any a)
 public interface Callable
 {
     public void call();
+}
+
+public interface Equalable<T>
+{
+    public bool eq(T t);
+}
+
+public interface Comparable<T>
+{
+    public int cmp(T t);
 }
