@@ -229,7 +229,7 @@ def new_id():
 def open_src_file(fn):
     f = open(fn)
     f.seek(0, os.SEEK_END)
-    if f.tell() > 100 * 1024 ** 2:
+    if f.tell() > 1024 ** 2:
         exit("源代码文件[%s]过大" % fn)
     f.seek(0, os.SEEK_SET)
     f_cont = f.read()
