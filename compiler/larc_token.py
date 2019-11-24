@@ -301,10 +301,6 @@ def _parse_str(s, src_file, line_no, pos):
             if s == "":
                 _syntax_err(src_file, line_no, pos, "字符串在转义处结束")
             c, s = _get_escape_char(s, src_file, line_no, pos)
-        else:
-            #普通字符
-            if ord(c) < 32:
-                _syntax_err(src_file, line_no, pos, "字符串中出现ascii控制码[0x%02X]" % ord(c))
         l.append(c) #添加到列表
     else:
         _syntax_err(src_file, line_no, pos, "字符串不完整")
@@ -422,9 +418,6 @@ class _RawStr:
         self.pos = pos
 
     def check(self):
-        for c in self.value:
-            if ord(c) < 32 and c != "\t":
-                _syntax_err(self.src_file, self.line_no, self.pos, "原始字符串含有制表符之外的ascii控制码")
         if "\t\n" in self.value or "\x20\n" in self.value:
             _syntax_warning(self.src_file, self.line_no, self.pos, "原始字符串含有空格或制表符结尾的行")
 
@@ -496,6 +489,13 @@ def parse_token_list(module_name, src_file):
     native_code = None
     for line_no, line in enumerate(line_list):
         line_no += 1
+
+        for pos, c in enumerate(line):
+            assert c != "\n"
+            if c == "\r":
+                _syntax_warning(src_file, line_no, pos, "含有回车符‘\\r’")
+            if ord(c) < 32 and c not in ("\t",):
+                _syntax_err(src_file, line_no, pos, "含有非法的ascii控制码‘\\x%02X’" % ord(c))
 
         if in_comment:
             #有未完的注释
