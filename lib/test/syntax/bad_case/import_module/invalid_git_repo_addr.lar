@@ -1,1 +1,1 @@
-from "invalid_git_repo_addr" import x
+from "invalid_git_repo_addr" import x;
