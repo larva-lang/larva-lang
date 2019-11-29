@@ -1634,7 +1634,7 @@ class Module:
             module_dir, _ = find_module_file(module_name) #试着找一下模块目录
             if module_dir != expect_module_dir:
                 #找到了但是和期望不符，也报错
-                module_name_token.syntax_err("模块[%s]存在于其他module_path[%s]" % (module_name, module_dir))
+                module_name_token.syntax_err("模块[%s]存在于其他库[%s]" % (module_name, module_dir))
 
         return module_name
 
