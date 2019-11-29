@@ -1743,6 +1743,9 @@ class Module:
                 return
             if sym != ",":
                 t.syntax_err("需要';'或','")
+            if token_list.peek().is_sym(";"):
+                token_list.pop()
+                return
 
     def _parse_cls(self, file_name, dep_module_map, decr_set, token_list):
         t = token_list.pop()
