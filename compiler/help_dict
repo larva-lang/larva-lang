@@ -20,7 +20,7 @@ dict([(k, v.strip("\n")) for k, v in {
     MAIN_MODULE_SPEC: {-m MAIN_MODULE | MAIN_MODULE_PATH}
 
         -m MAIN_MODULE
-            通过模块名的方式指定主模块，git模块名可省略引号
+            通过模块全名的方式指定主模块，git模块全名可省略引号
             例：
                 -m a/b
                 -m '"github.com/x/y"/a/b'

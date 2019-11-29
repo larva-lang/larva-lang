@@ -176,7 +176,7 @@ Larva编译器
 
     #检查
     if not larc_module.is_valid_module_name(main_module_name):
-        larc_common.exit("非法的主模块名'%s'" % main_module_name)
+        larc_common.exit("非法的主模块全名'%s'" % main_module_name)
     git_repo, mnpl = larc_module.split_module_name(main_module_name)
     if any([mnp.startswith("__") for mnp in mnpl]):
         larc_common.exit("不能使用私有模块作为主模块'%s'" % main_module_name)
@@ -200,7 +200,7 @@ Larva编译器
 
     #预处理所有涉及到的模块
     larc_common.inc_verbose_indent()
-    compiling_set = set() #需要预处理的模块名集合
+    compiling_set = set() #需要预处理的模块全名集合
     for m in larc_module.module_map.itervalues():
         compiling_set |= m.get_dep_module_set()
     while compiling_set:
