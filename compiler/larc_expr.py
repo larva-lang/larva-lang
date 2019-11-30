@@ -400,7 +400,7 @@ class Parser:
                         parse_stk.push_expr(self._parse_init_list(var_map_stk, init_list_type))
                     else:
                         #创建普通数组
-                        size_list = [self.parse(var_map_stk, larc_type.VALID_ARRAY_IDX_TYPES)]
+                        size_list = [self.parse(var_map_stk, larc_type.VALID_ARRAY_SIZE_TYPES)]
                         init_dim_count = 1
                         self.token_list.pop_sym("]")
                         while self.token_list.peek().is_sym("["):
