@@ -280,10 +280,6 @@ class Arr<E>
         !<<
         l_this_arr = this
         !>>
-        if (this_arr === other)
-        {
-            return true;
-        }
 
         long sz = this.size();
         if (sz != other.size())

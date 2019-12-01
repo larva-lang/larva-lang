@@ -1,5 +1,14 @@
 import testing;
 
+//一个故意设计出的类，其实例和自己不相等
+class NotEqWithSelf
+{
+    public bool eq(NotEqWithSelf other)
+    {
+        return false;
+    }
+}
+
 void test_array()
 {
     var r = new testing.CaseRunner();
@@ -95,6 +104,10 @@ void test_array()
         testing.assert(a !== a_copy && a.eq(a_copy) && !a.shallow_eq(a_copy), "deep_copy返回的数组对象错误");
 
         testing.assert(a[0].index(7) == 1 && a[0].index(9) < 0, "index测试失败");
+
+        var arr_not_eq_with_self = new NotEqWithSelf[]{nil};
+        testing.assert(arr_not_eq_with_self.shallow_eq(arr_not_eq_with_self), "NotEqWithSelf的数组和自己进行shallow_eq返回false");
+        testing.assert(!arr_not_eq_with_self.eq(arr_not_eq_with_self), "NotEqWithSelf的数组和自己进行eq返回true");
     });
 
     r.run();
