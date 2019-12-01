@@ -32,7 +32,7 @@ T[] deep_copy<T>(T[] a)
 {
     if (a === nil)
     {
-        return a;
+        return nil;
     }
 
     long sz = a.size();
@@ -213,6 +213,10 @@ class Arr<E>
 
     public E[] shallow_copy()
     {
+        if (this === nil)
+        {
+            return nil;
+        }
         var a = new E[this.size()];
         !<<
         copy(l_a.arr, this.arr)
@@ -256,6 +260,10 @@ class Arr<E>
         {
             return true;
         }
+        if (this_arr === nil || other === nil)
+        {
+            return false;
+        }
 
         long sz = this.size();
         if (sz != other.size())
@@ -280,6 +288,14 @@ class Arr<E>
         !<<
         l_this_arr = this
         !>>
+        if (this_arr === nil && other === nil)
+        {
+            return true;
+        }
+        if (this_arr === nil || other === nil)
+        {
+            return false;
+        }
 
         long sz = this.size();
         if (sz != other.size())
