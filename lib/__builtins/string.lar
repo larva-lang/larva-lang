@@ -305,6 +305,7 @@ T _parse_number<T>(String s, int base)
     l_r, err = strconv.ParseUint(l_s.s, int(l_base), 64)
     !>>
 #elif typein(T, {double})
+    !<<
     l_r, err = strconv.ParseFloat(l_s.s, 64)
     !>>
 #else
