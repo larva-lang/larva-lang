@@ -412,7 +412,7 @@ class Parser:
                                 continue
                             if size_list[-1] is None:
                                 t.syntax_err("需要']'")
-                            size_list.append(self.parse(var_map_stk, larc_type.VALID_ARRAY_IDX_TYPES))
+                            size_list.append(self.parse(var_map_stk, larc_type.VALID_ARRAY_SIZE_TYPES))
                             init_dim_count += 1
                             self.token_list.pop_sym("]")
                         array_base_type = base_type

@@ -337,11 +337,12 @@ STR_TYPE._set_is_checked()
 NIL_REF_TYPE = _Type((larc_token.make_fake_token_name("nil_ref"), "nil_ref"), None, None)
 NIL_REF_TYPE._set_is_checked()
 
-#所有整数类型都可以作为数组下标
+#所有整数类型都可以作为数组下标，ulong之外的所有整数类型都可以作为new数组时的大小
 VALID_ARRAY_IDX_TYPES = [SCHAR_TYPE, CHAR_TYPE]
 for _tp in "short", "int", "long":
     VALID_ARRAY_IDX_TYPES.append(eval("%s_TYPE" % _tp.upper()))
     VALID_ARRAY_IDX_TYPES.append(eval("U%s_TYPE" % _tp.upper()))
+VALID_ARRAY_SIZE_TYPES = [_tp for _tp in VALID_ARRAY_IDX_TYPES if _tp is not ULONG_TYPE]
 del _tp
 
 def is_type(tp):
