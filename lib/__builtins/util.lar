@@ -107,7 +107,7 @@ public String type_name<T>()
     var s = "%T".(a);
     if (!s.has_suffix("[]"))
     {
-        throw("BUG：数组类型名‘%T’不以‘[]’结尾".(a));
+        abort("BUG：数组类型名‘%T’不以‘[]’结尾".(a));
     }
     return s.sub_str(0, s.len() - 2);
 }
@@ -151,4 +151,14 @@ public interface Equalable<T>
 public interface Comparable<T>
 {
     public int cmp(T t);
+}
+
+//其他一些杂七杂八
+
+//崩掉程序，一般用于不可能出现的代码bug，比debug.assert级别更重的那种
+public void abort(String s)
+{
+    !<<
+    panic(lar_str_to_go_str(l_s))
+    !>>
 }

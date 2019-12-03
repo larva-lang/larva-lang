@@ -26,7 +26,7 @@ public class Mutex
             //pass
         default:
         !>>
-            throw("对一个未加锁的Mutex进行解锁操作");
+            abort("对一个未加锁的Mutex进行解锁操作");
         !<<
         }
         !>>

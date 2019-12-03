@@ -24,7 +24,12 @@ public class Catched<T>
 
     public void rethrow()
     {
-        var c = new Catched<Throwable>(this.t, this.tb);
+        Throwable t;
+        if (!try_assert_type(this.t, ref t))
+        {
+            abort("BUG:类型‘%T’的throwed值没有实现Throwable接口".(this));
+        }
+        var c = new Catched<Throwable>(t, this.tb);
         !<<
         panic(l_c)
         !>>

@@ -49,7 +49,7 @@ ulong init_rand_hash_factor()
             return rhf;
         }
     }
-    throw("运气不好？检查一下随机数产生器吧");
+    abort("运气不好？检查一下随机数产生器吧");
 }
 
 public interface Hashable
