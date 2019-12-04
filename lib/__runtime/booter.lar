@@ -20,7 +20,7 @@ func lar_booter_check_go_panic(lar_fiber *lar_go_stru_fiber) {
     }
 }
 
-func lar_booter_start_prog(builtins_mod_init_func func (*lar_go_stru_fiber), main_mod_init_func func (*lar_go_stru_fiber),
+func lar_booter_start_prog(init_std_lib_internal_modules func (*lar_go_stru_fiber), main_mod_init_func func (*lar_go_stru_fiber),
                            main_func func (*lar_go_stru_fiber)) {
     exit_code := 0
     defer func () {
@@ -42,7 +42,7 @@ func lar_booter_start_prog(builtins_mod_init_func func (*lar_go_stru_fiber), mai
         }
     }()
 
-    builtins_mod_init_func(lar_fiber)
+    init_std_lib_internal_modules(lar_fiber)
     main_mod_init_func(lar_fiber)
     main_func(lar_fiber)
 }

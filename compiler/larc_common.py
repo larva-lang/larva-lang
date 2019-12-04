@@ -11,6 +11,8 @@ COMPILING_TIMESTAMP = int(time.time() * 1000)
 
 _ERR_EXIT_CODE = 157 #编译失败时的exit码
 
+STD_LIB_INTERNAL_MODULES = "__builtins", "__internal", "__array", "__runtime", "__default"
+
 _recoverable_detecting    = False      #是否尝试在编译错误时恢复，即是否用子进程试编译
 _child_report_fd          = -1         #子进程用来汇报信息的fd
 _show_msg_in_child        = False      #子进程出错退出的时候是否照流程显示错误信息

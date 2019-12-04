@@ -131,10 +131,8 @@ Larva编译器
                 larc_common.exit("环境检查失败：标准库模块[%s]名字含有非法的下划线" % fn)
             first_level_std_module_set.add(fn)
 
-    std_lib_internal_module_list = "__builtins", "__internal", "__array", "__runtime", "__default"
-
     #检查一下几个特殊的标准库模块，必须有
-    for mn in std_lib_internal_module_list:
+    for mn in larc_common.STD_LIB_INTERNAL_MODULES:
         if mn not in first_level_std_module_set:
             larc_common.exit("环境检查失败：标准库模块[%s]缺失" % mn)
 
@@ -164,7 +162,7 @@ Larva编译器
         #处理main_module_path，提取main_module_name
         if main_module_path.startswith(std_lib_dir + "/"):
             main_module_name = main_module_path[len(std_lib_dir) + 1 :]
-            if main_module_name in std_lib_internal_module_list:
+            if main_module_name in larc_common.STD_LIB_INTERNAL_MODULES:
                 larc_common.exit("不能以'%s'作为主模块" % main_module_name)
         elif main_module_path.startswith(usr_lib_dir + "/"):
             main_module_name = fix_git_module_name(main_module_path[len(usr_lib_dir) + 1 :])
