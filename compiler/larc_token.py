@@ -10,14 +10,19 @@ import larc_common
 #用于解析token的正则表达式
 _TOKEN_RE = re.compile(
     #浮点数
-    r"""(\d+\.?\d*[eE][+-]?\w+|""" +
-    r"""\.\d+[eE][+-]?\w+|""" +
-    r"""\d+\.\w*|""" +
-    r"""\.\d\w*)|""" +
+    r"""(\d+\.?\d*[eE][+-]?\w+|"""
+    r"""\.\d+[eE][+-]?\w+|"""
+    r"""\d+\.\w*|"""
+    r"""\.\d\w*)|"""
+    #十六进制浮点数
+    r"""(0[xX][0-9A-Fa-f]+\.?[0-9A-Fa-f]*[pP][+-]?\w+|"""
+    r"""0[xX]\.[0-9A-Fa-f]+[pP][+-]?\w+|"""
+    r"""0[xX][0-9A-Fa-f]+\.\w*|"""
+    r"""0[xX]\.[0-9A-Fa-f]\w*)|"""
     #符号
-    r"""(!==|===|!=|==|<<=|<<|<=|>>=|>>|>=|\.\.|[-%^&*+|/]=|&&|\|\||\+\+|--|\W)|""" +
+    r"""(!==|===|!=|==|<<=|<<|<=|>>=|>>|>=|\.\.|[-%^&*+|/]=|&&|\|\||\+\+|--|\W)|"""
     #整数
-    r"""(\d\w*)|""" +
+    r"""(\d\w*)|"""
     #词，关键字或标识符
     r"""([a-zA-Z_]\w*)""")
 
@@ -314,17 +319,19 @@ def _parse_token(module_name, src_file, line_no, line, pos):
     if m is None:
         _syntax_err(src_file, line_no, pos, "")
 
-    f, sym, i, w = m.groups()
+    f, hex_f, sym, i, w = m.groups()
 
-    if f is not None:
+    if f is not None or hex_f is not None:
         #浮点数
+        if f is None:
+            f = hex_f
         if f[-1].upper() == "F":
             try:
-                value = float(f[: -1])
+                value = float(f[: -1]) if hex_f is None else float.fromhex(f[: -1])
                 if math.isnan(value) or math.isinf(value):
                     raise ValueError
                 if value < float.fromhex("0x1p-126"):
-                    value = 0
+                    value = 0.0
                 elif value > float.fromhex("0x1.FFFFFEp127"):
                     raise ValueError
             except ValueError:
@@ -332,7 +339,7 @@ def _parse_token(module_name, src_file, line_no, line, pos):
             return _Token("literal_float", value, src_file, line_no, pos), len(f)
         else:
             try:
-                value = float(f)
+                value = float(f) if hex_f is None else float.fromhex(f)
                 if math.isnan(value) or math.isinf(value):
                     raise ValueError
             except ValueError:
