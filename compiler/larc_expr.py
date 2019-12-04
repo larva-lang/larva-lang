@@ -761,8 +761,8 @@ class Parser:
                 elif verb in "xX":
                     if expr.type == larc_type.STR_TYPE:
                         expr_list[expr_idx - 1] = _Expr("to_go_str", expr, larc_type.STR_TYPE)
-                    elif not expr.type.is_integer_type:
-                        raise ExprTypeError("整数或字符串")
+                    elif not expr.type.is_integer_type and not expr.type.is_float_type:
+                        raise ExprTypeError("整数、浮点数或字符串")
                 elif verb in "eEfFgG":
                     if not expr.type.is_float_type:
                         raise ExprTypeError("浮点数")
