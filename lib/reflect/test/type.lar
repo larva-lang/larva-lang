@@ -47,7 +47,7 @@ void test_type()
                 }
             }
         };
-        tester.test(new Any[]{'x', 1, 2L, true, 1.f, 0.0}, true);
+        tester.test(new Any[]{'x', 1, 2L, true, cast<float>(1.), 0.0}, true);
         tester.test(new Any[]{"abc", new int[0], cast<char[]>(nil)}, false);
     }
 }

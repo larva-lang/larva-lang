@@ -60,6 +60,6 @@ var lar_util_GOROOT_path = func () (ret string) {
         }
     }).Call(nil)
     return
-}
+}()
 
 !>>
