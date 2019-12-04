@@ -289,47 +289,6 @@ T _parse_number<T>(String s, int base)
         throw(new ValueError("不支持%d进制".(base)));
     }
 
-    String org_s = s;
-    int org_base = base;
-
-    var fix_s_and_base = [-]{
-        if (s.len() >= 3 && base == 0)
-        {
-            //由于go的新版本的整数parse去掉了0b、0o等语法，自己加上
-
-            //提取符号
-            String sign_str = nil;
-            char sign = s.char_at(0);
-            if (sign == '+' || sign == '-')
-            {
-                sign_str = s.sub_str(0, 1);
-                s = s.sub_str(1, s.len());
-            }
-
-            //若符合语法则修改s和base
-            if (s.char_at(0) == '0')
-            {
-                char c = s.char_at(1);
-                if (c == 'B' || c == 'b')
-                {
-                    s = s.sub_str(2, s.len());
-                    base = 2;
-                }
-                if (c == 'O' || c == 'o')
-                {
-                    s = s.sub_str(2, s.len());
-                    base = 8;
-                }
-            }
-
-            //补上sign
-            if (sign_str !== nil)
-            {
-                s = sign_str.concat(s);
-            }
-        }
-    };
-
     T r;
     bool ok;
 
@@ -338,17 +297,14 @@ T _parse_number<T>(String s, int base)
     !>>
 
 #if typein(T, {long})
-    fix_s_and_base.call();
     !<<
     l_r, err = strconv.ParseInt(l_s.s, int(l_base), 64)
     !>>
 #elif typein(T, {ulong})
-    fix_s_and_base.call();
     !<<
     l_r, err = strconv.ParseUint(l_s.s, int(l_base), 64)
     !>>
 #elif typein(T, {double})
-    !<<
     l_r, err = strconv.ParseFloat(l_s.s, 64)
     !>>
 #else
@@ -361,7 +317,7 @@ T _parse_number<T>(String s, int base)
 
     if (!ok)
     {
-        throw(new ValueError("无效的%s%T字面量：%r".("" if org_base == 0 else "%d进制".(org_base), r, org_s)));
+        throw(new ValueError("无效的%s%T字面量：%r".("" if base == 0 else "%d进制".(base), r, s)));
     }
 
     return r;
