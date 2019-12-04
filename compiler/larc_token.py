@@ -325,26 +325,13 @@ def _parse_token(module_name, src_file, line_no, line, pos):
         #浮点数
         if f is None:
             f = hex_f
-        if f[-1].upper() == "F":
-            try:
-                value = float(f[: -1]) if hex_f is None else float.fromhex(f[: -1])
-                if math.isnan(value) or math.isinf(value):
-                    raise ValueError
-                if value < float.fromhex("0x1p-126"):
-                    value = 0.0
-                elif value > float.fromhex("0x1.FFFFFEp127"):
-                    raise ValueError
-            except ValueError:
-                _syntax_err(src_file, line_no, pos, "非法的float字面量'%s'" % f)
-            return _Token("literal_float", value, src_file, line_no, pos), len(f)
-        else:
-            try:
-                value = float(f) if hex_f is None else float.fromhex(f)
-                if math.isnan(value) or math.isinf(value):
-                    raise ValueError
-            except ValueError:
-                _syntax_err(src_file, line_no, pos, "非法的double字面量'%s'" % f)
-            return _Token("literal_double", value, src_file, line_no, pos), len(f)
+        try:
+            value = float(f) if hex_f is None else float.fromhex(f)
+            if math.isnan(value) or math.isinf(value):
+                raise ValueError
+        except ValueError:
+            _syntax_err(src_file, line_no, pos, "非法的double字面量'%s'" % f)
+        return _Token("literal_double", value, src_file, line_no, pos), len(f)
 
     if sym is not None:
         #符号

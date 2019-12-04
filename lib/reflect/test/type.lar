@@ -25,10 +25,10 @@ void test_type()
 
     {
         foreach (var p: new Pair<Any, Any>[]{
-            1:    0,
-            true: false,
-            1.f:  0.0f,
-            "":   cast<String>(nil),
+            1:                  0,
+            true:               false,
+            cast<float>(1.):    cast<float>(0.0),
+            "":                 cast<String>(nil),
         }.iter())
         {
             var tp = reflect.type_of(p.first());

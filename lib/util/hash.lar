@@ -10,7 +10,7 @@ import (
 
 long hash_float(float n)
 {
-    if (n == 0.0f || n == -0.0f)
+    if (n == cast<float>(0.0) || n == cast<float>(-0.0))
     {
         return 0;
     }
