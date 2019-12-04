@@ -10,7 +10,7 @@ import (
 
 var lar_reflect_type_map map[string]*lar_cls_@<<Type>>
 
-func lar_go_func_@<<init_type_map>>() {
+func lar_go_func_@<<init_type_map>>(lar_fiber *lar_go_stru_fiber) {
     lar_reflect_type_map = map[string]*lar_cls_@<<Type>>{}
 
     //第一步：用Type对象填充map
@@ -37,8 +37,6 @@ func lar_go_func_@<<init_type_map>>() {
         lar_reflect_type_map[tn_go_str] = tp
     }
     //第二步：初始化Type的其他信息，因为这个过程中可能会用到type_of，所以和上一步分开进行
-    lar_fiber, cancel := lar_go_func_new_fiber_ctx_with_cancel(nil, "reflect.init_type_map")
-    defer cancel()
     for _, tp := range lar_reflect_type_map {
         tp.lar_method_@<<init_attr_infos>>(lar_fiber)
         tp.lar_method_@<<init_method_infos>>(lar_fiber)
@@ -51,7 +49,7 @@ func lar_go_func_@<<init_type_map>>() {
 void __init()
 {
     !<<
-    lar_go_func_@<<init_type_map>>()
+    lar_go_func_@<<init_type_map>>(lar_fiber)
     !>>
 }
 
