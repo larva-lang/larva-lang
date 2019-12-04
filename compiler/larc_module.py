@@ -1529,7 +1529,7 @@ class Module:
         self.literal_str_list += [t for t in token_list if t.type == "literal_str"]
         self.literal_number_list += [
             t for t in token_list
-            if t.type.startswith("literal_") and t.type[8 :] in ("char", "int", "uint", "long", "ulong", "float", "double")]
+            if t.type.startswith("literal_") and t.type[8 :] in ("char", "int", "uint", "long", "ulong", "double")]
         while token_list:
             #解析import
             t = token_list.peek()

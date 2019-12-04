@@ -75,7 +75,7 @@ class _Token:
             def __nonzero__(self):
                 return self.token.type.startswith("literal_")
             def __call__(self, type):
-                assert type in ("nil", "bool", "char", "int", "uint", "long", "ulong", "float", "double", "str")
+                assert type in ("nil", "bool", "char", "int", "uint", "long", "ulong", "double", "str")
                 return self and self.token.type == "literal_" + type
         self.is_literal = IsLiteral(self)
 

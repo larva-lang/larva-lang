@@ -675,10 +675,10 @@ def _output_module():
             _literal_token_id_set.add(t.id)
             code += ("var %s %s = lar_str_from_go_str(%s)" % (_gen_str_literal_name(t), _STR_TYPE_NAME_CODE, _gen_str_literal(t.value)))
         for t in module.literal_number_list:
-            assert (t.is_literal and t.type[8 :] in ("char", "int", "uint", "long", "ulong", "float", "double") and
+            assert (t.is_literal and t.type[8 :] in ("char", "int", "uint", "long", "ulong", "double") and
                     t.id not in _literal_token_id_set)
             _literal_token_id_set.add(t.id)
-            if t.type[8 :] in ("float", "double"):
+            if t.is_literal("double"):
                 v = t.value.hex()
             else:
                 v = "%s" % t.value
