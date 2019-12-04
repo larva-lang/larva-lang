@@ -39,9 +39,7 @@ func lar_util_convert_go_tb_to_lar_tb(file string, line int, func_name string) (
     return lar_tb.file, lar_tb.line, lar_tb.fom_name, true
 }
 
-var lar_util_GOROOT_path string
-
-func init() {
+var lar_util_GOROOT_path = func () (ret string) {
     //通过回溯调用栈找到reflect库目录，继而解析GOROOT路径，不能用runtime.GOROOT()是因为需要编译时的GOROOT而非运行时的
     reflect.ValueOf(func () {
         sep := string(filepath.Separator)
@@ -53,14 +51,15 @@ func init() {
             }
             file_dir := filepath.Dir(file)
             if strings.HasSuffix(file_dir, reflect_path_suffix) {
-                lar_util_GOROOT_path = file_dir[: len(file_dir) - len(reflect_path_suffix) + 1] //末尾需要保留一个sep
-                if lar_util_GOROOT_path == sep {
+                ret = file_dir[: len(file_dir) - len(reflect_path_suffix) + 1] //末尾需要保留一个sep
+                if ret == sep {
                     panic("获取编译信息失败：GOROOT为空")
                 }
-                break
+                return
             }
         }
     }).Call(nil)
+    return
 }
 
 !>>

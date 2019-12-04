@@ -69,22 +69,6 @@ type lar_reflect_method_arg_type struct {
     v       interface{}
 }
 
-//基础类型的名字定义
-var (
-    lar_reflect_type_name_nil_intf  = lar_str_from_go_str("<nil>")
-    lar_reflect_type_name_bool      = lar_str_from_go_str("bool")
-    lar_reflect_type_name_schar     = lar_str_from_go_str("schar")
-    lar_reflect_type_name_char      = lar_str_from_go_str("char")
-    lar_reflect_type_name_short     = lar_str_from_go_str("short")
-    lar_reflect_type_name_ushort    = lar_str_from_go_str("ushort")
-    lar_reflect_type_name_int       = lar_str_from_go_str("int")
-    lar_reflect_type_name_uint      = lar_str_from_go_str("uint")
-    lar_reflect_type_name_long      = lar_str_from_go_str("long")
-    lar_reflect_type_name_ulong     = lar_str_from_go_str("ulong")
-    lar_reflect_type_name_float     = lar_str_from_go_str("float")
-    lar_reflect_type_name_double    = lar_str_from_go_str("double")
-)
-
 !>>
 
 final String
@@ -95,44 +79,44 @@ final String
 !<<
 
 func lar_go_func_@<<reflect_type_name>>(a interface{}) (name *lar_cls_@<<:String>>, is_go_type_name bool) {
+    var n string
     switch a.(type) {
     case nil:
-        name = lar_reflect_type_name_nil_intf
+        n = "<nil>"
     case bool:
-        name = lar_reflect_type_name_bool
+        n = "bool"
     case int8:
-        name = lar_reflect_type_name_schar
+        n = "schar"
     case uint8:
-        name = lar_reflect_type_name_char
+        n = "char"
     case int16:
-        name = lar_reflect_type_name_short
+        n = "short"
     case uint16:
-        name = lar_reflect_type_name_ushort
+        n = "ushort"
     case int32:
-        name = lar_reflect_type_name_int
+        n = "int"
     case uint32:
-        name = lar_reflect_type_name_uint
+        n = "uint"
     case int64:
-        name = lar_reflect_type_name_long
+        n = "long"
     case uint64:
-        name = lar_reflect_type_name_ulong
+        n = "ulong"
     case float32:
-        name = lar_reflect_type_name_float
+        n = "float"
     case float64:
-        name = lar_reflect_type_name_double
+        n = "double"
     default:
         lri, ok := a.(lar_reflect_intf)
         if ok {
             name = lri.lar_reflect_type_name()
-        } else {
-            name = (
-                lar_str_from_go_str(
-                    fmt.Sprintf("%s%s%s",
-                                lar_str_to_go_str(lar_gv_@<<REFLECT_TYPE_NAME_GO_TYPE_PREFIX>>), reflect.TypeOf(a).String(),
-                                lar_str_to_go_str(lar_gv_@<<REFLECT_TYPE_NAME_GO_TYPE_SUFFIX>>))))
-            is_go_type_name = true
+            return
         }
+        n = fmt.Sprintf("%s%s%s",
+                        lar_str_to_go_str(lar_gv_@<<REFLECT_TYPE_NAME_GO_TYPE_PREFIX>>), reflect.TypeOf(a).String(),
+                        lar_str_to_go_str(lar_gv_@<<REFLECT_TYPE_NAME_GO_TYPE_SUFFIX>>))
+        is_go_type_name = true
     }
+    name = lar_str_from_go_str(n)
     return
 }
 

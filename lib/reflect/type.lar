@@ -8,9 +8,11 @@ import (
     "reflect"
 )
 
-var lar_reflect_type_map = map[string]*lar_cls_@<<Type>>{}
+var lar_reflect_type_map map[string]*lar_cls_@<<Type>>
 
 func lar_go_func_@<<init_type_map>>() {
+    lar_reflect_type_map = map[string]*lar_cls_@<<Type>>{}
+
     //第一步：用Type对象填充map
     for _, zv := range lar_reflect_all_zvs {
         if zv == nil {
