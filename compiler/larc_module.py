@@ -2055,6 +2055,26 @@ class Module:
         self.closure_map[closure.name] = closure
         return closure
 
+    def check_init_func(self):
+        if "__init" not in self.func_map:
+            return
+        init_func = self.func_map["__init"]
+        def err_exit(self, msg):
+            larc_common.exit("模块[%s]的初始化函数‘__init’：" % self)
+        if "public" in init_func.decr_set:
+            err_exit("不能是public的")
+        if init_func.type != larc_type.VOID_TYPE:
+            err_exit("返回类型应为'void'")
+        if init_func.gtp_name_list:
+            err_exit("不能是泛型函数")
+        if len(init_func.arg_map) != 0:
+            err_exit("不能有参数")
+
+    def get_init_func(self):
+        if "__init" in self.func_map:
+            return self.func_map["__init"]
+        return None
+
 #反复对所有新增的ginst进行check type，直到完成
 def check_type_for_ginst():
     while True:

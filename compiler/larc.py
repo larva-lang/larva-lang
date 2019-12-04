@@ -234,6 +234,10 @@ Larva编译器
     for m in larc_module.module_map.itervalues():
         m.expand_cls_usemethod()
 
+    #初始化函数的合法性检查
+    for m in larc_module.module_map.itervalues():
+        m.check_init_func()
+
     #主模块main函数检查
     main_module.check_main_func()
 

@@ -701,6 +701,9 @@ def _output_module():
                     if gv.expr is not None:
                         code.record_tb_info(gv.expr.pos_info)
                         code += "%s = %s" % (_gen_gv_name(gv), _gen_expr_code(gv.expr))
+                init_func = module.get_init_func()
+                if init_func is not None:
+                    code += "%s(lar_fiber)" % _gen_func_name(init_func)
 
         for intf in [i for i in module.intf_map.itervalues() if not i.gtp_name_list] + list(module.gintf_inst_map.itervalues()):
             with code.new_blk("type %s interface" % (_gen_coi_name(intf))):
