@@ -678,8 +678,12 @@ def _output_module():
             assert (t.is_literal and t.type[8 :] in ("char", "int", "uint", "long", "ulong", "float", "double") and
                     t.id not in _literal_token_id_set)
             _literal_token_id_set.add(t.id)
+            if t.type[8 :] in ("float", "double"):
+                v = t.value.hex()
+            else:
+                v = "%s" % t.value
             code += ("var %s %s = (%s)" %
-                     (_gen_number_literal_name(t), _gen_type_name_code(eval("larc_type.%s_TYPE" % t.type[8 :].upper())), t.value))
+                     (_gen_number_literal_name(t), _gen_type_name_code(eval("larc_type.%s_TYPE" % t.type[8 :].upper())), v))
 
         code += ""
         for gv in module.global_var_map.itervalues():
