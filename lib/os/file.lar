@@ -25,9 +25,9 @@ public final int
     SEEK_END = 2,
 ;
 
-!<<
-
-func init() {
+void __init()
+{
+    !<<
     lar_gv_@<<O_RDONLY>>    = int32(os.O_RDONLY)
     lar_gv_@<<O_WRONLY>>    = int32(os.O_WRONLY)
     lar_gv_@<<O_RDWR>>      = int32(os.O_RDWR)
@@ -36,9 +36,8 @@ func init() {
     lar_gv_@<<O_EXCL>>      = int32(os.O_EXCL)
     lar_gv_@<<O_SYNC>>      = int32(os.O_SYNC)
     lar_gv_@<<O_TRUNC>>     = int32(os.O_TRUNC)
+    !>>
 }
-
-!>>
 
 public class File
 {

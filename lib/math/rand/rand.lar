@@ -1,17 +1,26 @@
+import time;
+
 !<<
 
 import (
     "math/rand"
-    "time"
 )
 
+!>>
+
 //用启动时间戳初始化种子
-func init() {
-    t := uint64(time.Now().UnixNano())
-    rand.Seed(int64(t * t))
+void __init()
+{
+    var t = cast<long>(time.time() * 1e9);
+    seed(t * t);
 }
 
-!>>
+public void seed(long s)
+{
+    !<<
+    rand.Seed(l_s)
+    !>>
+}
 
 //生成一个[0.0, 1.0)的随机数
 public double random()

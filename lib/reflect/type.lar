@@ -46,11 +46,14 @@ func lar_go_func_@<<init_type_map>>() {
     }
 }
 
-func init() {
-    lar_go_func_@<<init_type_map>>()
-}
-
 !>>
+
+void __init()
+{
+    !<<
+    lar_go_func_@<<init_type_map>>()
+    !>>
+}
 
 public class Type
 {
