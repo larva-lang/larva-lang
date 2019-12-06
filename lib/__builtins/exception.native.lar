@@ -44,7 +44,7 @@ func lar_exc_create_catched_throwable(lar_fiber *lar_go_stru_fiber, t lar_intf_@
         if len(func_name_parts) == 2 {
             fn := func_name_parts[1]
             if fn == "lar_booter_start_prog" || fn == "lar_booter_start_fiber" {
-                //追溯到了程序或协程的入口，停止
+                //追溯到了fiber的入口，停止
                 break
             }
             if strings.HasPrefix(fn, "lar_env_init_mod_") {
