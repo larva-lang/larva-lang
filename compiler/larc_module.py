@@ -551,6 +551,10 @@ class _Cls(_ClsBase):
                         break
                     #多属性定义
                     assert next_t.is_sym(",")
+                    if token_list.peek().is_sym(";"):
+                        #允许最后一个字段有逗号
+                        token_list.pop_sym(";")
+                        break
                     t, name = token_list.pop_name()
                     self._check_redefine(t, name)
                     next_t = token_list.pop()
