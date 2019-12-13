@@ -138,6 +138,16 @@ public T assert_type<T>(Any a)
 
 //常用的一些接口
 
+public interface Stringable
+{
+    public String str();
+}
+
+public interface Representable
+{
+    public String repr();
+}
+
 public interface Callable
 {
     public void call();

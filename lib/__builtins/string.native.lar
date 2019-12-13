@@ -21,20 +21,12 @@ func lar_str_fmt(format string, a ...interface{}) *lar_cls_@<<String>> {
     return lar_str_from_go_str(fmt.Sprintf(format, a...))
 }
 
-type lar_go_intf_strable interface {
-    lar_method_str(lar_fiber *lar_go_stru_fiber) *lar_cls_@<<String>>
-}
-
 func lar_go_func_any_to_go_str(lar_fiber *lar_go_stru_fiber, a interface{}) string {
-    strable, ok := a.(lar_go_intf_strable)
+    strable, ok := a.(lar_intf_@<<Stringable>>)
     if ok {
         return lar_str_to_go_str(strable.lar_method_str(lar_fiber))
     }
     return lar_go_func_any_repr_to_go_str(lar_fiber, a)
-}
-
-type lar_go_intf_reprable interface {
-    lar_method_repr(lar_fiber *lar_go_stru_fiber) *lar_cls_@<<String>>
 }
 
 type lar_go_intf_nil_reprable interface {
@@ -69,7 +61,7 @@ func lar_go_func_any_repr_to_go_str(lar_fiber *lar_go_stru_fiber, a interface{})
         }
     } else {
         //正常对象
-        reprable, ok := lri.(lar_go_intf_reprable)
+        reprable, ok := lri.(lar_intf_@<<Representable>>)
         if ok {
             //定义了repr，使用
             return lar_str_to_go_str(reprable.lar_method_repr(lar_fiber))

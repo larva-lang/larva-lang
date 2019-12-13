@@ -1,7 +1,7 @@
 //可以用throw函数抛出的对象类型
 public interface Throwable
 {
-    public String str();
+    Stringable usemethod;
 }
 
 //抛出异常
