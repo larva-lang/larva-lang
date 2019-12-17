@@ -153,6 +153,7 @@ class Parser:
                 t.syntax_err(ccc_err_msg)
 
             if t.is_sym(";"):
+                t.warning("空语句")
                 continue
             if t.is_sym("{"):
                 #新代码块
