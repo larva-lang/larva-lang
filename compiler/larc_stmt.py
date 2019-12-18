@@ -248,6 +248,7 @@ class Parser:
                     if expr.op not in ("call_method", "call_func"):
                         t.syntax_err("defer表达式必须是一个函数或方法调用")
                     stmt_list.append(_Stmt("defer_expr", expr = expr))
+                    self.token_list.pop_sym(";")
                 continue
             if t.is_native_code:
                 stmt_list.append(_Stmt("native_code", native_code = larc_module.NativeCode(self.module, self.file_name, self.gtp_map, t),
