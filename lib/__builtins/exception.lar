@@ -75,7 +75,7 @@ Catched<Throwable> _go_recovered_to_catched(GoAny _r)
 //异常处理接口，用于handle_exc
 public interface ExcHandler<T>
 {
-    public handle(Catched<T> catched_exc);
+    public void handle(Catched<T> catched_exc);
 }
 
 //捕获指定类型的异常并处理，和defer搭配使用
@@ -83,7 +83,7 @@ public void handle_exc<T>(ExcHandler<T> handler)
 {
     GoAny r;
     !<<
-    l_r = recover();
+    l_r = recover()
     !>>
     var c = _go_recovered_to_catched(r);
     if (c === nil)
@@ -109,7 +109,7 @@ public void ignore_exc()
 {
     GoAny r;
     !<<
-    l_r = recover();
+    l_r = recover()
     !>>
     _go_recovered_to_catched(r);
 }
@@ -121,7 +121,7 @@ public void ignore_exc()
 void _call_and_catch<T>(Callable callee, ref Catched<T> c)
 {
     defer handle_exc<T>([]{
-        public handle(Catched<T> catched_exc)
+        public void handle(Catched<T> catched_exc)
         {
             c = catched_exc;
         }
