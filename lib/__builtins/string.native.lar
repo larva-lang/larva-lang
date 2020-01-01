@@ -29,10 +29,6 @@ func lar_go_func_any_to_go_str(lar_fiber *lar_go_stru_fiber, a interface{}) stri
     return lar_go_func_any_repr_to_go_str(lar_fiber, a)
 }
 
-type lar_go_intf_nil_reprable interface {
-    lar_method_nil_repr(lar_fiber *lar_go_stru_fiber) *lar_cls_@<<String>>
-}
-
 func lar_go_func_any_repr_to_go_str(lar_fiber *lar_go_stru_fiber, a interface{}) string {
     switch v := a.(type) {
     case nil:
@@ -54,7 +50,7 @@ func lar_go_func_any_repr_to_go_str(lar_fiber *lar_go_stru_fiber, a interface{})
     p := reflect.ValueOf(&lri).Elem().InterfaceData()[1]
     if p == 0 {
         //某类的nil指针
-        nil_reprable, ok := lri.(lar_go_intf_nil_reprable)
+        nil_reprable, ok := lri.(lar_intf_@<<NilRepresentable>>)
         if ok {
             //定义了nil_repr，使用
             return lar_str_to_go_str(nil_reprable.lar_method_nil_repr(lar_fiber))

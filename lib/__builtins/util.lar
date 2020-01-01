@@ -143,6 +143,11 @@ public interface Stringable
     public String str();
 }
 
+public interface NilRepresentable
+{
+    public String nil_repr();
+}
+
 public interface Representable
 {
     public String repr();
