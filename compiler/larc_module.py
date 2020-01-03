@@ -424,7 +424,7 @@ class _Method(_MethodBase):
             self.stmt_list = None
         else:
             self.stmt_list = larc_stmt.Parser(self.block_token_list, self.cls.module, self.cls.module.get_dep_module_map(self.cls.file_name),
-                                              self.cls, None, self).parse((self.arg_map.copy(),), 0, 0)
+                                              self.cls, None, self).parse((self.arg_map.copy(),), 0)
             self.block_token_list.pop_sym("}")
             assert not self.block_token_list
         del self.block_token_list
@@ -654,7 +654,7 @@ class _GclsInstMethod(_MethodBase):
 
     def compile(self):
         self.stmt_list = larc_stmt.Parser(self.block_token_list, self.module, self.module.get_dep_module_map(self.cls.file_name), self.cls,
-                                          self.cls.gtp_map, self).parse((self.arg_map.copy(),), 0, 0)
+                                          self.cls.gtp_map, self).parse((self.arg_map.copy(),), 0)
         self.block_token_list.pop_sym("}")
         assert not self.block_token_list
         del self.block_token_list
@@ -800,7 +800,7 @@ class _ClosureMethod:
 
         #解析方法体
         self.stmt_list = larc_stmt.Parser(token_list, self.module, dep_module_map, self.cls, self.closure.gtp_map,
-                                          self).parse(self.closure.var_map_stk + (self.arg_map.copy(),), 0, 0)
+                                          self).parse(self.closure.var_map_stk + (self.arg_map.copy(),), 0)
 
         if not self.is_simple_callable:
             token_list.pop_sym("}")
@@ -1298,7 +1298,7 @@ class _Func(_FuncBase):
             self.stmt_list = None
         else:
             self.stmt_list = larc_stmt.Parser(self.block_token_list, self.module, self.module.get_dep_module_map(self.file_name), None, None,
-                                              self).parse((self.arg_map.copy(),), 0, 0)
+                                              self).parse((self.arg_map.copy(),), 0)
             self.block_token_list.pop_sym("}")
             assert not self.block_token_list
         del self.block_token_list
@@ -1344,7 +1344,7 @@ class _GfuncInst(_FuncBase):
         if self.compiled:
             return False
         self.stmt_list = larc_stmt.Parser(self.block_token_list, self.module, self.module.get_dep_module_map(self.file_name), None,
-                                          self.gtp_map, self).parse((self.arg_map.copy(),), 0, 0)
+                                          self.gtp_map, self).parse((self.arg_map.copy(),), 0)
         self.block_token_list.pop_sym("}")
         assert not self.block_token_list
         del self.block_token_list
