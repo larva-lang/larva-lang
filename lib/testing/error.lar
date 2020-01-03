@@ -1,4 +1,4 @@
-//测试案例抛出Fail异常来指示测试失败的情况，这个类不对外，测试者只能通过下面的public函数接口来抛Fail，也不能显式catch
+//测试案例抛出Fail异常来指示测试失败的情况，这个类不对外，测试者只能通过下面的public函数接口来抛Fail，也不能显式捕获到
 class Fail
 {
     String s usemethod(str);
