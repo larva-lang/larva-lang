@@ -98,7 +98,7 @@ func lar_go_func_@<<throw_go_err>>(lar_fiber *lar_go_stru_fiber, err error) {
 
 //用于反向port时候的defer
 func lar_go_func_@<<catch_go_err>>(lar_fiber *lar_go_stru_fiber, err_ptr *error) {
-    c := lar_func_@<<_catch_throwable>>(lar_fiber, recover())
+    c := lar_func_@<<_go_recovered_to_catched>>(lar_fiber, recover())
     if c != nil {
         *err_ptr = c.lar_go_method_to_go_err(lar_fiber)
     }

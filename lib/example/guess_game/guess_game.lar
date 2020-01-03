@@ -2,11 +2,7 @@ import time, net, math/rand, fiber;
 
 void log(String msg)
 {
-    defer
-    {
-        catch<Throwable>();
-    }
-
+    defer ignore_exc();
     println("[%s] %s".(time.format_time("2006-01-02 15:04:05", time.time()), msg));
 }
 

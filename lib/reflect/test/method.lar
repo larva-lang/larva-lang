@@ -10,36 +10,32 @@ final int
 
 void f1(ref int x)
 {
-    defer
-    {
+    defer [-]{
         x = X_AFTER_F1;
-    }
+    }.call();
 }
 
 int f2(ref int x, String s)
 {
-    defer
-    {
+    defer [-]{
         x = X_AFTER_F2;
-    }
+    }.call();
     return -1 if s === nil else x + cast<int>(s.parse_long(0));
 }
 
 Any f3(ref int x, Any a)
 {
-    defer
-    {
+    defer [-]{
         x = X_AFTER_F3;
-    }
+    }.call();
     return cast<Any>(nil) if a === nil else cast<Any>(x * assert_type<int>(a));
 }
 
 void f4(ref int x, long a, ref long b)
 {
-    defer
-    {
+    defer [-]{
         x = X_AFTER_F4;
-    }
+    }.call();
     b = cast<long>(x) - a * b;
 }
 

@@ -436,11 +436,7 @@ def _gen_expr_code_ex(expr):
 
     if expr.op == "call_func":
         func, expr_list = expr.arg
-        if func.module.name == "__builtins" and func.name in ("_catch_throwable", "catch"):
-            assert not expr_list
-            expr_list_code = "lar_fiber, recover()"
-        else:
-            expr_list_code = _gen_expr_list_code(expr_list)
+        expr_list_code = _gen_expr_list_code(expr_list)
         return "%s(%s)" % (_gen_func_name(func), expr_list_code)
 
     if expr.op == "closure":
@@ -917,11 +913,7 @@ def _output_module():
 
         for func in [i for i in module.func_map.itervalues() if not i.gtp_name_list] + list(module.gfunc_inst_map.itervalues()):
             code.switch_file(func.file_name)
-            if module.name == "__builtins" and func.name in ("_catch_throwable", "catch"):
-                assert not func.arg_map
-                arg_def = "lar_fiber *lar_go_stru_fiber, _go_recovered interface{}"
-            else:
-                arg_def = _gen_arg_def(func.arg_map)
+            arg_def = _gen_arg_def(func.arg_map)
             with code.new_blk("func %s(%s) %s" % (_gen_func_name(func), arg_def, _gen_type_name_code(func.type))):
                 _output_stmt_list(code, func.stmt_list)
                 code += "return %s" % _gen_default_value_code(func.type)

@@ -237,6 +237,8 @@ class Parser:
                 continue
             if t.is_reserved("defer"):
                 if self.token_list.peek().is_sym("{"):
+                    #取消这个语法
+                    t.syntax_err("需要表达式（已不支持defer代码块语法）")
                     #解析stmt_list时，外层loop_deep清零，defer_deep加一
                     self.token_list.pop_sym("{")
                     stmt_list.append(

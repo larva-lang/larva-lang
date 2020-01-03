@@ -12,7 +12,7 @@ void f_1()
 
 void f_2()
 {
-    int catch;
+    int handle_exc;
 }
 
 //case 3 --------------------------------------
