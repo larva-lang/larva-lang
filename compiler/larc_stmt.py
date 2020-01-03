@@ -50,17 +50,17 @@ class Parser:
         self.expr_parser = larc_expr.Parser(token_list, module, self.file_name, dep_module_map, cls, gtp_map, fom)
         self.ccc_use_deep = 0
 
-    def parse(self, var_map_stk, loop_deep, defer_deep):
+    def parse(self, var_map_stk, loop_deep):
         assert var_map_stk
         stmt_list = _StmtList(var_map_stk[-1])
         def new_closure_hook(closure):
             stmt_list.append(_Stmt("def_closure_method", closure = closure))
         self.expr_parser.push_new_closure_hook(new_closure_hook)
-        self._parse(var_map_stk, loop_deep, defer_deep, stmt_list)
+        self._parse(var_map_stk, loop_deep, stmt_list)
         self.expr_parser.pop_new_closure_hook()
         return stmt_list
 
-    def _parse(self, var_map_stk, loop_deep, defer_deep, stmt_list):
+    def _parse(self, var_map_stk, loop_deep, stmt_list):
         top_ccc_use_deep = self.ccc_use_deep
         while True:
             if self.token_list.peek().is_sym("}"):
@@ -157,27 +157,22 @@ class Parser:
                 continue
             if t.is_sym("{"):
                 #新代码块
-                stmt_list.append(_Stmt("block", stmt_list = self.parse(var_map_stk + (larc_common.OrderedDict(),), loop_deep, defer_deep)))
+                stmt_list.append(_Stmt("block", stmt_list = self.parse(var_map_stk + (larc_common.OrderedDict(),), loop_deep)))
                 self.token_list.pop_sym("}")
                 continue
             if t.is_reserved and t.value in ("break", "continue"):
                 if loop_deep == 0:
-                    if defer_deep == 0:
-                        t.syntax_err("循环外的%s" % t.value)
-                    else:
-                        t.syntax_err("不允许从defer代码中向外部%s" % t.value)
+                    t.syntax_err("循环外的%s" % t.value)
                 stmt_list.append(_Stmt(t.value))
                 self.token_list.pop_sym(";")
                 continue
             if t.is_reserved("return"):
-                if defer_deep > 0:
-                    t.syntax_err("不允许在defer代码中return")
                 stmt_list.append(_Stmt("return", expr = self._parse_return(var_map_stk)))
                 continue
             if t.is_reserved("for"):
                 for_var_map, init_expr_list, judge_expr, loop_expr_list, closure_def_map = self._parse_for_prefix(var_map_stk)
                 self.token_list.pop_sym("{")
-                for_stmt_list = self.parse(var_map_stk + (for_var_map.copy(),), loop_deep + 1, defer_deep)
+                for_stmt_list = self.parse(var_map_stk + (for_var_map.copy(),), loop_deep + 1)
                 self.token_list.pop_sym("}")
                 stmt_list.append(_Stmt("for", for_var_map = for_var_map, init_expr_list = init_expr_list, judge_expr = judge_expr,
                                        loop_expr_list = loop_expr_list, closure_def_map = closure_def_map, stmt_list = for_stmt_list))
@@ -187,7 +182,7 @@ class Parser:
                 foreach_var_map = larc_common.OrderedDict()
                 foreach_var_map[var_name] = var_tp
                 self.token_list.pop_sym("{")
-                foreach_stmt_list = self.parse(var_map_stk + (foreach_var_map,), loop_deep + 1, defer_deep)
+                foreach_stmt_list = self.parse(var_map_stk + (foreach_var_map,), loop_deep + 1)
                 self.token_list.pop_sym("}")
                 stmt_list.append(_Stmt("foreach", var_tp = var_tp, var_name = var_name, iter_expr = iter_expr, stmt_list = foreach_stmt_list))
                 continue
@@ -196,7 +191,7 @@ class Parser:
                 expr = self.expr_parser.parse(var_map_stk, larc_type.BOOL_TYPE)
                 self.token_list.pop_sym(")")
                 self.token_list.pop_sym("{")
-                while_stmt_list = self.parse(var_map_stk + (larc_common.OrderedDict(),), loop_deep + 1, defer_deep)
+                while_stmt_list = self.parse(var_map_stk + (larc_common.OrderedDict(),), loop_deep + 1)
                 self.token_list.pop_sym("}")
                 stmt_list.append(_Stmt("while", expr = expr, stmt_list = while_stmt_list))
                 continue
@@ -209,7 +204,7 @@ class Parser:
                     expr = self.expr_parser.parse(var_map_stk, larc_type.BOOL_TYPE)
                     self.token_list.pop_sym(")")
                     self.token_list.pop_sym("{")
-                    if_stmt_list = self.parse(var_map_stk + (larc_common.OrderedDict(),), loop_deep, defer_deep)
+                    if_stmt_list = self.parse(var_map_stk + (larc_common.OrderedDict(),), loop_deep)
                     self.token_list.pop_sym("}")
                     if_expr_list.append(expr)
                     if_stmt_list_list.append(if_stmt_list)
@@ -221,7 +216,7 @@ class Parser:
                         continue
                     if not t.is_sym("{"):
                         t.syntax_err("需要'{'")
-                    else_stmt_list = self.parse(var_map_stk + (larc_common.OrderedDict(),), loop_deep, defer_deep)
+                    else_stmt_list = self.parse(var_map_stk + (larc_common.OrderedDict(),), loop_deep)
                     self.token_list.pop_sym("}")
                     break
                 stmt_list.append(_Stmt("if", if_expr_list = if_expr_list, if_stmt_list_list = if_stmt_list_list,
@@ -236,21 +231,11 @@ class Parser:
                     assert end_sym == ","
                 continue
             if t.is_reserved("defer"):
-                if self.token_list.peek().is_sym("{"):
-                    #取消这个语法
-                    t.syntax_err("需要表达式（已不支持defer代码块语法）")
-                    #解析stmt_list时，外层loop_deep清零，defer_deep加一
-                    self.token_list.pop_sym("{")
-                    stmt_list.append(
-                        _Stmt("defer_block", stmt_list = self.parse(var_map_stk + (larc_common.OrderedDict(),), 0, defer_deep + 1)))
-                    self.token_list.pop_sym("}")
-                else:
-                    #单条call表达式的defer
-                    expr = self.expr_parser.parse(var_map_stk, None)
-                    if expr.op not in ("call_method", "call_func"):
-                        t.syntax_err("defer表达式必须是一个函数或方法调用")
-                    stmt_list.append(_Stmt("defer_expr", expr = expr))
-                    self.token_list.pop_sym(";")
+                expr = self.expr_parser.parse(var_map_stk, None)
+                if expr.op not in ("call_method", "call_func"):
+                    t.syntax_err("defer表达式必须是一个函数或方法调用")
+                stmt_list.append(_Stmt("defer_expr", expr = expr))
+                self.token_list.pop_sym(";")
                 continue
             if t.is_native_code:
                 stmt_list.append(_Stmt("native_code", native_code = larc_module.NativeCode(self.module, self.file_name, self.gtp_map, t),

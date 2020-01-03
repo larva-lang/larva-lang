@@ -629,11 +629,6 @@ def _output_stmt_list(code, stmt_list):
             code += _gen_expr_code(stmt.expr)
             continue
 
-        if stmt.type == "defer_block":
-            with code.new_blk("defer func ()", tail = "()"):
-                _output_stmt_list(code, stmt.stmt_list)
-            continue
-
         if stmt.type == "defer_expr":
             code.record_tb_info(stmt.expr.pos_info)
             code += "defer " + _gen_expr_code(stmt.expr)
