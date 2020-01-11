@@ -202,7 +202,7 @@ public class String
         {
             if (n > this.len())
             {
-                n = -1;
+                n = -1L;
             }
             !<<
             sl = strings.SplitN(this.s, l_sep.s, int(l_n))
