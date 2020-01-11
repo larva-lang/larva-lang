@@ -1434,15 +1434,6 @@ class NativeCode:
                 continue
             if "." in macro:
                 #带模块的macro
-                relative_deep = None
-                if macro.startswith("./"):
-                    relative_deep = 0
-                    macro = macro[2 :]
-                elif macro.startswith("../"):
-                    relative_deep = 0
-                    while macro.startswith("../"):
-                        macro = macro[3 :]
-                        relative_deep += 1
                 try:
                     module_name, name = macro.split(".")
                 except ValueError:
