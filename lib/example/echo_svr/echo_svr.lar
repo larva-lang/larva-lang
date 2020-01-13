@@ -4,7 +4,7 @@ class Client
 {
     net.TcpConn conn;
 
-    public void run()
+    void run()
     {
         defer this.conn.close();
 
