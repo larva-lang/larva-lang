@@ -200,6 +200,10 @@ public class String
         }
         else
         {
+            if (n > this.len())
+            {
+                n = -1;
+            }
             !<<
             sl = strings.SplitN(this.s, l_sep.s, int(l_n))
             !>>
