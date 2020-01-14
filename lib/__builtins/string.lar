@@ -223,7 +223,7 @@ public class String
 
     public String[] split(String sep)
     {
-        return this.split_n(sep, this.len() + 1);
+        return this.split_n(sep, LONG_MAX);
     }
 
     public String sub_str(long begin, long end)
