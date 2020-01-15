@@ -104,7 +104,7 @@ public void handle_exc<T>(ExcHandler<T> handler)
     }
 }
 
-//忽略所有异常，用于defer中，相当于handle_exc<Throwable>
+//忽略所有异常，用于defer中，相当于handle_exc<Throwable>(nil)
 public void ignore_exc()
 {
     GoAny r;
@@ -152,7 +152,7 @@ public class EmptyException
 //运行时类型转换（从接口到类型或其他接口）失败的错误
 public class TypeAssertionError
 {
-    EmptyException e usemethod;
+    String s usemethod(str);
 }
 
 //索引（下标）错误，用于数组、Slice、Vector等可用下标定位元素的相关代码中
@@ -160,23 +160,14 @@ public class IndexError
 {
     public IndexError(long i)
     {
-        this.has_idx = true;
         this.idx = i;
     }
 
     public String str()
     {
-        if (this.has_idx)
-        {
-            return "%d".(this.idx);
-        }
-        else
-        {
-            return "<none>";
-        }
+        return "%d".(this.idx);
     }
 
-    bool has_idx;
     long idx;
 }
 

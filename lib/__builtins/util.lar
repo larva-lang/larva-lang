@@ -131,7 +131,7 @@ public T assert_type<T>(Any a)
     T t;
     if (!try_assert_type(a, ref t))
     {
-        throw(new TypeAssertionError());
+        throw(new TypeAssertionError{"类型为‘%T’的值无法断言为类型‘%s’".(a, type_name<T>())});
     }
     return t;
 }
