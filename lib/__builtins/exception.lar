@@ -171,7 +171,7 @@ public class IndexError
     long idx;
 }
 
-//通用的索引范围检查，用于切片类操作，检查不通过则抛出RangeError
+//通用的索引越界检查，用于下标类操作，检查不通过则抛出IndexError
 public void throw_on_index_error(long l, long i)
 {
     if (l < 0 || i < 0 || i >= l)
@@ -185,7 +185,6 @@ public class RangeError
 {
     public RangeError(long l, long b, long e)
     {
-        this.has_range_info = true;
         this.len = l;
         this.begin = b;
         this.end = e;
@@ -193,17 +192,9 @@ public class RangeError
 
     public String str()
     {
-        if (this.has_range_info)
-        {
-            return "[%d][%d:%d]".(this.len, this.begin, this.end);
-        }
-        else
-        {
-            return "<none>";
-        }
+        return "[%d][%d:%d]".(this.len, this.begin, this.end);
     }
 
-    bool has_range_info;
     long len;
     long begin;
     long end;
