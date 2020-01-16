@@ -3,18 +3,28 @@ public class ArrayIter<E>
 {
     public ArrayIter(E[] a, long i)
     {
-        this.arr = a;
-        this.idx = i;
+        this._arr = a;
+        this._idx = i;
+    }
+
+    public E[] array()
+    {
+        return this._arr;
+    }
+
+    public long idx()
+    {
+        return this._idx;
     }
 
     public bool before_begin()
     {
-        return this.idx < 0;
+        return this._idx < 0;
     }
 
     public bool after_end()
     {
-        return this.idx >= this.arr.size();
+        return this._idx >= this._arr.size();
     }
 
     public E get()
@@ -23,7 +33,7 @@ public class ArrayIter<E>
         {
             throw(new IterOutOfRange());
         }
-        return this.arr[this.idx];
+        return this._arr[this._idx];
     }
 
     public void set(E e)
@@ -32,21 +42,21 @@ public class ArrayIter<E>
         {
             throw(new IterOutOfRange());
         }
-        this.arr[this.idx] = e;
+        this._arr[this._idx] = e;
     }
 
     public void inc()
     {
         if (this.before_begin())
         {
-            this.idx = 0;
+            this._idx = 0;
             return;
         }
         if (this.after_end())
         {
             throw(new IterOutOfRange());
         }
-        ++ this.idx;
+        ++ this._idx;
     }
 
     public void dec()
@@ -57,12 +67,12 @@ public class ArrayIter<E>
         }
         if (this.after_end())
         {
-            this.idx = this.arr.size() - 1;
+            this._idx = this._arr.size() - 1;
             return;
         }
-        -- this.idx;
+        -- this._idx;
     }
 
-    E[] arr;
-    long idx;
+    E[] _arr;
+    long _idx;
 }

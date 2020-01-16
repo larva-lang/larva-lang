@@ -66,6 +66,7 @@ void test_array()
         var iter = arr.iter();
         iter.inc();
         iter.inc();
+        testing.assert(iter.array() === arr && iter.idx() == 2, "通过迭代器获取数组对象和当前下标错误");
         var old_x = iter.get();
         iter.set(100);
         testing.assert(arr[2] == 100, "通过迭代器设置数组元素值失败");
