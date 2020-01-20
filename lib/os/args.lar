@@ -104,7 +104,7 @@ class Args
 
         opt_map = new util.HashMap<String, String>(nil);
 
-        for (var arg_count = this.args.size(), idx = 1; idx < arg_count;)
+        for (var arg_count = this.args.size(), idx = 1L; idx < arg_count;)
         {
             var arg = this.args[idx];
             ++ idx;
@@ -166,12 +166,12 @@ class Args
             {
                 //解析短选项
                 var opt_name    = arg.char_at(1),
-                    opt_value   = nil if arg.len() == 2 else arg.sub_str(2, arg.len());
+                    opt_value   = cast<String>(nil) if arg.len() == 2 else arg.sub_str(2, arg.len());
                 if (!sos.contains_key(opt_name))
                 {
                     throw(new ArgParsingError{"不能识别的短选项‘-%c’".(opt_name)});
                 }
-                if (los.get(opt_name))
+                if (sos.get(opt_name))
                 {
                     //需要value
                     if (opt_value === nil)
