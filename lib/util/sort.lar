@@ -15,26 +15,31 @@ interface SortIntf
 
 !<<
 
+func lar_go_func_@<<_no_use>>() {
+    _ = sort.Interface(nil) //规避Go层面的sort package未使用的错误
+}
+
 type sortIntfImpl struct {
-    si lar_intf_@<<SortIntf>>
+    lar_fiber   *lar_go_stru_fiber
+    si          lar_intf_@<<SortIntf>>
 }
 
-func (sii sortIntfImpl) Len() int {
-    return int(sii.si.lar_method_@<<len>>())
+func (sii *sortIntfImpl) Len() int {
+    return int(sii.si.lar_method_@<<len>>(sii.lar_fiber))
 }
 
-func (sii sortIntfImpl) Less(i, j int) bool {
-    return sii.si.lar_method_@<<less>>(int64(i), int64(j))
+func (sii *sortIntfImpl) Less(i, j int) bool {
+    return sii.si.lar_method_@<<less>>(sii.lar_fiber, int64(i), int64(j))
 }
 
-func (sii sortIntfImpl) Swap(i, j int) {
-    sii.si.lar_method_@<<swap>>(int64(i), int64(j))
+func (sii *sortIntfImpl) Swap(i, j int) {
+    sii.si.lar_method_@<<swap>>(sii.lar_fiber, int64(i), int64(j))
 }
 
 !>>
 
 //对数组进行排序
-public void sorted<T>(T[] a)
+public void sort<T>(T[] a)
 {
     var si = []{
         long len()
@@ -53,8 +58,9 @@ public void sorted<T>(T[] a)
         }
     };
     !<<
-    sort.Sort(sortIntfImpl{
-        si: l_si,
+    sort.Sort(&sortIntfImpl{
+        lar_fiber:  lar_fiber,
+        si:         l_si,
     })
     !>>
 }

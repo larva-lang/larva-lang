@@ -26,7 +26,7 @@ public Iter<T> filter<T>(Iter<T> it, FilterCondJudge<T> judge)
 
         public void inc()
         {
-            it_a.inc();
+            it.inc();
         }
     };
 }
