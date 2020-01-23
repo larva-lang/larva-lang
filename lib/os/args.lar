@@ -1,5 +1,7 @@
 //命令行参数相关
 
+import util;
+
 !<<
 
 import (
@@ -8,14 +10,25 @@ import (
 
 !>>
 
+public class ArgParsingError
+{
+    String s usemethod(str);
+}
+
 class Args
 {
+    String[] args usemethod(size, get);
+
     Args()
     {
         long arg_count;
         !<<
         l_arg_count = int64(len(os.Args))
         !>>
+        if (arg_count <= 0)
+        {
+            abort("命令行参数数量为0");
+        }
         this.args = new String[arg_count];
         for (long i = 0; i < arg_count; ++ i)
         {
@@ -27,17 +40,164 @@ class Args
         }
     }
 
-    public String[] args_raw()
+    public String[] raw()
     {
         return this.args;
     }
 
     public String repr()
     {
-        return "<Args %r>".(this.args);
+        return "<Args [%s]>".(", ".join("%r".(this.args)));
     }
 
-    String[] args usemethod(size, get);
+    public String[] parse(String short_opts, String[] long_opts, ref util.HashMap<String, String> opt_map)
+    {
+        //解析短选项配置
+        var sos = new util.HashMap<char, bool>(nil);
+        if (short_opts !== nil)
+        {
+            var len = short_opts.len();
+            for (long i = 0; i < len;)
+            {
+                var o = short_opts.char_at(i);
+                if (o == ':')
+                {
+                    throw(new ValueError("无效的短选项名列表‘%s’，短选项不能是‘:’".(short_opts)));
+                }
+                ++ i;
+                if (i < len && short_opts.char_at(i) == ':')
+                {
+                    ++ i;
+                    sos.set(o, true);
+                }
+                else
+                {
+                    sos.set(o, false);
+                }
+            }
+        }
+
+        //解析长选项配置
+        var los = new util.HashMap<String, bool>(nil);
+        if (long_opts !== nil)
+        {
+            foreach (var lo: long_opts.iter())
+            {
+                bool need_value = false;
+                if (lo.has_suffix("="))
+                {
+                    need_value = true;
+                    lo = lo.sub_str(0, lo.len() - 1);
+                }
+                if (lo.len() == 0)
+                {
+                    throw(new ValueError("长选项名不能为空"));
+                }
+                los.set(lo, need_value);
+            }
+        }
+
+        opt_map = new util.HashMap<String, String>(nil);
+
+        for (var arg_count = this.args.size(), idx = 1; idx < arg_count;)
+        {
+            var arg = this.args[idx];
+            ++ idx;
+
+            if (arg.eq("--"))
+            {
+                //选项结束，剩下都是args
+                return this.args[idx :].shallow_copy();
+            }
+
+            if (arg.has_prefix("--"))
+            {
+                //解析长选项
+                String opt_name, opt_value;
+                var pos = arg.index_char('=');
+                if (pos >= 0)
+                {
+                    opt_name = arg.sub_str(2, pos);
+                    opt_value = arg.sub_str(pos + 1, arg.len());
+                }
+                else
+                {
+                    opt_name = arg.sub_str(2, arg.len());
+                }
+                if (opt_name.len() == 0)
+                {
+                    throw(new ArgParsingError{"无效的长选项‘%s’".(arg)});
+                }
+                if (!los.contains_key(opt_name))
+                {
+                    throw(new ArgParsingError{"不能识别的长选项‘--%s’".(opt_name)});
+                }
+                if (los.get(opt_name))
+                {
+                    //需要value
+                    if (opt_value === nil)
+                    {
+                        if (idx >= arg_count)
+                        {
+                            throw(new ArgParsingError{"长选项‘--%s’需要选项值".(opt_name)});
+                        }
+                        opt_value = this.args[idx];
+                        ++ idx;
+                    }
+                }
+                else
+                {
+                    //不需要value
+                    if (opt_value !== nil)
+                    {
+                        throw(new ArgParsingError{"长选项‘--%s’不需要选项值".(opt_name)});
+                    }
+                }
+                opt_map.set("--".concat(opt_name), opt_value);
+                continue;
+            }
+
+            if (arg.has_prefix("-") && arg.len() > 1)
+            {
+                //解析短选项
+                var opt_name    = arg.char_at(1),
+                    opt_value   = nil if arg.len() == 2 else arg.sub_str(2, arg.len());
+                if (!sos.contains_key(opt_name))
+                {
+                    throw(new ArgParsingError{"不能识别的短选项‘-%c’".(opt_name)});
+                }
+                if (los.get(opt_name))
+                {
+                    //需要value
+                    if (opt_value === nil)
+                    {
+                        if (idx >= arg_count)
+                        {
+                            throw(new ArgParsingError{"短选项‘-%c’需要选项值".(opt_name)});
+                        }
+                        opt_value = this.args[idx];
+                        ++ idx;
+                    }
+                }
+                else
+                {
+                    //不需要value
+                    if (opt_value !== nil)
+                    {
+                        throw(new ArgParsingError{"短选项‘-%c’不需要选项值".(opt_name)});
+                    }
+                }
+                opt_map.set(new String(new char[]{'-', opt_name}), opt_value);
+                continue;
+            }
+
+            //其余情况，从当前位置往后都是args
+            return this.args[idx - 1 :].shallow_copy();
+        }
+
+        //所有arg都解析完成还没有异常，说明都是opt
+        return new String[0];
+    }
 }
 
 public final Args args = new Args();
