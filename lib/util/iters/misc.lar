@@ -1,0 +1,23 @@
+public bool all(Iter<bool> it)
+{
+    foreach (var b: it)
+    {
+        if (!b)
+        {
+            return false;
+        }
+    }
+    return true;
+}
+
+public bool any(Iter<bool> it)
+{
+    foreach (var b: it)
+    {
+        if (b)
+        {
+            return true;
+        }
+    }
+    return false;
+}
