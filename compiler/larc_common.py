@@ -41,7 +41,7 @@ def dec_verbose_indent():
 
 def verbose_log(msg):
     if _verbose_mode:
-        print time.strftime("[%H:%M:%S]") + "  " * _verbose_indent_count, msg
+        print time.strftime("larc: [%H:%M:%S]") + "  " * _verbose_indent_count, msg
 
 #fork一个子进程继续执行编译操作，子进程可通过管道报结果，返回None表示为子进程，返回字符串表示为父进程等待到的子进程的结果
 def fork():
