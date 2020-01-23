@@ -8,26 +8,6 @@ import (
 
 !>>
 
-String[] _init_args()
-{
-    long arg_count;
-    !<<
-    l_arg_count = int64(len(os.Args))
-    !>>
-    var a = new String[arg_count];
-    for (long i = 0; i < arg_count; ++ i)
-    {
-        String arg;
-        !<<
-        l_arg = lar_str_from_go_str(os.Args[l_i])
-        !>>
-        a[i] = arg;
-    }
-    return a;
-}
-
-public String[] args = _init_args();
-
 public String cwd()
 {
     !<<

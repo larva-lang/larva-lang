@@ -263,7 +263,7 @@ public void main()
 {
     if (os.args.size() > 1)
     {
-        loops = cast<int>(os.args[1].parse_long(0));
+        loops = cast<int>(os.args.get(1).parse_long(0));
     }
     double ts = time.time();
     Proc0();

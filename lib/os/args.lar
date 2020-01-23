@@ -1,0 +1,43 @@
+//命令行参数相关
+
+!<<
+
+import (
+    "os"
+)
+
+!>>
+
+class Args
+{
+    Args()
+    {
+        long arg_count;
+        !<<
+        l_arg_count = int64(len(os.Args))
+        !>>
+        this.args = new String[arg_count];
+        for (long i = 0; i < arg_count; ++ i)
+        {
+            String arg;
+            !<<
+            l_arg = lar_str_from_go_str(os.Args[l_i])
+            !>>
+            this.args[i] = arg;
+        }
+    }
+
+    public String[] args_raw()
+    {
+        return this.args;
+    }
+
+    public String repr()
+    {
+        return "<Args %r>".(this.args);
+    }
+
+    String[] args usemethod(size, get);
+}
+
+public final Args args = new Args();
