@@ -1,6 +1,6 @@
 //命令行参数相关
 
-import util;
+import util, util/iters;
 
 !<<
 
@@ -47,7 +47,12 @@ class Args
 
     public String repr()
     {
-        return "<Args [%s]>".(", ".join("%r".(this.args)));
+        return "<Args [%s]>".(", ".join(iters.map(this.args.iter(), []{
+            public String convert(String arg)
+            {
+                return "%r".(arg);
+            }
+        })));
     }
 
     public String[] parse(String short_opts, String[] long_opts, ref util.HashMap<String, String> opt_map)
