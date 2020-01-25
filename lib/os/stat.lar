@@ -1,0 +1,72 @@
+!<<
+
+import (
+    "os"
+)
+
+!>>
+
+public class FileInfo
+{
+    !<<
+    fi os.FileInfo
+    !>>
+
+    public String repr()
+    {
+        return "<FileInfo [%s][%d][0%o][%.3f]>".(this.name(), this.size(), this.mode(), this.modify_time());
+    }
+
+    public String name()
+    {
+        !<<
+        return lar_str_from_go_str(this.fi.Name())
+        !>>
+    }
+
+    public long size()
+    {
+        !<<
+        return this.fi.Size()
+        !>>
+    }
+
+    public uint mode()
+    {
+        !<<
+        return uint32(this.fi.Mode())
+        !>>
+    }
+
+    public double modify_time()
+    {
+        !<<
+        return float64(this.fi.ModTime().UnixNano()) / 1e9
+        !>>
+    }
+}
+
+!<<
+
+func lar_go_str_@<<stat_impl>>(lar_fiber *lar_go_stru_fiber, fn *lar_cls_@<<:String>>,
+                               stat_func func (name string) (os.FileInfo, error)) *lar_cls_@<<FileInfo>> {
+    fi, err := stat_func(lar_str_to_go_str(fn))
+    lar_go_func_@<<throw_on_go_err>>(lar_fiber, err)
+    return &lar_cls_@<<FileInfo>>{fi}
+}
+
+!>>
+
+public FileInfo lstat(String fn)
+{
+    !<<
+    return lar_go_str_@<<stat_impl>>(lar_fiber, l_fn, os.Lstat)
+    !>>
+}
+
+public FileInfo stat(String fn)
+{
+    !<<
+    return lar_go_str_@<<stat_impl>>(lar_fiber, l_fn, os.Stat)
+    !>>
+}
