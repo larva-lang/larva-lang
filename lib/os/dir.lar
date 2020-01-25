@@ -1,0 +1,31 @@
+!<<
+
+import (
+    "os"
+)
+
+!>>
+
+public String[] list_dir(String d)
+{
+    !<<
+    f, err := os.Open(lar_str_to_go_str(l_d))
+    lar_go_func_@<<throw_on_go_err>>(lar_fiber, err)
+    names, err := f.Readdirnames(-1)
+    lar_go_func_@<<throw_on_go_err>>(lar_fiber, err)
+    !>>
+    long count;
+    !<<
+    l_count = int64(len(names))
+    !>>
+    var ns = new String[count];
+    for (long i = 0; i < count; ++ i)
+    {
+        String n;
+        !<<
+        l_n = lar_str_from_go_str(names[l_i])
+        !>>
+        ns[i] = n;
+    }
+    return ns;
+}
