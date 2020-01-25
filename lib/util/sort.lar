@@ -1,0 +1,60 @@
+!<<
+
+import (
+    "sort"
+)
+
+!>>
+
+interface SortIntf
+{
+    long len();
+    bool less(long i, long j);
+    void swap(long i, long j);
+}
+
+!<<
+
+type sortIntfImpl struct {
+    si lar_intf_@<<SortIntf>>
+}
+
+func (sii sortIntfImpl) Len() int {
+    return int(sii.si.lar_method_@<<len>>())
+}
+
+func (sii sortIntfImpl) Less(i, j int) bool {
+    return sii.si.lar_method_@<<less>>(int64(i), int64(j))
+}
+
+func (sii sortIntfImpl) Swap(i, j int) {
+    sii.si.lar_method_@<<swap>>(int64(i), int64(j))
+}
+
+!>>
+
+//对数组进行排序
+public void sorted<T>(T[] a)
+{
+    var si = []{
+        long len()
+        {
+            return a.size();
+        }
+
+        bool less(long i, long j)
+        {
+            return cmp(a[i], a[j]) < 0;
+        }
+
+        void swap(long i, long j)
+        {
+            swap(ref a[i], ref a[j]);
+        }
+    };
+    !<<
+    sort.Sort(sortIntfImpl{
+        si: l_si,
+    })
+    !>>
+}

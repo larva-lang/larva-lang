@@ -3,7 +3,7 @@ public interface MapElemConverter<A, B>
     public B convert(A a);
 }
 
-//将ai中的元素用传入的converter转为B类型并返回迭代器
+//将it_a中的元素用传入的converter转为B类型并返回迭代器
 public Iter<B> map<A, B>(Iter<A> it_a, MapElemConverter<A, B> converter)
 {
     return []{

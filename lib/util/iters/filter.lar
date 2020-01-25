@@ -1,0 +1,37 @@
+public interface FilterCondJudge<T>
+{
+    public bool is_valid(T t);
+}
+
+/*
+从it中遍历元素，并用迭代器的方式返回其符合judge.is_valid的元素，使用的时候需要注意筛选操作在after_end中，
+开始迭代时或每次inc后都需要判断一下after_end才能安全get
+*/
+public Iter<T> filter<T>(Iter<T> it, FilterCondJudge<T> judge)
+{
+    return []{
+        public T get()
+        {
+            return it.get();
+        }
+
+        public bool after_end()
+        {
+            while (!it.after_end() && !judge.is_valid(it.get()))
+            {
+                it.inc();
+            }
+            return it.after_end();
+        }
+
+        public void inc()
+        {
+            it_a.inc();
+        }
+    };
+}
+
+public T[] filter_array<T>(Iter<T> it, FilterCondJudge<T> judge)
+{
+    return to_array(filter(it, judge));
+}
