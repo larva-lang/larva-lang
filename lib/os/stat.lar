@@ -14,7 +14,7 @@ public class FileInfo
 
     public String repr()
     {
-        return "<FileInfo [%s][%d][0%o][%.3f]>".(this.name(), this.size(), this.mode(), this.modify_time());
+        return "<FileInfo [%s][%d][%s][%.3f]>".(this.name(), this.size(), this.mode(), this.modify_time());
     }
 
     public String name()
@@ -31,10 +31,45 @@ public class FileInfo
         !>>
     }
 
-    public uint mode()
+    public String mode()
     {
         !<<
-        return uint32(this.fi.Mode())
+        return lar_str_from_go_str(this.fi.Mode().String())
+        !>>
+    }
+
+    public uint perm()
+    {
+        !<<
+        return uint32(this.fi.Mode().Perm())
+        !>>
+    }
+
+    public bool is_dir()
+    {
+        !<<
+        return this.fi.IsDir()
+        !>>
+    }
+
+    public bool is_file()
+    {
+        !<<
+        return this.fi.Mode().IsRegular()
+        !>>
+    }
+
+    public bool is_sym_link()
+    {
+        !<<
+        return this.fi.Mode() & os.ModeSymlink != 0
+        !>>
+    }
+
+    public bool is_named_pipe()
+    {
+        !<<
+        return this.fi.Mode() & os.ModeNamedPipe != 0
         !>>
     }
 
