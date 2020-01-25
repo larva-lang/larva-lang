@@ -1,3 +1,5 @@
+import util/iters;
+
 !<<
 
 import (
@@ -63,4 +65,12 @@ public void sort<T>(T[] a)
         si:         l_si,
     })
     !>>
+}
+
+//返回it中元素排好序的数组结果
+public T[] sorted<T>(Iter<T> it)
+{
+    var a = iters.to_array(it);
+    sort(a);
+    return a;
 }
