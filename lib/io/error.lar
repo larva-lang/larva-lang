@@ -17,5 +17,5 @@ public class Error
 //封装一下，因为本模块中有一些大段的Native代码
 void throw_on_go_err(GoAny go_err)
 {
-    throw_go_error_porter_on_err<Error>(go_err)
+    throw_go_error_porter_on_err<Error>(go_err);
 }
