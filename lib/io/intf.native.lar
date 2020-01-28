@@ -45,13 +45,13 @@ type lar_go_stru_@<<go_ReadCloser_to_Readable>> struct {
 
 func (this *lar_go_stru_@<<go_ReadCloser_to_Readable>>) lar_method_read(lar_fiber *lar_go_stru_fiber, buf *lar_arr_uint8_1) int64 {
     n, err := lar_go_func_@<<read>>(lar_fiber, this.r, buf.arr)
-    lar_go_func_@<<throw_on_go_err>>(lar_fiber, err)
+    lar_func_@<<throw_on_go_err>>(lar_fiber, err)
     return int64(n)
 }
 
 func (this *lar_go_stru_@<<go_ReadCloser_to_Readable>>) lar_method_close(lar_fiber *lar_go_stru_fiber) {
     err := this.r.Close()
-    lar_go_func_@<<throw_on_go_err>>(lar_fiber, err)
+    lar_func_@<<throw_on_go_err>>(lar_fiber, err)
 }
 
 func lar_go_func_@<<go_ReadCloser_to_Readable>>(r io.ReadCloser) lar_intf_@<<Readable>> {
@@ -101,12 +101,12 @@ type lar_go_stru_@<<go_WriteCloser_to_Writeable>> struct {
 
 func (this *lar_go_stru_@<<go_WriteCloser_to_Writeable>>) lar_method_write(lar_fiber *lar_go_stru_fiber, buf *lar_arr_uint8_1) {
     _, err := this.w.Write(buf.arr)
-    lar_go_func_@<<throw_on_go_err>>(lar_fiber, err)
+    lar_func_@<<throw_on_go_err>>(lar_fiber, err)
 }
 
 func (this *lar_go_stru_@<<go_WriteCloser_to_Writeable>>) lar_method_close(lar_fiber *lar_go_stru_fiber) {
     err := this.w.Close()
-    lar_go_func_@<<throw_on_go_err>>(lar_fiber, err)
+    lar_func_@<<throw_on_go_err>>(lar_fiber, err)
 }
 
 func lar_go_func_@<<go_WriteCloser_to_Writeable>>(w io.WriteCloser) lar_intf_@<<Writeable>> {

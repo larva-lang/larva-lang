@@ -86,7 +86,7 @@ public class FileInfo
 func lar_go_str_@<<stat_impl>>(lar_fiber *lar_go_stru_fiber, fn *lar_cls_@<<:String>>,
                                stat_func func (name string) (os.FileInfo, error)) *lar_cls_@<<FileInfo>> {
     fi, err := stat_func(lar_str_to_go_str(fn))
-    lar_go_func_@<<throw_on_go_err>>(lar_fiber, err)
+    lar_func_@<<throw_on_go_err>>(lar_fiber, err)
     return &lar_cls_@<<FileInfo>>{fi}
 }
 

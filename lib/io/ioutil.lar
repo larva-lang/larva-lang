@@ -10,7 +10,7 @@ public char[] read_all(Readable readable)
 {
     !<<
     b, err := ioutil.ReadAll(lar_go_func_@<<Readable_to_go_ReadCloser>>(lar_fiber, l_readable))
-    lar_go_func_@<<throw_on_go_err>>(lar_fiber, err)
+    lar_func_@<<throw_on_go_err>>(lar_fiber, err)
     return &lar_arr_uint8_1{
         arr: b,
     }

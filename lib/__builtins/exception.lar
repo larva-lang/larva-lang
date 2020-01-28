@@ -269,14 +269,18 @@ public interface GoErrorPorter
 规则：
 - E是一个异常类型并实现了GoErrorPorter接口
 - E必须有一个字段是GoError类型，且名字为“ge”（不要求是public的，这里用Native代码直接赋值）
-- go_err必须能断言为Go的error类型，并将用其构造GoError对象并赋值给“ge”字段
+- 若go_err为nil则什么都不做，否则go_err必须能断言为Go的error类型，并将用其构造GoError对象并赋值给“ge”字段
 
-虽然说满足了这三条就可以正常编译执行，但实际上都是直接用代码：
+虽然说满足了规则的类型E都可以正常编译执行，但实际上E的定义中都应该直接用代码：
     GoError ge usemethod;
 */
-public void throw_go_error_porter<E>(GoAny go_err)
+public void throw_go_error_porter_on_err<E>(GoAny go_err)
 {
 #if typeimplements(E, GoErrorPorter)
+    if (go_err === nil)
+    {
+        return;
+    }
     E e;
     !<<
     l_e = reflect.New(reflect.TypeOf(l_e).Elem()).Interface().(@<<{E}>>)

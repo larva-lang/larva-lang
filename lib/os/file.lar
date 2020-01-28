@@ -45,7 +45,7 @@ public class File
     {
         !<<
         f, err := os.OpenFile(lar_str_to_go_str(l_file_name), int(l_flag), os.FileMode(l_perm))
-        lar_go_func_@<<throw_on_go_err>>(lar_fiber, err)
+        lar_func_@<<throw_on_go_err>>(lar_fiber, err)
         this.f = f
         !>>
     }
@@ -54,7 +54,7 @@ public class File
     {
         !<<
         new_offset, err := this.f.Seek(l_offset, int(l_whence))
-        lar_go_func_@<<throw_on_go_err>>(lar_fiber, err)
+        lar_func_@<<throw_on_go_err>>(lar_fiber, err)
         return new_offset
         !>>
     }
@@ -63,7 +63,7 @@ public class File
     {
         !<<
         n, err := lar_go_func_@<<io.read>>(lar_fiber, this.f, l_buf.arr)
-        lar_go_func_@<<throw_on_go_err>>(lar_fiber, err)
+        lar_func_@<<throw_on_go_err>>(lar_fiber, err)
         return int64(n)
         !>>
     }
@@ -72,7 +72,7 @@ public class File
     {
         !<<
         _, err := this.f.Write(l_buf.arr)
-        lar_go_func_@<<throw_on_go_err>>(lar_fiber, err)
+        lar_func_@<<throw_on_go_err>>(lar_fiber, err)
         !>>
     }
 
@@ -80,7 +80,7 @@ public class File
     {
         !<<
         _, err := this.f.WriteString(lar_str_to_go_str(l_s))
-        lar_go_func_@<<throw_on_go_err>>(lar_fiber, err)
+        lar_func_@<<throw_on_go_err>>(lar_fiber, err)
         !>>
     }
 
@@ -88,7 +88,7 @@ public class File
     {
         !<<
         err := this.f.Close()
-        lar_go_func_@<<throw_on_go_err>>(lar_fiber, err)
+        lar_func_@<<throw_on_go_err>>(lar_fiber, err)
         !>>
     }
 

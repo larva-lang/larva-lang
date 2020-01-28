@@ -12,7 +12,7 @@ public String cwd()
 {
     !<<
     cwd, err := os.Getwd()
-    lar_go_func_@<<throw_on_go_err>>(lar_fiber, err)
+    lar_func_@<<throw_on_go_err>>(lar_fiber, err)
     return lar_str_from_go_str(cwd)
     !>>
 }

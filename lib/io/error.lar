@@ -14,16 +14,8 @@ public class Error
     GoError ge usemethod;
 }
 
-!<<
-
-func lar_go_func_@<<throw_on_go_err>>(lar_fiber *lar_go_stru_fiber, err error) {
-    if err != nil {
-        lar_func_@<<:throw>>(lar_fiber, &lar_cls_@<<Error>>{
-            m_ge: &lar_cls_@<<:GoError>>{
-                err: err,
-            },
-        })
-    }
+//封装一下，因为本模块中有一些大段的Native代码
+void throw_on_go_err(GoAny go_err)
+{
+    throw_go_error_porter_on_err<Error>(go_err)
 }
-
-!>>
