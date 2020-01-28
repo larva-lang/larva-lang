@@ -1,4 +1,4 @@
-import os, io;
+import os, io, util;
 
 final int
     STAT_RD     = 1,
@@ -130,6 +130,22 @@ public class File
         return this.r.read_line();
     }
 
+    public String[] read_lines()
+    {
+        this.prepare_for_reading();
+
+        var v = new util.Vector<String>(nil);
+        for (;;)
+        {
+            var line = this.r.read_line();
+            if (line === nil)
+            {
+                return v.array_move();
+            }
+            v.add(line);
+        }
+    }
+
     void prepare_for_writing()
     {
         this.raise_if_closed();
@@ -153,6 +169,16 @@ public class File
     {
         this.prepare_for_writing();
         this.w.write_line(s);
+    }
+
+    public void write_lines(Iter<String> it)
+    {
+        this.prepare_for_writing();
+
+        foreach (var s: it)
+        {
+            this.w.write_line(s);
+        }
     }
 
     public void write_char(char c)
