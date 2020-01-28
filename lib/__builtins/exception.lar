@@ -255,3 +255,23 @@ public interface GoErrorPorter
 {
     public GoError go_err();
 }
+
+/*
+通过一个简单约定来简化各种GoErrorPorter的抛出实现
+规则：
+- E是一个异常类型
+- E必须有一个字段是GoError类型，且名字为“ge”（不要求是public的，这里用Native代码直接赋值）
+- go_err必须能断言为Go的error类型
+*/
+public void throw_go_error_porter<E>(GoAny go_err)
+{
+    E e;
+    !<<
+    l_e = &@<<{E}>>{
+        m_ge:   &lar_cls_@<<GoError>>{
+            err:    l_go_err.(error)，
+        },
+    }
+    !>>
+    throw(e);
+}
