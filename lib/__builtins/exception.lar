@@ -4,7 +4,7 @@ import (
     "reflect"
 )
 
-func lar_go_func_@<<_no_use>>() {
+func init() {
     _ = reflect.TypeOf  //规避Go层面的package未使用的错误
 }
 

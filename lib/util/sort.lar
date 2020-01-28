@@ -17,7 +17,7 @@ interface SortIntf
 
 !<<
 
-func lar_go_func_@<<_no_use>>() {
+func init() {
     _ = sort.Interface(nil) //规避Go层面的sort package未使用的错误
 }
 
