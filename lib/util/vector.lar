@@ -167,6 +167,7 @@ public class Vector<E>
     {
         var arr = this.arr;
         this.reset();
+        return arr;
     }
 
     E[] arr;
