@@ -1,0 +1,19 @@
+public class Stack<E>
+{
+    Vector<E> v usemethod(size);
+
+    public Stack()
+    {
+        this.v = new Vector<E>(nil);
+    }
+
+    public void push(E e)
+    {
+        this.v.add(e);
+    }
+
+    public E pop()
+    {
+        return this.v.pop(this.v.size() - 1);
+    }
+}
