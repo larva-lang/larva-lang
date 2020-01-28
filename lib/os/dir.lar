@@ -8,12 +8,26 @@ import (
 
 public String[] list_dir(String d)
 {
+    GoAny err;
+
     !<<
-    f, err := os.Open(lar_str_to_go_str(l_d))
-    lar_go_func_@<<throw_on_go_err>>(lar_fiber, err)
-    names, err := f.Readdirnames(-1)
-    lar_go_func_@<<throw_on_go_err>>(lar_fiber, err)
+    var f *os.File
+    f, l_err = os.Open(lar_str_to_go_str(l_d))
     !>>
+    if (err !== nil)
+    {
+        throw_go_error_porter<Error>(err);
+    }
+
+    !<<
+    var names []string
+    names, l_err = f.Readdirnames(-1)
+    !>>
+    if (err !== nil)
+    {
+        throw_go_error_porter<Error>(err);
+    }
+
     long count;
     !<<
     l_count = int64(len(names))
