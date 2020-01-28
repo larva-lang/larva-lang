@@ -4,6 +4,10 @@ import (
     "reflect"
 )
 
+func lar_go_func_@<<_no_use>>() {
+    _ = reflect.TypeOf  //规避Go层面的package未使用的错误
+}
+
 !>>
 
 //可以用throw函数抛出的对象类型
