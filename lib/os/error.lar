@@ -1,6 +1,6 @@
 public class Error
 {
-    GoError e usemethod;
+    GoError ge usemethod;
 }
 
 !<<
