@@ -1,0 +1,62 @@
+//正则表达式
+
+import debug;
+
+!<<
+
+import (
+    "re"
+)
+
+!>>
+
+//编译好的正则表达式对象
+public class Re
+{
+    !<<
+    r *re.Regexp
+    !>>
+
+    public Re(String p)
+    {
+        !<<
+        var err error
+        this.r, err = re.Compile(lar_str_to_go_str(l_p))
+        lar_func_@<<throw_on_go_err>>(lar_fiber, err)
+        !>>
+    }
+
+    public Pair<long, long>[] find_groups(String s)
+    {
+        long idx_count;
+
+        !<<
+        idxs := this.r.FindStringSubmatchIndex(lar_str_to_go_str(l_s))
+        l_idx_count = int64(len(idxs))
+        !>>
+
+        if (idx_count == 0)
+        {
+            //没有匹配到
+            return nil;
+        }
+
+        //匹配到了，是起止位置的列表
+        debug.assert(idx_count % 2 == 0, "bug");
+        var group_count = idx_count / 2;
+        var groups = new Pair<long, long>[group_count];
+        for (long i = 0; i < group_count; ++ i)
+        {
+            long start_idx, end_idx;
+            !<<
+            l_start_idx = int64(idxs[l_i * 2])
+            l_end_idx   = int64(idxs[l_i * 2 + 1])
+            !>>
+            if (start_idx >= 0 && end_idx >= 0)
+            {
+                groups[i] = make_pair(start_idx, end_idx);
+            }
+        }
+        return groups;
+    }
+}
