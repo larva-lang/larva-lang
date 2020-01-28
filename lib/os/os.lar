@@ -23,3 +23,10 @@ public long pid()
     return int64(os.Getpid())
     !>>
 }
+
+public void exit(int code)
+{
+    !<<
+    os.Exit(int(l_code))
+    !>>
+}
