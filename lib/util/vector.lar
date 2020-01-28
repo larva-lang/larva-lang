@@ -2,7 +2,7 @@ public class Vector<E>
 {
     public Vector(Iter<E> data_iter)
     {
-        this.arr = (new E[8])[: 0];
+        this.reset();
         if (data_iter !== nil)
         {
             this.extend(data_iter);
@@ -145,9 +145,28 @@ public class Vector<E>
         this.shrink();
     }
 
+    //重置，在构造、clear和array_move都会用到，不直接命名为clear是为了概念清晰一些
+    void reset()
+    {
+        this.arr = (new E[8])[: 0];
+    }
+
+    public void clear()
+    {
+        this.reset();
+    }
+
+    //将内容浅拷贝为数组返回
     public E[] to_array()
     {
         return this.arr.shallow_copy();
+    }
+
+    //将Vector维护的数组直接返回，同时Vector清空
+    public E[] array_move()
+    {
+        var arr = this.arr;
+        this.reset();
     }
 
     E[] arr;
