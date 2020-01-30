@@ -280,7 +280,7 @@ class Parser:
             else:
                 #需要考虑表达式为ref参数的问题
                 tp = copy.deepcopy(expr.type)
-                tp.is_ref = False
+                tp.clear_is_ref()
         else:
             #指定类型
             if var_tp.is_void:

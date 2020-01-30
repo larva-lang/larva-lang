@@ -76,6 +76,13 @@ class _Type:
 
     __str__ = __repr__ = lambda self: self.to_str(ignore_builtins_module_prefix = False)
 
+    def _freeze(self):
+        self.is_freezed = True
+
+    def _unfreeze(self):
+        assert self.is_freezed
+        del self.__dict__["is_freezed"]
+
     def __setattr__(self, name, value):
         if self.__dict__.get("is_freezed", False):
             raise Exception("Bug")
@@ -323,6 +330,11 @@ class _Type:
 
         #其余情况不能强转
         return False
+
+    def clear_is_ref(self):
+        self._unfreeze()
+        self.is_ref = False
+        self._freeze()
 
 #生成默认类型对象，其中literal_int和nil类型内部使用，String类型虽然是class，但由于代码中有str literal，也需预先生成
 for _tp in _BASE_TYPE_LIST + ("literal_int", "nil"):
