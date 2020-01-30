@@ -243,11 +243,11 @@ public class HashMap<K, V>
         };
     }
 
-    public Iter<K> value_iter()
+    public Iter<V> value_iter()
     {
         var it = this.iter();
         return []{
-            public K get()
+            public V get()
             {
                 return it.value();
             }
