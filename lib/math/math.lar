@@ -32,3 +32,17 @@ public double exp(double x)
     return math.Exp(l_x)
     !>>
 }
+
+public bool is_inf(double x)
+{
+    !<<
+    return math.IsInf(l_x, 0)
+    !>>
+}
+
+public bool is_nan(double x)
+{
+    !<<
+    return math.IsNan(l_x)
+    !>>
+}
