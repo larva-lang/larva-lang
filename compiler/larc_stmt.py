@@ -4,8 +4,7 @@
 编译larva语句
 """
 
-import os
-import sys
+import os, sys, copy
 
 import larc_common
 import larc_token
@@ -279,7 +278,9 @@ class Parser:
             if expr.type.is_literal_int:
                 tp = larc_type.INT_TYPE
             else:
-                tp = expr.type
+                #需要考虑表达式为ref参数的问题
+                tp = copy.deepcopy(expr.type)
+                tp.is_ref = False
         else:
             #指定类型
             if var_tp.is_void:
