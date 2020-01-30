@@ -222,6 +222,48 @@ public class HashMap<K, V>
         return new HashMapIter<K, V>(this, this.elem_node_head.next_elem_node);
     }
 
+    public Iter<K> key_iter()
+    {
+        var it = this.iter();
+        return []{
+            public K get()
+            {
+                return it.key();
+            }
+
+            public bool after_end()
+            {
+                return it.after_end();
+            }
+
+            public void inc()
+            {
+                it.inc();
+            }
+        };
+    }
+
+    public Iter<K> value_iter()
+    {
+        var it = this.iter();
+        return []{
+            public K get()
+            {
+                return it.value();
+            }
+
+            public bool after_end()
+            {
+                return it.after_end();
+            }
+
+            public void inc()
+            {
+                it.inc();
+            }
+        };
+    }
+
     public HashMapIter<K, V> find(K k)
     {
         HashMapNode<K, V> node;
