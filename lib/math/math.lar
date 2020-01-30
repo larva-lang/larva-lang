@@ -43,6 +43,6 @@ public bool is_inf(double x)
 public bool is_nan(double x)
 {
     !<<
-    return math.IsNan(l_x)
+    return math.IsNaN(l_x)
     !>>
 }
