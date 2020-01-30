@@ -26,6 +26,13 @@ public class Re
         !>>
     }
 
+    public bool match(String s)
+    {
+        !<<
+        return this.r.MatchString(lar_str_to_go_str(l_s))
+        !>>
+    }
+
     public Pair<long, long>[] find_groups(String s)
     {
         long idx_count;
