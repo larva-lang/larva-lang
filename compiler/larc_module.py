@@ -55,6 +55,8 @@ need_update_git = False
 std_lib_dir = None
 usr_lib_dir = None
 
+updated_git_repo_paths = set()  #记录被更新或clone的git repo，避免重复进行
+
 def find_module_file(module_name):
     t = dep_module_token_map.get(module_name)
     if t is None:
@@ -73,7 +75,7 @@ def find_module_file(module_name):
         #git模块，若repo不存在则先clone，然后再找，若存在并指定了-u选项，则pull
         git_repo_path = usr_lib_dir + "/" + git_repo
         if os.path.exists(git_repo_path):
-            if need_update_git:
+            if need_update_git and git_repo_path not in updated_git_repo_paths:
                 larc_common.verbose_log("通过'git pull'更新模块'%s'" % module_name)
                 try:
                     p = subprocess.Popen(["git", "pull"], stdout = subprocess.PIPE, stderr = subprocess.PIPE, cwd = git_repo_path)
@@ -82,6 +84,7 @@ def find_module_file(module_name):
                 rc = p.wait()
                 if rc != 0:
                     err_exit("通过git pull更新项目'%s'失败" % git_repo)
+                updated_git_repo_paths.add(git_repo_path)
         else:
             larc_common.verbose_log("通过'git clone'获取模块'%s'" % module_name)
             git_repo_tmp_path = git_repo_path + ".tmp"
@@ -96,6 +99,7 @@ def find_module_file(module_name):
                 if rc != 0:
                     err_exit("通过git clone获取项目'%s'失败" % git_repo)
                 shutil.move(git_repo_tmp_path, git_repo_path)
+                updated_git_repo_paths.add(git_repo_path)
             finally:
                 shutil.rmtree(git_repo_tmp_path, True)
         module_path = git_repo_path + "/" + "/".join(mnpl)
