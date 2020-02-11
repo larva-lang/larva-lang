@@ -466,19 +466,19 @@ def _gen_arg_def(arg_map, with_lar_fiber = True):
 
 _main_pkg_file = None
 
-_BOOTER_START_PROC_FUNC_NAME = "Lar_booter_start_prog"
+_BOOTER_START_PROG_FUNC_NAME = "Lar_booter_start_prog"
 
 def _output_main_pkg():
     with _Code(_main_pkg_file, "main") as code:
         with code.new_blk("import"):
             code += '"%s"' % _prog_module_name
         with code.new_blk("func main()"):
-            code += "%s.%s()" % (_prog_module_name, _BOOTER_START_PROC_FUNC_NAME)
+            code += "%s.%s()" % (_prog_module_name, _BOOTER_START_PROG_FUNC_NAME)
 
 def _output_booter():
     with _Code("%s/%s.booter.go" % (_out_prog_dir, _prog_module_name)) as code:
         init_std_lib_internal_modules_func_name = "init_std_lib_internal_modules"
-        with code.new_blk("func %s()" % _BOOTER_START_PROC_FUNC_NAME):
+        with code.new_blk("func %s()" % _BOOTER_START_PROG_FUNC_NAME):
             with code.new_blk("var %s = func (lar_fiber *lar_go_stru_fiber)" % init_std_lib_internal_modules_func_name):
                 code += "%s(lar_fiber)" % _gen_init_mod_func_name(larc_module.builtins_module) #保证内建模块先初始化
                 for mn in larc_common.STD_LIB_INTERNAL_MODULES:
