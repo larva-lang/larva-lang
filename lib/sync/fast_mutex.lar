@@ -1,0 +1,34 @@
+//类似Mutex，但是不考虑context，直接用原生的
+
+!<<
+
+import (
+    "sync"
+)
+
+!>>
+
+public class FastMutex
+{
+    !<<
+    m sync.Mutex
+    !>>
+
+    public FastMutex()
+    {
+    }
+
+    public void lock()
+    {
+        !<<
+        this.m.Lock()
+        !>>
+    }
+
+    public void unlock()
+    {
+        !<<
+        this.m.Unlock()
+        !>>
+    }
+}
