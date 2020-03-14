@@ -31,6 +31,18 @@ public class Reader
         return this.buf_data.size();
     }
 
+    //读取一个字符，若EOF则返回false，否则读取成功返回true
+    public bool read_char(ref char c)
+    {
+        if (this.fill_buf() == 0)
+        {
+            return false;
+        }
+        c = this.buf_data[0];
+        this.buf_data = this.buf_data[1 :];
+        return true;
+    }
+
     public long read(char[] b)
     {
         long dst_buf_size = b.size();
@@ -38,11 +50,18 @@ public class Reader
             throw(new ValueError("read参数为空buf"));
         }
 
-        long buf_data_size = this.buf_data.size();
-        if (buf_data_size == 0)
+        if (this.buf_data_size() == 0)
         {
-            //buf没数据，直接读就行了
-            return this.r.read(b);
+            //buf没数据，对于大的数据请求直接读，小的则fill buf
+            if (dst_buf_size >= this.buf_size())
+            {
+                return this.r.read(b);
+            }
+            if (this.fill_buf() == 0)
+            {
+                //读到末尾了
+                return 0;
+            }
         }
 
         //buf有数据，拷贝过去
@@ -52,13 +71,55 @@ public class Reader
         return copy_size;
     }
 
+    //读取数据直到EOF或b被填满
+    public long read_until_eof(char[] b)
+    {
+        long b_sz = b.size(), read_sz = 0;
+        while (read_sz < b_sz)
+        {
+            long sz = this.read(b[read_sz :]);
+            if (sz == 0)
+            {
+                break;
+            }
+            read_sz += sz;
+        }
+        return read_sz;
+    }
+
+    //读取数据直到EOF、或读到指定字符、或b被填满，如读到指定字符结束，则包含指定字符，即指定字符为返回长度指定的范围内的最后一个字符
+    public long read_until_char(char[] b, char end_char)
+    {
+        long b_sz = b.size(), read_sz = 0;
+        while (read_sz < b_sz)
+        {
+            if (this.fill_buf() == 0)
+            {
+                break;
+            }
+            var data_to_copy = this.buf_data;
+            long idx = data_to_copy.index(end_char);
+            if (idx >= 0)
+            {
+                data_to_copy = data_to_copy[: idx + 1];
+            }
+            long copy_size = b[read_sz :].shallow_copy_from(data_to_copy);
+            this.buf_data = this.buf_data[copy_size :];
+            read_sz += copy_size;
+            if (b[read_sz - 1] == end_char)
+            {
+                break;
+            }
+        }
+        return read_sz;
+    }
+
     public String read_line()
     {
         util.Vector<String> sl = nil;
         for (;;)
         {
-            long buf_data_size = this.fill_buf();
-            if (buf_data_size == 0)
+            if (this.fill_buf() == 0)
             {
                 //读到末尾了
                 if (sl === nil)
@@ -93,16 +154,14 @@ public class Reader
 
     long fill_buf()
     {
-        long buf_data_size = this.buf_data.size();
-        if (buf_data_size > 0)
+        long buf_data_size = this.buf_data_size();
+        if (buf_data_size == 0)
         {
-            //buf有数据就不需要fill
-            return buf_data_size;
+            //buf没有数据才需要fill，读取数据到buf中
+            buf_data_size = this.r.read(this.buf);
+            this.buf_data = this.buf[: buf_data_size];
         }
-        //读取数据到buf中
-        long n = this.r.read(this.buf);
-        this.buf_data = this.buf[: n];
-        return n;
+        return buf_data_size;
     }
 
     void drop_buf_data()
