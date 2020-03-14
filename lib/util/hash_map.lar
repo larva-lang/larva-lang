@@ -182,6 +182,17 @@ public class HashMap<K, V>
         return this.get_or_pop(k, false);
     }
 
+    public V get_or_default(K k, V default_v)
+    {
+        HashMapNode<K, V> node;
+        this.find_node(this.tbl, k, ref node);
+        if (node === nil)
+        {
+            return default_v;
+        }
+        return node.v;
+    }
+
     public V pop(K k)
     {
         return this.get_or_pop(k, true);
