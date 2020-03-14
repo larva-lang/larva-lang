@@ -250,6 +250,20 @@ public class String
         !>>
     }
 
+    public String to_lower()
+    {
+        !<<
+        return lar_str_from_go_str(strings.ToLower(this.s))
+        !>>
+    }
+
+    public String to_upper()
+    {
+        !<<
+        return lar_str_from_go_str(strings.ToUpper(this.s))
+        !>>
+    }
+
     public bool parse_bool()
     {
         bool r, ok;
