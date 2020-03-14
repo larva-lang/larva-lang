@@ -1,0 +1,66 @@
+!<<
+
+import (
+    "sync/atomic"
+    "unsafe"
+)
+
+!>>
+
+public T load<T>(ref T rt)
+{
+#if typein(T, {int})
+    !<<
+    return atomic.LoadInt32(l_rt)
+    !>>
+#elif typein(T, {uint})
+    !<<
+    return atomic.LoadUint32(l_rt)
+    !>>
+#elif typein(T, {long})
+    !<<
+    return atomic.LoadInt64(l_rt)
+    !>>
+#elif typein(T, {ulong})
+    !<<
+    return atomic.LoadUint64(l_rt)
+    !>>
+#elif typeisprimitive(T)
+    #error "int、uint、long、ulong之外的基础类型不可做atomic.load"
+#elif typeisinterface(T)
+    #error "接口类型不可做atomic.load"
+#else
+    !<<
+    return (@<<{T}>>)(atomic.LoadPointer((*unsafe.Pointer)(unsafe.Pointer(l_rt))))
+    !>>
+#endif
+}
+
+public void store<T>(ref T rt, T t)
+{
+#if typein(T, {int})
+    !<<
+    atomic.StoreInt32(l_rt, l_t)
+    !>>
+#elif typein(T, {uint})
+    !<<
+    atomic.StoreUint32(l_rt, l_t)
+    !>>
+#elif typein(T, {long})
+    !<<
+    atomic.StoreInt64(l_rt, l_t)
+    !>>
+#elif typein(T, {ulong})
+    !<<
+    atomic.StoreUint64(l_rt, l_t)
+    !>>
+#elif typeisprimitive(T)
+    #error "int、uint、long、ulong之外的基础类型不可做atomic.store"
+#elif typeisinterface(T)
+    #error "接口类型不可做atomic.store"
+#else
+    !<<
+    atomic.StorePointer((*unsafe.Pointer)(unsafe.Pointer(l_rt)), unsafe.Pointer(l_t))
+    !>>
+#endif
+}
