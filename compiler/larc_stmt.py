@@ -515,7 +515,7 @@ class Parser:
         t = ccc_if_token_list.pop()
         if t.is_ccc_func_name:
             ccc_func_name = t.value
-            if ccc_func_name in ("typein", "typeimplements", "typeisprimitive", "typeisarray"):
+            if ccc_func_name in ("typein", "typeimplements", "typeisprimitive", "typeisarray", "typeisinterface"):
                 ccc_if_token_list.pop_sym("(")
                 t, tp_arg = parse_type()
                 if ccc_func_name == "typein":
@@ -547,6 +547,12 @@ class Parser:
                     result = intf_tp.can_convert_from(tp_arg)
                 elif ccc_func_name == "typeisprimitive":
                     result = tp_arg.is_primitive
+                elif ccc_func_name == "typeisinterface":
+                    result = False
+                    if tp_arg.is_coi_type:
+                        tp_coi = tp_arg.get_coi()
+                        if tp_coi.is_intf or tp_coi.is_gintf_inst:
+                            result = True
                 elif ccc_func_name == "typeisarray":
                     result = tp_arg.is_array
                 else:
