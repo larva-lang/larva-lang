@@ -64,3 +64,26 @@ public void store<T>(ref T rt, T t)
     !>>
 #endif
 }
+
+public T add<T>(ref T rt, T t)
+{
+#if typein(T, {int})
+    !<<
+    return atomic.AddInt32(l_rt, l_t)
+    !>>
+#elif typein(T, {uint})
+    !<<
+    return atomic.AddUint32(l_rt, l_t)
+    !>>
+#elif typein(T, {long})
+    !<<
+    return atomic.AddInt64(l_rt, l_t)
+    !>>
+#elif typein(T, {ulong})
+    !<<
+    return atomic.AddUint64(l_rt, l_t)
+    !>>
+#else
+    #error "类型不可做atomic.add"
+#endif
+}

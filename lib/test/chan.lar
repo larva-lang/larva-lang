@@ -2,7 +2,6 @@ import testing, fiber;
 
 T chan_elem_zero_value<T>(Chan<T> ch)
 {
-    return zero_value<T>();
 }
 
 void test_chan()

@@ -83,6 +83,7 @@ public class String
             !<<
             s := this.s
             sl := len(s)
+            l_h = uint64(sl)
             for i := 0; i < sl; i ++ {
                 l_h = (l_h + uint64(s[i])) * 1000003
             }

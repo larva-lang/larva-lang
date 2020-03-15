@@ -5,6 +5,7 @@ import time;
 import (
     "context"
     "time"
+    "runtime"
 )
 
 type lar_go_stru_fiber struct {
@@ -85,6 +86,13 @@ func lar_go_func_new_fiber_ctx_with_timeout(lar_fiber *lar_go_stru_fiber, name s
 }
 
 !>>
+
+public void set_proc_count(int count)
+{
+    !<<
+    runtime.GOMAXPROCS(int(l_count))
+    !>>
+}
 
 public void start_new(Callable callee)
 {
