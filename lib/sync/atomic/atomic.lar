@@ -5,6 +5,11 @@ import (
     "unsafe"
 )
 
+func init() {
+    _ = atomic.LoadInt32
+    _ = unsafe.Pointer(nil)
+}
+
 !>>
 
 public T load<T>(ref T rt)
