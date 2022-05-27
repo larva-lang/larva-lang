@@ -90,11 +90,23 @@ Larva编译器
     compiler_dir = larva_dir + "/compiler"
     std_lib_dir = larva_dir + "/lib"
     assert os.path.isdir(std_lib_dir)
-    usr_lib_dir_original = os.getenv("LARVA_USR_LIB_DIR", "~/larva")
+    default_ulib_dir = larva_dir + "/ulib"
+    if not os.path.isdir(default_ulib_dir):
+        try:
+            os.makedirs(default_ulib_dir)
+        except OSError:
+            larc_common.exit("创建默认用户库目录[%s]失败" % default_ulib_dir)
+    usr_lib_dir_original = os.getenv("LARVA_USR_LIB_DIR", default_ulib_dir)
     usr_lib_dir = os.path.realpath(larc_common.abs_path(usr_lib_dir_original))
     if not os.path.isdir(usr_lib_dir):
         larc_common.exit("无效的用户库路径：[%s]不存在或不是一个目录" % usr_lib_dir_original)
-    tmp_dir_original = os.getenv("LARVA_TMP_DIR", "~/tmp")
+    default_tmp_dir = larva_dir + "/tmp"
+    if not os.path.isdir(default_tmp_dir):
+        try:
+            os.makedirs(default_tmp_dir)
+        except OSError:
+            larc_common.exit("创建默认临时工作目录[%s]失败" % default_tmp_dir)
+    tmp_dir_original = os.getenv("LARVA_TMP_DIR", default_tmp_dir)
     tmp_dir = os.path.realpath(larc_common.abs_path(tmp_dir_original))
     if not os.path.isdir(tmp_dir):
         larc_common.exit("无效的临时工作目录：[%s]不存在或不是一个目录" % tmp_dir_original)

@@ -31,7 +31,7 @@ dict([(k, v.strip("\n")) for k, v in {
             模块目录必须存在且必须在标准库或用户库下
             例：
                 /home/me/git/larva-lang/lib/test/test/
-                ~/larva/a/b
+                /home/me/git/larva-lang/ulib/a/b
                 ../x/./y
 """,
 }.iteritems()])
