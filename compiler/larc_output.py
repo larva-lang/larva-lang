@@ -960,6 +960,7 @@ def _make_prog():
         if rc != 0:
             larc_common.exit("通过go env获取GOPATH失败")
         go_path = p.stdout.read().strip()
+        os.environ["GO111MODULE"] = "off"
         os.environ["GOPATH"] = out_dir + ":" + go_path
         rc = os.system("go build -o %s %s" % (_exe_file, _main_pkg_file))
         if rc != 0:
